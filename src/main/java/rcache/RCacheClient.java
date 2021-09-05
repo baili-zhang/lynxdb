@@ -23,7 +23,7 @@ public class RCacheClient {
 
         try {
             while (isConnectionHold) {
-                System.out.print("RCache >");
+                System.out.print("RCache > ");
 
                 String command = scanner.nextLine();
                 outputStream.writeUTF(command);
