@@ -25,7 +25,7 @@ public class RCacheClient {
             while (isConnectionHold) {
                 System.out.print("RCache >");
 
-                String command = scanner.next();
+                String command = scanner.nextLine();
                 outputStream.writeUTF(command);
                 outputStream.flush();
 

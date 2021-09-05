@@ -12,16 +12,13 @@ public class RCacheServer {
     private static final int PORT = 7820;
 
     public static void main(String[] args) throws IOException {
-        // init HashTable
-
-        // init thread pool
-
         ServerSocket serverSocket = new ServerSocket(PORT);
 
         try {
             while(true) {
-                Socket socket = serverSocket.accept();
+                System.out.println("RCache is running, waiting for connect...");
 
+                Socket socket = serverSocket.accept();
                 new Thread(new Worker(socket)).start();
             }
         } catch (Exception e) {
