@@ -1,5 +1,7 @@
 package rcache;
 
+import rcache.engine.Cacheable;
+import rcache.engine.simple.SimpleEngine;
 import rcache.worker.Worker;
 
 import java.io.IOException;
@@ -14,12 +16,17 @@ public class RCacheServer {
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(PORT);
 
+        /***
+         * create cache storage engine
+         */
+        Cacheable cacheEngine = new SimpleEngine();
+
         try {
             while(true) {
                 System.out.println("RCache is running, waiting for connect...");
 
                 Socket socket = serverSocket.accept();
-                new Thread(new Worker(socket)).start();
+                new Thread(new Worker(socket, cacheEngine)).start();
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,7 +1,9 @@
 package rcache.worker;
 
-import rcache.engine.CommandResolver;
-import rcache.engine.Executor;
+import rcache.engine.Cacheable;
+import rcache.executor.Command;
+import rcache.executor.Executor;
+import rcache.executor.ResultSet;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -12,10 +14,12 @@ import java.net.Socket;
 public class Worker implements Runnable {
     private Socket socket;
     private boolean isConnectionHold;
+    private Cacheable cacheEngine;
 
-    public Worker(Socket socket) {
+    public Worker(Socket socket, Cacheable cacheEngine) {
         this.socket = socket;
         this.isConnectionHold = true;
+        this.cacheEngine = cacheEngine;
     }
 
     @Override
@@ -26,8 +30,18 @@ public class Worker implements Runnable {
 
             while (isConnectionHold) {
                 String commandLine = inputStream.readUTF();
-                String[] commandArray = CommandResolver.line(commandLine);
-                isConnectionHold = Executor.execute(commandArray, outputStream);
+
+                Command command = new Command(commandLine);
+                command.resolve();
+
+                Executor executor = new Executor(cacheEngine);
+                ResultSet resultSet = executor.execute(command);
+
+                isConnectionHold = resultSet.isConnectionHold();
+
+                outputStream.writeUTF(resultSet.getResponse().format());
+                outputStream.writeUTF("OVER");
+
                 outputStream.flush();
             }
 
