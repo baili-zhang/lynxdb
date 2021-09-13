@@ -1,10 +1,12 @@
 package rcache.executor;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import rcache.response.Response;
 
 @Data
-public class ResultSet<V> {
+@AllArgsConstructor
+public class ResultSet {
     private boolean isConnectionHold;
     private Response response;
 }

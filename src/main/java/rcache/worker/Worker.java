@@ -1,7 +1,8 @@
 package rcache.worker;
 
+import rcache.command.CommandFactory;
 import rcache.engine.Cacheable;
-import rcache.executor.Command;
+import rcache.command.Command;
 import rcache.executor.Executor;
 import rcache.executor.ResultSet;
 
@@ -31,16 +32,17 @@ public class Worker implements Runnable {
             while (isConnectionHold) {
                 String commandLine = inputStream.readUTF();
 
-                Command command = new Command(commandLine);
-                command.resolve();
+                Command command = new CommandFactory().getCommand(commandLine);
+                if(command != null) {
+                    Executor executor = new Executor(cacheEngine);
+                    ResultSet resultSet = executor.execute(command);
 
-                Executor executor = new Executor(cacheEngine);
-                ResultSet resultSet = executor.execute(command);
+                    isConnectionHold = resultSet.isConnectionHold();
 
-                isConnectionHold = resultSet.isConnectionHold();
-
-                outputStream.writeUTF(resultSet.getResponse().format());
-                outputStream.writeUTF("OVER");
+                    outputStream.writeUTF(resultSet.getResponse().format());
+                } else {
+                    outputStream.writeUTF("Error Method !");
+                }
 
                 outputStream.flush();
             }
