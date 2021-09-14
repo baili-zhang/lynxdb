@@ -1,12 +1,16 @@
 package rcache;
 
+import rcache.common.ChannelType;
 import rcache.engine.Cacheable;
 import rcache.engine.simple.SimpleEngine;
-import rcache.worker.Worker;
+import rcache.executor.Reactor;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 
 public class RCacheServer {
     private static final int WORKER_NUMBER = 20;
@@ -14,25 +18,24 @@ public class RCacheServer {
     private static final int PORT = 7820;
 
     public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(PORT);
-
         /***
          * create cache storage engine
          */
-        Cacheable cacheEngine = new SimpleEngine();
+        Cacheable cache = new SimpleEngine();
 
-        try {
-            while(true) {
-                System.out.println("RCache is running, waiting for connect...");
+        Selector selector = Selector.open();
 
-                Socket socket = serverSocket.accept();
-                new Thread(new Worker(socket, cacheEngine)).start();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            serverSocket.close();
-        }
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        ServerSocket serverSocket = serverSocketChannel.socket();
+        serverSocket.bind(new InetSocketAddress(PORT));
+        SelectionKey selectionKey = serverSocketChannel.register(selector,
+                SelectionKey.OP_ACCEPT, ChannelType.SERVER_SOCKET_CHANNEL);
+
+        /**
+         * run reactor to accept connection
+         */
+        new Reactor(selector, selectionKey, cache).run();
 
     }
 }
