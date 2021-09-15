@@ -1,6 +1,5 @@
 package rcache;
 
-import rcache.common.ChannelType;
 import rcache.engine.Cacheable;
 import rcache.engine.simple.SimpleEngine;
 import rcache.executor.Reactor;
@@ -30,7 +29,7 @@ public class RCacheServer {
         ServerSocket serverSocket = serverSocketChannel.socket();
         serverSocket.bind(new InetSocketAddress(PORT));
         SelectionKey selectionKey = serverSocketChannel.register(selector,
-                SelectionKey.OP_ACCEPT, ChannelType.SERVER_SOCKET_CHANNEL);
+                SelectionKey.OP_ACCEPT);
 
         /**
          * run reactor to accept connection

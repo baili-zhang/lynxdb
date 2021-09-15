@@ -1,4 +1,7 @@
 package rcache.executor;
 
-public class Acceptor {
+public class Acceptor implements Runnable {
+    @Override
+    public void run() {
+    }
 }

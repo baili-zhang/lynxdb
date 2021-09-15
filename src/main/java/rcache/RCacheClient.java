@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Scanner;
 
 public class RCacheClient {
@@ -29,8 +30,10 @@ public class RCacheClient {
                 outputStream.writeUTF(command);
                 outputStream.flush();
 
-                String response = inputStream.readUTF();
-                System.out.println(response);
+                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+                byte[] response = byteBuffer.array();
+                int n = inputStream.read(response);
+                System.out.println(new String(response, 0, n));
 
                 if(response.equals("close")) {
                     isConnectionHold = false;
