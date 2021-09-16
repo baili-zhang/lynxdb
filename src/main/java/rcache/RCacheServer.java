@@ -3,6 +3,10 @@ package rcache;
 import rcache.engine.Cacheable;
 import rcache.engine.simple.SimpleEngine;
 import rcache.executor.Reactor;
+import rcache.reactor.EventType;
+import rcache.reactor.InitiationDispatcher;
+import rcache.reactor.SynchronousEventDemultiplexer;
+import rcache.reactor.handler.AcceptEventHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,19 +26,18 @@ public class RCacheServer {
          */
         Cacheable cache = new SimpleEngine();
 
-        Selector selector = Selector.open();
+        SynchronousEventDemultiplexer demultiplexer = new SynchronousEventDemultiplexer();
+        InitiationDispatcher dispatcher = new InitiationDispatcher(demultiplexer);
+        dispatcher.registerHandler(new AcceptEventHandler(), EventType.ACCEPT_EVENT);
+
+      /*  Selector selector = Selector.open();
 
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
         ServerSocket serverSocket = serverSocketChannel.socket();
         serverSocket.bind(new InetSocketAddress(PORT));
         SelectionKey selectionKey = serverSocketChannel.register(selector,
-                SelectionKey.OP_ACCEPT);
-
-        /**
-         * run reactor to accept connection
-         */
-        new Reactor(selector, selectionKey, cache).run();
+                SelectionKey.OP_ACCEPT);*/
 
     }
 }
