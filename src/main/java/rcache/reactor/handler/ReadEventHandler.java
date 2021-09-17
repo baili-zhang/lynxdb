@@ -34,12 +34,12 @@ public class ReadEventHandler extends EventHandler {
         } catch (Exception e) {
             System.out.println("socketChannel.read fail, close socket !");
             close(socketChannel);
-            e.printStackTrace();
         }
 
         try {
             Dispatcher dispatcher = Dispatcher.getInstance();
             dispatcher.registerHandler(new WriteEventHandler(selectionKey), EventType.WRITE_EVENT);
+            dispatcher.removeHandlingEvent(selectionKey);
         } catch (Exception e) {
             e.printStackTrace();
         }

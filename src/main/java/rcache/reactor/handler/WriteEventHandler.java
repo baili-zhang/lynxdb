@@ -54,5 +54,7 @@ public class WriteEventHandler extends EventHandler {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        dispatcher.removeHandlingEvent(selectionKey);
     }
 }

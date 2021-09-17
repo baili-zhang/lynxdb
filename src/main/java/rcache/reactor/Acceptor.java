@@ -39,6 +39,7 @@ public class Acceptor extends EventHandler {
 
             Dispatcher dispatcher = Dispatcher.getInstance();
             dispatcher.registerHandler(new ReadEventHandler(readSelectionKey), EventType.READ_EVENT);
+            dispatcher.removeHandlingEvent(selectionKey);
         } catch (Exception e) {
             e.printStackTrace();
         }

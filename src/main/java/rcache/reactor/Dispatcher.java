@@ -3,18 +3,21 @@ package rcache.reactor;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 public class Dispatcher {
-    private Selector selector;
+    private volatile Selector selector;
     private HashMap<SelectionKey, EventHandler> keyHandlerMap;
+    private Set<SelectionKey> handlingEvent;
 
     private static Dispatcher dispatcher;
 
     private Dispatcher(Selector selector) {
         this.selector = selector;
         keyHandlerMap = new HashMap<>();
+        handlingEvent = new HashSet<>();
     }
 
     synchronized public static void init(Selector selector) {
@@ -37,9 +40,11 @@ public class Dispatcher {
         switch (eventType) {
             case READ_EVENT:
                 key.interestOps(SelectionKey.OP_READ);
+                selector.wakeup();
                 break;
             case WRITE_EVENT:
                 key.interestOps(SelectionKey.OP_WRITE);
+                selector.wakeup();
                 break;
             case TIMEOUT_EVENT:
 
@@ -51,6 +56,14 @@ public class Dispatcher {
         keyHandlerMap.remove(eventHandler.getSelectionKey());
     }
 
+    public void registerHandlingEvent(SelectionKey selectionKey) {
+        handlingEvent.add(selectionKey);
+    }
+
+    public void removeHandlingEvent(SelectionKey selectionKey) {
+        handlingEvent.remove(selectionKey);
+    }
+
     public void handleEvents() throws IOException {
         selector.select();
         Set<SelectionKey> selectionKeys = selector.selectedKeys();
@@ -59,7 +72,10 @@ public class Dispatcher {
         while (iterator.hasNext()) {
             SelectionKey selectionKey = iterator.next();
             EventHandler eventHandler = keyHandlerMap.get(selectionKey);
-            WorkerPool.getInstance().execute(eventHandler);
+            if(eventHandler != null && !handlingEvent.contains(eventHandler.getSelectionKey())) {
+                WorkerPool.getInstance().execute(eventHandler);
+                registerHandlingEvent(eventHandler.getSelectionKey());
+            }
             iterator.remove();
         }
     }
