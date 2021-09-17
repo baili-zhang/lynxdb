@@ -1,9 +1,11 @@
 package rcache.reactor;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
+@AllArgsConstructor
 public class Handle {
-    private EventType type;
     private EventHandler eventHandler;
+    private EventType type;
 }

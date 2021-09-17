@@ -30,6 +30,10 @@ public class RCacheServer {
         InitiationDispatcher dispatcher = new InitiationDispatcher(demultiplexer);
         dispatcher.registerHandler(new AcceptEventHandler(), EventType.ACCEPT_EVENT);
 
+        while (true) {
+            dispatcher.handleEvents();
+        }
+
       /*  Selector selector = Selector.open();
 
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
