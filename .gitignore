@@ -1,3 +1,7 @@
+# build file
+/build
+/bin
+
 # Compiled class file
 *.class
 
