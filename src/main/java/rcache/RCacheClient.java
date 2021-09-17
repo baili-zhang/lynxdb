@@ -31,11 +31,12 @@ public class RCacheClient {
                 outputStream.flush();
 
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                byte[] response = byteBuffer.array();
-                int n = inputStream.read(response);
-                System.out.println(new String(response, 0, n));
+                byte[] bytes = byteBuffer.array();
+                int n = inputStream.read(bytes);
+                String response = new String(bytes, 0, n);
+                System.out.println(response);
 
-                if(response.equals("close")) {
+                if(response.trim().equals("[Close Connection]")) {
                     isConnectionHold = false;
                 }
             }

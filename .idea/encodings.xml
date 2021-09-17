@@ -2,8 +2,7 @@
 <project version="4">
   <component name="Encoding" native2AsciiForPropertiesFiles="true" defaultCharsetForPropertiesFiles="UTF-8">
     <file url="file://$PROJECT_DIR$/src/main/java/rcache/command/Command.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/src/main/java/rcache/command/Command.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/src/main/java/rcache/engine/simple/SimpleEngine.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/main/java/rcache/engine/simple/SimpleCache.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/java/rcache/executor/Executor.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/java/rcache/worker/Worker.java" charset="GBK" />
     <file url="PROJECT" charset="UTF-8" />

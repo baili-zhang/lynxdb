@@ -4,9 +4,16 @@ import rcache.engine.Cacheable;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SimpleEngine implements Cacheable<String, String> {
+public class SimpleCache implements Cacheable<String, String> {
+    private static SimpleCache cache = new SimpleCache();
 
-    private static ConcurrentHashMap stringHashMap = new ConcurrentHashMap<String, String>();
+    private ConcurrentHashMap stringHashMap = new ConcurrentHashMap<String, String>();
+
+    private SimpleCache() {}
+
+    public static SimpleCache getInstance() {
+        return cache;
+    }
 
     @Override
     public void set(String key, String value) {
