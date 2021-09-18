@@ -1,25 +1,23 @@
-package rcache;
+package moonlight;
 
-import rcache.engine.Cacheable;
-import rcache.engine.simple.SimpleCache;
-import rcache.reactor.Acceptor;
-import rcache.reactor.EventType;
-import rcache.reactor.Dispatcher;
-import rcache.reactor.WorkerPool;
+import moonlight.reactor.Acceptor;
+import moonlight.reactor.EventType;
+import moonlight.reactor.Dispatcher;
+import moonlight.reactor.WorkerPool;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class RCacheServer {
+public class MoonlightServer {
     private static final int WORKER_NUMBER = 20;
 
     private static final int PORT = 7820;
 
     public static void main(String[] args) throws IOException {
         /* create and init a worker pool */
-        WorkerPool.init(10, 30, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(200));
+        WorkerPool.init(100, 300, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10000));
 
         Selector selector = Selector.open();
 

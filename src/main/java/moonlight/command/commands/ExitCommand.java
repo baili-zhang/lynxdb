@@ -1,6 +1,6 @@
-package rcache.command.commands;
+package moonlight.command.commands;
 
-import rcache.command.Command;
+import moonlight.command.Command;
 
 public class ExitCommand extends Command {
     public ExitCommand() {

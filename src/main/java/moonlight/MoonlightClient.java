@@ -1,4 +1,4 @@
-package rcache;
+package moonlight;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -9,7 +9,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 
-public class RCacheClient {
+public class MoonlightClient {
     private static final int PORT = 7820;
     private static final String HOST = "127.0.0.1";
 

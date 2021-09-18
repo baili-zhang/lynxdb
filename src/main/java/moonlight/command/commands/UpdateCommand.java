@@ -1,17 +1,18 @@
-package rcache.command.commands;
+package moonlight.command.commands;
 
-import rcache.command.Command;
-import rcache.engine.simple.SimpleCache;
+import moonlight.command.Command;
+import moonlight.engine.simple.SimpleCache;
 
-public class DeleteCommand extends Command {
-    public DeleteCommand(String key) {
-        super(key, null);
+public class UpdateCommand extends Command {
+
+    public UpdateCommand(String key, String value) {
+        super(key, value);
     }
 
     @Override
     public Command exec() {
         if(SimpleCache.getInstance().get(key) != null) {
-            SimpleCache.getInstance().delete(key);
+            SimpleCache.getInstance().update(key, value);
             isKeyExisted = true;
         } else {
             isKeyExisted = false;

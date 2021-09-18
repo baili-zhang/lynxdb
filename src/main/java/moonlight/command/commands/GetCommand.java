@@ -1,7 +1,7 @@
-package rcache.command.commands;
+package moonlight.command.commands;
 
-import rcache.command.Command;
-import rcache.engine.simple.SimpleCache;
+import moonlight.command.Command;
+import moonlight.engine.simple.SimpleCache;
 
 public class GetCommand extends Command {
 

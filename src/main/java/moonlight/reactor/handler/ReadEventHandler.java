@@ -1,10 +1,10 @@
-package rcache.reactor.handler;
+package moonlight.reactor.handler;
 
-import rcache.command.Command;
-import rcache.command.CommandFactory;
-import rcache.reactor.Dispatcher;
-import rcache.reactor.EventHandler;
-import rcache.reactor.EventType;
+import moonlight.command.Command;
+import moonlight.command.CommandFactory;
+import moonlight.reactor.Dispatcher;
+import moonlight.reactor.EventHandler;
+import moonlight.reactor.EventType;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -19,8 +19,14 @@ public class ReadEventHandler extends EventHandler {
     public void run() {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         ByteBuffer byteBuffer = (ByteBuffer) selectionKey.attachment();
+        Dispatcher dispatcher = Dispatcher.getInstance();
+
         try {
             int n = socketChannel.read(byteBuffer);
+            if(n < 0) {
+                dispatcher.removeHandlingEvent(selectionKey);
+                return;
+            }
             byteBuffer.flip();
 
             /* read command line from byteBuffer */
@@ -34,10 +40,10 @@ public class ReadEventHandler extends EventHandler {
         } catch (Exception e) {
             System.out.println("socketChannel.read fail, close socket !");
             close(socketChannel);
+            e.printStackTrace();
         }
 
         try {
-            Dispatcher dispatcher = Dispatcher.getInstance();
             dispatcher.registerHandler(new WriteEventHandler(selectionKey), EventType.WRITE_EVENT);
             dispatcher.removeHandlingEvent(selectionKey);
         } catch (Exception e) {

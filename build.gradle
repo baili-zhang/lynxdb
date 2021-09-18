@@ -19,7 +19,7 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'rcache.RCacheServer'
+        attributes 'Main-Class': 'moonlight.MoonlightServer'
     }
 }
 

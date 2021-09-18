@@ -3,7 +3,7 @@ build/
 bin/
 
 # idea
-.idea/*
+.idea/
 
 # Compiled class file
 *.class

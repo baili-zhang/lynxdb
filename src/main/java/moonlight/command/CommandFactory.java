@@ -1,6 +1,6 @@
-package rcache.command;
+package moonlight.command;
 
-import rcache.command.commands.*;
+import moonlight.command.commands.*;
 
 public class CommandFactory {
     public Command getCommand(String commandLine) {
