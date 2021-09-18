@@ -1,6 +1,9 @@
 # build file
-/build
-/bin
+build/
+bin/
+
+# idea
+.idea/*
 
 # Compiled class file
 *.class
