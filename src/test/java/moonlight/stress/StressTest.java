@@ -6,12 +6,13 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class Task implements Runnable {
 
     private static final int PORT = 7820;
     private static final String HOST = "127.0.0.1";
-    private static volatile int count = 0;
+    private static volatile AtomicInteger count = new AtomicInteger(0);
 
     @Override
     public void run() {
@@ -32,7 +33,7 @@ class Task implements Runnable {
                 if(!response.trim().split("\\s+")[0].equals("[OK]")) {
                     System.out.println(Thread.currentThread().getName() + "-" + i + " " + response);
                 } else {
-                    count ++;
+                    count.getAndIncrement();
                 }
             }
             inputStream.close();

@@ -20,7 +20,7 @@ public class MoonlightServer {
 
     public static void main(String[] args) throws IOException {
         /* create and init a worker pool */
-        WorkerPool.init(100, 300, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10000));
+        WorkerPool.init(20, 300, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000));
 
         Selector selector = Selector.open();
 
