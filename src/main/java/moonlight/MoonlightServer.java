@@ -1,7 +1,6 @@
 package moonlight;
 
 import moonlight.reactor.Acceptor;
-import moonlight.reactor.EventType;
 import moonlight.reactor.Dispatcher;
 import moonlight.reactor.WorkerPool;
 
@@ -20,7 +19,7 @@ public class MoonlightServer {
 
     public static void main(String[] args) throws IOException {
         /* create and init a worker pool */
-        WorkerPool.init(20, 300, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000));
+        WorkerPool.init(10, 30, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000));
 
         Selector selector = Selector.open();
 

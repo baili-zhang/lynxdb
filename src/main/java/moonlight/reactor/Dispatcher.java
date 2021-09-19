@@ -12,19 +12,22 @@ public class Dispatcher {
     }
 
     public void handleEvents() throws IOException {
-        selector.select();
-        Set<SelectionKey> selectionKeys = selector.selectedKeys();
-        Iterator<SelectionKey> iterator = selectionKeys.iterator();
+        synchronized (EventHandler.class) {
+            selector.select();
+            Set<SelectionKey> selectionKeys = selector.selectedKeys();
 
-        while (iterator.hasNext()) {
-            SelectionKey selectionKey = iterator.next();
-            Runnable handler = (Runnable) selectionKey.attachment();
+            Iterator<SelectionKey> iterator = selectionKeys.iterator();
 
-            if(handler != null) {
-                handler.run();
+            while (iterator.hasNext()) {
+                SelectionKey selectionKey = iterator.next();
+                Runnable handler = (Runnable) selectionKey.attachment();
+
+                if(handler != null) {
+                    handler.run();
+                }
+
+                iterator.remove();
             }
-
-            iterator.remove();
         }
     }
 }

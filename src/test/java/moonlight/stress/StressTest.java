@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class Task implements Runnable {
@@ -13,6 +14,7 @@ class Task implements Runnable {
     private static final int PORT = 7820;
     private static final String HOST = "127.0.0.1";
     private static volatile AtomicInteger count = new AtomicInteger(0);
+    private static volatile AtomicInteger fail = new AtomicInteger(0);
 
     @Override
     public void run() {
@@ -21,7 +23,7 @@ class Task implements Runnable {
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
             DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 1000; i++) {
                 String command = "set " + Thread.currentThread().getName() + "-" + i + " " + Thread.currentThread().getName() + "-" + i;
                 outputStream.writeUTF(command);
                 outputStream.flush();
@@ -32,6 +34,10 @@ class Task implements Runnable {
                 String response = new String(bytes, 0, n);
                 if(!response.trim().split("\\s+")[0].equals("[OK]")) {
                     System.out.println(Thread.currentThread().getName() + "-" + i + " " + response);
+                    fail.getAndIncrement();
+                    if(fail.get() == 1) {
+                        // System.out.println(count);
+                    }
                 } else {
                     count.getAndIncrement();
                 }
@@ -49,8 +55,18 @@ class Task implements Runnable {
 
 public class StressTest {
     public static void main(String[] args) {
-        for (int i = 0; i < 10; i++) {
+        Date begin = new Date();
+
+        for (int i = 0; i < 100; i++) {
             new Thread(new Task()).start();
         }
+
+        while (Thread.activeCount() > 2) {
+            Thread.yield();
+        }
+
+        Date end = new Date();
+
+        System.out.println("[TIME] " + (end.getTime() - begin.getTime()));
     }
 }
