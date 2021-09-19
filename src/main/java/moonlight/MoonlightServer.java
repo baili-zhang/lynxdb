@@ -6,7 +6,10 @@ import moonlight.reactor.Dispatcher;
 import moonlight.reactor.WorkerPool;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -21,12 +24,20 @@ public class MoonlightServer {
 
         Selector selector = Selector.open();
 
-        /* create and init a dispatcher */
-        Dispatcher.init(selector);
-        Dispatcher dispatcher = Dispatcher.getInstance();
-        dispatcher.registerHandler(new Acceptor(selector, PORT), EventType.ACCEPT_EVENT);
+        /* create a dispatcher */
+        Dispatcher dispatcher = new Dispatcher(selector);
 
-        System.out.println("RCache is running, waiting for connect...");
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.bind(new InetSocketAddress(PORT));
+        SelectionKey serverSelectionKey = serverSocketChannel.register(
+                selector,
+                SelectionKey.OP_ACCEPT,
+                new Acceptor(selector, serverSocketChannel)
+        );
+
+        System.out.println("Moonlight server is running, waiting for connect...");
+
         while (true) {
             dispatcher.handleEvents();
         }

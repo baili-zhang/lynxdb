@@ -1,45 +1,25 @@
 package moonlight.reactor;
 
-import moonlight.reactor.handler.ReadEventHandler;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-public class Acceptor extends EventHandler {
-
+public class Acceptor implements Runnable {
     private Selector selector;
+    private ServerSocketChannel serverSocketChannel;
 
-    public Acceptor (Selector selector, int port) throws IOException {
-        super();
-        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(new InetSocketAddress(port));
-        SelectionKey selectionKey = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        this.selectionKey = selectionKey;
+    public Acceptor (Selector selector, ServerSocketChannel serverSocketChannel) {
         this.selector = selector;
+        this.serverSocketChannel = serverSocketChannel;
     }
 
     @Override
     public void run() {
-        ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         try {
             SocketChannel socketChannel = serverSocketChannel.accept();
-            socketChannel.configureBlocking(false);
-
-            /* register socket channel and get the SelectionKey */
-            SelectionKey readSelectionKey = socketChannel.register(selector, SelectionKey.OP_READ);
-
-            /* set ByteBuffer for socket channel reading and writing */
-            readSelectionKey.attach(ByteBuffer.allocate(1024));
-
-            Dispatcher dispatcher = Dispatcher.getInstance();
-            dispatcher.registerHandler(new ReadEventHandler(readSelectionKey), EventType.READ_EVENT);
-            dispatcher.removeHandlingEvent(selectionKey);
+            new EventHandler(socketChannel, selector);
         } catch (Exception e) {
             e.printStackTrace();
         }

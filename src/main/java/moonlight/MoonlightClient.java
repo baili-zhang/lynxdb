@@ -24,7 +24,7 @@ public class MoonlightClient {
 
         try {
             while (isConnectionHold) {
-                System.out.print("RCache > ");
+                System.out.print("Moonlight > ");
 
                 String command = scanner.nextLine();
                 outputStream.writeUTF(command);
