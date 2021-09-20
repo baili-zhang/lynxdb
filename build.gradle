@@ -1,28 +1,17 @@
-plugins {
-    id 'java'
+allprojects {
+    group = 'moonlight'
+    version = '1.0-SNAPSHOT'
 }
 
-group 'org.example'
-version '1.0-SNAPSHOT'
-
-repositories {
-    mavenCentral()
+subprojects {
+    apply plugin: 'java'
 }
 
-dependencies {
-    implementation 'org.projectlombok:lombok:1.18.8'
-    annotationProcessor 'org.projectlombok:lombok:1.18.8'
+gradle.buildFinished {
+    copy {
+        from "server/build/libs/server-1.0-SNAPSHOT.jar"
+        from "client/build/libs/client-1.0-SNAPSHOT.jar"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
-}
-
-jar {
-    manifest {
-        attributes 'Main-Class': 'moonlight.MoonlightServer'
+        into "build/Moonlight-1.0.SNAPSHOT/"
     }
-}
-
-test {
-    useJUnitPlatform()
 }

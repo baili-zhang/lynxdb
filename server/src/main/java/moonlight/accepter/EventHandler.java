@@ -102,7 +102,6 @@ public class EventHandler implements Runnable {
         byteBuffer.clear();
         selectionKey.interestOps(SelectionKey.OP_READ);
         state = PROCESSED;
-        selector.wakeup();
     }
 
     public String execCommand(String commandLine) {
