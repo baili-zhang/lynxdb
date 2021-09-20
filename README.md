@@ -1,5 +1,7 @@
 # Moonlight
-a memory cache just for fun !
+A memory cache just for fun !
+
+1.0-SNAPSHOT is here: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
 
 ## Run moonlight server
 

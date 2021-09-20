@@ -12,6 +12,6 @@ gradle.buildFinished {
         from "server/build/libs/server-1.0-SNAPSHOT.jar"
         from "client/build/libs/client-1.0-SNAPSHOT.jar"
 
-        into "build/Moonlight-1.0.SNAPSHOT/"
+        into "build/Moonlight-1.0-SNAPSHOT/"
     }
 }
