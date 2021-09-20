@@ -25,7 +25,7 @@ public class WorkerPool {
         threadPoolExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
     }
 
-    public synchronized static void init (
+    public static void init (
             int corePoolSize,
             int maximumPoolSize,
             long keepAliveTime,

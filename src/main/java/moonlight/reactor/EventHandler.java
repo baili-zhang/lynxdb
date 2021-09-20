@@ -24,10 +24,8 @@ public class EventHandler implements Runnable {
         this.selector = selector;
         socketChannel.configureBlocking(false);
 
-        synchronized (EventHandler.class) {
-            this.selectionKey = socketChannel.register(selector, SelectionKey.OP_READ, this);
-            selector.wakeup();
-        }
+        this.selectionKey = socketChannel.register(selector, SelectionKey.OP_READ, this);
+        selector.wakeup();
     }
 
     @Override
@@ -63,54 +61,50 @@ public class EventHandler implements Runnable {
     }
 
     public void read() {
-        synchronized (EventHandler.class) {
-            try {
-                int n = socketChannel.read(byteBuffer);
-                if(n == -1) {
-                    return;
-                }
-                byteBuffer.flip();
-
-                String commandLine = new String(byteBuffer.array(), 0, n).trim();
-                System.out.println("[READ] Command line is: " + commandLine);
-                String result = execCommand(commandLine);
-                byteBuffer.clear();
-                byteBuffer.put(result.getBytes());
-            } catch (Exception e) {
-                System.out.println("socketChannel.read fail, close socket !");
-                close(socketChannel);
-                e.printStackTrace();
+        try {
+            int n = socketChannel.read(byteBuffer);
+            if(n == -1) {
+                return;
             }
+            byteBuffer.flip();
 
-            selectionKey.interestOps(SelectionKey.OP_WRITE);
-            state = PROCESSED;
-            selector.wakeup();
+            String commandLine = new String(byteBuffer.array(), 0, n).trim();
+            System.out.println("[READ] Command line is: " + commandLine);
+            String result = execCommand(commandLine);
+            byteBuffer.clear();
+            byteBuffer.put(result.getBytes());
+        } catch (Exception e) {
+            System.out.println("socketChannel.read fail, close socket !");
+            close(socketChannel);
+            e.printStackTrace();
         }
+
+        selectionKey.interestOps(SelectionKey.OP_WRITE);
+        state = PROCESSED;
+        selector.wakeup();
     }
 
     public void write() {
-        synchronized (EventHandler.class) {
-            byteBuffer.flip();
+        byteBuffer.flip();
 
-            /* client ask to disconnect or not */
-            boolean isConnectionOver = new String(byteBuffer.array()).trim().equals("[Close Connection]");
+        /* client ask to disconnect or not */
+        boolean isConnectionOver = new String(byteBuffer.array()).trim().equals("[Close Connection]");
 
-            try {
-                socketChannel.write(byteBuffer);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (isConnectionOver) {
-                close(socketChannel);
-                return;
-            }
-
-            byteBuffer.clear();
-            selectionKey.interestOps(SelectionKey.OP_READ);
-            state = PROCESSED;
-            selector.wakeup();
+        try {
+            socketChannel.write(byteBuffer);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+        if (isConnectionOver) {
+            close(socketChannel);
+            return;
+        }
+
+        byteBuffer.clear();
+        selectionKey.interestOps(SelectionKey.OP_READ);
+        state = PROCESSED;
+        selector.wakeup();
     }
 
     public String execCommand(String commandLine) {

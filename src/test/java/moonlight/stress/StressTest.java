@@ -54,10 +54,10 @@ class Task implements Runnable {
 }
 
 public class StressTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Date begin = new Date();
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1; i++) {
             new Thread(new Task()).start();
         }
 
