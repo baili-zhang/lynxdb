@@ -23,7 +23,7 @@ class Task implements Runnable {
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
             DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
-            for (int i = 0; i < 1000; i++) {
+            for (int i = 0; i < 1; i++) {
                 String command = "set " + Thread.currentThread().getName() + "-" + i + " " + Thread.currentThread().getName() + "-" + i;
                 outputStream.writeUTF(command);
                 outputStream.flush();
@@ -57,7 +57,7 @@ public class StressTest {
     public static void main(String[] args) throws Exception {
         Date begin = new Date();
 
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 3600; i++) {
             new Thread(new Task()).start();
         }
 

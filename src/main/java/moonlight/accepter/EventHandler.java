@@ -1,4 +1,4 @@
-package moonlight.reactor;
+package moonlight.accepter;
 
 import moonlight.command.Command;
 import moonlight.command.CommandFactory;
@@ -25,13 +25,12 @@ public class EventHandler implements Runnable {
         socketChannel.configureBlocking(false);
 
         this.selectionKey = socketChannel.register(selector, SelectionKey.OP_READ, this);
-        selector.wakeup();
     }
 
     @Override
     public void run() {
         if(state == PROCESSED) {
-            WorkerPool.getInstance().execute(new Process(selectionKey));
+            new Process(selectionKey).run();
         }
     }
 
@@ -81,7 +80,6 @@ public class EventHandler implements Runnable {
 
         selectionKey.interestOps(SelectionKey.OP_WRITE);
         state = PROCESSED;
-        selector.wakeup();
     }
 
     public void write() {

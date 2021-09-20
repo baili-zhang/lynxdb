@@ -1,11 +1,11 @@
-package moonlight.reactor;
+package moonlight.accepter;
 
 import java.io.IOException;
 import java.nio.channels.*;
 import java.util.*;
 
 public class Dispatcher {
-    private volatile Selector selector;
+    private Selector selector;
 
     public Dispatcher(Selector selector) {
         this.selector = selector;
