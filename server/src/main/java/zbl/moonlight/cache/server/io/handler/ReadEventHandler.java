@@ -21,13 +21,13 @@ public class ReadEventHandler extends EventHandler {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
         try {
-            StringBuilder stringBuilder = new StringBuilder();
-            while (socketChannel.read(byteBuffer) != 0) {
-                stringBuilder.append(byteBuffer.asCharBuffer().array());
-                byteBuffer.clear();
+            int n = socketChannel.read(byteBuffer);
+            if(n == -1) {
+                return;
             }
+            byteBuffer.flip();
 
-            String commandLine = new String(stringBuilder).trim();
+            String commandLine = new String(byteBuffer.array(), 0, n).trim();
             System.out.println("[READ] Command line is: " + commandLine);
             String result = execCommand(commandLine);
             byteBuffer.clear();

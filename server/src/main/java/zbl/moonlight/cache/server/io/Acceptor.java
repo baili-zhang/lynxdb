@@ -20,7 +20,7 @@ public class Acceptor extends EventHandler{
         try {
             SocketChannel channel = serverSocketChannel.accept();
             channel.configureBlocking(false);
-            channel.register(selector, SelectionKey.OP_READ, ByteBuffer.allocate(10));
+            channel.register(selector, SelectionKey.OP_READ, ByteBuffer.allocate(1024));
             System.out.println("[ACCEPT] Accept a connection !");
         } catch (Exception e) {
             e.printStackTrace();

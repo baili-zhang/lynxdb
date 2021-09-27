@@ -11,7 +11,7 @@ Make sure port `7820` is available !
 java -jar server-1.0-SNAPSHOT.jar
 ```
 
-## Run moonlight moonlight.client
+## Run moonlight client
 ```shell
 java -jar moonlight.client-1.0-SNAPSHOT.jar
 ```
