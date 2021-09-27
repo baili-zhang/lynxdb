@@ -1,6 +1,8 @@
 # build file
 build/
 bin/
+server/target/
+client/target/
 
 # idea
 .idea/
