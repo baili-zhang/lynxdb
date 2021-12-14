@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>cache</artifactId>
+        <artifactId>moonlight</artifactId>
         <groupId>zbl.moonlight</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -44,7 +44,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>zbl.moonlight.cache.client.MoonlightCacheClient</mainClass>
+                                    <mainClass>zbl.moonlight.client.MoonlightClient</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
