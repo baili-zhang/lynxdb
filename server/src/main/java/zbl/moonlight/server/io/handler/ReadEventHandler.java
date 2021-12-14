@@ -44,7 +44,7 @@ public class ReadEventHandler extends EventHandler {
         selectionKey.interestOps(SelectionKey.OP_WRITE);
     }
 
-    public String execCommand(String commandLine) {
+    public String execCommand(String commandLine) throws CloneNotSupportedException {
         Command command = new CommandFactory().getCommand(commandLine);
         if(command == null) {
             logger.error("command line \"{}\" is invalid.", commandLine);

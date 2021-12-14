@@ -1,26 +1,23 @@
-package zbl.moonlight.server.command.commands;
+package zbl.moonlight.server.command.concrete;
 
 import zbl.moonlight.server.command.Command;
+import zbl.moonlight.server.command.annotation.MoonlightCommand;
 import zbl.moonlight.server.engine.simple.SimpleCache;
 
+@MoonlightCommand("get")
 public class GetCommand extends Command {
-
-    public GetCommand(String key) {
-        super(key, null);
-    }
-
     @Override
     public GetCommand exec() {
-        value = SimpleCache.getInstance().get(key);
+        setValue(SimpleCache.getInstance().get(getKey()));
         return this;
     }
 
     @Override
     public String wrap() {
-        if(value == null) {
+        if(getValue() == null) {
             return "[Invalid Key]";
         }
 
-        return "[OK] " + value;
+        return "[OK] " + getValue();
     }
 }

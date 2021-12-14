@@ -2,12 +2,13 @@ package zbl.moonlight.server.engine.simple;
 
 import zbl.moonlight.server.engine.Cacheable;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SimpleCache implements Cacheable<String, String> {
+public class SimpleCache implements Cacheable {
     private static SimpleCache cache = new SimpleCache();
 
-    private ConcurrentHashMap stringHashMap = new ConcurrentHashMap<String, String>();
+    private ConcurrentHashMap<String, ByteBuffer> stringHashMap = new ConcurrentHashMap<>();
 
     private SimpleCache() {}
 
@@ -16,17 +17,17 @@ public class SimpleCache implements Cacheable<String, String> {
     }
 
     @Override
-    public void set(String key, String value) {
+    public void set(String key, ByteBuffer value) {
         stringHashMap.put(key, value);
     }
 
     @Override
-    public String get(String key) {
-        return (String)stringHashMap.get(key);
+    public ByteBuffer get(String key) {
+        return stringHashMap.get(key);
     }
 
     @Override
-    public void update(String key, String value) {
+    public void update(String key, ByteBuffer value) {
         stringHashMap.put(key, value);
     }
 
