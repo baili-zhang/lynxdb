@@ -1,32 +1,25 @@
 package zbl.moonlight.server.command;
 
 import lombok.Data;
-import zbl.moonlight.server.engine.Cacheable;
-import zbl.moonlight.server.engine.simple.SimpleCache;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 
 @Data
-public abstract class Command implements Cloneable {
-    private static Cacheable cache;
-
-    static {
-        cache = SimpleCache.getInstance();
-    }
-
-    public static Cacheable getCache() {
-        return cache;
-    }
-
-    private String key;
+public class Command implements Cloneable {
+    private byte code;
+    private SelectionKey selectionKey;
+    private int keyLength;
+    private ByteBuffer key;
+    private long valueLength;
     private ByteBuffer value;
-    private boolean isKeyExisted;
+    private ByteBuffer response;
 
-    @Override
-    public Command clone() throws CloneNotSupportedException {
-        return (Command) super.clone();
+    Command(byte code) {
+        this.code = code;
     }
 
-    public abstract Command exec();
-    public abstract String wrap();
+    public static Command create(byte code) {
+        return new Command(code);
+    }
 }

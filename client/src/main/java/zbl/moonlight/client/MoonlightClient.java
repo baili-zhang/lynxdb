@@ -1,5 +1,7 @@
 package zbl.moonlight.client;
 
+import zbl.moonlight.server.command.Method;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -7,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class MoonlightClient {
@@ -27,18 +30,65 @@ public class MoonlightClient {
                 System.out.print("Moonlight > ");
 
                 String command = scanner.nextLine();
-                outputStream.writeUTF(command);
+                String[] commandArray = command.trim().split("\\s+");
+                byte code = (byte) 0xff;
+                ByteBuffer key = null, value = null;
+
+                switch (commandArray[0]) {
+                    case "get":
+                        code = Method.GET;
+                        break;
+                    case "set":
+                        code = Method.SET;
+                        break;
+                    case "update":
+                        code = Method.UPDATE;
+                        break;
+                    case "delete":
+                        code = Method.DELETE;
+                        break;
+                    case "exit":
+                        code = Method.EXIT;
+                        break;
+                }
+
+                if (commandArray.length == 1) {
+                    key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
+                    byte keyLength = (byte) key.capacity();
+                    int valueLength = 0;
+
+                    ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
+                    request.put(code);
+                    request.put(keyLength);
+                    request.put(key);
+                    request.putInt(valueLength);
+                    outputStream.write(request.array());
+                }
+
+                if (commandArray.length == 2) {
+                    key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
+                    value = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
+                    byte keyLength = (byte) key.capacity();
+                    int valueLength = value.capacity();
+
+                    ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
+                    request.put(code);
+                    request.put(keyLength);
+                    request.put(key);
+                    request.putInt(valueLength);
+                    request.put(value);
+                    outputStream.write(request.array());
+                }
+
                 outputStream.flush();
 
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                byte[] bytes = byteBuffer.array();
-                int n = inputStream.read(bytes);
-                String response = new String(bytes, 0, n);
-                System.out.println(response);
+                byte[] status = new byte[1];
+                inputStream.read(status);
+                int valueLength = inputStream.readInt();
+                byte[] responseValue = new byte[valueLength];
+                inputStream.read(responseValue);
 
-                if(response.trim().equals("[Close Connection]")) {
-                    isConnectionHold = false;
-                }
+                System.out.println(new String(responseValue));
             }
 
         } catch (Exception e) {

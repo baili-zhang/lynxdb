@@ -1,10 +1,9 @@
 package zbl.moonlight.server.engine;
 
+import zbl.moonlight.server.command.Command;
+
 import java.nio.ByteBuffer;
 
 public interface Cacheable {
-    public void set(String key, ByteBuffer value);
-    public ByteBuffer get(String key);
-    public void update(String key, ByteBuffer value);
-    public void delete(String key);
+    public void exec(Command command);
 }
