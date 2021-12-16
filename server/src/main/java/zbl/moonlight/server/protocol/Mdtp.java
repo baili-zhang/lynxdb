@@ -28,28 +28,28 @@ public class Mdtp {
     }
 
     public Command decode () throws DecodeException {
-        if(data.size() <= 6) {
-            throw new DecodeException("Invalid Command.");
-        }
-
         ByteBuffer first = data.getFirst();
+        byte code = first.get(0);
         int keyLength = first.get(1) & 0xff;
         int valueLength = ((first.get(2) & 0xff) << 24) |
                 ((first.get(3) & 0xff) << 16) |
                 ((first.get(4) & 0xff) << 8) |
                 (first.get(5) & 0xff);
 
-        if(!(data.size() == 6 + keyLength + valueLength)) {
+        if(data.size() < 6 + keyLength + valueLength) {
             return null;
+        } else if (data.size() > 6 + keyLength + valueLength) {
+            throw new DecodeException("Invalid Command.");
         }
 
         Command command = new Command();
-        ByteBuffer key = ByteBuffer.allocateDirect(keyLength);
+        ByteBuffer key = ByteBuffer.allocate(keyLength);
         data.copyTo(key, Mdtp.HEADER_LENGTH, keyLength);
 
         DynamicByteBuffer value = new DynamicByteBuffer();
         value.copyFrom(data, Mdtp.HEADER_LENGTH + keyLength, valueLength);
 
+        command.setCode(code);
         command.setKey(key);
         command.setValue(value);
 

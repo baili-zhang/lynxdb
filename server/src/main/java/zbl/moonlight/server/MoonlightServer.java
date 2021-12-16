@@ -69,10 +69,8 @@ public class MoonlightServer {
             unfinished.remove(selectionKey);
         }
 
-
-        // command.setSelectionKey(selectionKey);
-        // socketChannel.register(selector, SelectionKey.OP_WRITE);
-        // commandsNotExecuted.offer(command);
+        command.setSelectionKey(selectionKey);
+        commandsNotExecuted.offer(command);
     }
 
     private static void accept() {
@@ -104,7 +102,7 @@ public class MoonlightServer {
         }
     }
 
-    public static void cache () {
+    public static void engine () {
         while (true) {
             if(commandsNotExecuted.size() == 0) {
                 Thread.yield();
@@ -135,7 +133,7 @@ public class MoonlightServer {
     public static void main(String[] args) {
         new Thread(MoonlightServer::accept, "accept").start();
         logger.info("accept thread is running.");
-        new Thread(MoonlightServer::cache, "cache").start();
+        new Thread(MoonlightServer::engine, "engine").start();
         logger.info("cache thread is running.");
         new Thread(MoonlightServer::response, "response").start();
         logger.info("response thread is running.");

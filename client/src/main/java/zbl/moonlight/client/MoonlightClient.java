@@ -1,6 +1,7 @@
 package zbl.moonlight.client;
 
 import zbl.moonlight.server.command.Method;
+import zbl.moonlight.server.protocol.Mdtp;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -31,7 +32,8 @@ public class MoonlightClient {
                 String command = scanner.nextLine();
                 String[] commandArray = command.trim().split("\\s+");
                 byte code = (byte) 0xff;
-                ByteBuffer key = null, value = null;
+                ByteBuffer key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
+                ByteBuffer value = ByteBuffer.wrap(commandArray[2].getBytes(StandardCharsets.UTF_8));
 
                 switch (commandArray[0]) {
                     case "get":
@@ -51,35 +53,7 @@ public class MoonlightClient {
                         break;
                 }
 
-                if (commandArray.length == 2) {
-                    key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
-                    byte keyLength = (byte) key.capacity();
-                    int valueLength = 0;
-
-                    ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
-                    request.put(code);
-                    request.put(keyLength);
-                    request.putInt(valueLength);
-                    request.put(key);
-                    outputStream.write(request.array());
-                }
-
-                if (commandArray.length == 3) {
-                    key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
-                    value = ByteBuffer.wrap(commandArray[2].getBytes(StandardCharsets.UTF_8));
-                    value.limit(5);
-                    byte keyLength = (byte) key.capacity();
-                    int valueLength = value.limit();
-
-                    ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
-                    request.put(code);
-                    request.put(keyLength);
-                    request.putInt(valueLength);
-                    request.put(key);
-                    request.put(value);
-                    outputStream.write(request.array());
-                }
-
+                outputStream.write(Mdtp.encode(code, key, value).array());
                 outputStream.flush();
 
         } catch (Exception e) {
