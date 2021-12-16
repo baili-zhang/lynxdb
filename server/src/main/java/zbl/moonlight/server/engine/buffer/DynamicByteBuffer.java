@@ -35,15 +35,53 @@ public class DynamicByteBuffer {
     }
 
     public void copyFrom(DynamicByteBuffer src, int srcOffset, int length) {
+        int index = srcOffset / src.chunkSize;
+        int startPosition = srcOffset % src.chunkSize;
+        ByteBuffer dstChunk = ByteBuffer.allocateDirect(chunkSize);
+        bufferList.add(dstChunk);
 
+        while (length > 0) {
+            ByteBuffer srcChunk = src.bufferList.get(index);
+
+            for(int i = startPosition; (i < srcChunk.limit()) && (length > 0); i ++, length --) {
+                dstChunk.put(srcChunk.get(i));
+                if(dstChunk.position() == dstChunk.limit()) {
+                    dstChunk = ByteBuffer.allocateDirect(chunkSize);
+                    bufferList.add(dstChunk);
+                }
+            }
+
+            index ++;
+            startPosition = 0;
+        }
     }
 
     public void copyTo(ByteBuffer dst, int srcOffset, int length) {
+        int index = srcOffset / chunkSize;
+        int startPosition = srcOffset % chunkSize;
 
+        while (length > 0) {
+            ByteBuffer srcChunk = bufferList.get(index);
+
+            for(int i = startPosition; (i < srcChunk.limit()) && (length > 0); i ++, length --) {
+                dst.put(srcChunk.get(i));
+            }
+
+            index ++;
+            startPosition = 0;
+        }
     }
 
     public ByteBuffer getFirst() {
         return bufferList.get(0);
+    }
+
+    public int getChunkSize() {
+        return chunkSize;
+    }
+
+    public ByteBuffer get(int index) {
+        return bufferList.get(index);
     }
 
     private boolean isEmpty() {
