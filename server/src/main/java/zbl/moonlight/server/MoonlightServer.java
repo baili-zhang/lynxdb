@@ -3,25 +3,26 @@ package zbl.moonlight.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.command.Command;
-import zbl.moonlight.server.command.Method;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.engine.Cacheable;
+import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.simple.SimpleCache;
+import zbl.moonlight.server.protocol.DecodeException;
+import zbl.moonlight.server.protocol.Mdtp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MoonlightServer {
     private static final int CLIENT_CLOSE = -1;
 
     private static final Configuration config = new Configuration();
-    private static final Cacheable cache = new SimpleCache();
+    private static final Engine cache = new SimpleCache();
+    private static final ConcurrentHashMap<SelectionKey, Mdtp> unfinished = new ConcurrentHashMap<>();
     private static final ConcurrentLinkedQueue<Command> commandsNotExecuted = new ConcurrentLinkedQueue<>();
     private static final ConcurrentLinkedQueue<Command> commandsExecuted = new ConcurrentLinkedQueue<>();
 
@@ -44,18 +45,30 @@ public class MoonlightServer {
         logger.info("accept a connection, address is {}.", getAddressString(channel));
     }
 
-    private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException {
+    private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException, DecodeException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
-        Command command = new Command();
-        int readLength = command.read(socketChannel);
+        Mdtp mdtp = unfinished.contains(selectionKey) ? unfinished.get(selectionKey) : new Mdtp();
+        int readLength = mdtp.read(socketChannel);
 
         if(readLength == CLIENT_CLOSE) {
             socketChannel.close();
             selectionKey.cancel();
-            command.setSendResponse(false);
             logger.info("close socket channel, address is {}", getAddressString(socketChannel));
         }
+
+        Command command = mdtp.decode();
+        if(command == null) {
+            if(!unfinished.contains(selectionKey)) {
+                unfinished.put(selectionKey, mdtp);
+            }
+            return;
+        }
+
+        if(unfinished.contains(selectionKey)) {
+            unfinished.remove(selectionKey);
+        }
+
 
         // command.setSelectionKey(selectionKey);
         // socketChannel.register(selector, SelectionKey.OP_WRITE);
@@ -86,7 +99,7 @@ public class MoonlightServer {
                     iterator.remove();
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -111,7 +124,7 @@ public class MoonlightServer {
                 } else {
                     Command command = commandsExecuted.poll();
                     SocketChannel socketChannel = (SocketChannel) command.getSelectionKey().channel();
-                    socketChannel.write(command.getResponse());
+                    // socketChannel.write(command.getResponse());
                 }
             }
         } catch (Exception e) {

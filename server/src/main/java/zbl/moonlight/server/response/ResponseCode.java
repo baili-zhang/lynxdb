@@ -1,4 +1,4 @@
-package zbl.moonlight.server.command;
+package zbl.moonlight.server.response;
 
 public class ResponseCode {
     public static final byte VALUE_EXIST = (byte) 0x01;
