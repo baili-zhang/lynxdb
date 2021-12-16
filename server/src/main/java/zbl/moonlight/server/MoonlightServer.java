@@ -12,15 +12,14 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MoonlightServer {
+    private static final int CLIENT_CLOSE = -1;
+
     private static final Configuration config = new Configuration();
     private static final Cacheable cache = new SimpleCache();
     private static final ConcurrentLinkedQueue<Command> commandsNotExecuted = new ConcurrentLinkedQueue<>();
@@ -30,45 +29,37 @@ public class MoonlightServer {
 
     private static final int PORT = config.getPort();
 
+    private static String getAddressString(SocketChannel socketChannel) {
+        String hostName = socketChannel.socket().getInetAddress().getHostName();
+        Integer port = socketChannel.socket().getPort();
+        return hostName + ":" + port;
+    }
+
     private static void doAccept(SelectionKey selectionKey, Selector selector)
             throws IOException {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         SocketChannel channel = serverSocketChannel.accept();
         channel.configureBlocking(false);
         channel.register(selector, SelectionKey.OP_READ);
-        String hostName = channel.socket().getInetAddress().getHostName();
-        Integer port = channel.socket().getPort();
-        logger.info("accept a connection, address is {}:{}.", hostName, port);
+        logger.info("accept a connection, address is {}.", getAddressString(channel));
     }
 
     private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(2);
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
-        socketChannel.read(byteBuffer);
-        byte code = byteBuffer.get(0);
-        Command command = Command.create(code);
+        Command command = new Command();
+        int readLength = command.read(socketChannel);
 
-        int keyLength = byteBuffer.get(1) & 0xff;
-        command.setKeyLength(keyLength);
+        if(readLength == CLIENT_CLOSE) {
+            socketChannel.close();
+            selectionKey.cancel();
+            command.setSendResponse(false);
+            logger.info("close socket channel, address is {}", getAddressString(socketChannel));
+        }
 
-        ByteBuffer key = ByteBuffer.allocateDirect(command.getKeyLength());
-        socketChannel.read(key);
-        command.setKey(key);
-
-        IntBuffer valueLengthBuffer = IntBuffer.allocate(1);
-        int valueLength = valueLengthBuffer.get(0);
-
-        ByteBuffer value = ByteBuffer.allocateDirect(valueLength);
-        socketChannel.read(value);
-        command.setValue(value);
-
-        logger.info("method is {}", Method.getMethodName(code));
-
-        command.setSelectionKey(selectionKey);
-        socketChannel.register(selector, SelectionKey.OP_WRITE);
-
-        commandsNotExecuted.offer(command);
+        // command.setSelectionKey(selectionKey);
+        // socketChannel.register(selector, SelectionKey.OP_WRITE);
+        // commandsNotExecuted.offer(command);
     }
 
     private static void accept() {
@@ -92,8 +83,8 @@ public class MoonlightServer {
                     } else if (selectionKey.isReadable()) {
                         doRead(selectionKey, selector);
                     }
+                    iterator.remove();
                 }
-                selectionKeys.clear();
             }
         } catch (IOException e) {
             e.printStackTrace();

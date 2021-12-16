@@ -26,7 +26,6 @@ public class MoonlightClient {
         Scanner scanner = new Scanner(System.in);
 
         try {
-            while (isConnectionHold) {
                 System.out.print("Moonlight > ");
 
                 String command = scanner.nextLine();
@@ -52,7 +51,7 @@ public class MoonlightClient {
                         break;
                 }
 
-                if (commandArray.length == 1) {
+                if (commandArray.length == 2) {
                     key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
                     byte keyLength = (byte) key.capacity();
                     int valueLength = 0;
@@ -60,36 +59,28 @@ public class MoonlightClient {
                     ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
                     request.put(code);
                     request.put(keyLength);
-                    request.put(key);
                     request.putInt(valueLength);
+                    request.put(key);
                     outputStream.write(request.array());
                 }
 
-                if (commandArray.length == 2) {
+                if (commandArray.length == 3) {
                     key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
-                    value = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
+                    value = ByteBuffer.wrap(commandArray[2].getBytes(StandardCharsets.UTF_8));
+                    value.limit(5);
                     byte keyLength = (byte) key.capacity();
-                    int valueLength = value.capacity();
+                    int valueLength = value.limit();
 
                     ByteBuffer request = ByteBuffer.allocate(1 + 1 + keyLength + 4 + valueLength);
                     request.put(code);
                     request.put(keyLength);
-                    request.put(key);
                     request.putInt(valueLength);
+                    request.put(key);
                     request.put(value);
                     outputStream.write(request.array());
                 }
 
                 outputStream.flush();
-
-                byte[] status = new byte[1];
-                inputStream.read(status);
-                int valueLength = inputStream.readInt();
-                byte[] responseValue = new byte[valueLength];
-                inputStream.read(responseValue);
-
-                System.out.println(new String(responseValue));
-            }
 
         } catch (Exception e) {
             e.printStackTrace();
