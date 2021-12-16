@@ -1,7 +1,7 @@
 package zbl.moonlight.server.engine;
 
 import zbl.moonlight.server.command.Command;
-import zbl.moonlight.server.command.Method;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.response.Response;
 
@@ -12,16 +12,16 @@ public abstract class Engine {
         Response response = null;
 
         switch (command.getCode()) {
-            case Method.SET:
+            case MdtpMethod.SET:
                 response = set(command.getKey(), command.getValue());
                 break;
-            case Method.GET:
+            case MdtpMethod.GET:
                 response = get(command.getKey());
                 break;
-            case Method.UPDATE:
+            case MdtpMethod.UPDATE:
                 response = update(command.getKey(), command.getValue());
                 break;
-            case Method.DELETE:
+            case MdtpMethod.DELETE:
                 response = delete(command.getKey());
         }
 

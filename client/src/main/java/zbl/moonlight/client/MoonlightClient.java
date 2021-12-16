@@ -1,6 +1,6 @@
 package zbl.moonlight.client;
 
-import zbl.moonlight.server.command.Method;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.Mdtp;
 
 import java.io.BufferedInputStream;
@@ -37,19 +37,19 @@ public class MoonlightClient {
 
                 switch (commandArray[0]) {
                     case "get":
-                        code = Method.GET;
+                        code = MdtpMethod.GET;
                         break;
                     case "set":
-                        code = Method.SET;
+                        code = MdtpMethod.SET;
                         break;
                     case "update":
-                        code = Method.UPDATE;
+                        code = MdtpMethod.UPDATE;
                         break;
                     case "delete":
-                        code = Method.DELETE;
+                        code = MdtpMethod.DELETE;
                         break;
                     case "exit":
-                        code = Method.EXIT;
+                        code = MdtpMethod.EXIT;
                         break;
                 }
 

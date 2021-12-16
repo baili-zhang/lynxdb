@@ -1,13 +1,9 @@
 package zbl.moonlight.server.protocol;
 
 import org.junit.jupiter.api.Test;
-import zbl.moonlight.server.command.Method;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class MdtpTest {
 
@@ -15,10 +11,10 @@ class MdtpTest {
     void encode() throws EncodeException {
         String key = "ByteBuffer byteBuffer";
         String value = "ByteBuffer.wrap(\"abc\".getBytes(StandardCharsets.UTF_8))";
-        ByteBuffer byteBuffer = Mdtp.encode(Method.GET, ByteBuffer.wrap(key.getBytes(StandardCharsets.UTF_8)),
+        ByteBuffer byteBuffer = Mdtp.encode(MdtpMethod.GET, ByteBuffer.wrap(key.getBytes(StandardCharsets.UTF_8)),
                 ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8)));
 
-        assert byteBuffer.get(0) == Method.GET;
+        assert byteBuffer.get(0) == MdtpMethod.GET;
 
         int keyLength = byteBuffer.get(1) & 0xff;
         int valueLength = ((byteBuffer.get(2) & 0xff) << 24) |

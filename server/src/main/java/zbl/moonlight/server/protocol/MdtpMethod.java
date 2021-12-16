@@ -1,6 +1,6 @@
-package zbl.moonlight.server.command;
+package zbl.moonlight.server.protocol;
 
-public class Method {
+public class MdtpMethod {
     public static final byte SET = (byte) 0x01;
     public static final byte GET = (byte) 0x02;
     public static final byte UPDATE = (byte) 0x03;
