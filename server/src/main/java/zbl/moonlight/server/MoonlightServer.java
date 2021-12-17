@@ -133,10 +133,11 @@ public class MoonlightServer {
                     Thread.yield();
                 } else {
                     Mdtp mdtp = writeUnfinished.poll();
-                    if(mdtp.isHasResponse()) {
+                    if (mdtp.isHasResponse()) {
                         SocketChannel socketChannel = (SocketChannel) mdtp.getSelectionKey().channel();
                         mdtp.getResponse().write(socketChannel);
                     }
+                    logger.info("write data to client finished.");
                 }
             }
         } catch (Exception e) {
