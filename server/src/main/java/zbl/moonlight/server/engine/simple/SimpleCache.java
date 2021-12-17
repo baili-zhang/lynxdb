@@ -1,6 +1,7 @@
 package zbl.moonlight.server.engine.simple;
 
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
+import zbl.moonlight.server.protocol.Mdtp;
 import zbl.moonlight.server.response.Response;
 import zbl.moonlight.server.response.ResponseCode;
 import zbl.moonlight.server.engine.Engine;
@@ -12,22 +13,30 @@ public class SimpleCache extends Engine {
     private ConcurrentHashMap<ByteBuffer, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
 
     @Override
-    protected Response set(ByteBuffer key, DynamicByteBuffer value) {
-        return null;
+    protected void set(Mdtp mdtp) {
+        cache.put(mdtp.getKey(), mdtp.getValue());
+        mdtp.setResponse(new Response(ResponseCode.SUCCESS_NO_VALUE));
     }
 
     @Override
-    protected Response get(ByteBuffer key) {
-        return null;
+    protected void get(Mdtp mdtp) {
+        DynamicByteBuffer value = cache.get(mdtp.getKey());
+        Response response = new Response();
+        if(value == null) {
+            response.setStatus(ResponseCode.VALUE_NOT_EXIST);
+        } else {
+            response.setStatus(ResponseCode.VALUE_EXIST);
+            response.setValue(value);
+        }
+        mdtp.setResponse(response);
     }
 
     @Override
-    protected Response update(ByteBuffer key, DynamicByteBuffer value) {
-        return null;
+    protected void update(Mdtp mdtp) {
     }
 
     @Override
-    protected Response delete(ByteBuffer key) {
-        return null;
+    protected void delete(Mdtp mdtp) {
     }
+
 }

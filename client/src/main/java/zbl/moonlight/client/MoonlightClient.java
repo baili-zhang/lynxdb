@@ -56,6 +56,13 @@ public class MoonlightClient {
                 outputStream.write(Mdtp.encode(code, key, value).array());
                 outputStream.flush();
 
+                byte status = inputStream.readByte();
+                int valueLength = inputStream.readInt();
+                byte[] responseValue = new byte[valueLength];
+                inputStream.read(responseValue);
+
+                System.out.println(new String(responseValue));
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

@@ -1,29 +1,26 @@
 package zbl.moonlight.server.engine.rbtree;
 
 import zbl.moonlight.server.engine.Engine;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
-import zbl.moonlight.server.response.Response;
-
-import java.nio.ByteBuffer;
+import zbl.moonlight.server.protocol.Mdtp;
 
 public class RbTreeCache extends Engine {
     @Override
-    protected Response set(ByteBuffer key, DynamicByteBuffer value) {
-        return null;
+    protected void set(Mdtp mdtp) {
+
     }
 
     @Override
-    protected Response get(ByteBuffer key) {
-        return null;
+    protected void get(Mdtp mdtp) {
+
     }
 
     @Override
-    protected Response update(ByteBuffer key, DynamicByteBuffer value) {
-        return null;
+    protected void update(Mdtp mdtp) {
+
     }
 
     @Override
-    protected Response delete(ByteBuffer key) {
-        return null;
+    protected void delete(Mdtp mdtp) {
+
     }
 }

@@ -2,11 +2,9 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.command.Command;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.simple.SimpleCache;
-import zbl.moonlight.server.protocol.DecodeException;
 import zbl.moonlight.server.protocol.Mdtp;
 
 import java.io.IOException;
@@ -18,13 +16,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MoonlightServer {
-    private static final int CLIENT_CLOSE = -1;
-
     private static final Configuration config = new Configuration();
     private static final Engine cache = new SimpleCache();
-    private static final ConcurrentHashMap<SelectionKey, Mdtp> unfinished = new ConcurrentHashMap<>();
-    private static final ConcurrentLinkedQueue<Command> commandsNotExecuted = new ConcurrentLinkedQueue<>();
-    private static final ConcurrentLinkedQueue<Command> commandsExecuted = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentHashMap<SelectionKey, Mdtp> readUnfinished = new ConcurrentHashMap<>();
+    private static final ConcurrentLinkedQueue<Mdtp> readFinished = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<Mdtp> writeUnfinished = new ConcurrentLinkedQueue<>();
 
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
@@ -45,35 +41,48 @@ public class MoonlightServer {
         logger.info("accept a connection, address is {}.", getAddressString(channel));
     }
 
-    private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException, DecodeException {
+    private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+        Mdtp mdtp = readUnfinished.contains(selectionKey) ? readUnfinished.get(selectionKey) : new Mdtp(selectionKey);
 
-        Mdtp mdtp = unfinished.contains(selectionKey) ? unfinished.get(selectionKey) : new Mdtp();
-        int readLength = mdtp.read(socketChannel);
-
-        if(readLength == CLIENT_CLOSE) {
-            socketChannel.close();
-            selectionKey.cancel();
-            logger.info("close socket channel, address is {}", getAddressString(socketChannel));
+        int status = mdtp.read(socketChannel);
+        switch (status) {
+            case Mdtp.READ_UNCOMPLETED:
+                if(!readUnfinished.contains(selectionKey)) {
+                    readUnfinished.put(selectionKey, mdtp);
+                }
+                return;
+            case Mdtp.READ_COMPLETED_SOCKET_CLOSE:
+                if(readUnfinished.contains(selectionKey)) {
+                    readUnfinished.remove(selectionKey);
+                    mdtp.setHasResponse(false);
+                }
+                readFinished.offer(mdtp);
+                socketChannel.close();
+                selectionKey.cancel();
+                logger.info("close socket channel, address is {}", getAddressString(socketChannel));
+                return;
+            case Mdtp.READ_COMPLETED:
+                if(readUnfinished.contains(selectionKey)) {
+                    readUnfinished.remove(selectionKey);
+                }
+                readFinished.offer(mdtp);
+                mdtp.setHasResponse(true);
+                return;
+            case Mdtp.READ_ERROR:
+                if(readUnfinished.contains(selectionKey)) {
+                    readUnfinished.remove(selectionKey);
+                }
+                socketChannel.close();
+                selectionKey.cancel();
+                logger.info("mdtp data read error, close socket channel, address is {}", getAddressString(socketChannel));
+                return;
         }
-
-        Command command = mdtp.decode();
-        if(command == null) {
-            if(!unfinished.contains(selectionKey)) {
-                unfinished.put(selectionKey, mdtp);
-            }
-            return;
-        }
-
-        if(unfinished.contains(selectionKey)) {
-            unfinished.remove(selectionKey);
-        }
-
-        command.setSelectionKey(selectionKey);
-        commandsNotExecuted.offer(command);
     }
 
     private static void accept() {
+        logger.info("accept thread is running.");
+
         try {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
@@ -103,26 +112,31 @@ public class MoonlightServer {
     }
 
     public static void engine () {
+        logger.info("cache engine thread is running.");
+
         while (true) {
-            if(commandsNotExecuted.size() == 0) {
+            if(readFinished.size() == 0) {
                 Thread.yield();
             } else {
-                Command command = commandsNotExecuted.poll();
-                cache.exec(command);
-                commandsExecuted.offer(command);
+                Mdtp mdtp = readFinished.poll();
+                cache.exec(mdtp);
+                writeUnfinished.offer(mdtp);
             }
         }
     }
 
     public static void response () {
+        logger.info("response thread is running.");
         try {
             while (true) {
-                if(commandsExecuted.size() == 0) {
+                if(writeUnfinished.size() == 0) {
                     Thread.yield();
                 } else {
-                    Command command = commandsExecuted.poll();
-                    SocketChannel socketChannel = (SocketChannel) command.getSelectionKey().channel();
-                    // socketChannel.write(command.getResponse());
+                    Mdtp mdtp = writeUnfinished.poll();
+                    if(mdtp.isHasResponse()) {
+                        SocketChannel socketChannel = (SocketChannel) mdtp.getSelectionKey().channel();
+                        mdtp.getResponse().write(socketChannel);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -132,11 +146,8 @@ public class MoonlightServer {
 
     public static void main(String[] args) {
         new Thread(MoonlightServer::accept, "accept").start();
-        logger.info("accept thread is running.");
         new Thread(MoonlightServer::engine, "engine").start();
-        logger.info("cache thread is running.");
         new Thread(MoonlightServer::response, "response").start();
-        logger.info("response thread is running.");
         logger.info("moonlight server is running, listening at {}:{}.", "127.0.0.1", PORT);
     }
 }

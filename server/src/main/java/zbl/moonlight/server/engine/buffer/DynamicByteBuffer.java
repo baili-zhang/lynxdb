@@ -72,16 +72,16 @@ public class DynamicByteBuffer {
         }
     }
 
-    public ByteBuffer getFirst() {
-        return bufferList.get(0);
-    }
-
     public int getChunkSize() {
         return chunkSize;
     }
 
     public ByteBuffer get(int index) {
         return bufferList.get(index);
+    }
+
+    public ByteBuffer[] array() {
+        return bufferList.stream().toArray(ByteBuffer[]::new);
     }
 
     private boolean isEmpty() {
