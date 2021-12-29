@@ -5,91 +5,52 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.simple.SimpleCache;
-import zbl.moonlight.server.protocol.Mdtp;
+import zbl.moonlight.server.io.IoEvent;
+import zbl.moonlight.server.io.IoEventHandler;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 
 public class MoonlightServer {
-    private static final Configuration config = new Configuration();
-    private static final Engine cache = new SimpleCache();
-    private static final ConcurrentHashMap<SelectionKey, Mdtp> readUnfinished = new ConcurrentHashMap<>();
-    private static final ConcurrentLinkedQueue<Mdtp> readFinished = new ConcurrentLinkedQueue<>();
-    private static final ConcurrentLinkedQueue<Mdtp> writeUnfinished = new ConcurrentLinkedQueue<>();
-
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
-    private static final int PORT = config.getPort();
+    private Configuration configuration;
+    private ThreadPoolExecutor executor;
+    private Engine engine;
 
-    private static String getAddressString(SocketChannel socketChannel) {
-        String hostName = socketChannel.socket().getInetAddress().getHostName();
-        Integer port = socketChannel.socket().getPort();
-        return hostName + ":" + port;
+    public static void main(String[] args) {
+        MoonlightServer server = new MoonlightServer();
+        server.run();
     }
 
-    private static void doAccept(SelectionKey selectionKey, Selector selector)
-            throws IOException {
-        ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
-        SocketChannel channel = serverSocketChannel.accept();
-        channel.configureBlocking(false);
-        channel.register(selector, SelectionKey.OP_READ);
-        logger.info("accept a connection, address is {}.", getAddressString(channel));
+    private void init() {
+        configuration = new Configuration();
+        configuration.setPort(7820);
+
+        executor = new ThreadPoolExecutor(2, 4, 30,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(10),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.DiscardPolicy());
+
+        engine = new SimpleCache();
     }
 
-    private static void doRead(SelectionKey selectionKey, Selector selector) throws IOException {
-        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        Mdtp mdtp = readUnfinished.contains(selectionKey) ? readUnfinished.get(selectionKey) : new Mdtp(selectionKey);
-
-        int status = mdtp.read(socketChannel);
-        switch (status) {
-            case Mdtp.READ_UNCOMPLETED:
-                if(!readUnfinished.contains(selectionKey)) {
-                    readUnfinished.put(selectionKey, mdtp);
-                }
-                return;
-            case Mdtp.READ_COMPLETED_SOCKET_CLOSE:
-                if(readUnfinished.contains(selectionKey)) {
-                    readUnfinished.remove(selectionKey);
-                    mdtp.setHasResponse(false);
-                }
-                readFinished.offer(mdtp);
-                socketChannel.close();
-                selectionKey.cancel();
-                logger.info("close socket channel, address is {}", getAddressString(socketChannel));
-                return;
-            case Mdtp.READ_COMPLETED:
-                if(readUnfinished.contains(selectionKey)) {
-                    readUnfinished.remove(selectionKey);
-                }
-                readFinished.offer(mdtp);
-                mdtp.setHasResponse(true);
-                return;
-            case Mdtp.READ_ERROR:
-                if(readUnfinished.contains(selectionKey)) {
-                    readUnfinished.remove(selectionKey);
-                }
-                socketChannel.close();
-                selectionKey.cancel();
-                logger.info("mdtp data read error, close socket channel, address is {}", getAddressString(socketChannel));
-                return;
-        }
-    }
-
-    private static void accept() {
-        logger.info("accept thread is running.");
-
+    private void listen() {
         try {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.bind(new InetSocketAddress(PORT));
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+            serverSocketChannel.bind(new InetSocketAddress(configuration.getPort()));
+            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT, new IoEvent(SelectionKey.OP_ACCEPT));
 
+            logger.info("moonlight server is listening at {}:{}.", "127.0.0.1", configuration.getPort());
+
+            HashMap<SelectionKey, Future> processing = new HashMap<>();
             while (true) {
                 selector.select();
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
@@ -97,47 +58,22 @@ public class MoonlightServer {
 
                 while (iterator.hasNext()) {
                     SelectionKey selectionKey = iterator.next();
-
-                    if(selectionKey.isAcceptable()) {
-                        doAccept(selectionKey, selector);
-                    } else if (selectionKey.isReadable()) {
-                        doRead(selectionKey, selector);
+                    if(!processing.containsKey(selectionKey)) {
+                        Future future = executor.submit(new IoEventHandler(selectionKey, engine));
+                        processing.put(selectionKey, future);
                     }
                     iterator.remove();
                 }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
-    public static void engine () {
-        logger.info("cache engine thread is running.");
+                TimeUnit.MILLISECONDS.sleep(20);
 
-        while (true) {
-            if(readFinished.size() == 0) {
-                Thread.yield();
-            } else {
-                Mdtp mdtp = readFinished.poll();
-                cache.exec(mdtp);
-                writeUnfinished.offer(mdtp);
-            }
-        }
-    }
-
-    public static void response () {
-        logger.info("response thread is running.");
-        try {
-            while (true) {
-                if(writeUnfinished.size() == 0) {
-                    Thread.yield();
-                } else {
-                    Mdtp mdtp = writeUnfinished.poll();
-                    if (mdtp.isHasResponse()) {
-                        SocketChannel socketChannel = (SocketChannel) mdtp.getSelectionKey().channel();
-                        mdtp.getResponse().write(socketChannel);
+                for(SelectionKey selectionKey : processing.keySet()) {
+                    Future future = processing.get(selectionKey);
+                    if(future.isDone()) {
+                        IoEvent ioEvent = (IoEvent) selectionKey.attachment();
+                        ioEvent.handle(selector, selectionKey);
+                        processing.remove(selectionKey);
                     }
-                    logger.info("write data to client finished.");
                 }
             }
         } catch (Exception e) {
@@ -145,10 +81,8 @@ public class MoonlightServer {
         }
     }
 
-    public static void main(String[] args) {
-        new Thread(MoonlightServer::accept, "accept").start();
-        new Thread(MoonlightServer::engine, "engine").start();
-        new Thread(MoonlightServer::response, "response").start();
-        logger.info("moonlight server is running, listening at {}:{}.", "127.0.0.1", PORT);
+    public void run() {
+        init();
+        listen();
     }
 }

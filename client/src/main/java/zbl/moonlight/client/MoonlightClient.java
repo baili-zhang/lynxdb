@@ -1,7 +1,8 @@
 package zbl.moonlight.client;
 
 import zbl.moonlight.server.protocol.MdtpMethod;
-import zbl.moonlight.server.protocol.Mdtp;
+import zbl.moonlight.server.protocol.MdtpRequest;
+import zbl.moonlight.server.protocol.ResponseCode;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -27,6 +28,7 @@ public class MoonlightClient {
         Scanner scanner = new Scanner(System.in);
 
         try {
+            while (true) {
                 System.out.print("Moonlight > ");
 
                 String command = scanner.nextLine();
@@ -53,16 +55,13 @@ public class MoonlightClient {
                         break;
                 }
 
-                outputStream.write(Mdtp.encode(code, key, value).array());
+                outputStream.write(MdtpRequest.encode(code, key, value).array());
                 outputStream.flush();
 
-                byte status = inputStream.readByte();
+                byte responseCode = inputStream.readByte();
                 int valueLength = inputStream.readInt();
-                byte[] responseValue = new byte[valueLength];
-                inputStream.read(responseValue);
-
-                System.out.println(new String(responseValue));
-
+                System.out.println("[" + ResponseCode.getCodeName(responseCode) + "][" + valueLength + "]");
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

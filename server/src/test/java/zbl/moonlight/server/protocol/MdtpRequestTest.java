@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-class MdtpTest {
+class MdtpRequestTest {
 
     @Test
     void encode() throws EncodeException {
         String key = "ByteBuffer byteBuffer";
         String value = "ByteBuffer.wrap(\"abc\".getBytes(StandardCharsets.UTF_8))";
-        ByteBuffer byteBuffer = Mdtp.encode(MdtpMethod.GET, ByteBuffer.wrap(key.getBytes(StandardCharsets.UTF_8)),
+        ByteBuffer byteBuffer = MdtpRequest.encode(MdtpMethod.GET, ByteBuffer.wrap(key.getBytes(StandardCharsets.UTF_8)),
                 ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8)));
 
         assert byteBuffer.get(0) == MdtpMethod.GET;
@@ -26,13 +26,13 @@ class MdtpTest {
         assert valueLength == value.length();
 
         byte[] keyBytes = new byte[keyLength];
-        for (int i = Mdtp.HEADER_LENGTH; i < Mdtp.HEADER_LENGTH + keyLength; i ++) {
-            keyBytes[i-Mdtp.HEADER_LENGTH] = byteBuffer.get(i);
+        for (int i = MdtpRequest.HEADER_LENGTH; i < MdtpRequest.HEADER_LENGTH + keyLength; i ++) {
+            keyBytes[i- MdtpRequest.HEADER_LENGTH] = byteBuffer.get(i);
         }
         assert key.equals(new String(keyBytes));
 
         byte[] valueBytes = new byte[valueLength];
-        int valueOffset = Mdtp.HEADER_LENGTH + keyLength;
+        int valueOffset = MdtpRequest.HEADER_LENGTH + keyLength;
         for (int i = valueOffset; i < valueOffset + valueLength; i ++) {
             valueBytes[i-valueOffset] = byteBuffer.get(i);
         }

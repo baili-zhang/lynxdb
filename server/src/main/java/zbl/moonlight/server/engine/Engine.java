@@ -1,27 +1,27 @@
 package zbl.moonlight.server.engine;
 
-import zbl.moonlight.server.protocol.Mdtp;
+import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpMethod;
+import zbl.moonlight.server.protocol.MdtpResponse;
 
 public abstract class Engine {
-    public final void exec(Mdtp mdtp) {
-        switch (mdtp.getMethod()) {
+    public final MdtpResponse exec(MdtpRequest mdtpRequest) {
+        switch (mdtpRequest.getMethod()) {
             case MdtpMethod.SET:
-                set(mdtp);
-                break;
+                return set(mdtpRequest);
             case MdtpMethod.GET:
-                get(mdtp);
-                break;
+                return get(mdtpRequest);
             case MdtpMethod.UPDATE:
-                update(mdtp);
-                break;
+                return update(mdtpRequest);
             case MdtpMethod.DELETE:
-                delete(mdtp);
+                return delete(mdtpRequest);
         }
+
+        return null;
     }
 
-    protected abstract void set(Mdtp mdtp);
-    protected abstract void get(Mdtp mdtp);
-    protected abstract void update(Mdtp mdtp);
-    protected abstract void delete(Mdtp mdtp);
+    protected abstract MdtpResponse set(MdtpRequest mdtpRequest);
+    protected abstract MdtpResponse get(MdtpRequest mdtpRequest);
+    protected abstract MdtpResponse update(MdtpRequest mdtpRequest);
+    protected abstract MdtpResponse delete(MdtpRequest mdtpRequest);
 }

@@ -1,14 +1,16 @@
 package zbl.moonlight.server.protocol;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
-import zbl.moonlight.server.response.Response;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-public class Mdtp {
+public class MdtpRequest {
     public static final int HEADER_LENGTH = 6;
 
     public static final int READ_ERROR = 1;
@@ -16,6 +18,7 @@ public class Mdtp {
     public static final int READ_COMPLETED_SOCKET_CLOSE = -1;
     public static final int READ_UNCOMPLETED = -2;
 
+    private final Logger logger = LogManager.getLogger("MdtpRequest");
     private boolean headerReadCompleted;
     private boolean keyReadCompleted;
     private boolean valueReadCompleted;
@@ -26,14 +29,14 @@ public class Mdtp {
     private byte method;
     private ByteBuffer header;
     private ByteBuffer key;
+
+    @Getter
+    @Setter
     private DynamicByteBuffer value;
 
-    private SelectionKey selectionKey;
-
     private boolean hasResponse;
-    private Response response;
 
-    public Mdtp (SelectionKey selectionKey) {
+    public MdtpRequest() {
         headerReadCompleted = false;
         keyReadCompleted = false;
         valueReadCompleted = false;
@@ -43,8 +46,6 @@ public class Mdtp {
 
         header = ByteBuffer.allocate(HEADER_LENGTH);
         value = new DynamicByteBuffer();
-
-        this.selectionKey = selectionKey;
     }
 
     public static ByteBuffer encode(byte code, ByteBuffer key, ByteBuffer value) throws EncodeException {
@@ -121,14 +122,6 @@ public class Mdtp {
         return key;
     }
 
-    public DynamicByteBuffer getValue() {
-        return value;
-    }
-
-    public SelectionKey getSelectionKey() {
-        return selectionKey;
-    }
-
     public boolean isHasResponse() {
         return hasResponse;
     }
@@ -137,12 +130,8 @@ public class Mdtp {
         this.hasResponse = hasResponse;
     }
 
-    public Response getResponse() {
-        return response;
-    }
-
-    public void setResponse(Response response) {
-        this.response = response;
+    public boolean isReadFinished() {
+        return valueReadCompleted;
     }
 
     private int readHeader(SocketChannel socketChannel) throws IOException {
@@ -200,5 +189,10 @@ public class Mdtp {
 
     private boolean isFull(ByteBuffer byteBuffer) {
         return byteBuffer.position() == byteBuffer.limit();
+    }
+
+    @Override
+    public String toString() {
+        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value.toString();
     }
 }

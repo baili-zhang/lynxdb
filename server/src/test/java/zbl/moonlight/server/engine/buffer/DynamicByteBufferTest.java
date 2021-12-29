@@ -75,4 +75,11 @@ class DynamicByteBufferTest {
         src.copyTo(dst, 0, 20);
         assert "DynamicByteBuffer dy".equals(new String(dst.array()));
     }
+
+    @Test
+    void toStringTest() {
+        String str = "DynamicByteBuffer dynamicByteBuffer";
+        DynamicByteBuffer dynamicByteBuffer = createDynamicByteBuffer(str);
+        assert str.equals(dynamicByteBuffer.toString());
+    }
 }

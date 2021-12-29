@@ -3,9 +3,8 @@ package zbl.moonlight.server.engine.simple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
-import zbl.moonlight.server.protocol.Mdtp;
-import zbl.moonlight.server.response.Response;
-import zbl.moonlight.server.response.ResponseCode;
+import zbl.moonlight.server.protocol.MdtpRequest;
+import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
 
 import java.nio.ByteBuffer;
@@ -17,31 +16,27 @@ public class SimpleCache extends Engine {
     private ConcurrentHashMap<ByteBuffer, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
 
     @Override
-    protected void set(Mdtp mdtp) {
-        cache.put(mdtp.getKey(), mdtp.getValue());
-        mdtp.setResponse(new Response(ResponseCode.SUCCESS_NO_VALUE));
-        logger.info("set method execute.");
+    protected MdtpResponse set(MdtpRequest mdtpRequest) {
+        cache.put(mdtpRequest.getKey(), mdtpRequest.getValue());
+        MdtpResponse response = new MdtpResponse();
+        response.setSuccessNoValue();
+        logger.info("SET method execute.");
+        return response;
     }
 
     @Override
-    protected void get(Mdtp mdtp) {
-        DynamicByteBuffer value = cache.get(mdtp.getKey());
-        Response response = new Response();
-        if(value == null) {
-            response.setStatus(ResponseCode.VALUE_NOT_EXIST);
-        } else {
-            response.setStatus(ResponseCode.VALUE_EXIST);
-            response.setValue(value);
-        }
-        mdtp.setResponse(response);
+    protected MdtpResponse get(MdtpRequest mdtpRequest) {
+        return null;
     }
 
     @Override
-    protected void update(Mdtp mdtp) {
+    protected MdtpResponse update(MdtpRequest mdtpRequest) {
+        return null;
     }
 
     @Override
-    protected void delete(Mdtp mdtp) {
+    protected MdtpResponse delete(MdtpRequest mdtpRequest) {
+        return null;
     }
 
 }
