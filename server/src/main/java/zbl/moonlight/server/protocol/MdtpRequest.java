@@ -23,6 +23,9 @@ public class MdtpRequest {
     private boolean keyReadCompleted;
     private boolean valueReadCompleted;
 
+    @Getter
+    private boolean readCompleted;
+
     private Integer keyLength;
     private Integer valueLength;
 
@@ -34,18 +37,17 @@ public class MdtpRequest {
     @Setter
     private DynamicByteBuffer value;
 
-    private boolean hasResponse;
-
     public MdtpRequest() {
         headerReadCompleted = false;
         keyReadCompleted = false;
         valueReadCompleted = false;
+        readCompleted = false;
 
         keyLength = null;
         valueLength = null;
 
         header = ByteBuffer.allocate(HEADER_LENGTH);
-        value = new DynamicByteBuffer();
+        value = null;
     }
 
     public static ByteBuffer encode(byte code, ByteBuffer key, ByteBuffer value) throws EncodeException {
@@ -53,9 +55,12 @@ public class MdtpRequest {
             throw new EncodeException("key length cannot exceed 0xff.");
         }
         byte keyLength = (byte) (key.limit() & 0xff);
-        int valueLength = value.limit();
+        int valueLength = value == null ? 0 : value.limit();
         ByteBuffer byteBuffer = ByteBuffer.allocate(HEADER_LENGTH + keyLength + valueLength);
-        byteBuffer.put(code).put(keyLength).putInt(valueLength).put(key).put(value);
+        byteBuffer.put(code).put(keyLength).putInt(valueLength).put(key);
+        if(value != null) {
+            byteBuffer.put(value);
+        }
         return byteBuffer;
     }
 
@@ -69,48 +74,55 @@ public class MdtpRequest {
      * @throws IOException
      */
     public int read(SocketChannel socketChannel) throws IOException {
-        if(!headerReadCompleted) {
-            int status = readHeader(socketChannel);
+        try {
+            if(!headerReadCompleted) {
+                int status = readHeader(socketChannel);
 
-            if(status == READ_UNCOMPLETED || status == READ_ERROR) {
-                return status;
+                if(status == READ_UNCOMPLETED || status == READ_ERROR) {
+                    return status;
+                }
+
+                if(status == READ_COMPLETED_SOCKET_CLOSE) {
+                    return READ_ERROR;
+                }
+
+                headerReadCompleted = true;
             }
 
-            if(status == READ_COMPLETED_SOCKET_CLOSE) {
-                return READ_ERROR;
+            if(!keyReadCompleted) {
+                int status = readKey(socketChannel);
+
+                if(status == READ_UNCOMPLETED || status == READ_ERROR) {
+                    return status;
+                }
+
+                if(status == READ_COMPLETED_SOCKET_CLOSE) {
+                    return READ_ERROR;
+                }
+
+                keyReadCompleted = true;
             }
 
-            headerReadCompleted = true;
+            if(!valueReadCompleted && !valueLength.equals(0)) {
+                int status = readValue(socketChannel);
+
+                if(status == READ_UNCOMPLETED || status == READ_ERROR) {
+                    return status;
+                }
+
+                if(status == READ_COMPLETED_SOCKET_CLOSE) {
+                    return READ_COMPLETED_SOCKET_CLOSE;
+                }
+
+                valueReadCompleted = true;
+            }
+        } catch (IOException e) {
+            socketChannel.close();
+            logger.info("close SocketChannel when READING.");
+            e.printStackTrace();
         }
 
-        if(!keyReadCompleted) {
-            int status = readKey(socketChannel);
-
-            if(status == READ_UNCOMPLETED || status == READ_ERROR) {
-                return status;
-            }
-
-            if(status == READ_COMPLETED_SOCKET_CLOSE) {
-                return READ_ERROR;
-            }
-
-            keyReadCompleted = true;
-        }
-
-        if(!valueReadCompleted) {
-            int status = readValue(socketChannel);
-
-            if(status == READ_UNCOMPLETED || status == READ_ERROR) {
-                return status;
-            }
-
-            if(status == READ_COMPLETED_SOCKET_CLOSE) {
-                return READ_COMPLETED_SOCKET_CLOSE;
-            }
-
-            valueReadCompleted = true;
-        }
-
+        readCompleted = true;
         return READ_COMPLETED;
     }
 
@@ -120,18 +132,6 @@ public class MdtpRequest {
 
     public ByteBuffer getKey() {
         return key;
-    }
-
-    public boolean isHasResponse() {
-        return hasResponse;
-    }
-
-    public void setHasResponse(boolean hasResponse) {
-        this.hasResponse = hasResponse;
-    }
-
-    public boolean isReadFinished() {
-        return valueReadCompleted;
     }
 
     private int readHeader(SocketChannel socketChannel) throws IOException {
@@ -170,12 +170,15 @@ public class MdtpRequest {
     }
 
     private int readValue(SocketChannel socketChannel) throws IOException {
+        if(value == null) {
+            value = new DynamicByteBuffer();
+        }
         ByteBuffer chunk = value.last();
         while(true) {
             int readLength = socketChannel.read(chunk);
             if (readLength > 0) continue;
 
-            if(value.size() == valueLength) {
+            if(value.writtenSize() == valueLength) {
                 return readLength == READ_COMPLETED_SOCKET_CLOSE ? READ_COMPLETED_SOCKET_CLOSE : READ_COMPLETED;
             }
 
@@ -193,6 +196,7 @@ public class MdtpRequest {
 
     @Override
     public String toString() {
-        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value.toString();
+        return "method: " + MdtpMethod.getMethodName(method) + ", key: " +
+                new String(key.array()) + ", value length is:" + (value == null ? 0 : value.size());
     }
 }

@@ -17,8 +17,8 @@ public class SimpleCache extends Engine {
 
     @Override
     protected MdtpResponse set(MdtpRequest mdtpRequest) {
-        cache.put(mdtpRequest.getKey(), mdtpRequest.getValue());
         MdtpResponse response = new MdtpResponse();
+        cache.put(mdtpRequest.getKey(), mdtpRequest.getValue());
         response.setSuccessNoValue();
         logger.info("SET method execute.");
         return response;
@@ -26,7 +26,17 @@ public class SimpleCache extends Engine {
 
     @Override
     protected MdtpResponse get(MdtpRequest mdtpRequest) {
-        return null;
+        MdtpResponse response = new MdtpResponse();
+        DynamicByteBuffer value = cache.get(mdtpRequest.getKey());
+        logger.info("GET method execute.");
+
+        if(value == null) {
+            response.setValueNotExist();
+            return response;
+        }
+        response.setValue(value);
+        response.setValueExist();
+        return response;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package zbl.moonlight.server.engine.buffer;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,8 +32,20 @@ public class DynamicByteBuffer {
         return last.position() == last.limit();
     }
 
-    public int size() {
+    /**
+     * 写入长度
+     * @return
+     */
+    public int writtenSize() {
         return chunkSize * (bufferList.size() - 1) + last().position();
+    }
+
+    /**
+     * 总长度
+     * @return
+     */
+    public int size() {
+        return chunkSize * (bufferList.size() - 1) + last().limit();
     }
 
     public void copyFrom(DynamicByteBuffer src, int srcOffset, int length) {
@@ -80,21 +94,35 @@ public class DynamicByteBuffer {
         return bufferList.get(index);
     }
 
-    private boolean isEmpty() {
-        return bufferList.size() == 0;
+    public void flip () {
+        for(ByteBuffer byteBuffer : bufferList) {
+            byteBuffer.flip();
+        }
     }
 
-    @Override
-    public String toString() {
-        byte[] resultBytes = new byte[size()];
-        int index = 0;
-        for(int i = 0; i < size(); i ++) {
-            if((i - index * chunkSize) == chunkSize) {
-                index ++;
-            }
-            resultBytes[i] = bufferList.get(index).get(i % chunkSize);
+    public void rewind() {
+        for(ByteBuffer byteBuffer : bufferList) {
+            byteBuffer.rewind();
         }
+    }
 
-        return new String(resultBytes);
+    public int writeTo(SocketChannel socketChannel) throws IOException {
+        int writeLength = 0;
+        for(ByteBuffer byteBuffer : bufferList) {
+            if(byteBuffer.position() == byteBuffer.limit()) {
+                continue;
+            }
+
+            writeLength += socketChannel.write(byteBuffer);
+
+            if(byteBuffer.position() != byteBuffer.limit()) {
+                break;
+            }
+        }
+        return writeLength;
+    }
+
+    private boolean isEmpty() {
+        return bufferList.size() == 0;
     }
 }

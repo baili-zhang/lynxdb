@@ -35,7 +35,12 @@ public class MoonlightClient {
                 String[] commandArray = command.trim().split("\\s+");
                 byte code = (byte) 0xff;
                 ByteBuffer key = ByteBuffer.wrap(commandArray[1].getBytes(StandardCharsets.UTF_8));
-                ByteBuffer value = ByteBuffer.wrap(commandArray[2].getBytes(StandardCharsets.UTF_8));
+                ByteBuffer value;
+                if(commandArray.length > 2) {
+                    value = ByteBuffer.wrap(commandArray[2].getBytes(StandardCharsets.UTF_8));
+                } else {
+                    value = null;
+                }
 
                 switch (commandArray[0]) {
                     case "get":
@@ -60,7 +65,13 @@ public class MoonlightClient {
 
                 byte responseCode = inputStream.readByte();
                 int valueLength = inputStream.readInt();
-                System.out.println("[" + ResponseCode.getCodeName(responseCode) + "][" + valueLength + "]");
+                String responseValue = "";
+                if(valueLength != 0) {
+                    byte[] responseValueBytes = new byte[valueLength];
+                    inputStream.read(responseValueBytes);
+                    responseValue += new String(responseValueBytes);
+                }
+                System.out.println("[" + ResponseCode.getCodeName(responseCode) + "][" + valueLength + "][" + responseValue + "]");
             }
         } catch (Exception e) {
             e.printStackTrace();
