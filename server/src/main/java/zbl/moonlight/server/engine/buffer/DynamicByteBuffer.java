@@ -45,7 +45,8 @@ public class DynamicByteBuffer {
      * @return
      */
     public int size() {
-        return chunkSize * (bufferList.size() - 1) + last().limit();
+        int n = bufferList.size() - 1;
+        return chunkSize * n + bufferList.get(n).limit();
     }
 
     public void copyFrom(DynamicByteBuffer src, int srcOffset, int length) {

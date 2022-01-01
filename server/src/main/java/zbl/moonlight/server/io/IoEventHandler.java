@@ -49,10 +49,13 @@ public class IoEventHandler implements Runnable {
             if(value != null) {
                 value.flip();
             }
+
+            logger.info("received command, " + mdtpRequest + ".");
             MdtpResponse response = engine.exec(mdtpRequest);
+            logger.info("command execute over.");
+
             selectionKey.attach(response);
             selectionKey.interestOps(SelectionKey.OP_WRITE);
-            logger.info("received command, " + mdtpRequest + ".");
         }
     }
 

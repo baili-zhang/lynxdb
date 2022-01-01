@@ -81,12 +81,16 @@ public class MdtpResponse {
             logger.info("close SocketChannel when WRITING.");
             e.printStackTrace();
         }
-        if(writeLength == HEADER_LENGTH + value.writtenSize()) {
+
+        logger.info("write length is: " + writeLength + ", value.size(): " + value.size());
+        if(writeLength == HEADER_LENGTH + value.size()) {
             writeCompleted = true;
             logger.info("write length is: " + writeLength);
+            return;
         }
 
-        if(writeLength > HEADER_LENGTH + value.writtenSize()) {
+        if(writeLength > HEADER_LENGTH + value.size()) {
+            writeCompleted = true;
             throw new IOException("writeLength > HEADER_LENGTH + value.size()");
         }
     }
