@@ -9,13 +9,13 @@
 |1 byte|1 byte|4 byte|最大 255 byte|最大 2^31 - 1 byte|
 
 ### 方法
-|方法值|方法名|
-|---|---|
-|0x01|set|
-|0x02|get|
-|0x03|update|
-|0x04|delete|
-|0x05|exit|
+|方法值|方法名|说明|
+|---|---|---|
+|0x01|set|若key不存在，新增key，否则更新key|
+|0x02|get|获取key|
+|0x03|update|若key存在，更新key，否则报错（暂时不实现）|
+|0x04|delete|删除key|
+|0x05|exit|退出客户端|
 
 ## 响应
 

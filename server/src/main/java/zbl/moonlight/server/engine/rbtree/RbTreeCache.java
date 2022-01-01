@@ -17,11 +17,6 @@ public class RbTreeCache extends Engine {
     }
 
     @Override
-    protected MdtpResponse update(MdtpRequest mdtpRequest) {
-        return null;
-    }
-
-    @Override
     protected MdtpResponse delete(MdtpRequest mdtpRequest) {
         return null;
     }

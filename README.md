@@ -1,5 +1,20 @@
 # Moonlight
-A memory cache just for fun !
+
+Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采用多线程架构，实现的功能包括：
+
+- 增删改查操作
+- [MDTP通信协议](MDTP.md)
+- 红黑树索引，跳表索引
+- LRU缓存更新
+- 数据持久化（二进制数据文件）
+- 基于Raft算法的集群实现
+- yaml格式配置文件
+
+## 配置项
+
+- 端口号
+- 核心线程数
+- 最大线程数
 
 1.0-SNAPSHOT is here: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
 

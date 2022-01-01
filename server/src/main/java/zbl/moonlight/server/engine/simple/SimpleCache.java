@@ -34,19 +34,19 @@ public class SimpleCache extends Engine {
             response.setValueNotExist();
             return response;
         }
+
         response.setValue(value);
         response.setValueExist();
         return response;
     }
 
     @Override
-    protected MdtpResponse update(MdtpRequest mdtpRequest) {
-        return null;
-    }
-
-    @Override
     protected MdtpResponse delete(MdtpRequest mdtpRequest) {
-        return null;
+        MdtpResponse response = new MdtpResponse();
+        cache.remove(mdtpRequest.getKey());
+        response.setSuccessNoValue();
+        logger.info("DELETE method execute.");
+        return response;
     }
 
 }

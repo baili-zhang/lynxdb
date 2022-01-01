@@ -11,8 +11,6 @@ public abstract class Engine {
                 return set(mdtpRequest);
             case MdtpMethod.GET:
                 return get(mdtpRequest);
-            case MdtpMethod.UPDATE:
-                return update(mdtpRequest);
             case MdtpMethod.DELETE:
                 return delete(mdtpRequest);
         }
@@ -22,6 +20,5 @@ public abstract class Engine {
 
     protected abstract MdtpResponse set(MdtpRequest mdtpRequest);
     protected abstract MdtpResponse get(MdtpRequest mdtpRequest);
-    protected abstract MdtpResponse update(MdtpRequest mdtpRequest);
     protected abstract MdtpResponse delete(MdtpRequest mdtpRequest);
 }
