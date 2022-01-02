@@ -12,9 +12,15 @@ Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采
 
 ## 配置项
 
+- 主机
 - 端口号
+- socket连接数
 - 核心线程数
 - 最大线程数
+
+## 流程
+
+DynamicByteBuffer 申请内存流程： 首先，直接申请给定大小的直接内存，如果申请失败则申请给定大小的 1/2，直到申请到全部内存。如果申请失败，则报异常。
 
 1.0-SNAPSHOT is here: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
 

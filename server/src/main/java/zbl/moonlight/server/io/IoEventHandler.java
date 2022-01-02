@@ -2,8 +2,10 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
+import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
@@ -19,13 +21,15 @@ public class IoEventHandler implements Runnable {
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
     private final Selector selector;
+    private final EventBus eventBus;
     private final Engine engine;
 
-    public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector, Engine engine) {
+    public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
-        this.engine = engine;
+        this.eventBus = ServerContext.getInstance().getEventBus();
+        this.engine = ServerContext.getInstance().getEngine();
     }
 
     private void doAccept(SelectionKey selectionKey)
@@ -52,6 +56,7 @@ public class IoEventHandler implements Runnable {
 
             logger.info("received command, " + mdtpRequest + ".");
             MdtpResponse response = engine.exec(mdtpRequest);
+            eventBus.post(mdtpRequest);
             logger.info("command execute over.");
 
             selectionKey.attach(response);

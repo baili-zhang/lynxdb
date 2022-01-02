@@ -3,8 +3,11 @@ package zbl.moonlight.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.engine.Engine;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
+import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.eventbus.subscriber.BinaryLogSubscriber;
+import zbl.moonlight.server.eventbus.subscriber.ClusterSubscriber;
 import zbl.moonlight.server.io.IoEventHandler;
 
 import java.net.InetSocketAddress;
@@ -18,7 +21,7 @@ public class MoonlightServer {
 
     private Configuration configuration;
     private ThreadPoolExecutor executor;
-    private Engine engine;
+    private ServerContext context = ServerContext.getInstance();
 
     public static void main(String[] args) {
         MoonlightServer server = new MoonlightServer();
@@ -27,15 +30,21 @@ public class MoonlightServer {
 
     private void init() {
         configuration = new Configuration();
-        configuration.setPort(7820);
 
-        executor = new ThreadPoolExecutor(2, 4, 30,
+        executor = new ThreadPoolExecutor(configuration.getIoThreadCorePoolSize(),
+                configuration.getIoThreadMaxPoolSize(),
+                30,
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(10),
                 Executors.defaultThreadFactory(),
                 new ThreadPoolExecutor.DiscardPolicy());
 
-        engine = new SimpleCache();
+        context.setEngine(new SimpleCache());
+
+        EventBus eventBus = new EventBus();
+        eventBus.register(new BinaryLogSubscriber());
+        eventBus.register(new ClusterSubscriber());
+        context.setEventBus(eventBus);
     }
 
     private void listen() {
@@ -46,7 +55,7 @@ public class MoonlightServer {
             serverSocketChannel.bind(new InetSocketAddress(configuration.getPort()));
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            logger.info("moonlight server is listening at {}:{}.", "127.0.0.1", configuration.getPort());
+            logger.info("moonlight server is listening at {}:{}.", configuration.getHost(), configuration.getPort());
 
             while (true) {
                 selector.select();
@@ -57,7 +66,7 @@ public class MoonlightServer {
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
-                        executor.execute(new IoEventHandler(selectionKey, latch, selector, engine));
+                        executor.execute(new IoEventHandler(selectionKey, latch, selector));
                         iterator.remove();
                     }
                 }
