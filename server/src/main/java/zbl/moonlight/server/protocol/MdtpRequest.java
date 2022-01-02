@@ -50,10 +50,7 @@ public class MdtpRequest {
         value = null;
     }
 
-    public static ByteBuffer encode(byte code, ByteBuffer key, ByteBuffer value) throws EncodeException {
-        if(key.limit() > 0xff) {
-            throw new EncodeException("key length cannot exceed 0xff.");
-        }
+    public static ByteBuffer encode(byte code, ByteBuffer key, ByteBuffer value) {
         byte keyLength = (byte) (key.limit() & 0xff);
         int valueLength = value == null ? 0 : value.limit();
         ByteBuffer byteBuffer = ByteBuffer.allocate(HEADER_LENGTH + keyLength + valueLength);

@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 class MdtpRequestTest {
 
     @Test
-    void encode() throws EncodeException {
+    void encode() {
         String key = "ByteBuffer byteBuffer";
         String value = "ByteBuffer.wrap(\"abc\".getBytes(StandardCharsets.UTF_8))";
         ByteBuffer byteBuffer = MdtpRequest.encode(MdtpMethod.GET, ByteBuffer.wrap(key.getBytes(StandardCharsets.UTF_8)),

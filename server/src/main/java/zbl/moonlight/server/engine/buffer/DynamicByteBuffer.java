@@ -1,11 +1,14 @@
 package zbl.moonlight.server.engine.buffer;
 
+import lombok.ToString;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+@ToString
 public class DynamicByteBuffer {
     private List<ByteBuffer> bufferList = new ArrayList<>();
     private int chunkSize = 1024;

@@ -16,6 +16,7 @@
 |0x03|update|若key存在，更新key，否则报错（暂时不实现）|
 |0x04|delete|删除key|
 |0x05|exit|退出客户端|
+|0x06|system|设置系统变量，例如：`system binlog off`|
 
 ## 响应
 

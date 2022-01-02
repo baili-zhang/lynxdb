@@ -6,6 +6,7 @@ public class MdtpMethod {
     public static final byte UPDATE = (byte) 0x03;
     public static final byte DELETE = (byte) 0x04;
     public static final byte EXIT = (byte) 0x05;
+    public static final byte SYSTEM = (byte) 0x06;
 
     public static String getMethodName(byte code) {
         switch (code) {
@@ -19,6 +20,8 @@ public class MdtpMethod {
                 return "delete";
             case EXIT:
                 return "exit";
+            case SYSTEM:
+                return "system";
             default:
                 return "unknown method";
         }

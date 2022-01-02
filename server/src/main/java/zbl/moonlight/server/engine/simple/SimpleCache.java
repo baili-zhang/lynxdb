@@ -13,22 +13,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SimpleCache extends Engine {
     private static final Logger logger = LogManager.getLogger("SimpleCache");
 
-    private ConcurrentHashMap<ByteBuffer, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
 
     @Override
     protected MdtpResponse set(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse();
-        cache.put(mdtpRequest.getKey(), mdtpRequest.getValue());
+        String key = new String(mdtpRequest.getKey().array());
+        cache.put(key, mdtpRequest.getValue());
         response.setSuccessNoValue();
-        logger.info("SET method execute.");
+        logger.info("SET method execute, key is: " + key);
         return response;
     }
 
     @Override
     protected MdtpResponse get(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse();
-        DynamicByteBuffer value = cache.get(mdtpRequest.getKey());
-        logger.info("GET method execute.");
+        String key = new String(mdtpRequest.getKey().array());
+        DynamicByteBuffer value = cache.get(key);
+        logger.info("GET method execute, key is: " + key);
 
         if(value == null) {
             response.setValueNotExist();
