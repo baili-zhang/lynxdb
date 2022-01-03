@@ -10,7 +10,7 @@ class LogTest {
 
     @Test
     void append() throws IOException {
-        Log log = new Log();
-        log.append(ByteBuffer.wrap("hallo-world".getBytes(StandardCharsets.UTF_8)));
+        BinaryLog binaryLog = new BinaryLog();
+        binaryLog.append(ByteBuffer.wrap("hallo-world".getBytes(StandardCharsets.UTF_8)));
     }
 }

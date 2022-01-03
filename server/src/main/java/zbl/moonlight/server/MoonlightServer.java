@@ -8,7 +8,9 @@ import zbl.moonlight.server.engine.simple.SimpleCache;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.subscriber.BinaryLogSubscriber;
 import zbl.moonlight.server.eventbus.subscriber.ClusterSubscriber;
+import zbl.moonlight.server.exception.IncompleteBinaryLogException;
 import zbl.moonlight.server.io.IoEventHandler;
+import zbl.moonlight.server.log.BinaryLog;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -24,12 +26,12 @@ public class MoonlightServer {
     private ThreadPoolExecutor executor;
     private ServerContext context = ServerContext.getInstance();
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, IncompleteBinaryLogException {
         MoonlightServer server = new MoonlightServer();
         server.run();
     }
 
-    private void init() throws IOException {
+    private void init() throws IOException, IncompleteBinaryLogException {
         configuration = new Configuration();
 
         executor = new ThreadPoolExecutor(configuration.getIoThreadCorePoolSize(),
@@ -42,8 +44,11 @@ public class MoonlightServer {
 
         context.setEngine(new SimpleCache());
 
+        BinaryLog binaryLog = new BinaryLog();
+        binaryLog.read();
+
         EventBus eventBus = new EventBus();
-        eventBus.register(new BinaryLogSubscriber());
+        eventBus.register(new BinaryLogSubscriber(binaryLog));
         eventBus.register(new ClusterSubscriber());
         context.setEventBus(eventBus);
     }
@@ -78,7 +83,7 @@ public class MoonlightServer {
         }
     }
 
-    public void run() throws IOException {
+    public void run() throws IOException, IncompleteBinaryLogException {
         init();
         listen();
     }

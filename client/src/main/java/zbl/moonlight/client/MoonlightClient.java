@@ -1,10 +1,8 @@
 package zbl.moonlight.client;
 
 import zbl.moonlight.client.common.Command;
-import zbl.moonlight.client.exception.ClientRunException;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
-import zbl.moonlight.client.thread.Executor;
 import zbl.moonlight.server.protocol.ResponseCode;
 
 import java.io.BufferedInputStream;
@@ -15,7 +13,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MoonlightClient {
     private final String host;
@@ -24,38 +21,13 @@ public class MoonlightClient {
     private DataOutputStream outputStream;
     private Scanner scanner;
 
-    private final ConcurrentLinkedQueue<Command> queue;
-
     public MoonlightClient(String host, int port) {
-        this(host, port, null);
-    }
-
-    public MoonlightClient(String host, int port, ConcurrentLinkedQueue<Command> queue) {
         this.host = host;
         this.port = port;
-        this.queue = queue;
-    }
-
-    public void run() throws IOException, ClientRunException {
-        if(queue == null) {
-            throw new ClientRunException("commands queue is null");
-        }
-
-        init();
-        new Thread(new Executor(queue), "client-executor").start();
-    }
-
-    public void send(String str) {
-        try {
-            queue.offer(new Command(str));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public void runInTerminal() throws IOException {
         init();
-        scanner = new Scanner(System.in);
 
         while (true) {
             try {
@@ -82,6 +54,7 @@ public class MoonlightClient {
         Socket socket = new Socket(host, port);
         inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+        scanner = new Scanner(System.in);
     }
 
     private Command readLine() throws InvalidMethodException, InvalidCommandException {

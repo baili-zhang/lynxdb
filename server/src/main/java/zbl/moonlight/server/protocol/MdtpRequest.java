@@ -52,6 +52,20 @@ public class MdtpRequest {
         return new MdtpRequest(code, key, value);
     }
 
+    public void parseHeader() {
+        method = header.get(0);
+        keyLength = header.get(1) & 0xff;
+        valueLength = ((header.get(2) & 0xff) << 24) |
+                ((header.get(3) & 0xff) << 16) |
+                ((header.get(4) & 0xff) << 8) |
+                (header.get(5) & 0xff);
+
+        key = ByteBuffer.allocate(keyLength);
+        if(!valueLength.equals(0)) {
+            value = new DynamicByteBuffer(valueLength);
+        }
+    }
+
     /**
      * 从 socketChannel 里读取数据到 data 里
      *
@@ -90,17 +104,7 @@ public class MdtpRequest {
             if (readLength > 0) continue;
 
             if(isFull(header)) {
-                method = header.get(0);
-                keyLength = header.get(1) & 0xff;
-                valueLength = ((header.get(2) & 0xff) << 24) |
-                        ((header.get(3) & 0xff) << 16) |
-                        ((header.get(4) & 0xff) << 8) |
-                        (header.get(5) & 0xff);
-
-                key = ByteBuffer.allocate(keyLength);
-                if(!valueLength.equals(0)) {
-                    value = new DynamicByteBuffer(valueLength);
-                }
+                parseHeader();
                 break;
             }
         }
@@ -127,6 +131,6 @@ public class MdtpRequest {
 
     @Override
     public String toString() {
-        return "method: " + MdtpMethod.getMethodName(method) + ", key: " +  ", value: " + value;
+        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value;
     }
 }
