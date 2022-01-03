@@ -10,6 +10,7 @@ import zbl.moonlight.server.eventbus.subscriber.BinaryLogSubscriber;
 import zbl.moonlight.server.eventbus.subscriber.ClusterSubscriber;
 import zbl.moonlight.server.io.IoEventHandler;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.Iterator;
@@ -23,12 +24,12 @@ public class MoonlightServer {
     private ThreadPoolExecutor executor;
     private ServerContext context = ServerContext.getInstance();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         MoonlightServer server = new MoonlightServer();
         server.run();
     }
 
-    private void init() {
+    private void init() throws IOException {
         configuration = new Configuration();
 
         executor = new ThreadPoolExecutor(configuration.getIoThreadCorePoolSize(),
@@ -77,7 +78,7 @@ public class MoonlightServer {
         }
     }
 
-    public void run() {
+    public void run() throws IOException {
         init();
         listen();
     }

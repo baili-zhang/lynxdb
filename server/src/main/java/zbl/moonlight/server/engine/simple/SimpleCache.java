@@ -7,7 +7,6 @@ import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SimpleCache extends Engine {

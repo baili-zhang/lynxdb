@@ -70,9 +70,7 @@ public class IoEventHandler implements Runnable {
         mdtpResponse.write(socketChannel);
 
         if(mdtpResponse.isWriteCompleted()) {
-            if(mdtpResponse.getValue() != null) {
-                mdtpResponse.getValue().rewind();
-            }
+            logger.info("mdtp response is is written completed.");
             selectionKey.attach(new MdtpRequest());
             selectionKey.interestOps(SelectionKey.OP_READ);
         }

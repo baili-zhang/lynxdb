@@ -1,11 +1,10 @@
 package zbl.moonlight.client;
 
-import lombok.Getter;
-import lombok.ToString;
+import zbl.moonlight.client.common.Command;
+import zbl.moonlight.client.exception.ClientRunException;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
-import zbl.moonlight.server.protocol.MdtpMethod;
-import zbl.moonlight.server.protocol.MdtpRequest;
+import zbl.moonlight.client.thread.Executor;
 import zbl.moonlight.server.protocol.ResponseCode;
 
 import java.io.BufferedInputStream;
@@ -14,9 +13,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MoonlightClient {
     private final String host;
@@ -25,13 +24,39 @@ public class MoonlightClient {
     private DataOutputStream outputStream;
     private Scanner scanner;
 
+    private final ConcurrentLinkedQueue<Command> queue;
+
     public MoonlightClient(String host, int port) {
-        this.host = host;
-        this.port = port;
+        this(host, port, null);
     }
 
-    public void run() throws IOException {
+    public MoonlightClient(String host, int port, ConcurrentLinkedQueue<Command> queue) {
+        this.host = host;
+        this.port = port;
+        this.queue = queue;
+    }
+
+    public void run() throws IOException, ClientRunException {
+        if(queue == null) {
+            throw new ClientRunException("commands queue is null");
+        }
+
         init();
+        new Thread(new Executor(queue), "client-executor").start();
+    }
+
+    public void send(String str) {
+        try {
+            queue.offer(new Command(str));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void runInTerminal() throws IOException {
+        init();
+        scanner = new Scanner(System.in);
+
         while (true) {
             try {
                 print();
@@ -50,14 +75,13 @@ public class MoonlightClient {
 
     public static void main(String[] args) throws IOException {
         MoonlightClient client = new MoonlightClient("127.0.0.1", 7820);
-        client.run();
+        client.runInTerminal();
     }
 
     private void init() throws IOException {
         Socket socket = new Socket(host, port);
         inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-        scanner = new Scanner(System.in);
     }
 
     private Command readLine() throws InvalidMethodException, InvalidCommandException {
@@ -72,10 +96,20 @@ public class MoonlightClient {
         System.out.println("[Invalid " + type + "][" + message + "]");
     }
 
-    private void send(Command command) throws IOException {
-        ByteBuffer key = ByteBuffer.wrap(command.getKey().toString().getBytes(StandardCharsets.UTF_8));
-        ByteBuffer value = ByteBuffer.wrap(command.getValue().toString().getBytes(StandardCharsets.UTF_8));
-        outputStream.write(MdtpRequest.encode(command.getCode(), key, value).array());
+    private void send(Command command) throws IOException, InvalidCommandException {
+        byte method = command.getCode();
+        byte[] key = command.getKey().toString().getBytes(StandardCharsets.UTF_8);
+        byte[] value = command.getValue().toString().getBytes(StandardCharsets.UTF_8);
+        if(key.length > 255) {
+            throw new InvalidCommandException("key is too long.");
+        }
+        byte keyLength = (byte) key.length;
+        int valueLength = value.length;
+
+        outputStream.write(new byte[]{method, keyLength});
+        outputStream.writeInt(valueLength);
+        outputStream.write(key);
+        outputStream.write(value);
         outputStream.flush();
     }
 
@@ -89,106 +123,5 @@ public class MoonlightClient {
             responseValue += new String(responseValueBytes);
         }
         System.out.println("[" + ResponseCode.getCodeName(responseCode) + "][" + valueLength + "][" + responseValue + "]");
-    }
-
-    @ToString
-    private class Command {
-        private String command;
-        private StringBuffer method;
-        @Getter
-        private StringBuffer key;
-        @Getter
-        private StringBuffer value;
-        @Getter
-        private byte code = (byte) 0xff;
-
-
-        Command(String command) throws InvalidMethodException, InvalidCommandException {
-            this.command = command;
-            method = new StringBuffer();
-            key = new StringBuffer();
-            value = new StringBuffer();
-            parse();
-        }
-
-        private void parse() throws InvalidMethodException, InvalidCommandException {
-            StringBuffer current = method;
-            for(int i = 0; i < command.length(); i ++) {
-                if(command.charAt(i) == ' ') {
-                    if(method.length() > 0) {
-                        current = key;
-                    }
-                    if(key.length() > 0) {
-                        current = value;
-                    }
-                    if(value.length() != 0) {
-                        current.append(command.charAt(i));
-                    }
-                    continue;
-                }
-
-                current.append(command.charAt(i));
-            }
-
-            if(method.length() == 0) {
-                throw new InvalidMethodException("method name is empty");
-            }
-
-            switch (method.toString()) {
-                case "get":
-                    code = MdtpMethod.GET;
-                    verifyGet();
-                    break;
-                case "set":
-                    code = MdtpMethod.SET;
-                    verifySet();
-                    break;
-                case "delete":
-                    code = MdtpMethod.DELETE;
-                    verifyDelete();
-                    break;
-                case "exit":
-                    code = MdtpMethod.EXIT;
-                    break;
-                case "system":
-                    code = MdtpMethod.SYSTEM;
-                    verifySystem();
-                    break;
-                default:
-                    throw new InvalidMethodException("method \"" + method + "\" is invalid");
-            }
-        }
-
-        private void verifyGet() throws InvalidCommandException {
-            if(key.length() == 0) {
-                throw new InvalidCommandException("key is empty");
-            }
-            value = new StringBuffer();
-        }
-
-        private void verifySet() throws InvalidCommandException {
-            if(key.length() == 0) {
-                throw new InvalidCommandException("key is empty");
-            }
-            if(value.length() == 0) {
-                throw new InvalidCommandException("value is empty");
-            }
-        }
-
-        private void verifyDelete() throws InvalidCommandException {
-            if(key.length() == 0) {
-                throw new InvalidCommandException("key is empty");
-            }
-            value = new StringBuffer();
-        }
-
-        private void verifySystem() throws InvalidCommandException {
-            if(key.length() == 0) {
-                throw new InvalidCommandException("key is empty");
-            }
-            if(value.length() == 0) {
-                throw new InvalidCommandException("value is empty");
-            }
-        }
     }
 }

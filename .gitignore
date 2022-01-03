@@ -11,7 +11,7 @@ client/target/
 *.class
 
 # Log file
-logs/
+server/logs/
 *.log
 
 # BlueJ files
