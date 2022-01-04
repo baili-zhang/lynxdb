@@ -2,10 +2,7 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.context.ServerContext;
-import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
-import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
@@ -14,22 +11,27 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
 public class IoEventHandler implements Runnable {
-    private final Logger logger = LogManager.getLogger("IoEventHandler");
+    private static final Logger logger = LogManager.getLogger("IoEventHandler");
+
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
     private final Selector selector;
-    private final EventBus eventBus;
-    private final Engine engine;
+    private final ConcurrentLinkedQueue<MdtpRequest> requests;
+    private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
 
-    public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector) {
+    public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector,
+                           ConcurrentLinkedQueue<MdtpRequest> requests,
+                           ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
-        this.eventBus = ServerContext.getInstance().getEventBus();
-        this.engine = ServerContext.getInstance().getEngine();
+        this.requests = requests;
+        this.responsesMap = responsesMap;
     }
 
     private void doAccept(SelectionKey selectionKey)
@@ -43,6 +45,11 @@ public class IoEventHandler implements Runnable {
         }
     }
 
+    /**
+     * 每次读一个请求
+     * @param selectionKey
+     * @throws IOException
+     */
     private void doRead(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         MdtpRequest mdtpRequest = (MdtpRequest) selectionKey.attachment();
@@ -54,25 +61,46 @@ public class IoEventHandler implements Runnable {
                 value.flip();
             }
 
-            logger.info("received command, " + mdtpRequest + ".");
-            MdtpResponse response = engine.exec(mdtpRequest);
-            eventBus.post(mdtpRequest);
-            logger.info("command execute over.");
-
-            selectionKey.attach(response);
-            selectionKey.interestOps(SelectionKey.OP_WRITE);
+            /* 将读完的请求加入到请求队列中 */
+            requests.offer(mdtpRequest);
+            /* 设置新的请求对象 */
+            selectionKey.attach(new MdtpRequest());
+            /* selectionKey添加写事件监听 */
+            selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+            logger.info("received mdtp request: " + mdtpRequest + ".");
         }
     }
 
+    /**
+     * 每次写多个响应
+     * @param selectionKey
+     * @throws IOException
+     */
     private void doWrite(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        MdtpResponse mdtpResponse = (MdtpResponse) selectionKey.attachment();
-        mdtpResponse.write(socketChannel);
+        ConcurrentLinkedQueue<MdtpResponse> responses = responsesMap.get(selectionKey);
+        if(responses == null) {
+            throw new IOException("response queue is null");
+        }
 
-        if(mdtpResponse.isWriteCompleted()) {
-            logger.info("mdtp response is is written completed.");
-            selectionKey.attach(new MdtpRequest());
-            selectionKey.interestOps(SelectionKey.OP_READ);
+        while(!responses.isEmpty()) {
+            MdtpResponse mdtpResponse = responses.peek();
+            if(mdtpResponse != null) {
+                mdtpResponse.write(socketChannel);
+                if(mdtpResponse.isWriteCompleted()) {
+                    /* 从队列首部移除已经写完的响应 */
+                    responses.poll();
+                    logger.info("one mdtp response is written to client.");
+                } else {
+                    /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
+                    break;
+                }
+            }
+        }
+
+        /* 如果response队列为空，则取消写事件监听 */
+        if(responses.isEmpty()) {
+            selectionKey.interestOpsAnd(SelectionKey.OP_READ);
         }
     }
 

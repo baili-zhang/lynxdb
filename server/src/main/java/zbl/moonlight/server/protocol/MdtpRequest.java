@@ -48,10 +48,6 @@ public class MdtpRequest {
         this.value = new DynamicByteBuffer(value);
     }
 
-    public MdtpRequest encode(byte code, ByteBuffer key, ByteBuffer value) {
-        return new MdtpRequest(code, key, value);
-    }
-
     public void parseHeader() {
         method = header.get(0);
         keyLength = header.get(1) & 0xff;

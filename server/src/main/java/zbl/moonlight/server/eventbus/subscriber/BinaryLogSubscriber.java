@@ -26,8 +26,6 @@ public class BinaryLogSubscriber implements Subscriber {
             return;
         }
 
-        System.out.println(MdtpMethod.getMethodName(method));
-
         ByteBuffer header = request.getHeader();
         ByteBuffer key = request.getKey();
         DynamicByteBuffer value = request.getValue();
@@ -35,21 +33,25 @@ public class BinaryLogSubscriber implements Subscriber {
         header.rewind();
         key.rewind();
 
-        logger.info("write mdtp request to binary log.");
-        if(value == null) {
-            return;
+        logger.info("write to binary log, request is: " + request);
+        if(value != null) {
+            value.rewind();
         }
 
-        value.rewind();
         try {
             binaryLog.append(request.getHeader());
             binaryLog.append(request.getKey());
-            for(ByteBuffer buffer : value.getBufferList()) {
-                binaryLog.append(buffer);
+            if(value != null) {
+                for(ByteBuffer buffer : value.getBufferList()) {
+                    binaryLog.append(buffer);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        value.rewind();
+
+        if(value != null) {
+            value.rewind();
+        }
     }
 }

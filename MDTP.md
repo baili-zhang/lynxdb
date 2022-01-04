@@ -17,6 +17,7 @@
 |0x04|delete|删除key|
 |0x05|exit|退出客户端|
 |0x06|system|设置系统变量，例如：`system binlog off`|
+|0x07|cluster|查看集群相关的信息|
 
 ## 响应
 

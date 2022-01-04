@@ -2,6 +2,7 @@ package zbl.moonlight.server.eventbus;
 
 import zbl.moonlight.server.protocol.MdtpRequest;
 
+/* 注册[事件处理模块]和提交[事件] */
 public class EventBus {
 
     private final Registry registry = new Registry();

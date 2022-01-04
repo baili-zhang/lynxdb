@@ -1,3 +1,15 @@
 server:
   host: '127.0.0.1'
   port: 7820
+mode: 'cluster'
+cluster:
+  nodes:
+    -
+      host: '127.0.0.1'
+      port: 7823
+    -
+      host: '127.0.0.1'
+      port: 7824
+    -
+      host: '127.0.0.1'
+      port: 7825

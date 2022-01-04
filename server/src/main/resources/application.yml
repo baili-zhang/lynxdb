@@ -4,15 +4,3 @@ server:
 io:
   corePoolSize: 30
   maxPoolSize: 60
-cluster:
-  mode: 'single'
-  nodes: ['node1', 'node2', 'node3']
-  node1:
-    host: '127.0.0.1'
-    port: 7823
-  node2:
-    host: '127.0.0.1'
-    port: 7824
-  node3:
-    host: '127.0.0.1'
-    port: 7825

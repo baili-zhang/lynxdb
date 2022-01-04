@@ -44,7 +44,8 @@ public class SimpleCache extends Engine {
     @Override
     protected MdtpResponse delete(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse();
-        cache.remove(mdtpRequest.getKey());
+        String key = new String(mdtpRequest.getKey().array());
+        cache.remove(key);
         response.setSuccessNoValue();
         logger.info("DELETE method execute.");
         return response;

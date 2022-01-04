@@ -5,10 +5,13 @@ import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
+import zbl.moonlight.server.exception.ClusterConfigurationNotFoundException;
+import zbl.moonlight.server.exception.ConfigurationException;
 
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 @ToString
@@ -32,7 +35,13 @@ public class Configuration {
     @Getter
     private Integer ioThreadMaxPoolSize;
 
-    public Configuration() {
+    @Getter
+    private RunningMode runningMode;
+
+    @Getter
+    private ClusterConfiguration clusterConfiguration;
+
+    public Configuration() throws ConfigurationException {
         try {
             load();
         } catch (IOException e) {
@@ -47,7 +56,7 @@ public class Configuration {
         return new Yaml().load(new FileInputStream(path));
     }
 
-    private void load() throws IOException {
+    private void load() throws IOException, ConfigurationException {
         Map<String, Object> config = loadFromConfigDirectory();
         setOption(config);
         config = load(CONFIG_FILE_NAME);
@@ -66,11 +75,12 @@ public class Configuration {
         return yaml.load(inputStream);
     }
 
-    private void setOption (Map<String, Object> config) {
+    private void setOption (Map<String, Object> config) throws ConfigurationException {
         if(config == null) {
             return;
         }
 
+        /* 设置server的相关配置 */
         Map<String, Object> serverOptions = (Map<String, Object>) config.get("server");
         String host = (String) serverOptions.get("host");
         Integer port = (Integer) serverOptions.get("port");
@@ -80,6 +90,22 @@ public class Configuration {
         }
         if(port != null) {
             setPort(port);
+        }
+
+        /* 设置运行模式 */
+        String mode = (String)config.get("mode");
+        if(mode != null) {
+            setRunningMode(mode);
+        }
+
+        /* 当运行模式为集群时，设置集群配置 */
+        if(runningMode.equals(RunningMode.CLUSTER) && clusterConfiguration == null) {
+            Map<String, Object> clusterConfig = (Map<String, Object>)config.get("cluster");
+            if(clusterConfig == null) {
+                throw new ClusterConfigurationNotFoundException("cluster option is not found in application.yml");
+            }
+            List<ClusterNodeConfiguration> nodes = (List<ClusterNodeConfiguration>) clusterConfig.get("nodes");
+            setClusterConfiguration(new ClusterConfiguration(nodes));
         }
     }
 
@@ -118,6 +144,25 @@ public class Configuration {
     private void setIoThreadMaxPoolSize(int size) {
         if(ioThreadMaxPoolSize == null) {
             ioThreadMaxPoolSize = size;
+        }
+    }
+
+    private void setRunningMode(String mode) {
+        if(runningMode == null) {
+            switch (mode) {
+                case "single":
+                    runningMode = RunningMode.SINGLE;
+                    break;
+                case "cluster":
+                    runningMode = RunningMode.CLUSTER;
+                    break;
+            }
+        }
+    }
+
+    private void setClusterConfiguration(ClusterConfiguration config) {
+        if(clusterConfiguration == null) {
+            clusterConfiguration = config;
         }
     }
 }
