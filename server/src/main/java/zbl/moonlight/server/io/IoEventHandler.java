@@ -68,7 +68,7 @@ public class IoEventHandler implements Runnable {
             }
 
             /* 将读完的请求加入到请求队列中 */
-            eventBus.offer(EventType.CLIENT_REQUEST, new Event<>(selectionKey, mdtpRequest));
+            eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest));
             if(Thread.State.TIMED_WAITING.equals(notifiedThread.getState())) {
                 notifiedThread.interrupt();
             }

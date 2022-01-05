@@ -1,7 +1,9 @@
 package zbl.moonlight.server.io;
 
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -16,29 +18,39 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 /**
  * 实现MDTP协议的服务器
  */
-public class MdtpSocketServer extends Executor<MdtpRequest, MdtpResponse> {
+public class MdtpSocketServer extends Executor<Event<?>> {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
+    @Getter
+    private final String NAME = "MdtpSocketServer";
 
-    private final int port;
+    private final Configuration config;
     private final ThreadPoolExecutor executor;
+
+    /* 事件总线的对象和线程 */
     private final EventBus eventBus;
+    private final Thread eventBusThread;
+
     private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap
             = new ConcurrentHashMap<>();
 
-    public MdtpSocketServer(int port, ThreadPoolExecutor executor, Thread notifiedThread,
-                            EventBus eventBus) {
-        super(notifiedThread);
-        this.port = port;
-        this.executor = executor;
+    public MdtpSocketServer(Configuration config, EventBus eventBus,
+                            Thread eventBusThread) {
+        super(eventBus, eventBusThread);
+        this.config = config;
+        this.executor = new ThreadPoolExecutor(config.getIoThreadCorePoolSize(),
+                config.getIoThreadMaxPoolSize(),
+                30,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(10),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.DiscardPolicy());
         this.eventBus = eventBus;
+        this.eventBusThread = eventBusThread;
     }
 
     @Override
@@ -47,7 +59,7 @@ public class MdtpSocketServer extends Executor<MdtpRequest, MdtpResponse> {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.bind(new InetSocketAddress(port));
+            serverSocketChannel.bind(new InetSocketAddress(config.getPort()));
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             while (true) {
@@ -60,14 +72,14 @@ public class MdtpSocketServer extends Executor<MdtpRequest, MdtpResponse> {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         executor.execute(new IoEventHandler(selectionKey, latch, selector,
-                                eventBus, notifiedThread, responsesMap));
+                                eventBus, eventBusThread, responsesMap));
                         iterator.remove();
                     }
                 }
 
-                /* 从事件总线中拿响应事件放入responsesMap中 */
+                /* 从队列中拿出响应事件放入responsesMap中 */
                 while (true) {
-                    Event event = eventBus.poll(EventType.CLIENT_RESPONSE);
+                    Event event = pollIn();
                     if(event == null) {
                         break;
                     }

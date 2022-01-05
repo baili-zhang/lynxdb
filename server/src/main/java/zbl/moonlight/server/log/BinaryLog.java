@@ -6,12 +6,15 @@ import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpRequest;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BinaryLog {
     private final static Logger logger = LogManager.getLogger("BinaryLog");
@@ -33,14 +36,45 @@ public class BinaryLog {
         outputStream = new FileOutputStream(file, true);
     }
 
-    public void append(ByteBuffer byteBuffer) throws IOException {
-        FileChannel channel = outputStream.getChannel();
-        position += channel.write(byteBuffer, position);
+    /* TODO:会不会出现MdtpRequest没写完的情况 */
+    public void write(MdtpRequest request) {
+        byte method = request.getMethod();
+        if(method != MdtpMethod.SET && method != MdtpMethod.DELETE) {
+            return;
+        }
+
+        ByteBuffer header = request.getHeader();
+        ByteBuffer key = request.getKey();
+        DynamicByteBuffer value = request.getValue();
+
+        header.rewind();
+        key.rewind();
+
+        logger.info("write to binary log, request is: " + request);
+        if(value != null) {
+            value.rewind();
+        }
+
+        try {
+            append(request.getHeader());
+            append(request.getKey());
+            if(value != null) {
+                for(ByteBuffer buffer : value.getBufferList()) {
+                    append(buffer);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if(value != null) {
+            value.rewind();
+        }
     }
 
-    public void read() throws IOException, IncompleteBinaryLogException {
+    public List<MdtpRequest> read() throws IOException, IncompleteBinaryLogException {
+        List<MdtpRequest> requests = new ArrayList<>();
         FileChannel channel = inputStream.getChannel();
-        Engine engine = ServerContext.getInstance().getEngine();
         int readLength;
         while (true) {
             MdtpRequest request = new MdtpRequest();
@@ -48,7 +82,7 @@ public class BinaryLog {
             ByteBuffer header = request.getHeader();
             readLength = channel.read(header, position);
             if(readLength == -1) {
-                return;
+                return requests;
             }
             position += readLength;
             request.parseHeader();
@@ -62,7 +96,7 @@ public class BinaryLog {
             DynamicByteBuffer value = request.getValue();
             if(value == null) {
                 logger.info("load data from binary log, request is: " + request);
-                engine.exec(request);
+                requests.add(request);
                 break;
             }
             for(ByteBuffer byteBuffer : value.getBufferList()) {
@@ -74,7 +108,13 @@ public class BinaryLog {
             }
             value.rewind();
             logger.info("load data from binary log, request is: " + request);
-            engine.exec(request);
+            requests.add(request);
         }
+        return requests;
+    }
+
+    private void append(ByteBuffer byteBuffer) throws IOException {
+        FileChannel channel = outputStream.getChannel();
+        position += channel.write(byteBuffer, position);
     }
 }
