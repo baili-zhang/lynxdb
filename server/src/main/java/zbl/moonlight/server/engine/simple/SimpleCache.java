@@ -1,8 +1,10 @@
 package zbl.moonlight.server.engine.simple;
 
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
+import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
@@ -10,9 +12,15 @@ import zbl.moonlight.server.engine.Engine;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SimpleCache extends Engine {
+    @Getter
+    private final String NAME = "SimpleCache";
     private static final Logger logger = LogManager.getLogger("SimpleCache");
 
     private ConcurrentHashMap<String, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
+
+    public SimpleCache(EventBus eventBus, Thread eventBusThread) {
+        super(eventBus, eventBusThread);
+    }
 
     @Override
     protected MdtpResponse set(MdtpRequest mdtpRequest) {

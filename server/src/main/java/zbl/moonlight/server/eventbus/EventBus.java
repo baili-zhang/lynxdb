@@ -1,25 +1,42 @@
 package zbl.moonlight.server.eventbus;
 
-import zbl.moonlight.server.protocol.MdtpRequest;
+import lombok.Getter;
+import zbl.moonlight.server.executor.Executable;
 
-/* 注册[事件处理模块]和提交[事件] */
-public class EventBus {
+import java.util.concurrent.ConcurrentHashMap;
 
-    private final Registry registry = new Registry();
-    private final Dispatcher dispatcher = new Dispatcher();
+public class EventBus implements Executable<Event<?>> {
+    @Getter
+    private final String NAME = "EventBus";
+
+    private final ConcurrentHashMap<EventType, Dispatcher> dispatchers
+            = new ConcurrentHashMap<>();
 
     public EventBus() {
+
     }
 
-    public void register(Subscriber subscriber) {
-        this.registry.bind(subscriber);
+    public void register(EventType type, Executable<Event<?>> executor, Thread notifiedThread) {
+        Dispatcher dispatcher = dispatchers.get(type);
+        if(dispatcher == null) {
+            dispatcher = new Dispatcher();
+            dispatchers.put(type, dispatcher);
+        }
+        dispatcher.register(executor, notifiedThread);
     }
 
-    public void unregister(Subscriber subscriber) {
-        this.registry.unbind(subscriber);
+    @Override
+    public void run() {
+
     }
 
-    public void post(MdtpRequest mdtpRequest) {
-        this.dispatcher.dispatch(registry, mdtpRequest);
+    @Override
+    public void offer(Event event) {
+
+    }
+
+    /* 启动所有注册的线程 */
+    public void start() {
+
     }
 }

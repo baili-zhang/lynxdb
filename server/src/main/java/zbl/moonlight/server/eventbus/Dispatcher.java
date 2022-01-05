@@ -1,13 +1,22 @@
 package zbl.moonlight.server.eventbus;
 
-import zbl.moonlight.server.protocol.MdtpRequest;
+import zbl.moonlight.server.executor.Executable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-/* 把[事件]放入对应的[入口队列]中，并同时[事件处理模块]处理事件 */
 public class Dispatcher {
-    public void dispatch(Registry registry, MdtpRequest request) {
-        ConcurrentLinkedQueue<Subscriber> subscribers = registry.getSubscribers();
-        subscribers.stream().forEach(subscriber -> subscriber.handle(request));
+    private final ConcurrentLinkedQueue<Event<?>> queue;
+    private final List<Map.Entry<Executable<Event<?>>, Thread>> subscribers;
+
+    public Dispatcher() {
+        queue = new ConcurrentLinkedQueue<>();
+        subscribers = new ArrayList<>();
+    }
+
+    public void register(Executable<Event<?>> executor, Thread notifiedThread) {
+        subscribers.add(Map.entry(executor, notifiedThread));
     }
 }

@@ -6,10 +6,8 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.exception.EventTypeException;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.net.InetSocketAddress;
@@ -71,7 +69,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
-                        executor.execute(new IoEventHandler(selectionKey, latch, selector,
+                        executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
                                 eventBus, eventBusThread, responsesMap));
                         iterator.remove();
                     }
@@ -79,7 +77,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
 
                 /* 从队列中拿出响应事件放入responsesMap中 */
                 while (true) {
-                    Event event = pollIn();
+                    Event event = poll();
                     if(event == null) {
                         break;
                     }

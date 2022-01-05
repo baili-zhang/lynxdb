@@ -18,6 +18,9 @@ public class MdtpResponse {
     @Getter
     private ByteBuffer header;
 
+    @Getter
+    private int identifier;
+
     @Setter
     @Getter
     private DynamicByteBuffer value;

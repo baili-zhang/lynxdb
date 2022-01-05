@@ -13,9 +13,18 @@ public class Event<T> {
     private final SelectionKey selectionKey;
     private final T value;
 
+    /* 集群候选人节点发回响应的数量 */
+    @Getter
+    private int clusterResponseCount;
+
     public Event(EventType type, SelectionKey selectionKey, T value) {
         this.type = type;
         this.selectionKey = selectionKey;
         this.value = value;
+        this.clusterResponseCount = 0;
+    }
+
+    public void responseCountIncrement() {
+        clusterResponseCount ++;
     }
 }

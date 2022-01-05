@@ -1,7 +1,9 @@
 package zbl.moonlight.server.io;
 
-import zbl.moonlight.server.protocol.MdtpRequest;
-import zbl.moonlight.server.protocol.MdtpResponse;
+import lombok.Getter;
+import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.executor.Executor;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,27 +12,20 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 实现MDTP协议的客户端
  */
-public class MdtpSocketClient implements Runnable {
-    private final ConcurrentLinkedQueue<MdtpRequest> requests;
-    private final ConcurrentLinkedQueue<MdtpResponse> responses;
+public class MdtpSocketClient extends Executor<Event<?>> {
+    @Getter
+    private final String NAME = "MdtpSocketClient";
     private final String host;
     private final int port;
 
-    public MdtpSocketClient(String host, int port, ConcurrentLinkedQueue<MdtpRequest> requests,
-                            ConcurrentLinkedQueue<MdtpResponse> responses) {
-        this.requests = requests;
-        this.responses = responses;
+    public MdtpSocketClient(String host, int port, EventBus eventBus, Thread eventBusThread) {
+        super(eventBus, eventBusThread);
         this.host = host;
         this.port = port;
-    }
-
-    public void offer(MdtpRequest request) {
-        requests.offer(request);
     }
 
     @Override
@@ -46,8 +41,8 @@ public class MdtpSocketClient implements Runnable {
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
 
-                while (true) {
-
+                while (iterator.hasNext()) {
+                    SelectionKey selectionKey = iterator.next();
                 }
             }
         } catch (IOException e) {

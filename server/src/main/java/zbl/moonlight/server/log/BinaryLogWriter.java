@@ -1,5 +1,6 @@
 package zbl.moonlight.server.log;
 
+import lombok.Getter;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -7,6 +8,8 @@ import zbl.moonlight.server.executor.Executor;
 import zbl.moonlight.server.protocol.MdtpRequest;
 
 public class BinaryLogWriter extends Executor<Event<?>> {
+    @Getter
+    private final String NAME = "BinaryLogWriter";
     /* 二进制日志文件 */
     private final BinaryLog binaryLog;
 
@@ -18,7 +21,7 @@ public class BinaryLogWriter extends Executor<Event<?>> {
     @Override
     public void run() {
         while (true) {
-            Event<?> event = pollInSleep();
+            Event<?> event = pollSleep();
             if(event == null) {
                 continue;
             }

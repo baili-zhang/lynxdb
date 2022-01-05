@@ -79,6 +79,17 @@ BinaryLog消费的事件：
 
 需要解决MdtpRequest和MdtpResponse的线程安全问题。
 
+## 主线程工作
+
+- 初始化EventBus
+- 初始化各种Executor
+- 将各种Executor注册进EventBus
+- 启动Dispatcher
+- 启动各种Executor（按照依赖关系）
+- 恢复本地数据（读二进制日志文件）
+
+### Executor的种类
+
 ## 流程
 
 DynamicByteBuffer 申请内存流程： 首先，直接申请给定大小的直接内存，如果申请失败则申请给定大小的 1/2，直到申请到全部内存。如果申请失败，则报异常。

@@ -21,6 +21,9 @@ public class MdtpRequest {
     private Integer valueLength;
 
     @Getter
+    private int identifier;
+
+    @Getter
     private byte method;
     @Getter
     private ByteBuffer header;

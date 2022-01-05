@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
-public class IoEventHandler implements Runnable {
+public class ServerIoEventHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger("IoEventHandler");
 
     private final SelectionKey selectionKey;
@@ -28,10 +28,10 @@ public class IoEventHandler implements Runnable {
     private final Thread notifiedThread;
     private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
 
-    public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector,
-                           EventBus eventBus,
-                           Thread notifiedThread,
-                           ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
+    public ServerIoEventHandler(SelectionKey selectionKey, CountDownLatch latch, Selector selector,
+                                EventBus eventBus,
+                                Thread notifiedThread,
+                                ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
