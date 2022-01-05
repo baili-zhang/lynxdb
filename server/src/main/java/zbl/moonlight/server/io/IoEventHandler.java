@@ -3,6 +3,9 @@ package zbl.moonlight.server.io;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
+import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
@@ -21,16 +24,19 @@ public class IoEventHandler implements Runnable {
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
     private final Selector selector;
-    private final ConcurrentLinkedQueue<MdtpRequest> requests;
+    private final EventBus eventBus;
+    private final Thread notifiedThread;
     private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
 
     public IoEventHandler (SelectionKey selectionKey, CountDownLatch latch, Selector selector,
-                           ConcurrentLinkedQueue<MdtpRequest> requests,
+                           EventBus eventBus,
+                           Thread notifiedThread,
                            ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
-        this.requests = requests;
+        this.eventBus = eventBus;
+        this.notifiedThread = notifiedThread;
         this.responsesMap = responsesMap;
     }
 
@@ -62,7 +68,10 @@ public class IoEventHandler implements Runnable {
             }
 
             /* 将读完的请求加入到请求队列中 */
-            requests.offer(mdtpRequest);
+            eventBus.offer(EventType.CLIENT_REQUEST, new Event<>(selectionKey, mdtpRequest));
+            if(Thread.State.TIMED_WAITING.equals(notifiedThread.getState())) {
+                notifiedThread.interrupt();
+            }
             /* 设置新的请求对象 */
             selectionKey.attach(new MdtpRequest());
             /* selectionKey添加写事件监听 */

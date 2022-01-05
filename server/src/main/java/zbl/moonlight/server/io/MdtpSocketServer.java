@@ -2,6 +2,11 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.eventbus.EventType;
+import zbl.moonlight.server.exception.EventTypeException;
+import zbl.moonlight.server.executor.Executor;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
@@ -19,23 +24,25 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * 实现MDTP协议的服务器
  */
-public class MdtpSocketServer {
+public class MdtpSocketServer extends Executor<MdtpRequest, MdtpResponse> {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
 
     private final int port;
     private final ThreadPoolExecutor executor;
-    private final ConcurrentLinkedQueue<MdtpRequest> requests;
-    ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
+    private final EventBus eventBus;
+    private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap
+            = new ConcurrentHashMap<>();
 
-    public MdtpSocketServer(int port, ThreadPoolExecutor executor, ConcurrentLinkedQueue<MdtpRequest> requests,
-                            ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
+    public MdtpSocketServer(int port, ThreadPoolExecutor executor, Thread notifiedThread,
+                            EventBus eventBus) {
+        super(notifiedThread);
         this.port = port;
         this.executor = executor;
-        this.requests = requests;
-        this.responsesMap = responsesMap;
+        this.eventBus = eventBus;
     }
 
-    public void listen() {
+    @Override
+    public void run() {
         try {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
@@ -52,9 +59,30 @@ public class MdtpSocketServer {
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
-                        executor.execute(new IoEventHandler(selectionKey, latch, selector, requests, responsesMap));
+                        executor.execute(new IoEventHandler(selectionKey, latch, selector,
+                                eventBus, notifiedThread, responsesMap));
                         iterator.remove();
                     }
+                }
+
+                /* 从事件总线中拿响应事件放入responsesMap中 */
+                while (true) {
+                    Event event = eventBus.poll(EventType.CLIENT_RESPONSE);
+                    if(event == null) {
+                        break;
+                    }
+
+                    Object response = event.getValue();
+                    if(!(response instanceof MdtpResponse)) {
+                        throw new EventTypeException("value is not an instance of MdtpResponse.");
+                    }
+                    SelectionKey selectionKey = event.getSelectionKey();
+                    ConcurrentLinkedQueue<MdtpResponse> responses = responsesMap.get(selectionKey);
+                    if(responses == null) {
+                        responses = new ConcurrentLinkedQueue<>();
+                        responsesMap.put(selectionKey, responses);
+                    }
+                    responses.offer((MdtpResponse) response);
                 }
                 latch.await();
             }
