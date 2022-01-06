@@ -7,7 +7,6 @@ import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.ClusterNodeConfiguration;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.config.RunningMode;
-import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
@@ -27,7 +26,6 @@ public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
     private Configuration configuration;
-    private ServerContext context = ServerContext.getInstance();
 
     public static void main(String[] args) throws IOException,
             IncompleteBinaryLogException, ConfigurationException {

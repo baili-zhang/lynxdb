@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class MdtpResponse {
+import static zbl.moonlight.server.utils.ByteBufferUtils.isOver;
+
+public class MdtpResponse implements Transportable {
     private final Logger logger = LogManager.getLogger("MdtpResponse");
 
     private final int HEADER_LENGTH = 5;
@@ -19,11 +21,15 @@ public class MdtpResponse {
     private ByteBuffer header;
 
     @Getter
+    @Setter
     private int identifier;
 
     @Setter
     @Getter
     private DynamicByteBuffer value;
+
+    @Getter
+    private boolean readCompleted;
 
     @Getter
     private boolean writeCompleted;
@@ -54,12 +60,35 @@ public class MdtpResponse {
         header.flip();
     }
 
+    @Override
+    public void read(SocketChannel socketChannel) throws IOException {
+        try {
+            if(!isOver(header)) {
+                socketChannel.read(header);
+                if(!isOver(header)) return;;
+            }
+            if(value == null) {
+                readCompleted = true;
+                return;
+            }
+            value.readFrom(socketChannel);
+            if(value.isFull()) {
+                readCompleted = true;
+                value.rewind();
+            }
+        } catch (IOException e) {
+            socketChannel.close();
+            logger.info("close SocketChannel when READING.");
+            e.printStackTrace();
+        }
+    }
+
     public void write(SocketChannel socketChannel) throws IOException {
         logger.info("send response to client.");
         try {
-            if(!isFull(header)) {
+            if(!isOver(header)) {
                 socketChannel.write(header);
-                if(!isFull(header)) return;
+                if(!isOver(header)) return;
             }
             if(value == null) {
                 writeCompleted = true;
@@ -76,9 +105,5 @@ public class MdtpResponse {
             logger.info("close SocketChannel when WRITING.");
             e.printStackTrace();
         }
-    }
-
-    private boolean isFull(ByteBuffer byteBuffer) {
-        return byteBuffer.position() == byteBuffer.limit();
     }
 }

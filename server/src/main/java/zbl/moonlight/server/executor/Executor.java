@@ -48,4 +48,9 @@ public abstract class Executor<E> implements Executable<E> {
             downStreamThread.interrupt();
         }
     }
+
+    /* 判断输入队列是否为空 */
+    protected final boolean isEmpty() {
+        return queue.isEmpty();
+    }
 }

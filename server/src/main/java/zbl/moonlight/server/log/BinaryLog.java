@@ -2,8 +2,6 @@ package zbl.moonlight.server.log;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.context.ServerContext;
-import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
 import zbl.moonlight.server.protocol.MdtpMethod;

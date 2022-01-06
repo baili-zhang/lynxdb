@@ -25,25 +25,25 @@ Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采
 |mode|运行模式（"single"或"cluster"）|
 |cluster|集群的相关配置|
 
-## EventBus（事件总线）
+## 架构
 
 ### 参与角色
 
-- MdtpSocketServer(接受请求的角色)
-- MdtpSocketClient(与集群中其他节点通信的客户端)
-- Engine(本地存储引擎)
-- BinaryLog(写二进制日志的线程)
+- EventBus(事件总线)
+- MdtpSocketServer(MDTP服务器，单线程)
+- BinaryLogWriter(二进制日志的线程，单线程)
+- SimpleCache(简单的存储引擎，单线程)
+- MdtpSocketClient(MDTP客户端，与集群的节点通信，单线程)
+- ResponseOrganizer(集群响应组织器，单线程)
 
-### 事件类型
+### 事件
 
-EventBus应该维护三个队列，分别存储以下三种事件：
+#### 线程安全问题
 
-- 修改本地数据的MDTP请求（例如：set请求，delete请求）
-- 不修改本地数据的MDTP请求（例如：get请求）
-- 写回给客户端的响应
-- 修改系统配置信息的请求（例如：system请求）
-- 查看集群相关信息的请求（例如：cluster请求）
-- 集群其他节点返回的响应
+1. 基于线程安全的考虑，只能在EventBus线程中修改Event对象的属性，其他线程不能修改Event对象的属性。
+2. Event对象的值的任何修改操作都必须加锁，因为一个Event对象可能会分发给多个线程，不加锁会导致线程安全问题。
+
+#### 事件类型
 
 ### 事件生产
 

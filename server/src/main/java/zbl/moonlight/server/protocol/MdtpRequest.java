@@ -10,12 +10,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class MdtpRequest {
-    public static final int HEADER_LENGTH = 6;
-    private final Logger logger = LogManager.getLogger("MdtpRequest");
+import static zbl.moonlight.server.utils.ByteBufferUtils.isOver;
 
-    @Getter
-    private boolean readCompleted;
+public class MdtpRequest implements Transportable {
+    public static final int HEADER_LENGTH = 10;
+    private final Logger logger = LogManager.getLogger("MdtpRequest");
 
     private Integer keyLength;
     private Integer valueLength;
@@ -34,6 +33,12 @@ public class MdtpRequest {
     @Getter
     @Setter
     private DynamicByteBuffer value;
+
+    @Getter
+    private boolean readCompleted;
+
+    @Getter
+    private boolean writeCompleted;
 
     public MdtpRequest() {
         readCompleted = false;
@@ -54,10 +59,8 @@ public class MdtpRequest {
     public void parseHeader() {
         method = header.get(0);
         keyLength = header.get(1) & 0xff;
-        valueLength = ((header.get(2) & 0xff) << 24) |
-                ((header.get(3) & 0xff) << 16) |
-                ((header.get(4) & 0xff) << 8) |
-                (header.get(5) & 0xff);
+        valueLength = header.getInt(2);
+        identifier = header.getInt(6);
 
         key = ByteBuffer.allocate(keyLength);
         if(!valueLength.equals(0)) {
@@ -76,12 +79,18 @@ public class MdtpRequest {
      */
     public void read(SocketChannel socketChannel) throws IOException {
         try {
-            if(!isFull(header)) {
+            if(!isOver(header)) {
                 readHeader(socketChannel);
+                if(!isOver(header)) {
+                    return;
+                }
             }
 
-            if(!isFull(key)) {
+            if(!isOver(key)) {
                 readKey(socketChannel);
+                if(!isOver(key)) {
+                    return;
+                }
             }
 
             if(!valueLength.equals(0) && !value.isFull()) {
@@ -93,7 +102,36 @@ public class MdtpRequest {
             e.printStackTrace();
         }
 
-        readCompleted = valueLength.equals(0) ? isFull(key) : value.isFull();
+        readCompleted = valueLength.equals(0) ? isOver(key) : value.isFull();
+    }
+
+    @Override
+    public void write(SocketChannel socketChannel) throws IOException {
+        try {
+            if(!isOver(header)) {
+                socketChannel.write(header);
+                if(!isOver(header)) {
+                    return;
+                }
+            }
+
+            if(!isOver(key)) {
+                socketChannel.write(key);
+                if(!isOver(key)) {
+                    return;
+                }
+            }
+            if(!valueLength.equals(0) && !value.isFull()) {
+                value.writeTo(socketChannel);
+            }
+        } catch (IOException e) {
+            socketChannel.close();
+            writeCompleted = true;
+            logger.info("close SocketChannel when WRITING.");
+            e.printStackTrace();
+        }
+
+        writeCompleted = valueLength.equals(0) ? isOver(key) : value.isFull();
     }
 
     private void readHeader(SocketChannel socketChannel) throws IOException {
@@ -102,11 +140,16 @@ public class MdtpRequest {
             int readLength = socketChannel.read(header);
             if (readLength > 0) continue;
 
-            if(isFull(header)) {
+            if(isOver(header)) {
                 parseHeader();
                 break;
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value;
     }
 
     private void readKey(SocketChannel socketChannel) throws IOException {
@@ -122,14 +165,5 @@ public class MdtpRequest {
             value = new DynamicByteBuffer(valueLength);
         }
         value.readFrom(socketChannel);
-    }
-
-    private boolean isFull(ByteBuffer byteBuffer) {
-        return byteBuffer.position() == byteBuffer.limit();
-    }
-
-    @Override
-    public String toString() {
-        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value;
     }
 }
