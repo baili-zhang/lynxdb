@@ -16,7 +16,8 @@ public class SimpleCache extends Engine {
     private final String NAME = "SimpleCache";
     private static final Logger logger = LogManager.getLogger("SimpleCache");
 
-    private ConcurrentHashMap<String, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, DynamicByteBuffer> cache
+            = new ConcurrentHashMap<>();
 
     public SimpleCache(EventBus eventBus) {
         super(eventBus);
@@ -24,7 +25,7 @@ public class SimpleCache extends Engine {
 
     @Override
     protected MdtpResponse set(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse();
+        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
         String key = new String(mdtpRequest.getKey().array());
         cache.put(key, mdtpRequest.getValue());
         response.setSuccessNoValue();
@@ -34,7 +35,7 @@ public class SimpleCache extends Engine {
 
     @Override
     protected MdtpResponse get(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse();
+        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
         String key = new String(mdtpRequest.getKey().array());
         DynamicByteBuffer value = cache.get(key);
         logger.info("GET method execute, key is: " + key);
@@ -51,12 +52,11 @@ public class SimpleCache extends Engine {
 
     @Override
     protected MdtpResponse delete(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse();
+        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
         String key = new String(mdtpRequest.getKey().array());
         cache.remove(key);
         response.setSuccessNoValue();
         logger.info("DELETE method execute.");
         return response;
     }
-
 }

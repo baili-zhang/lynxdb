@@ -55,7 +55,6 @@ public class MdtpRequest implements Transportable {
         keyLength = header.get(1) & 0xff;
         valueLength = header.getInt(2);
         identifier = header.getInt(6);
-        System.out.println(valueLength + "," + identifier);
 
         key = ByteBuffer.allocate(keyLength);
         if(!valueLength.equals(0)) {
@@ -97,7 +96,7 @@ public class MdtpRequest implements Transportable {
             e.printStackTrace();
         }
 
-        readCompleted = valueLength.equals(0) ? isOver(key) : value.isFull();
+        readCompleted = valueLength == null || valueLength.equals(0) ? isOver(key) : value.isFull();
     }
 
     @Override

@@ -15,14 +15,14 @@ import static zbl.moonlight.server.utils.ByteBufferUtils.isOver;
 public class MdtpResponse implements Transportable {
     private final Logger logger = LogManager.getLogger("MdtpResponse");
 
-    private final int HEADER_LENGTH = 5;
+    private final int HEADER_LENGTH = 9;
 
     @Getter
-    private ByteBuffer header;
+    private final ByteBuffer header;
 
     @Getter
     @Setter
-    private int identifier;
+    private final int identifier;
 
     @Setter
     @Getter
@@ -34,15 +34,17 @@ public class MdtpResponse implements Transportable {
     @Getter
     private boolean writeCompleted;
 
-    public MdtpResponse() {
+    public MdtpResponse(int identifier) {
         header = ByteBuffer.allocate(HEADER_LENGTH);
         writeCompleted = false;
+        this.identifier = identifier;
     }
 
     public void setSuccessNoValue() {
         header.position(0);
         header.put(ResponseCode.SUCCESS_NO_VALUE);
         header.putInt(0);
+        header.putInt(identifier);
         header.flip();
     }
 
@@ -50,6 +52,7 @@ public class MdtpResponse implements Transportable {
         header.position(0);
         header.put(ResponseCode.VALUE_EXIST);
         header.putInt(value.getCapacity());
+        header.putInt(identifier);
         header.flip();
     }
 
@@ -57,6 +60,7 @@ public class MdtpResponse implements Transportable {
         header.position(0);
         header.put(ResponseCode.VALUE_NOT_EXIST);
         header.putInt(0);
+        header.putInt(identifier);
         header.flip();
     }
 

@@ -17,6 +17,9 @@ public abstract class Executor<E> implements Executable<E> {
     public final void offer(E event) {
         if(event != null) {
             queue.offer(event);
+            synchronized (queue) {
+                queue.notify();
+            }
         }
     }
 
@@ -39,12 +42,9 @@ public abstract class Executor<E> implements Executable<E> {
         return queue.poll();
     }
 
-    /* 把事件发往下游，通知下游线程 */
+    /* 向下游的执行器发送事件 */
     protected final void send(E event) {
         downStreamExecutor.offer(event);
-        synchronized (queue) {
-            queue.notify();
-        }
     }
 
     /* 判断输入队列是否为空 */
