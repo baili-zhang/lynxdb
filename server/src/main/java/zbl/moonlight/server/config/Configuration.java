@@ -11,6 +11,7 @@ import zbl.moonlight.server.exception.ConfigurationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -104,7 +105,7 @@ public class Configuration {
             if(clusterConfig == null) {
                 throw new ClusterConfigurationNotFoundException("cluster option is not found in application.yml");
             }
-            List<ClusterNodeConfiguration> nodes = (List<ClusterNodeConfiguration>) clusterConfig.get("nodes");
+            List<LinkedHashMap<String, Object>> nodes = (List<LinkedHashMap<String, Object>>) clusterConfig.get("nodes");
             setClusterConfiguration(new ClusterConfiguration(nodes));
         }
     }

@@ -13,8 +13,8 @@ public class BinaryLogWriter extends Executor<Event<?>> {
     /* 二进制日志文件 */
     private final BinaryLog binaryLog;
 
-    public BinaryLogWriter(BinaryLog binaryLog, EventBus eventBus, Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    public BinaryLogWriter(BinaryLog binaryLog, EventBus eventBus) {
+        super(eventBus);
         this.binaryLog = binaryLog;
     }
 

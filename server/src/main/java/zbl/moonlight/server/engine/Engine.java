@@ -9,8 +9,8 @@ import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
 public abstract class Engine extends Executor<Event<?>> {
-    protected Engine(EventBus eventBus, Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    protected Engine(EventBus eventBus) {
+        super(eventBus);
     }
 
     private final MdtpResponse exec(MdtpRequest mdtpRequest) {

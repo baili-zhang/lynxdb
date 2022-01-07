@@ -1,19 +1,15 @@
 package zbl.moonlight.server.executor;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 public abstract class Executor<E> implements Executable<E> {
     /* 输入队列 */
     private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();
-    /* 需要被通知的下游线程 */
-    private final Thread downStreamThread;
     /* 下游的执行器 */
     private final Executable<E> downStreamExecutor;
 
-    protected Executor(Executable<E> downStreamExecutor, Thread downStreamThread) {
+    protected Executor(Executable<E> downStreamExecutor) {
         this.downStreamExecutor = downStreamExecutor;
-        this.downStreamThread = downStreamThread;
     }
 
     @Override
@@ -24,19 +20,21 @@ public abstract class Executor<E> implements Executable<E> {
         }
     }
 
-    /* 向输入队列中移除元素，如果没有输入队列元素，则睡眠指定时间 */
+    /* 向输入队列中移除元素，如果没有输入队列元素，则进入等待 */
     protected final E pollSleep() {
         if(queue.isEmpty()) {
-            try {
-                TimeUnit.SECONDS.sleep(3);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            synchronized (queue) {
+                try {
+                    queue.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
         return queue.poll();
     }
 
-    /* 向输入队列中移除元素, 不睡眠 */
+    /* 从输入队列中移除元素 */
     protected final E poll() {
         return queue.poll();
     }
@@ -44,8 +42,8 @@ public abstract class Executor<E> implements Executable<E> {
     /* 把事件发往下游，通知下游线程 */
     protected final void send(E event) {
         downStreamExecutor.offer(event);
-        if(Thread.State.TIMED_WAITING.equals(downStreamThread.getState())) {
-            downStreamThread.interrupt();
+        synchronized (queue) {
+            queue.notify();
         }
     }
 

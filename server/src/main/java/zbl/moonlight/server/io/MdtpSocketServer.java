@@ -31,14 +31,12 @@ public class MdtpSocketServer extends Executor<Event<?>> {
 
     /* 事件总线的对象和线程 */
     private final EventBus eventBus;
-    private final Thread eventBusThread;
 
     private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap
             = new ConcurrentHashMap<>();
 
-    public MdtpSocketServer(Configuration config, EventBus eventBus,
-                            Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    public MdtpSocketServer(Configuration config, EventBus eventBus) {
+        super(eventBus);
         this.config = config;
         this.executor = new ThreadPoolExecutor(config.getIoThreadCorePoolSize(),
                 config.getIoThreadMaxPoolSize(),
@@ -48,7 +46,6 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 Executors.defaultThreadFactory(),
                 new ThreadPoolExecutor.DiscardPolicy());
         this.eventBus = eventBus;
-        this.eventBusThread = eventBusThread;
     }
 
     @Override
@@ -70,7 +67,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
-                                eventBus, eventBusThread, responsesMap));
+                                eventBus, responsesMap));
                         iterator.remove();
                     }
                 }

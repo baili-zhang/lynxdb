@@ -27,8 +27,8 @@ public class MdtpSocketClient extends Executor<Event<?>> {
 
     private Selector selector;
 
-    public MdtpSocketClient(String host, int port, EventBus eventBus, Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    public MdtpSocketClient(String host, int port, EventBus eventBus) {
+        super(eventBus);
         this.host = host;
         this.port = port;
     }

@@ -19,8 +19,8 @@ public class ResponseOrganizer extends Executor<Event<?>> {
 
     private final int count;
 
-    public ResponseOrganizer(int count, EventBus eventBus, Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    public ResponseOrganizer(int count, EventBus eventBus) {
+        super(eventBus);
         this.count = count;
     }
 

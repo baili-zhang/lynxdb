@@ -9,8 +9,8 @@ class ExecutorTest {
     /* 一个简单的执行器，将输入的数组加一 */
     class SimpleExecutor extends Executor<Integer> {
 
-        protected SimpleExecutor(Executable<Integer> downStreamExecutor, Thread downStreamThread) {
-            super(downStreamExecutor, downStreamThread);
+        protected SimpleExecutor(Executable<Integer> downStreamExecutor) {
+            super(downStreamExecutor);
         }
 
         @Override

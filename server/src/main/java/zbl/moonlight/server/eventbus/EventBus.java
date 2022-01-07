@@ -18,21 +18,21 @@ public class EventBus implements Executable<Event<?>> {
             = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<ConcurrentLinkedQueue<Event<?>>,
-            ConcurrentHashMap<Executable<Event<?>>, Thread>> registries
+            ConcurrentLinkedQueue<Executable<Event<?>>>> registries
             = new ConcurrentHashMap<>();
 
     public EventBus() {
         for(EventType eventType : EventType.values()) {
             ConcurrentLinkedQueue<Event<?>> queue = new ConcurrentLinkedQueue<>();
             eventQueues.put(eventType, queue);
-            registries.put(queue, new ConcurrentHashMap<>());
+            registries.put(queue, new ConcurrentLinkedQueue<>());
         }
     }
 
-    public void register(EventType type, Executable<Event<?>> executor, Thread notifiedThread) {
+    public void register(EventType type, Executable<Event<?>> executor) {
         ConcurrentLinkedQueue<Event<?>> queue = eventQueues.get(type);
-        ConcurrentHashMap<Executable<Event<?>>, Thread> registry = registries.get(queue);
-        registry.put(executor, notifiedThread);
+        ConcurrentLinkedQueue<Executable<Event<?>>> executors = registries.get(queue);
+        executors.add(executor);
     }
 
     @Override
@@ -45,23 +45,19 @@ public class EventBus implements Executable<Event<?>> {
                     continue;
                 }
                 Event<?> event = queue.poll();
-                ConcurrentHashMap<Executable<Event<?>>, Thread> registry = registries.get(queue);
+                ConcurrentLinkedQueue<Executable<Event<?>>> executors = registries.get(queue);
                 /* 将事件分发给注册的执行器和对应线程 */
-                for(Executable<Event<?>> executor : registry.keySet()) {
+                for(Executable<Event<?>> executor : executors) {
                     executor.offer(event);
-                    Thread notifiedThread = registry.get(executor);
-                    if(Thread.State.TIMED_WAITING.equals(notifiedThread.getState())) {
-                        notifiedThread.interrupt();
-                    } else if(Thread.State.NEW.equals(notifiedThread.getState())) {
-                        logger.info("Thread \"{}\" State is NEW.", notifiedThread.getName());
-                    }
                 }
             }
             if(emptyQueueCount == eventQueues.size()) {
-                try {
-                    TimeUnit.SECONDS.sleep(3);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                synchronized (eventQueues) {
+                    try {
+                        eventQueues.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -71,14 +67,8 @@ public class EventBus implements Executable<Event<?>> {
     public void offer(Event<?> event) {
         ConcurrentLinkedQueue<Event<?>> queue = eventQueues.get(event.getType());
         queue.offer(event);
-    }
-
-    /* 启动所有注册的线程 */
-    public void start() {
-        for(ConcurrentHashMap<Executable<Event<?>>, Thread> registry : registries.values()) {
-            for(Thread thread : registry.values()) {
-                thread.start();
-            }
+        synchronized (eventQueues) {
+            eventQueues.notify();
         }
     }
 }

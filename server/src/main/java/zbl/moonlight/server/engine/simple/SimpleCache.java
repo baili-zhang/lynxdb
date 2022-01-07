@@ -18,8 +18,8 @@ public class SimpleCache extends Engine {
 
     private ConcurrentHashMap<String, DynamicByteBuffer> cache = new ConcurrentHashMap<>();
 
-    public SimpleCache(EventBus eventBus, Thread eventBusThread) {
-        super(eventBus, eventBusThread);
+    public SimpleCache(EventBus eventBus) {
+        super(eventBus);
     }
 
     @Override

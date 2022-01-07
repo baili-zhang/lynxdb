@@ -25,18 +25,15 @@ public class ServerIoEventHandler implements Runnable {
     private final CountDownLatch latch;
     private final Selector selector;
     private final EventBus eventBus;
-    private final Thread notifiedThread;
     private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
 
     public ServerIoEventHandler(SelectionKey selectionKey, CountDownLatch latch, Selector selector,
                                 EventBus eventBus,
-                                Thread notifiedThread,
                                 ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
         this.eventBus = eventBus;
-        this.notifiedThread = notifiedThread;
         this.responsesMap = responsesMap;
     }
 
@@ -69,9 +66,6 @@ public class ServerIoEventHandler implements Runnable {
 
             /* 将读完的请求加入到请求队列中 */
             eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest));
-            if(Thread.State.TIMED_WAITING.equals(notifiedThread.getState())) {
-                notifiedThread.interrupt();
-            }
             /* 设置新的请求对象 */
             selectionKey.attach(new MdtpRequest());
             /* selectionKey添加写事件监听 */
