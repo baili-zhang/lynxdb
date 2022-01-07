@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
 public class ServerIoEventHandler implements Runnable {
-    private static final Logger logger = LogManager.getLogger("IoEventHandler");
+    private final Logger logger = LogManager.getLogger(this.getClass().getSimpleName());
 
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
@@ -48,11 +48,7 @@ public class ServerIoEventHandler implements Runnable {
         }
     }
 
-    /**
-     * 每次读一个请求
-     * @param selectionKey
-     * @throws IOException
-     */
+    /* 每次读一个请求 */
     private void doRead(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         MdtpRequest mdtpRequest = (MdtpRequest) selectionKey.attachment();
@@ -74,16 +70,12 @@ public class ServerIoEventHandler implements Runnable {
         }
     }
 
-    /**
-     * 每次写多个响应
-     * @param selectionKey
-     * @throws IOException
-     */
+    /* 每次写多个响应 */
     private void doWrite(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         ConcurrentLinkedQueue<MdtpResponse> responses = responsesMap.get(selectionKey);
         if(responses == null) {
-            throw new IOException("response queue is null");
+            return;
         }
 
         while(!responses.isEmpty()) {

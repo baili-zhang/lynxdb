@@ -50,17 +50,12 @@ public class MdtpRequest implements Transportable {
         value = null;
     }
 
-    public MdtpRequest(byte method, ByteBuffer key, ByteBuffer value) {
-        this.method = method;
-        this.key = key;
-        this.value = new DynamicByteBuffer(value);
-    }
-
     public void parseHeader() {
         method = header.get(0);
         keyLength = header.get(1) & 0xff;
         valueLength = header.getInt(2);
         identifier = header.getInt(6);
+        System.out.println(valueLength + "," + identifier);
 
         key = ByteBuffer.allocate(keyLength);
         if(!valueLength.equals(0)) {

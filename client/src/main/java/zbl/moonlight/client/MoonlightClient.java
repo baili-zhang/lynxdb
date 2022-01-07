@@ -20,10 +20,12 @@ public class MoonlightClient {
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
     private Scanner scanner;
+    private int identifier;
 
     public MoonlightClient(String host, int port) {
         this.host = host;
         this.port = port;
+        identifier = 0;
     }
 
     public void runInTerminal() throws IOException {
@@ -79,8 +81,11 @@ public class MoonlightClient {
         byte keyLength = (byte) key.length;
         int valueLength = value.length;
 
+        /* 写方法和键的长度 */
         outputStream.write(new byte[]{method, keyLength});
+        /* 写值的长度 */
         outputStream.writeInt(valueLength);
+        outputStream.writeInt(++ identifier);
         outputStream.write(key);
         outputStream.write(value);
         outputStream.flush();
@@ -89,12 +94,14 @@ public class MoonlightClient {
     private void showResponse() throws IOException {
         byte responseCode = inputStream.readByte();
         int valueLength = inputStream.readInt();
+        int identifier = inputStream.readInt();
         String responseValue = "";
         if(valueLength != 0) {
             byte[] responseValueBytes = new byte[valueLength];
             inputStream.read(responseValueBytes);
             responseValue += new String(responseValueBytes);
         }
-        System.out.println("[" + ResponseCode.getCodeName(responseCode) + "][" + valueLength + "][" + responseValue + "]");
+        System.out.println("[" + ResponseCode.getCodeName(responseCode) + "]["
+                + valueLength + "][" + identifier + "][" + responseValue + "]");
     }
 }
