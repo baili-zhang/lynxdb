@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
 public class ServerIoEventHandler implements Runnable {
-    private final Logger logger = LogManager.getLogger(this.getClass().getSimpleName());
+    private static final Logger logger = LogManager.getLogger("ServerIoEventHandler");
 
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
@@ -77,7 +77,7 @@ public class ServerIoEventHandler implements Runnable {
                     || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
                 eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest));
             }
-            logger.info("received mdtp request: " + mdtpRequest + ".");
+            // logger.info("received mdtp request: " + mdtpRequest + ".");
         }
     }
 
@@ -93,7 +93,7 @@ public class ServerIoEventHandler implements Runnable {
                     /* 从队列首部移除已经写完的响应 */
                     context.poll();
                     context.decreaseRequestCount();
-                    logger.info("one mdtp response is written to client.");
+                    // logger.info("one mdtp response is written to client.");
                 } else {
                     /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                     break;
