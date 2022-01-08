@@ -10,6 +10,7 @@ import zbl.moonlight.server.exception.EventTypeException;
 import zbl.moonlight.server.executor.Executor;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -18,9 +19,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
 
-/**
- * 实现MDTP协议的服务器
- */
 public class MdtpSocketServer extends Executor<Event<?>> {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
     @Getter
@@ -32,7 +30,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
     /* 事件总线的对象和线程 */
     private final EventBus eventBus;
 
-    private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap
+    private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts
             = new ConcurrentHashMap<>();
 
     public MdtpSocketServer(Configuration config, EventBus eventBus) {
@@ -67,7 +65,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
-                                eventBus, responsesMap));
+                                eventBus, contexts));
                         iterator.remove();
                     }
                 }
@@ -84,12 +82,11 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                         throw new EventTypeException("value is not an instance of MdtpResponse.");
                     }
                     SelectionKey selectionKey = event.getSelectionKey();
-                    ConcurrentLinkedQueue<MdtpResponse> responses = responsesMap.get(selectionKey);
-                    if(responses == null) {
-                        responses = new ConcurrentLinkedQueue<>();
-                        responsesMap.put(selectionKey, responses);
+                    SocketChannelContext context = contexts.get(selectionKey);
+                    if(context == null) {
+                        throw new IOException("SocketChannelContext object not found.");
                     }
-                    responses.offer((MdtpResponse) response);
+                    context.offer((MdtpResponse) response);
                 }
                 latch.await();
             }

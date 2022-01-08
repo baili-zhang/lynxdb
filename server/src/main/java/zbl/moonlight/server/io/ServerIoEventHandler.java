@@ -6,6 +6,7 @@ import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
@@ -25,16 +26,16 @@ public class ServerIoEventHandler implements Runnable {
     private final CountDownLatch latch;
     private final Selector selector;
     private final EventBus eventBus;
-    private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap;
+    private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts;
 
     public ServerIoEventHandler(SelectionKey selectionKey, CountDownLatch latch, Selector selector,
                                 EventBus eventBus,
-                                ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<MdtpResponse>> responsesMap) {
+                                ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
         this.eventBus = eventBus;
-        this.responsesMap = responsesMap;
+        this.contexts = contexts;
     }
 
     private void doAccept(SelectionKey selectionKey)
@@ -60,42 +61,44 @@ public class ServerIoEventHandler implements Runnable {
                 value.flip();
             }
 
-            /* 将读完的请求加入到请求队列中 */
+            SocketChannelContext context = contexts.get(selectionKey);
+            /* 如果没有上下文对象，则添加上下文对象 */
+            if(context == null) {
+                /* TODO:Socket连接关闭时需要删除对应的上下文，不然会导致内存溢出 */
+                context = new SocketChannelContext(selectionKey);
+                contexts.put(selectionKey, context);
+            }
+            context.increaseRequestCount();
+
+            /* 向事件总线发送客户端请求 */
             eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest));
-            /* 设置新的请求对象 */
-            selectionKey.attach(new MdtpRequest());
-            /* selectionKey添加写事件监听 */
-            selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
+            /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
+            if(mdtpRequest.getMethod() == MdtpMethod.SET
+                    || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
+                eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest));
+            }
             logger.info("received mdtp request: " + mdtpRequest + ".");
         }
     }
 
-    /* 每次写多个响应 */
     private void doWrite(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        ConcurrentLinkedQueue<MdtpResponse> responses = responsesMap.get(selectionKey);
-        if(responses == null) {
-            return;
-        }
+        SocketChannelContext context = contexts.get(selectionKey);
 
-        while(!responses.isEmpty()) {
-            MdtpResponse mdtpResponse = responses.peek();
+        while(!context.isEmpty()) {
+            MdtpResponse mdtpResponse = context.peek();
             if(mdtpResponse != null) {
                 mdtpResponse.write(socketChannel);
                 if(mdtpResponse.isWriteCompleted()) {
                     /* 从队列首部移除已经写完的响应 */
-                    responses.poll();
+                    context.poll();
+                    context.decreaseRequestCount();
                     logger.info("one mdtp response is written to client.");
                 } else {
                     /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                     break;
                 }
             }
-        }
-
-        /* 如果response队列为空，则取消写事件监听 */
-        if(responses.isEmpty()) {
-            selectionKey.interestOpsAnd(SelectionKey.OP_READ);
         }
     }
 

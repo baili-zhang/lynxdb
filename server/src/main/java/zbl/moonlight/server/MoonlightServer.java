@@ -54,7 +54,7 @@ public class MoonlightServer {
         BinaryLogWriter writer = new BinaryLogWriter(binaryLog, eventBus);
         new Thread(writer, writer.getNAME()).start();
         /* 注册二进制文件线程到事件总线 */
-        eventBus.register(EventType.LOG_REQUEST, writer);
+        eventBus.register(EventType.BINARY_LOG_REQUEST, writer);
 
         /* 初始化存储引擎线程 */
         SimpleCache simpleCache = new SimpleCache(eventBus);

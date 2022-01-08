@@ -35,7 +35,10 @@ public abstract class Engine extends Executor<Event<?>> {
              }
              MdtpRequest request = (MdtpRequest) event.getValue();
              MdtpResponse response = exec(request);
-             send(new Event<>(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
+             /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
+             if(event.getSelectionKey() != null) {
+                 send(new Event<>(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
+             }
         }
     }
 

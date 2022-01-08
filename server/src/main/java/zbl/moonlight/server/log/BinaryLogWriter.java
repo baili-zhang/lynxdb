@@ -29,8 +29,6 @@ public class BinaryLogWriter extends Executor<Event<?>> {
             synchronized (request) {
                 binaryLog.write(request);
             }
-            event.setType(EventType.CLIENT_RESPONSE);
-            send(event);
         }
     }
 }

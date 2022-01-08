@@ -16,6 +16,7 @@ import java.util.List;
 
 public class BinaryLog {
     private final static Logger logger = LogManager.getLogger("BinaryLog");
+    private final int HEADER_LIMIT = 6;
     private final String FILENAME = "binlog";
     private final String FILE_EXTENSION = ".log";
     private final String DEFAULT_FOLDER = "/logs";
@@ -36,12 +37,8 @@ public class BinaryLog {
 
     /* TODO:会不会出现MdtpRequest没写完的情况 */
     public void write(MdtpRequest request) {
-        byte method = request.getMethod();
-        if(method != MdtpMethod.SET && method != MdtpMethod.DELETE) {
-            return;
-        }
-
         ByteBuffer header = request.getHeader();
+        header.limit(6);
         ByteBuffer key = request.getKey();
         DynamicByteBuffer value = request.getValue();
 
@@ -78,11 +75,16 @@ public class BinaryLog {
             MdtpRequest request = new MdtpRequest();
 
             ByteBuffer header = request.getHeader();
+            header.limit(HEADER_LIMIT);
             readLength = channel.read(header, position);
+            /* 读取到文件末尾 */
             if(readLength == -1) {
                 return requests;
             }
             position += readLength;
+            header.limit(header.capacity());
+            /* 设置序列号，TODO:二进制日志文件格式要重新定义 */
+            header.putInt(0);
             request.parseHeader();
 
             readLength = channel.read(request.getKey(), position);
