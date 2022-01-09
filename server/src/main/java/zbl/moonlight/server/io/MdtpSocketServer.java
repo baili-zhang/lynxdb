@@ -40,8 +40,10 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 config.getIoThreadMaxPoolSize(),
                 30,
                 TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(10),
+                new ArrayBlockingQueue<>(100000),
+                /* TODO:需要自定义线程工厂 */
                 Executors.defaultThreadFactory(),
+                /* TODO:需要自定义拒绝策略，不然请求被拒绝后，CountDownLatch会一直等待 */
                 new ThreadPoolExecutor.DiscardPolicy());
         this.eventBus = eventBus;
     }

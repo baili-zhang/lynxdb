@@ -11,7 +11,7 @@ import java.util.concurrent.CountDownLatch;
 
 public class SystemTest {
     public static void main(String[] args) {
-        final int clientCount = 10;
+        final int clientCount = 20;
         final String host = "127.0.0.1";
         final int port = 7820;
         final int commandCount = 1000000;

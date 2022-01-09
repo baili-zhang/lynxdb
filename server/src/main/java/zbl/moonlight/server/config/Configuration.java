@@ -114,8 +114,8 @@ public class Configuration {
         setHost("127.0.0.1");
         setPort(7820);
         setConnectionPoolSize(50);
-        setIoThreadCorePoolSize(15);
-        setIoThreadMaxPoolSize(30);
+        setIoThreadCorePoolSize(30);
+        setIoThreadMaxPoolSize(40);
     }
 
     private void setHost(String host) {

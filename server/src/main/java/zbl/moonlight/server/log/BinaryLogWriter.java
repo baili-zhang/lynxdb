@@ -3,7 +3,6 @@ package zbl.moonlight.server.log;
 import lombok.Getter;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.executor.Executor;
 import zbl.moonlight.server.protocol.MdtpRequest;
 
