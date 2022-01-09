@@ -13,7 +13,7 @@ import java.nio.channels.SocketChannel;
 import static zbl.moonlight.server.utils.ByteBufferUtils.isOver;
 
 public class MdtpResponse implements Transportable {
-    private final Logger logger = LogManager.getLogger("MdtpResponse");
+    private static final Logger logger = LogManager.getLogger("MdtpResponse");
 
     private final int HEADER_LENGTH = 9;
 

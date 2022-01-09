@@ -77,10 +77,10 @@ public class ServerIoEventHandler implements Runnable {
                     || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
                 eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest));
             }
-            // logger.info("received mdtp request: " + mdtpRequest + ".");
         }
     }
 
+    /* 每次写多个请求 */
     private void doWrite(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         SocketChannelContext context = contexts.get(selectionKey);
@@ -93,7 +93,7 @@ public class ServerIoEventHandler implements Runnable {
                     /* 从队列首部移除已经写完的响应 */
                     context.poll();
                     context.decreaseRequestCount();
-                    // logger.info("one mdtp response is written to client.");
+                    logger.info("response has written to client.");
                 } else {
                     /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                     break;
@@ -112,6 +112,7 @@ public class ServerIoEventHandler implements Runnable {
             } else if (selectionKey.isWritable()) {
                 doWrite(selectionKey);
             }
+            logger.info("io task has finished.");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

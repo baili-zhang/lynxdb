@@ -9,10 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class EventBus implements Executable<Event<?>> {
+    private static final Logger logger = LogManager.getLogger("EventBus");
+
     @Getter
     private final String NAME = "EventBus";
-    private final Logger logger = LogManager.getLogger("EventBus");
-
     private final ConcurrentHashMap<EventType, ConcurrentLinkedQueue<Event<?>>> eventQueues
             = new ConcurrentHashMap<>();
 

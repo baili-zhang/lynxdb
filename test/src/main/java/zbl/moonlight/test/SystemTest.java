@@ -7,53 +7,62 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CountDownLatch;
 
 public class SystemTest {
-    private static DataInputStream inputStream;
-    private static DataOutputStream outputStream;
-    private static int identifier;
-
     public static void main(String[] args) {
-        final int clientCount = 1;
+        final int clientCount = 10;
         final String host = "127.0.0.1";
         final int port = 7820;
         final int commandCount = 1000000;
 
-        for (int i = 0; i < clientCount; i++) {
+        final CountDownLatch latch = new CountDownLatch(clientCount);
+        Date begin = new Date();
+        for (int i = 0; i < commandCount; i = i + (commandCount/clientCount)) {
+            final int beginIndex = i;
             new Thread(() -> {
                 try {
+                    int identifier = 0;
                     Socket socket = new Socket(host, port);
-                    int count = 0;
-                    inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-                    outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                    System.out.println("connect to server: " + beginIndex);
+                    DataInputStream inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+                    DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
                     String content = "java.util.concurrent.ConcurrentSkipListSet";
-                    for (int j = 0; j < 8; j++) {
+                    for (int j = 0; j < 0; j++) {
                         content += content;
                     }
 
-                    Date begin = new Date();
-                    for (int j = 0; j < commandCount; j++) {
+                    for (int j = beginIndex; j < beginIndex + (commandCount/clientCount); j++) {
                         String setCommand = "set " + j + " " + content + j;
                         Command command = new Command(setCommand);
-                        send(command);
-                        if(get() == (byte)0x03) {
-                            count ++;
+                        send(command, outputStream, ++ identifier);
+                    }
+
+                    for (int j = 0; j < commandCount/clientCount; j++) {
+                        try {
+                            get(inputStream);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                    Date end = new Date();
-                    System.out.println(end.getTime() - begin.getTime());
-                    System.out.println(count);
                 } catch (Exception e) {
                     e.printStackTrace();
+                } finally {
+                    latch.countDown();
                 }
             }).start();
         }
+        try {
+            latch.await();
+            Date end = new Date();
+            System.out.println(commandCount / (end.getTime() - begin.getTime()) * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    private static void send(Command command) throws IOException, InvalidCommandException {
+    private static void send(Command command, DataOutputStream outputStream, int identifier) throws IOException, InvalidCommandException {
         byte method = command.getCode();
         byte[] key = command.getKey().toString().getBytes(StandardCharsets.UTF_8);
         byte[] value = command.getValue().toString().getBytes(StandardCharsets.UTF_8);
@@ -67,13 +76,13 @@ public class SystemTest {
         outputStream.write(new byte[]{method, keyLength});
         /* 写值的长度 */
         outputStream.writeInt(valueLength);
-        outputStream.writeInt(++ identifier);
+        outputStream.writeInt(identifier);
         outputStream.write(key);
         outputStream.write(value);
         outputStream.flush();
     }
 
-    private static byte get() throws IOException {
+    private static byte get(DataInputStream inputStream) throws IOException {
         byte responseCode = inputStream.readByte();
         int valueLength = inputStream.readInt();
         int identifier = inputStream.readInt();

@@ -70,8 +70,6 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                     }
                 }
 
-                latch.await();
-
                 /* 从队列中拿出响应事件放入responsesMap中 */
                 while (true) {
                     Event event = poll();
@@ -90,6 +88,8 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                     }
                     context.offer((MdtpResponse) response);
                 }
+
+                latch.await();
             }
         } catch (Exception e) {
             e.printStackTrace();

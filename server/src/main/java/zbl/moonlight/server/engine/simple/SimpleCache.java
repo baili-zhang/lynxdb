@@ -12,9 +12,10 @@ import zbl.moonlight.server.engine.Engine;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SimpleCache extends Engine {
+    private static final Logger logger = LogManager.getLogger("SimpleCache");
+
     @Getter
     private final String NAME = "SimpleCache";
-    private static final Logger logger = LogManager.getLogger("SimpleCache");
 
     private ConcurrentHashMap<String, DynamicByteBuffer> cache
             = new ConcurrentHashMap<>();

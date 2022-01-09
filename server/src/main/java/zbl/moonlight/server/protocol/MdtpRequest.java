@@ -14,7 +14,7 @@ import static zbl.moonlight.server.utils.ByteBufferUtils.isOver;
 
 public class MdtpRequest implements Transportable {
     public static final int HEADER_LENGTH = 10;
-    private final Logger logger = LogManager.getLogger("MdtpRequest");
+    private static final Logger logger = LogManager.getLogger("MdtpRequest");
 
     private Integer keyLength;
     private Integer valueLength;
@@ -77,6 +77,8 @@ public class MdtpRequest implements Transportable {
                 readHeader(socketChannel);
                 if(!isOver(header)) {
                     return;
+                } else {
+                    parseHeader();
                 }
             }
 
@@ -129,16 +131,8 @@ public class MdtpRequest implements Transportable {
     }
 
     private void readHeader(SocketChannel socketChannel) throws IOException {
-        while(true) {
-            logger.info("read mdtp request header");
-            int readLength = socketChannel.read(header);
-            if (readLength > 0) continue;
-
-            if(isOver(header)) {
-                parseHeader();
-                break;
-            }
-        }
+        logger.info("read mdtp request header");
+        socketChannel.read(header);
     }
 
     @Override
@@ -147,11 +141,8 @@ public class MdtpRequest implements Transportable {
     }
 
     private void readKey(SocketChannel socketChannel) throws IOException {
-        while(true) {
-            logger.info("read mdtp request key");
-            int readLength = socketChannel.read(key);
-            if (readLength <= 0) break;
-        }
+        logger.info("read mdtp request key");
+        socketChannel.read(key);
     }
 
     private void readValue(SocketChannel socketChannel) throws IOException {

@@ -33,17 +33,12 @@ public class SocketChannelContext {
         return responses.isEmpty();
     }
 
-    /* 有未处理完的请求吗 */
-    public boolean hasRequest() {
-        return requestCount != 0;
-    }
-
     public void increaseRequestCount() {
         if(requestCount == 0) {
             /* 设置新的请求对象 */
-            selectionKey.attach(new MdtpRequest());
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
+        selectionKey.attach(new MdtpRequest());
         requestCount ++;
     }
 
