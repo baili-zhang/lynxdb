@@ -2,9 +2,7 @@ package zbl.moonlight.server.log;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
-import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpRequest;
 
 import java.io.*;
@@ -15,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BinaryLog {
-    private final static Logger logger = LogManager.getLogger("BinaryLog");
     private final int HEADER_LIMIT = 6;
     private final String FILENAME = "binlog";
     private final String FILE_EXTENSION = ".log";
@@ -40,12 +37,10 @@ public class BinaryLog {
         ByteBuffer header = request.getHeader();
         header.limit(6);
         ByteBuffer key = request.getKey();
-        DynamicByteBuffer value = request.getValue();
+        ByteBuffer value = request.getValue();
 
         header.rewind();
         key.rewind();
-
-        logger.info("write to binary log, request is: " + request);
         if(value != null) {
             value.rewind();
         }
@@ -54,9 +49,7 @@ public class BinaryLog {
             append(request.getHeader());
             append(request.getKey());
             if(value != null) {
-                for(ByteBuffer buffer : value.getBufferList()) {
-                    append(buffer);
-                }
+                append(value);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -93,21 +86,15 @@ public class BinaryLog {
             }
             position += readLength;
 
-            DynamicByteBuffer value = request.getValue();
+            ByteBuffer value = request.getValue();
             if(value == null) {
-                logger.info("load data from binary log, request is: " + request);
                 requests.add(request);
                 break;
             }
-            for(ByteBuffer byteBuffer : value.getBufferList()) {
-                readLength = channel.read(byteBuffer, position);
-                if(readLength == -1) {
-                    throw new IncompleteBinaryLogException("Incomplete binary log file");
-                }
-                position += readLength;
-            }
-            value.rewind();
-            logger.info("load data from binary log, request is: " + request);
+
+            readLength = channel.read(value, position);
+            position += readLength;
+
             requests.add(request);
         }
         return requests;

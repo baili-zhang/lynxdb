@@ -2,7 +2,6 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -11,12 +10,12 @@ import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
 public class ServerIoEventHandler implements Runnable {
@@ -56,11 +55,6 @@ public class ServerIoEventHandler implements Runnable {
         mdtpRequest.read(socketChannel);
 
         if(mdtpRequest.isReadCompleted()) {
-            DynamicByteBuffer value = mdtpRequest.getValue();
-            if(value != null) {
-                value.flip();
-            }
-
             SocketChannelContext context = contexts.get(selectionKey);
             /* 如果没有上下文对象，则添加上下文对象 */
             if(context == null) {
@@ -71,11 +65,11 @@ public class ServerIoEventHandler implements Runnable {
             context.increaseRequestCount();
 
             /* 向事件总线发送客户端请求 */
-            eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest));
+            eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
             /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
             if(mdtpRequest.getMethod() == MdtpMethod.SET
                     || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest));
+                eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
             }
         }
     }

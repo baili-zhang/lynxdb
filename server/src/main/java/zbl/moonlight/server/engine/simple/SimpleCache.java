@@ -1,23 +1,19 @@
 package zbl.moonlight.server.engine.simple;
 
 import lombok.Getter;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SimpleCache extends Engine {
-    private static final Logger logger = LogManager.getLogger("SimpleCache");
-
     @Getter
     private final String NAME = "SimpleCache";
 
-    private ConcurrentHashMap<String, DynamicByteBuffer> cache
+    private ConcurrentHashMap<ByteBuffer, ByteBuffer> cache
             = new ConcurrentHashMap<>();
 
     public SimpleCache(EventBus eventBus) {
@@ -27,26 +23,33 @@ public class SimpleCache extends Engine {
     @Override
     protected MdtpResponse set(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-        String key = new String(mdtpRequest.getKey().array());
-        cache.put(key, mdtpRequest.getValue());
+
+        ByteBuffer key = mdtpRequest.getKey();
+        ByteBuffer value = mdtpRequest.getValue();
+        key.flip();
+        value.flip();
+
+        cache.put(key, value);
+
         response.setSuccessNoValue();
-        logger.info("SET method execute, key is: " + key);
         return response;
     }
 
     @Override
     protected MdtpResponse get(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-        String key = new String(mdtpRequest.getKey().array());
-        DynamicByteBuffer value = cache.get(key);
-        logger.info("GET method execute, key is: " + key);
+
+        ByteBuffer key = mdtpRequest.getKey();
+        key.flip();
+
+        ByteBuffer value = cache.get(key);
 
         if(value == null) {
             response.setValueNotExist();
             return response;
         }
 
-        response.setValue(value);
+        response.setValue(value.asReadOnlyBuffer());
         response.setValueExist();
         return response;
     }
@@ -54,10 +57,13 @@ public class SimpleCache extends Engine {
     @Override
     protected MdtpResponse delete(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-        String key = new String(mdtpRequest.getKey().array());
+
+        ByteBuffer key = mdtpRequest.getKey();
+        key.flip();
+
         cache.remove(key);
+
         response.setSuccessNoValue();
-        logger.info("DELETE method execute.");
         return response;
     }
 }

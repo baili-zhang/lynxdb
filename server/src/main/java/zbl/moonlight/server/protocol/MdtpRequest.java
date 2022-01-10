@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -32,7 +31,7 @@ public class MdtpRequest implements Transportable {
 
     @Getter
     @Setter
-    private DynamicByteBuffer value;
+    private ByteBuffer value;
 
     @Getter
     private boolean readCompleted;
@@ -50,28 +49,34 @@ public class MdtpRequest implements Transportable {
         value = null;
     }
 
-    public void parseHeader() {
+    public MdtpRequest(int identifier, byte method,
+                       ByteBuffer header, ByteBuffer key, ByteBuffer value) {
+        this.identifier = identifier;
+        this.method = method;
+        this.header = header.asReadOnlyBuffer();
+        this.key = key.asReadOnlyBuffer();
+        if(value != null) {
+            this.value = value.asReadOnlyBuffer();
+        }
+    }
+
+    public final MdtpRequest duplicate() {
+        return new MdtpRequest(identifier, method, header, key, value);
+    }
+
+    public final void parseHeader() {
         method = header.get(0);
         keyLength = header.get(1) & 0xff;
         valueLength = header.getInt(2);
         identifier = header.getInt(6);
 
-        key = ByteBuffer.allocate(keyLength);
+        key = ByteBuffer.allocateDirect(keyLength);
         if(!valueLength.equals(0)) {
-            value = new DynamicByteBuffer(valueLength);
+            value = ByteBuffer.allocateDirect(valueLength);
         }
     }
 
-    /**
-     * 从 socketChannel 里读取数据到 data 里
-     *
-     * @param socketChannel
-     * @return READ_COMPLETED 读取完成
-     * @return READ_COMPLETED_SOCKET_CLOSE 读取完成，client socket 关闭
-     * @return READ_UNCOMPLETED 读取未完成，需要继续读取
-     * @throws IOException
-     */
-    public void read(SocketChannel socketChannel) throws IOException {
+    public final void read(SocketChannel socketChannel) throws IOException {
         try {
             if(!isOver(header)) {
                 readHeader(socketChannel);
@@ -89,7 +94,7 @@ public class MdtpRequest implements Transportable {
                 }
             }
 
-            if(!valueLength.equals(0) && !value.isFull()) {
+            if(!valueLength.equals(0) && !isOver(value)) {
                 readValue(socketChannel);
             }
         } catch (IOException e) {
@@ -98,11 +103,11 @@ public class MdtpRequest implements Transportable {
             e.printStackTrace();
         }
 
-        readCompleted = valueLength == null || valueLength.equals(0) ? isOver(key) : value.isFull();
+        readCompleted = valueLength == null || valueLength.equals(0) ? isOver(key) : isOver(value);
     }
 
     @Override
-    public void write(SocketChannel socketChannel) throws IOException {
+    public final void write(SocketChannel socketChannel) throws IOException {
         try {
             if(!isOver(header)) {
                 socketChannel.write(header);
@@ -117,8 +122,8 @@ public class MdtpRequest implements Transportable {
                     return;
                 }
             }
-            if(!valueLength.equals(0) && !value.isFull()) {
-                value.writeTo(socketChannel);
+            if(!valueLength.equals(0) && !isOver(value)) {
+                socketChannel.write(value);
             }
         } catch (IOException e) {
             socketChannel.close();
@@ -127,28 +132,18 @@ public class MdtpRequest implements Transportable {
             e.printStackTrace();
         }
 
-        writeCompleted = valueLength.equals(0) ? isOver(key) : value.isFull();
+        writeCompleted = valueLength.equals(0) ? isOver(key) : isOver(value);
     }
 
     private void readHeader(SocketChannel socketChannel) throws IOException {
-        logger.info("read mdtp request header");
         socketChannel.read(header);
     }
 
-    @Override
-    public String toString() {
-        return "method: " + MdtpMethod.getMethodName(method) + ", key: " + new String(key.array()) + ", value: " + value;
-    }
-
     private void readKey(SocketChannel socketChannel) throws IOException {
-        logger.info("read mdtp request key");
         socketChannel.read(key);
     }
 
     private void readValue(SocketChannel socketChannel) throws IOException {
-        if(value == null) {
-            value = new DynamicByteBuffer(valueLength);
-        }
-        value.readFrom(socketChannel);
+        socketChannel.read(value);
     }
 }

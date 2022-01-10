@@ -35,6 +35,7 @@ public class MoonlightServer {
     public void run() throws IOException,
             IncompleteBinaryLogException, ConfigurationException {
         configuration = new Configuration();
+        logger.info("Read configuration completed.");
 
         /* 初始化事件总线 */
         EventBus eventBus = new EventBus();
@@ -45,7 +46,9 @@ public class MoonlightServer {
         new Thread(server, server.getNAME()).start();
         /* 注册MDTP服务到事件总线 */
         eventBus.register(EventType.CLIENT_RESPONSE, server);
+        logger.info("\"MdtpSocketServer\" thread start.");
 
+        logger.info("Reading data from binary log file......");
         /* 初始化二进制日志文件 */
         BinaryLog binaryLog = new BinaryLog();
         /* 读取二进制日志文件 */
@@ -55,12 +58,14 @@ public class MoonlightServer {
         new Thread(writer, writer.getNAME()).start();
         /* 注册二进制文件线程到事件总线 */
         eventBus.register(EventType.BINARY_LOG_REQUEST, writer);
+        logger.info("\"BinaryLogWriter\" thread start.");
 
         /* 初始化存储引擎线程 */
         SimpleCache simpleCache = new SimpleCache(eventBus);
         new Thread(simpleCache, simpleCache.getNAME()).start();
         /* 注册存储引擎到事件总线 */
         eventBus.register(EventType.CLIENT_REQUEST, simpleCache);
+        logger.info("\"SimpleCache\" thread start.");
 
         /* 初始化集群相关模块 */
         if(RunningMode.CLUSTER.equals(configuration.getRunningMode())) {

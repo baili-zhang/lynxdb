@@ -1,7 +1,5 @@
 package zbl.moonlight.server.engine.rbtree;
 
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
-
 import java.nio.ByteBuffer;
 import java.security.Timestamp;
 
@@ -9,11 +7,11 @@ public class RbTree {
 
     private Node root;
 
-    public DynamicByteBuffer get(ByteBuffer key) {
+    public ByteBuffer get(ByteBuffer key) {
         return null;
     }
 
-    public void put(ByteBuffer key, DynamicByteBuffer value) {
+    public void put(ByteBuffer key, ByteBuffer value) {
 
     }
 
@@ -23,7 +21,7 @@ public class RbTree {
 
     private class Node {
         private ByteBuffer key;
-        private DynamicByteBuffer value;
+        private ByteBuffer value;
 
         private Node left;
         private Node right;
@@ -31,7 +29,7 @@ public class RbTree {
 
         private Timestamp expires;
 
-        Node(ByteBuffer key, DynamicByteBuffer value) {
+        Node(ByteBuffer key, ByteBuffer value) {
             this.key = key;
             this.value = value;
         }

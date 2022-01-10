@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.engine.buffer.DynamicByteBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,6 +17,7 @@ public class MdtpResponse implements Transportable {
     private final int HEADER_LENGTH = 9;
 
     @Getter
+    /* 分配独立的ByteBuffer空间，不需要进行同步操作 */
     private final ByteBuffer header;
 
     @Getter
@@ -26,7 +26,7 @@ public class MdtpResponse implements Transportable {
 
     @Setter
     @Getter
-    private DynamicByteBuffer value;
+    private ByteBuffer value;
 
     @Getter
     private boolean readCompleted;
@@ -51,7 +51,7 @@ public class MdtpResponse implements Transportable {
     public void setValueExist() {
         header.position(0);
         header.put(ResponseCode.VALUE_EXIST);
-        header.putInt(value.getCapacity());
+        header.putInt(value.capacity());
         header.putInt(identifier);
         header.flip();
     }
@@ -65,20 +65,16 @@ public class MdtpResponse implements Transportable {
     }
 
     @Override
+    /* 从集群节点收到的响应不会有value字段 */
     public void read(SocketChannel socketChannel) throws IOException {
         try {
             if(!isOver(header)) {
                 socketChannel.read(header);
-                if(!isOver(header)) return;;
-            }
-            if(value == null) {
-                readCompleted = true;
-                return;
-            }
-            value.readFrom(socketChannel);
-            if(value.isFull()) {
-                readCompleted = true;
-                value.rewind();
+                if(!isOver(header)) {
+                    return;
+                } else {
+                    readCompleted = true;
+                }
             }
         } catch (IOException e) {
             socketChannel.close();
@@ -87,6 +83,7 @@ public class MdtpResponse implements Transportable {
         }
     }
 
+    @Override
     public void write(SocketChannel socketChannel) throws IOException {
         logger.info("send response to client.");
         try {
@@ -98,10 +95,9 @@ public class MdtpResponse implements Transportable {
                 writeCompleted = true;
                 return;
             }
-            value.writeTo(socketChannel);
-            if(value.isFull()) {
+            socketChannel.write(value);
+            if(isOver(value)) {
                 writeCompleted = true;
-                value.rewind();
             }
         } catch (IOException e) {
             socketChannel.close();
