@@ -1,5 +1,7 @@
 package zbl.moonlight.server.log;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
 import zbl.moonlight.server.protocol.MdtpRequest;
 
@@ -11,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BinaryLog {
+    private static final Logger logger = LogManager.getLogger("BinaryLog");
+
     private final int HEADER_LIMIT = 6;
     private final String FILENAME = "binlog";
     private final String FILE_EXTENSION = ".log";
@@ -49,19 +53,16 @@ public class BinaryLog {
             if(value != null) {
                 append(value);
             }
+            logger.debug("Write a entry to log file.");
         } catch (IOException e) {
             e.printStackTrace();
-        }
-
-        if(value != null) {
-            value.rewind();
         }
     }
 
     public List<MdtpRequest> read() throws IOException, IncompleteBinaryLogException {
         List<MdtpRequest> requests = new ArrayList<>();
         FileChannel channel = inputStream.getChannel();
-        int readLength;
+        long readLength;
         while (true) {
             MdtpRequest request = new MdtpRequest();
 
@@ -70,6 +71,7 @@ public class BinaryLog {
             readLength = channel.read(header, position);
             /* 读取到文件末尾 */
             if(readLength == -1) {
+                logger.debug("Read {} requests from log file.", requests.size());
                 return requests;
             }
             position += readLength;

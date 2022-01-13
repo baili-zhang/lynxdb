@@ -36,7 +36,7 @@ public class ClientThread implements Runnable {
             DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
             String content = "java.util.concurrent.ConcurrentSkipListSet";
-            for (int j = 0; j < 0; j++) {
+            for (int j = 0; j < 6; j++) {
                 content += content;
             }
 
@@ -50,6 +50,7 @@ public class ClientThread implements Runnable {
                 try {
                     byte code = Client.get(inputStream);
                     if(code == ResponseCode.SUCCESS_NO_VALUE) {
+                        System.out.println("success " + j);
                         successCount.incrementAndGet();
                     }
                 } catch (IOException e) {

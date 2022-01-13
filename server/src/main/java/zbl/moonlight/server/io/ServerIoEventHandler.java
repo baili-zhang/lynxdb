@@ -106,7 +106,6 @@ public class ServerIoEventHandler implements Runnable {
             } else if (selectionKey.isWritable()) {
                 doWrite(selectionKey);
             }
-            logger.info("io task has finished.");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

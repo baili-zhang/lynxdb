@@ -26,4 +26,9 @@
             <AppenderRef ref="err" level="error" />
         </Root>
     </Loggers>
+    <Loggers>
+        <Root level="debug">
+            <AppenderRef ref="console" level="debug" />
+        </Root>
+    </Loggers>
 </Configuration>

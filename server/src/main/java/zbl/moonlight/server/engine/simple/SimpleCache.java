@@ -7,14 +7,13 @@ import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class SimpleCache extends Engine {
     @Getter
     private final String NAME = "SimpleCache";
 
-    private ConcurrentHashMap<ByteBuffer, ByteBuffer> cache
-            = new ConcurrentHashMap<>();
+    private LRU<ByteBuffer, ByteBuffer> cache
+            = new LRU<>(900000);
 
     public SimpleCache(EventBus eventBus) {
         super(eventBus);
