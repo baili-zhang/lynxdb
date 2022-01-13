@@ -25,9 +25,7 @@ public class BinaryLogWriter extends Executor<Event<?>> {
                 continue;
             }
             MdtpRequest request = (MdtpRequest) event.getValue();
-            synchronized (request) {
-                binaryLog.write(request);
-            }
+            binaryLog.write(request);
         }
     }
 }
