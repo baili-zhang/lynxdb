@@ -24,19 +24,28 @@ public class Configuration {
     private String host;
     @Getter
     private Integer port;
-
-    /**
-     * socket连接数
-     */
     @Getter
-    private Integer connectionPoolSize;
+    private Integer backlog;
 
     @Getter
+    /* IO线程池的核心线程数 */
     private Integer ioThreadCorePoolSize;
     @Getter
+    /* IO线程池的最大线程数 */
     private Integer ioThreadMaxPoolSize;
+    @Getter
+    /* IO线程池的非核心线程的存活时间 */
+    private Integer ioThreadKeepAliveTime;
+    @Getter
+    /* IO线程池的阻塞队列大小 */
+    private Integer ioThreadBlockingQueueSize;
 
     @Getter
+    /* cache的最大容量 */
+    private Integer cacheCapacity;
+
+    @Getter
+    /* 运行模式 */
     private RunningMode runningMode;
 
     @Getter
@@ -58,10 +67,13 @@ public class Configuration {
     }
 
     private void load() throws IOException, ConfigurationException {
+        /* 先从user.dir目录下的配置文件获取配置信息 */
         Map<String, Object> config = loadFromConfigDirectory();
         setOption(config);
+        /* 再从resources目录下的配置文件下获取配置信息 */
         config = load(CONFIG_FILE_NAME);
         setOption(config);
+        /* 设置一些没有配置的配置项的默认值 */
         setDefault();
     }
 
@@ -83,14 +95,43 @@ public class Configuration {
 
         /* 设置server的相关配置 */
         Map<String, Object> serverOptions = (Map<String, Object>) config.get("server");
-        String host = (String) serverOptions.get("host");
-        Integer port = (Integer) serverOptions.get("port");
+        if(serverOptions != null) {
+            String host = (String) serverOptions.get("host");
+            Integer port = (Integer) serverOptions.get("port");
+            Integer backlog = (Integer) serverOptions.get("backlog");
+            Integer ioThreadCorePoolSize = (Integer) serverOptions.get("io_thread_core_pool_size");
+            Integer ioThreadMaxPoolSize = (Integer) serverOptions.get("io_thread_max_pool_size");
+            Integer ioThreadKeepAliveTime = (Integer) serverOptions.get("io_thread_keep_alive_time");
+            Integer ioThreadBlockingQueueSize = (Integer) serverOptions.get("io_thread_blocking_queue_size");
 
-        if(host != null) {
-            setHost(host);
+            if(host != null) {
+                setHost(host);
+            }
+            if(port != null) {
+                setPort(port);
+            }
+            if(backlog != null) {
+                setBacklog(backlog);
+            }
+            if(ioThreadCorePoolSize != null) {
+                setIoThreadCorePoolSize(ioThreadCorePoolSize);
+            }
+            if(ioThreadMaxPoolSize != null) {
+                setIoThreadMaxPoolSize(ioThreadMaxPoolSize);
+            }
+            if(ioThreadKeepAliveTime != null) {
+                setIoThreadKeepAliveTime(ioThreadKeepAliveTime);
+            }
+            if(ioThreadBlockingQueueSize != null) {
+                setIoThreadBlockingQueueSize(ioThreadBlockingQueueSize);
+            }
         }
-        if(port != null) {
-            setPort(port);
+
+        /* 设置cache的相关配置 */
+        LinkedHashMap<String, Integer> cacheConfig = (LinkedHashMap<String, Integer>) config.get("cache");
+        if(cacheConfig != null) {
+            Integer capacity = cacheConfig.get("capacity");
+            setCacheCapacity(capacity);
         }
 
         /* 设置运行模式 */
@@ -110,12 +151,16 @@ public class Configuration {
         }
     }
 
+    /* 设置默认配置 */
     private void setDefault() {
         setHost("127.0.0.1");
         setPort(7820);
-        setConnectionPoolSize(50);
+        setBacklog(-1);
         setIoThreadCorePoolSize(30);
         setIoThreadMaxPoolSize(40);
+        setIoThreadKeepAliveTime(30);
+        setIoThreadBlockingQueueSize(2000);
+        setCacheCapacity(2000);
     }
 
     private void setHost(String host) {
@@ -130,9 +175,9 @@ public class Configuration {
         }
     }
 
-    private void setConnectionPoolSize(int size) {
-        if(connectionPoolSize == null) {
-            connectionPoolSize = size;
+    private void setBacklog(int size) {
+        if(backlog == null) {
+            backlog = size;
         }
     }
 
@@ -145,6 +190,24 @@ public class Configuration {
     private void setIoThreadMaxPoolSize(int size) {
         if(ioThreadMaxPoolSize == null) {
             ioThreadMaxPoolSize = size;
+        }
+    }
+
+    private void setIoThreadKeepAliveTime(int time) {
+        if(ioThreadKeepAliveTime == null) {
+            ioThreadKeepAliveTime = time;
+        }
+    }
+
+    private void setIoThreadBlockingQueueSize(int size) {
+        if(ioThreadBlockingQueueSize == null) {
+            ioThreadBlockingQueueSize = size;
+        }
+    }
+
+    private void setCacheCapacity(Integer capacity) {
+        if(cacheCapacity == null) {
+            cacheCapacity = capacity;
         }
     }
 

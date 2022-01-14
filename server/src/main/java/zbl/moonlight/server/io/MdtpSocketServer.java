@@ -38,9 +38,9 @@ public class MdtpSocketServer extends Executor<Event<?>> {
         this.config = config;
         this.executor = new ThreadPoolExecutor(config.getIoThreadCorePoolSize(),
                 config.getIoThreadMaxPoolSize(),
-                30,
+                config.getIoThreadKeepAliveTime(),
                 TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(100000),
+                new ArrayBlockingQueue<>(config.getIoThreadBlockingQueueSize()),
                 /* TODO:需要自定义线程工厂 */
                 Executors.defaultThreadFactory(),
                 /* TODO:需要自定义拒绝策略，不然请求被拒绝后，CountDownLatch会一直等待 */
@@ -54,7 +54,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.bind(new InetSocketAddress(config.getPort()));
+            serverSocketChannel.bind(new InetSocketAddress(config.getPort()), config.getBacklog());
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             while (true) {

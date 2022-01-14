@@ -12,11 +12,11 @@ public class SimpleCache extends Engine {
     @Getter
     private final String NAME = "SimpleCache";
 
-    private LRU<ByteBuffer, ByteBuffer> cache
-            = new LRU<>(900000);
+    private final SimpleLRU<ByteBuffer, ByteBuffer> cache;
 
-    public SimpleCache(EventBus eventBus) {
+    public SimpleCache(int capacity, EventBus eventBus) {
         super(eventBus);
+        cache = new SimpleLRU<>(capacity);
     }
 
     @Override

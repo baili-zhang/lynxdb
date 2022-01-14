@@ -8,7 +8,6 @@ Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采
 - 数据持久化（二进制数据文件）
 - 基于Raft算法的集群实现
 - LRU缓存更新
-- 红黑树索引，跳表索引
 
 ## 配置
 
@@ -88,12 +87,6 @@ BinaryLog消费的事件：
 - 启动Dispatcher
 - 启动各种Executor（按照依赖关系）
 - 恢复本地数据（读二进制日志文件）
-
-### Executor的种类
-
-## 流程
-
-DynamicByteBuffer 申请内存流程： 首先，直接申请给定大小的直接内存，如果申请失败则申请给定大小的 1/2，直到申请到全部内存。如果申请失败，则报异常。
 
 1.0-SNAPSHOT is here: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
 

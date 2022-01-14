@@ -51,7 +51,7 @@ public class MoonlightServer {
         logger.info("Reading data from binary log file......");
         /* 初始化二进制日志文件 */
         BinaryLog binaryLog = new BinaryLog();
-        /* 读取二进制日志文件 */
+        /* 读取二进制日志文件，TODO:如果日志文件过大会占用大量内存，这里需要优化一下 */
         List<MdtpRequest> requests = binaryLog.read();
         /* 初始化二进制文件线程 */
         BinaryLogWriter writer = new BinaryLogWriter(binaryLog, eventBus);
@@ -61,7 +61,7 @@ public class MoonlightServer {
         logger.info("\"BinaryLogWriter\" thread start.");
 
         /* 初始化存储引擎线程 */
-        SimpleCache simpleCache = new SimpleCache(eventBus);
+        SimpleCache simpleCache = new SimpleCache(configuration.getCacheCapacity(), eventBus);
         new Thread(simpleCache, simpleCache.getNAME()).start();
         /* 注册存储引擎到事件总线 */
         eventBus.register(EventType.CLIENT_REQUEST, simpleCache);

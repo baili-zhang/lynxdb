@@ -1,15 +1,27 @@
 server:
+  #主机名
   host: '127.0.0.1'
+  #端口号
   port: 7820
+  #最大连接数
+  backlog: 30
+  #IO线程池的核心线程数
+  io_thread_core_pool_size: 20
+  #IO线程池的最大线程数
+  io_thread_max_pool_size: 70
+  #IO线程池的非核心线程的存活时间
+  io_thread_keep_alive_time: 60
+  #IO线程池的阻塞队列大小
+  io_thread_blocking_queue_size: 300000
+cache:
+  #cache的最大容量
+  capacity: 800000
+#运行模式，"single"表示单机，"cluster"表示集群
 mode: 'single'
+#集群的配置信息
 cluster:
+  #集群的节点信息
   nodes:
     -
       host: '127.0.0.1'
       port: 7823
-    -
-      host: '127.0.0.1'
-      port: 7824
-    -
-      host: '127.0.0.1'
-      port: 7825
