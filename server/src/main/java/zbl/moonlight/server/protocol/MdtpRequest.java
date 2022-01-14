@@ -87,6 +87,11 @@ public class MdtpRequest implements Transportable {
                 }
             }
 
+            if(keyLength.equals(0)) {
+                readCompleted = true;
+                return;
+            }
+
             if(!isOver(key)) {
                 readKey(socketChannel);
                 if(!isOver(key)) {

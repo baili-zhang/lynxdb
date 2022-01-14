@@ -3,6 +3,7 @@ package zbl.moonlight.client;
 import zbl.moonlight.client.common.Command;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.ResponseCode;
 
 import java.io.BufferedInputStream;
@@ -21,6 +22,7 @@ public class MoonlightClient {
     private DataOutputStream outputStream;
     private Scanner scanner;
     private int identifier;
+    private boolean connectionHold = true;
 
     public MoonlightClient(String host, int port) {
         this.host = host;
@@ -31,12 +33,16 @@ public class MoonlightClient {
     public void runInTerminal() throws IOException {
         init();
 
-        while (true) {
+        while (connectionHold) {
             try {
                 print();
                 Command command = readLine();
                 send(command);
-                showResponse();
+                if(command.getCode() == MdtpMethod.EXIT) {
+                    connectionHold = false;
+                } else {
+                    showResponse();
+                }
             } catch (InvalidMethodException e) {
                 printError("Method", e.getMessage());
                 continue;

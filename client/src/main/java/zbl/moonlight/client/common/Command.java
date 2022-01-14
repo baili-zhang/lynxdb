@@ -63,6 +63,7 @@ public class Command {
                 break;
             case "exit":
                 code = MdtpMethod.EXIT;
+                verifyExit();
                 break;
             case "system":
                 code = MdtpMethod.SYSTEM;
@@ -93,6 +94,11 @@ public class Command {
         if(key.length() == 0) {
             throw new InvalidCommandException("key is empty");
         }
+        value = new StringBuffer();
+    }
+
+    private void verifyExit() {
+        key = new StringBuffer();
         value = new StringBuffer();
     }
 

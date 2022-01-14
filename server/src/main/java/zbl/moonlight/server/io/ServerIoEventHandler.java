@@ -55,6 +55,13 @@ public class ServerIoEventHandler implements Runnable {
         mdtpRequest.read(socketChannel);
 
         if(mdtpRequest.isReadCompleted()) {
+            /* 如果为EXIT命令，直接将selectionKey取消掉 */
+            if(mdtpRequest.getMethod() == MdtpMethod.EXIT) {
+                contexts.remove(selectionKey);
+                selectionKey.cancel();
+                logger.info("A client exit connection.");
+                return;
+            }
             SocketChannelContext context = contexts.get(selectionKey);
             /* 如果没有上下文对象，则添加上下文对象 */
             if(context == null) {

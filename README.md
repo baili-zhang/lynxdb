@@ -13,7 +13,7 @@
 ### 已实现
 
 - 服务端（MoonlightServer）和客户端（MoonlightClient）
-- 插入或更新数据（SET），获取数据（GET），删除数据（DELETE）
+- 插入或更新数据（SET），获取数据（GET），删除数据（DELETE），客户端退出（EXIT）
 - 服务端和客户端的通信协议：[MDTP通信协议](MDTP.md)
 - YAML格式配置文件
 - 数据持久化（二进制日志BinaryLog）
@@ -21,7 +21,6 @@
 
 ### 待实现
 
-- 退出客户端（EXIT）
 - Metrics监控
 - 基于Raft算法的集群实现
 
