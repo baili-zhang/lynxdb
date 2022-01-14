@@ -89,7 +89,7 @@ public class BinaryLog {
             ByteBuffer value = request.getValue();
             if(value == null) {
                 requests.add(request);
-                break;
+                continue;
             }
 
             readLength = channel.read(value, position);
@@ -97,7 +97,6 @@ public class BinaryLog {
 
             requests.add(request);
         }
-        return requests;
     }
 
     private void append(ByteBuffer byteBuffer) throws IOException {

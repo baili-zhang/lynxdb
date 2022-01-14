@@ -48,7 +48,7 @@ public class MoonlightServer {
         eventBus.register(EventType.CLIENT_RESPONSE, server);
         logger.info("\"MdtpSocketServer\" thread start.");
 
-        logger.info("Reading data from binary log file......");
+        logger.info("Reading data from binary log file...");
         /* 初始化二进制日志文件 */
         BinaryLog binaryLog = new BinaryLog();
         /* 读取二进制日志文件，TODO:如果日志文件过大会占用大量内存，这里需要优化一下 */
