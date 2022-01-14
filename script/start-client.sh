@@ -1,0 +1,1 @@
+java -jar lib/client-1.1-SNAPSHOT.jar
