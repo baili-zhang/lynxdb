@@ -83,7 +83,7 @@ server:
 
 |配置项|说明|
 |---|---|
-|server.host|主机（暂时没有用）|
+|server.host|主机|
 |server.port|端口号|
 |server.backlog|最大连接数|
 |server.io_thread_core_pool_size|IO线程池的核心线程数|
@@ -96,6 +96,19 @@ server:
 |cluster.nodes|集群的节点信息|
 
 ## 版本
+
+### 1.1-SNAPSHOT
+
+实现功能：
+
+- 服务端（MoonlightServer）和客户端（MoonlightClient）
+- 插入或更新数据（SET），获取数据（GET），删除数据（DELETE），客户端退出（EXIT）
+- 服务端和客户端的通信协议：[MDTP通信协议](MDTP.md)
+- YAML格式配置文件
+- 数据持久化（二进制日志BinaryLog）
+- LRU缓存更新策略
+
+下载地址：[moonlight-1.1-snapshot.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/moonlight/releases/download/1.1-SNAPSHOT/moonlight-1.1-snapshot.tar.gz)
 
 ### 1.0-SNAPSHOT
 
