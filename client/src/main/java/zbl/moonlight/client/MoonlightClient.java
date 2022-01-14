@@ -64,7 +64,7 @@ public class MoonlightClient {
     }
 
     private void print() {
-        System.out.print("Moonlight > ");
+        System.out.print("Moonlight> ");
     }
 
     private void printError(String type, String message) {

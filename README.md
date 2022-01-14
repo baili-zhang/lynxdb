@@ -1,13 +1,71 @@
 # Moonlight
 
-Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采用多线程架构，实现的功能包括：
+两年前，还在读大学的时候，看了一些Redis的源码，就想用C语言实现一个缓存服务器，项目叫做“RCache”。
 
-- 增删改查操作
-- [MDTP通信协议](MDTP.md)
-- yaml格式配置文件
-- 数据持久化（二进制数据文件）
+然后，写了一个Main函数，就没有继续了，在Github上面留下了一个空仓库。
+
+今年九月的时候，登录这个账号的时候发现了RCache的仓库，想到了以前想实现一个缓存服务的事，就打算用Java实现一个简单的缓存服务器。
+
+为什么没有继续用RCache作为项目的名称？因为RCache这个名称过于干涩，没有意境。
+
+## 功能
+
+### 已实现
+
+- 服务端（MoonlightServer）和客户端（MoonlightClient）
+- 插入或更新数据（SET），获取数据（GET），删除数据（DELETE）
+- 服务端和客户端的通信协议：[MDTP通信协议](MDTP.md)
+- YAML格式配置文件
+- 数据持久化（二进制日志BinaryLog）
+- LRU缓存更新策略
+
+### 待实现
+
+- 退出客户端（EXIT）
+- Metrics监控
 - 基于Raft算法的集群实现
-- LRU缓存更新
+
+### 待完善
+
+- 内存管理：目前插入大量数据可能会导致直接内存溢出，需要增加内存管理
+- 二进制日志压缩：二进制日志文件会记录所有更新数据的操作，体积会膨胀的很大，需要压缩
+
+## 运行
+
+Windows系统下的服务器启动脚本是start-server.bat，客户端启动脚本是start-client.bat。
+
+Linux系统下的服务端启动脚本是start-server.sh，客户端启动脚本是start-client.sh。
+
+启动脚本都是简单的一行命令，如需要修改JVM参数，直接修改启动脚本即可。
+
+Moonlight服务器的**默认端口号为7820**，确保端口7820没有被其他进程占用。
+
+### 执行命令
+
+命令格式：命令 键 值
+
+响应格式：[响应码][值的长度][序列标识][值]
+
+#### SET命令
+
+```shell
+Moonlight> set key1 value1
+[SUCCESS_NO_VALUE][0][1][]
+```
+
+#### GET命令
+
+```shell
+Moonlight> get key1
+[VALUE_EXIST][6][2][value1]
+```
+
+#### DELETE命令
+
+```shell
+Moonlight> delete key1
+[SUCCESS_NO_VALUE][0][3][]
+```
 
 ## 配置
 
@@ -17,119 +75,34 @@ Moonlight 是一个高性能分布式缓存服务器，由java语言编写，采
 
 ### 配置项
 
+配置项中的`.`格式对应YAML中的关系如下，例如`server.host`:
+
+```yaml
+server:
+  host: "xxx.xxx.xxx.xxx"
+```
+
 |配置项|说明|
 |---|---|
 |server.host|主机（暂时没有用）|
 |server.port|端口号|
+|server.backlog|最大连接数|
+|server.io_thread_core_pool_size|IO线程池的核心线程数|
+|server.io_thread_max_pool_size|IO线程池的最大线程数|
+|server.io_thread_keep_alive_time|IO线程池的非核心线程的存活时间|
+|server.io_thread_blocking_queue_size|IO线程池的阻塞队列大小|
+|cache.capacity|cache的最大容量|
 |mode|运行模式（"single"或"cluster"）|
 |cluster|集群的相关配置|
+|cluster.nodes|集群的节点信息|
 
-## 架构
+## 版本
 
-### 参与角色
+### 1.0-SNAPSHOT
 
-- EventBus(事件总线)
-- MdtpSocketServer(MDTP服务器，单线程)
-- BinaryLogWriter(二进制日志的线程，单线程)
-- SimpleCache(简单的存储引擎，单线程)
-- MdtpSocketClient(MDTP客户端，与集群的节点通信，单线程)
-- ResponseOrganizer(集群响应组织器，单线程)
+实现功能：
 
-### 事件
+- 客户端与服务端之间通信
+- SET，GET，DELETE，UPDATE，EXIT
 
-#### 线程安全问题
-
-1. 基于线程安全的考虑，只能在EventBus线程中修改Event对象的属性，其他线程不能修改Event对象的属性，发送当前事件的话需要重新new一个新的Event。
-2. Event对象的值的任何修改操作都必须加锁（尽量不要修改Event对象的值），因为一个Event对象可能会分发给多个线程，不加锁会导致线程安全问题。
-3. header 拷贝，key和value一旦读取完成便设置成只读，其他线程读取时需要维护自己的position。
-
-#### 事件类型
-
-### 事件生产
-
-MdtpSocketServer生产的事件：
-- 修改本地数据的MDTP请求
-- 不修改本地数据的MDTP请求
-- 修改系统配置信息的请求
-- 查看集群相关信息的请求
-
-MdtpSocketClient生产的事件：
-- 集群其他节点返回的响应
-
-Engine生产的事件：
-- 写回给客户端的响应
-
-### 事件消费
-
-MdtpSocketServer消费的事件：
-- 写回给客户端的响应（需要对MdtpResponse进行读操作）
-
-MdtpSocketClient消费的事件：
-- 修改本地数据的MDTP请求（需要对MdtpRequest进行读操作）
-
-Engine消费的事件：
-- 修改本地数据的MDTP请求
-- 不修改本地数据的MDTP请求
-
-BinaryLog消费的事件：
-- 修改本地数据的MDTP请求（需要对MdtpRequest进行读操作）
-
-
-## 线程安全问题
-
-需要解决MdtpRequest和MdtpResponse的线程安全问题。
-
-## 主线程工作
-
-- 初始化EventBus
-- 初始化各种Executor
-- 将各种Executor注册进EventBus
-- 启动Dispatcher
-- 启动各种Executor（按照依赖关系）
-- 恢复本地数据（读二进制日志文件）
-
-1.0-SNAPSHOT is here: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
-
-## Run moonlight server
-
-Make sure port `7820` is available !
-
-```shell
-java -jar server-1.0-SNAPSHOT.jar
-```
-
-## Run moonlight client
-```shell
-java -jar moonlight.client-1.0-SNAPSHOT.jar
-```
-
-## `Set`
-```shell
-Moonlight > set a 30
-[OK] Done
-```
-
-## `Get`
-```shell
-Moonlight > get a
-[OK] 30
-```
-
-## `Update`
-```shell
-Moonlight > update a 80
-[OK] Done
-```
-
-## `Delete`
-```shell
-Moonlight > delete a
-[OK] Done
-```
-
-## `Exit`
-```shell
-Moonlight > exit
-[Close Connection]
-```
-
+下载地址: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)
