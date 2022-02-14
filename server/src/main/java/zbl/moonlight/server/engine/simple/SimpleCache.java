@@ -1,12 +1,15 @@
 package zbl.moonlight.server.engine.simple;
 
 import lombok.Getter;
+import zbl.moonlight.server.engine.MethodMapping;
 import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 import zbl.moonlight.server.engine.Engine;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class SimpleCache extends Engine {
     @Getter
@@ -19,8 +22,8 @@ public class SimpleCache extends Engine {
         cache = new SimpleLRU<>(capacity);
     }
 
-    @Override
-    protected MdtpResponse set(MdtpRequest mdtpRequest) {
+    @MethodMapping(MdtpMethod.SET)
+    public MdtpResponse doSet(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
 
         ByteBuffer key = mdtpRequest.getKey();
@@ -34,8 +37,8 @@ public class SimpleCache extends Engine {
         return response;
     }
 
-    @Override
-    protected MdtpResponse get(MdtpRequest mdtpRequest) {
+    @MethodMapping(MdtpMethod.GET)
+    public MdtpResponse doGet(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
 
         ByteBuffer key = mdtpRequest.getKey();
@@ -53,8 +56,8 @@ public class SimpleCache extends Engine {
         return response;
     }
 
-    @Override
-    protected MdtpResponse delete(MdtpRequest mdtpRequest) {
+    @MethodMapping(MdtpMethod.DELETE)
+    public MdtpResponse doDelete(MdtpRequest mdtpRequest) {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
 
         ByteBuffer key = mdtpRequest.getKey();
@@ -63,6 +66,14 @@ public class SimpleCache extends Engine {
         cache.remove(key);
 
         response.setSuccessNoValue();
+        return response;
+    }
+
+    @MethodMapping(MdtpMethod.PING)
+    public MdtpResponse doPing(MdtpRequest mdtpRequest) {
+        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
+        response.setValue(ByteBuffer.wrap("PONG".getBytes(StandardCharsets.UTF_8)));
+        response.setValueExist();
         return response;
     }
 }

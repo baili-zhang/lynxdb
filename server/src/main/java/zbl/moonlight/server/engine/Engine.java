@@ -1,5 +1,7 @@
 package zbl.moonlight.server.engine;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -8,22 +10,26 @@ import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpMethod;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+
 public abstract class Engine extends Executor<Event<?>> {
+    private static final Logger logger = LogManager.getLogger("Engine");
+    /* 方法的code与方法处理函数之间的映射 */
+    private final HashMap<Byte, Method> methodMap = new HashMap<>();
+
     protected Engine(EventBus eventBus) {
         super(eventBus);
-    }
 
-    private final MdtpResponse exec(MdtpRequest mdtpRequest) {
-        switch (mdtpRequest.getMethod()) {
-            case MdtpMethod.SET:
-                return set(mdtpRequest);
-            case MdtpMethod.GET:
-                return get(mdtpRequest);
-            case MdtpMethod.DELETE:
-                return delete(mdtpRequest);
+        Method[] methods = this.getClass().getDeclaredMethods();
+        for(Method method : methods) {
+            MethodMapping methodMapping = method.getAnnotation(MethodMapping.class);
+            if(methodMapping != null) {
+                methodMap.put(methodMapping.value(), method);
+                String name = MdtpMethod.getMethodName(methodMapping.value());
+                logger.debug("{} has mapped to {}", name, method);
+            }
         }
-
-        return null;
     }
 
     @Override
@@ -42,7 +48,27 @@ public abstract class Engine extends Executor<Event<?>> {
         }
     }
 
-    protected abstract MdtpResponse set(MdtpRequest mdtpRequest);
-    protected abstract MdtpResponse get(MdtpRequest mdtpRequest);
-    protected abstract MdtpResponse delete(MdtpRequest mdtpRequest);
+    private MdtpResponse exec(MdtpRequest mdtpRequest) {
+        String methodName = MdtpMethod.getMethodName(mdtpRequest.getMethod());
+        Method method = methodMap.get(mdtpRequest.getMethod());
+
+        if(method == null || methodName == null) {
+            return errorResponse(mdtpRequest);
+        }
+
+        try {
+            logger.debug("Invoked method {}", method);
+            return (MdtpResponse) method.invoke(this, mdtpRequest);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return errorResponse(mdtpRequest);
+    }
+
+    private MdtpResponse errorResponse(MdtpRequest mdtpRequest) {
+        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
+        response.setError();
+        return response;
+    }
 }
