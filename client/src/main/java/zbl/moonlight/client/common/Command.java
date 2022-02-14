@@ -49,28 +49,32 @@ public class Command {
         }
 
         switch (method.toString()) {
-            case "get":
+            case "get" -> {
                 code = MdtpMethod.GET;
                 verifyGet();
-                break;
-            case "set":
+            }
+            case "set" -> {
                 code = MdtpMethod.SET;
                 verifySet();
-                break;
-            case "delete":
+            }
+            case "delete" -> {
                 code = MdtpMethod.DELETE;
                 verifyDelete();
-                break;
-            case "exit":
+            }
+            case "exit" -> {
                 code = MdtpMethod.EXIT;
-                verifyExit();
-                break;
-            case "system":
+                verifyOnlyCommand();
+            }
+            case "system" -> {
                 code = MdtpMethod.SYSTEM;
                 verifySystem();
-                break;
-            default:
-                throw new InvalidMethodException("method \"" + method + "\" is invalid");
+            }
+            case "cluster" -> code = MdtpMethod.CLUSTER;
+            case "ping" -> {
+                code = MdtpMethod.PING;
+                verifyOnlyCommand();
+            }
+            default -> throw new InvalidMethodException("method \"" + method + "\" is invalid");
         }
     }
 
@@ -97,7 +101,7 @@ public class Command {
         value = new StringBuffer();
     }
 
-    private void verifyExit() {
+    private void verifyOnlyCommand() {
         key = new StringBuffer();
         value = new StringBuffer();
     }

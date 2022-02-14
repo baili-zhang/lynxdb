@@ -1,19 +1,30 @@
 package zbl.moonlight.server.protocol;
 
+import java.lang.reflect.Field;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class ResponseCode {
     public static final byte VALUE_EXIST = (byte) 0x01;
     public static final byte VALUE_NOT_EXIST = (byte) 0x02;
     public static final byte SUCCESS_NO_VALUE = (byte) 0x03;
+    public static final byte ERROR = (byte) 0x04;
+
+    public static final ConcurrentHashMap<Byte, String> codeMap = new ConcurrentHashMap<>();
+
+    static {
+        try {
+            Field[] fields = ResponseCode.class.getDeclaredFields();
+            for (Field field : fields) {
+                if(field.getType().equals(byte.class)) {
+                    codeMap.put(field.getByte(ResponseCode.class), field.getName());
+                }
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static String getCodeName(byte code) {
-        switch (code) {
-            case VALUE_EXIST:
-                return "VALUE_EXIST";
-            case VALUE_NOT_EXIST:
-                return "VALUE_NOT_EXIST";
-            case SUCCESS_NO_VALUE:
-                return "SUCCESS_NO_VALUE";
-        }
-        return "INVALID_CODE";
+        return codeMap.get(code);
     }
 }

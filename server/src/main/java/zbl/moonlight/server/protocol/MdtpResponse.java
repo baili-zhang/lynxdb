@@ -21,7 +21,6 @@ public class MdtpResponse implements Transportable {
     private final ByteBuffer header;
 
     @Getter
-    @Setter
     private final int identifier;
 
     @Setter
@@ -64,15 +63,21 @@ public class MdtpResponse implements Transportable {
         header.flip();
     }
 
+    public void setError() {
+        header.position(0);
+        header.put(ResponseCode.ERROR);
+        header.putInt(0);
+        header.putInt(identifier);
+        header.flip();
+    }
+
     @Override
     /* 从集群节点收到的响应不会有value字段 */
     public void read(SocketChannel socketChannel) throws IOException {
         try {
             if(!isOver(header)) {
                 socketChannel.read(header);
-                if(!isOver(header)) {
-                    return;
-                } else {
+                if(isOver(header)) {
                     readCompleted = true;
                 }
             }
