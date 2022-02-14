@@ -43,8 +43,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 new ArrayBlockingQueue<>(config.getIoThreadBlockingQueueSize()),
                 /* TODO:需要自定义线程工厂 */
                 Executors.defaultThreadFactory(),
-                /* TODO:需要自定义拒绝策略，不然请求被拒绝后，CountDownLatch会一直等待 */
-                new ThreadPoolExecutor.DiscardPolicy());
+                new ThreadPoolExecutor.AbortPolicy());
         this.eventBus = eventBus;
     }
 
@@ -66,8 +65,13 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
-                        executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
-                                eventBus, contexts));
+                        try {
+                            executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
+                                    eventBus, contexts));
+                        } catch (RejectedExecutionException e) {
+                            e.printStackTrace();
+                            latch.countDown();
+                        }
                         iterator.remove();
                     }
                 }
