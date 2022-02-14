@@ -8,9 +8,21 @@ import java.util.concurrent.TimeUnit;
 
 public class HeartBeator implements Runnable {
     @Getter
-    private final String NAME = "HeartBeator";
+    private static final String NAME = "HeartBeator";
+    /* 默认心跳的时间间隔，为300毫秒 */
+    private static final long DEFAULT_TIME_INTERVAL = 300;
 
     private final DelayQueue<HeartBeatTask> queue = new DelayQueue<>();
+    /* 心跳的时间间隔 */
+    private final long interval;
+
+    public HeartBeator () {
+        this(DEFAULT_TIME_INTERVAL);
+    }
+
+    public HeartBeator(long interval) {
+        this.interval = interval;
+    }
 
     private class HeartBeatTask implements Delayed {
         private final long timeMillis;
@@ -39,13 +51,13 @@ public class HeartBeator implements Runnable {
 
     @Override
     public void run() {
-        queue.offer(new HeartBeatTask(300));
+        queue.offer(new HeartBeatTask(interval));
         while (true) {
             try {
                 HeartBeatTask task = queue.take();
                 /* TODO:发送心跳给各个客户端 */
                 System.out.println("send heart beat to other server.");
-                queue.offer(new HeartBeatTask(3000));
+                queue.offer(new HeartBeatTask(interval));
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
