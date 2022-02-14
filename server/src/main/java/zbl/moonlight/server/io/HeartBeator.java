@@ -1,4 +1,4 @@
-package zbl.moonlight.server.cluster;
+package zbl.moonlight.server.io;
 
 import lombok.Getter;
 
@@ -56,7 +56,7 @@ public class HeartBeator implements Runnable {
             try {
                 HeartBeatTask task = queue.take();
                 /* TODO:发送心跳给各个客户端 */
-                System.out.println("send heart beat to other server.");
+                // System.out.println("send heart beat to other server.");
                 queue.offer(new HeartBeatTask(interval));
             } catch (InterruptedException e) {
                 e.printStackTrace();

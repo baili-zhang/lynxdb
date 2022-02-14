@@ -2,7 +2,7 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.cluster.HeartBeator;
+import zbl.moonlight.server.io.HeartBeator;
 import zbl.moonlight.server.cluster.ResponseOrganizer;
 import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
