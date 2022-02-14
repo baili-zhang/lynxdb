@@ -2,6 +2,7 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.cluster.HeartBeator;
 import zbl.moonlight.server.cluster.ResponseOrganizer;
 import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
@@ -34,6 +35,7 @@ public class MoonlightServer {
 
     public void run() throws IOException,
             IncompleteBinaryLogException, ConfigurationException {
+        /* 读取服务器的相关配置 */
         configuration = new Configuration();
         logger.info("Read configuration completed.");
 
@@ -66,6 +68,10 @@ public class MoonlightServer {
         /* 注册存储引擎到事件总线 */
         eventBus.register(EventType.CLIENT_REQUEST, simpleCache);
         logger.info("\"SimpleCache\" thread start.");
+
+        /* 如果运行模式不是单节点模式，则启动心跳线程 */
+        HeartBeator heartBeator = new HeartBeator();
+        new Thread(heartBeator, heartBeator.getNAME()).start();
 
         /* 初始化集群相关模块 */
         if(RunningMode.CLUSTER.equals(configuration.getRunningMode())) {
