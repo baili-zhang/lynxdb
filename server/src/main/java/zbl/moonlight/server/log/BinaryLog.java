@@ -15,10 +15,11 @@ import java.util.List;
 public class BinaryLog {
     private static final Logger logger = LogManager.getLogger("BinaryLog");
 
-    private final int HEADER_LIMIT = 6;
-    private final String FILENAME = "binlog";
-    private final String FILE_EXTENSION = ".log";
-    private final String DEFAULT_FOLDER = "/logs";
+    private static final int HEADER_LIMIT = 6;
+    private static final String FILENAME = "binlog";
+    private static final String FILE_EXTENSION = ".log";
+    private static final String DEFAULT_FOLDER = "/logs";
+
     private final FileOutputStream outputStream;
     private final FileInputStream inputStream;
 
