@@ -9,7 +9,7 @@ public class SystemInsertTest {
     private static final int clientCount = 20;
     private static final String host = "127.0.0.1";
     private static final int port = 7820;
-    private static final int commandCount = 10000;
+    private static final int commandCount = 1000000;
     private static final CountDownLatch latch = new CountDownLatch(clientCount);
 
     public static void main(String[] args) {
@@ -22,8 +22,9 @@ public class SystemInsertTest {
         try {
             latch.await();
             Date end = new Date();
-            System.out.println(commandCount / (end.getTime() - begin.getTime()) * 1000);
-            System.out.println(successCount);
+            System.out.println("命令总数：" + commandCount);
+            System.out.println("成功命令数：" + successCount);
+            System.out.println("用时（毫秒数）：" + (end.getTime() - begin.getTime()));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
