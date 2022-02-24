@@ -16,8 +16,8 @@
 |0x03|update|若key存在，更新key，否则报错（暂时不实现）|
 |0x04|delete|删除key|
 |0x05|exit|退出客户端|
-|0x06|system|设置系统变量，例如：`system binlog off`|
-|0x07|cluster|查看集群相关的信息|
+|0x06|system|设置系统变量，例如：`system binlog off`（暂时未实现）|
+|0x07|cluster|查看集群相关的信息（暂时未实现）|
 |0x08|ping|用于心跳检测|
 
 ## 响应
