@@ -2,6 +2,7 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -10,7 +11,6 @@ import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -26,15 +26,18 @@ public class ServerIoEventHandler implements Runnable {
     private final Selector selector;
     private final EventBus eventBus;
     private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts;
+    private final Configuration config;
 
     public ServerIoEventHandler(SelectionKey selectionKey, CountDownLatch latch, Selector selector,
                                 EventBus eventBus,
-                                ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts) {
+                                ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts,
+                                Configuration config) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
         this.eventBus = eventBus;
         this.contexts = contexts;
+        this.config = config;
     }
 
     private void doAccept(SelectionKey selectionKey)
@@ -71,12 +74,27 @@ public class ServerIoEventHandler implements Runnable {
             }
             context.increaseRequestCount();
 
-            /* 向事件总线发送客户端请求 */
-            eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
-            /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
-            if(mdtpRequest.getMethod() == MdtpMethod.SET
-                    || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+            /* 如果是同步写二进制日志 */
+            if(config.getSyncWriteLog()) {
+                /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
+                if(mdtpRequest.getMethod() == MdtpMethod.SET
+                        || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
+                    eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                }
+                /* 否则向事件总线发送客户端请求 */
+                else {
+                    eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                }
+            }
+            /* 如果是异步写二进制日志 */
+            else {
+                /* 向事件总线发送客户端请求 */
+                eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
+                if(mdtpRequest.getMethod() == MdtpMethod.SET
+                        || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
+                    eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                }
             }
         }
     }

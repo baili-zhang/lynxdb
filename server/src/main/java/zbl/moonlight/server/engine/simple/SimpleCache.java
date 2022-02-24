@@ -28,8 +28,8 @@ public class SimpleCache extends Engine {
 
         ByteBuffer key = mdtpRequest.getKey();
         ByteBuffer value = mdtpRequest.getValue();
-        key.flip();
-        value.flip();
+        key.rewind();
+        value.rewind();
 
         cache.put(key, value);
 
@@ -42,7 +42,7 @@ public class SimpleCache extends Engine {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
 
         ByteBuffer key = mdtpRequest.getKey();
-        key.flip();
+        key.rewind();
 
         ByteBuffer value = cache.get(key);
 
@@ -61,7 +61,7 @@ public class SimpleCache extends Engine {
         MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
 
         ByteBuffer key = mdtpRequest.getKey();
-        key.flip();
+        key.rewind();
 
         cache.remove(key);
 

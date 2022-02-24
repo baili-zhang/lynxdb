@@ -56,7 +56,7 @@ public class MoonlightServer {
         /* 读取二进制日志文件，TODO:如果日志文件过大会占用大量内存，这里需要优化一下 */
         List<MdtpRequest> requests = binaryLog.read();
         /* 初始化二进制文件线程 */
-        BinaryLogWriter writer = new BinaryLogWriter(binaryLog, eventBus);
+        BinaryLogWriter writer = new BinaryLogWriter(binaryLog, eventBus, configuration);
         new Thread(writer, writer.getNAME()).start();
         /* 注册二进制文件线程到事件总线 */
         eventBus.register(EventType.BINARY_LOG_REQUEST, writer);

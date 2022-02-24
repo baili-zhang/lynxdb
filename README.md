@@ -90,6 +90,7 @@ server:
 |server.io_thread_max_pool_size|IO线程池的最大线程数|
 |server.io_thread_keep_alive_time|IO线程池的非核心线程的存活时间|
 |server.io_thread_blocking_queue_size|IO线程池的阻塞队列大小|
+|sync_write_log|是否同步写二进制日志|
 |cache.capacity|cache的最大容量|
 |mode|运行模式（"single"或"cluster"）|
 |cluster|集群的相关配置|

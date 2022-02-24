@@ -41,6 +41,10 @@ public class Configuration {
     private Integer ioThreadBlockingQueueSize;
 
     @Getter
+    /* 是否同步写二进制日志 */
+    private Boolean syncWriteLog;
+
+    @Getter
     /* cache的最大容量 */
     private Integer cacheCapacity;
 
@@ -127,6 +131,12 @@ public class Configuration {
             }
         }
 
+        /* 设置是否同步写二进制日志 */
+        Boolean sync = (Boolean) config.get("sync_write_log");
+        if(sync != null) {
+            setSyncWriteLog(sync);
+        }
+
         /* 设置cache的相关配置 */
         LinkedHashMap<String, Integer> cacheConfig = (LinkedHashMap<String, Integer>) config.get("cache");
         if(cacheConfig != null) {
@@ -161,6 +171,7 @@ public class Configuration {
         setIoThreadKeepAliveTime(30);
         setIoThreadBlockingQueueSize(2000);
         setCacheCapacity(2000);
+        setSyncWriteLog(false);
     }
 
     private void setHost(String host) {
@@ -202,6 +213,12 @@ public class Configuration {
     private void setIoThreadBlockingQueueSize(int size) {
         if(ioThreadBlockingQueueSize == null) {
             ioThreadBlockingQueueSize = size;
+        }
+    }
+
+    private void setSyncWriteLog(Boolean sync) {
+        if(syncWriteLog == null) {
+            syncWriteLog = sync;
         }
     }
 

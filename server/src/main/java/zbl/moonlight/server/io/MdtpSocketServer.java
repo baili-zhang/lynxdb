@@ -67,7 +67,7 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                         SelectionKey selectionKey = iterator.next();
                         try {
                             executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
-                                    eventBus, contexts));
+                                    eventBus, contexts, config));
                         } catch (RejectedExecutionException e) {
                             e.printStackTrace();
                             latch.countDown();
