@@ -1,6 +1,6 @@
 # Moonlight
 
-两年前，还在读大学的时候，看了一些Redis的源码，就想用C语言实现一个缓存服务器，项目叫做“RCache”。
+两年前，还在读大学的时候，看了一点点Redis的源码，就想用C语言实现一个缓存服务器，项目叫做“RCache”。
 
 然后，写了一个Main函数，就没有继续了，在Github上面留下了一个空仓库。
 
@@ -17,7 +17,7 @@
 - 服务端和客户端的通信协议：[MDTP通信协议](MDTP.md)
 - YAML格式配置文件
 - 数据持久化（二进制日志BinaryLog）
-- LRU缓存更新策略
+- 简单的LRU缓存更新策略
 
 ### 待实现
 
@@ -93,14 +93,14 @@ server:
 |sync_write_log|是否同步写二进制日志|
 |cache.capacity|cache的最大容量|
 |mode|运行模式（"single"或"cluster"）|
-|cluster|集群的相关配置|
-|cluster.nodes|集群的节点信息|
+|cluster|集群的相关配置（集群功能暂时未实现）|
+|cluster.nodes|集群的节点信息（集群功能暂时未实现）|
 
 ## 版本
 
-### 1.2-SNAPSHOT
+### 1.2-SNAPSHOT（开发中）
 
-实现功能：
+待实现的功能：
 
 - 实现PING命令
 - 心跳检测

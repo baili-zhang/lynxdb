@@ -2,7 +2,7 @@
 <Configuration>
     <Properties>
         <!-- 定义日志格式 -->
-        <Property name="binaryLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%15t] [%5level] [%15logger] -- %msg%n</Property>
+        <Property name="binaryLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%18t] [%5level] [%15logger] -- %msg%n</Property>
         <!-- 定义文件名变量 -->
         <Property name="file.err.filename">binaryLog/err.binaryLog</Property>
         <Property name="file.err.pattern">binaryLog/err.%i.binaryLog.gz</Property>
