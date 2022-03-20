@@ -10,7 +10,7 @@ public class HeartBeator implements Runnable {
     @Getter
     private static final String NAME = "HeartBeator";
     /* 默认心跳的时间间隔，为300毫秒 */
-    private static final long DEFAULT_TIME_INTERVAL = 300;
+    private static final long DEFAULT_TIME_INTERVAL = 3000;
 
     private final DelayQueue<HeartBeatTask> queue = new DelayQueue<>();
     /* 心跳的时间间隔 */

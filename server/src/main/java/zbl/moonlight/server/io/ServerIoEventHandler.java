@@ -18,27 +18,12 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
-public class ServerIoEventHandler implements Runnable {
+public record ServerIoEventHandler(SelectionKey selectionKey,
+                                   CountDownLatch latch, Selector selector,
+                                   EventBus eventBus,
+                                   ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts,
+                                   Configuration config) implements Runnable {
     private static final Logger logger = LogManager.getLogger("ServerIoEventHandler");
-
-    private final SelectionKey selectionKey;
-    private final CountDownLatch latch;
-    private final Selector selector;
-    private final EventBus eventBus;
-    private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts;
-    private final Configuration config;
-
-    public ServerIoEventHandler(SelectionKey selectionKey, CountDownLatch latch, Selector selector,
-                                EventBus eventBus,
-                                ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts,
-                                Configuration config) {
-        this.selectionKey = selectionKey;
-        this.latch = latch;
-        this.selector = selector;
-        this.eventBus = eventBus;
-        this.contexts = contexts;
-        this.config = config;
-    }
 
     private void doAccept(SelectionKey selectionKey)
             throws IOException {
@@ -57,9 +42,9 @@ public class ServerIoEventHandler implements Runnable {
         MdtpRequest mdtpRequest = (MdtpRequest) selectionKey.attachment();
         mdtpRequest.read(socketChannel);
 
-        if(mdtpRequest.isReadCompleted()) {
+        if (mdtpRequest.isReadCompleted()) {
             /* 如果为EXIT命令，直接将selectionKey取消掉 */
-            if(mdtpRequest.getMethod() == MdtpMethod.EXIT) {
+            if (mdtpRequest.getMethod() == MdtpMethod.EXIT) {
                 contexts.remove(selectionKey);
                 selectionKey.cancel();
                 logger.info("A client exit connection.");
@@ -67,7 +52,7 @@ public class ServerIoEventHandler implements Runnable {
             }
             SocketChannelContext context = contexts.get(selectionKey);
             /* 如果没有上下文对象，则添加上下文对象 */
-            if(context == null) {
+            if (context == null) {
                 /* TODO:Socket连接关闭时需要删除对应的上下文，不然会导致内存溢出 */
                 context = new SocketChannelContext(selectionKey);
                 contexts.put(selectionKey, context);
@@ -75,9 +60,9 @@ public class ServerIoEventHandler implements Runnable {
             context.increaseRequestCount();
 
             /* 如果是同步写二进制日志 */
-            if(config.getSyncWriteLog()) {
+            if (config.getSyncWriteLog()) {
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
-                if(mdtpRequest.getMethod() == MdtpMethod.SET
+                if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
                     eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 }
@@ -91,7 +76,7 @@ public class ServerIoEventHandler implements Runnable {
                 /* 向事件总线发送客户端请求 */
                 eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
-                if(mdtpRequest.getMethod() == MdtpMethod.SET
+                if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
                     eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 }
@@ -104,15 +89,14 @@ public class ServerIoEventHandler implements Runnable {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         SocketChannelContext context = contexts.get(selectionKey);
 
-        while(!context.isEmpty()) {
+        while (!context.isEmpty()) {
             MdtpResponse mdtpResponse = context.peek();
-            if(mdtpResponse != null) {
+            if (mdtpResponse != null) {
                 mdtpResponse.write(socketChannel);
-                if(mdtpResponse.isWriteCompleted()) {
+                if (mdtpResponse.isWriteCompleted()) {
                     /* 从队列首部移除已经写完的响应 */
                     context.poll();
                     context.decreaseRequestCount();
-                    logger.info("response has written to client.");
                 } else {
                     /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                     break;
@@ -124,7 +108,7 @@ public class ServerIoEventHandler implements Runnable {
     @Override
     public void run() {
         try {
-            if(selectionKey.isAcceptable()) {
+            if (selectionKey.isAcceptable()) {
                 doAccept(selectionKey);
             } else if (selectionKey.isReadable()) {
                 doRead(selectionKey);

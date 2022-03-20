@@ -29,6 +29,7 @@ public class BinaryLog {
         Path path = Path.of(System.getProperty("user.dir"), DEFAULT_FOLDER, FILENAME + FILE_EXTENSION);
         File file = path.toFile();
         if (!file.exists()) {
+            /* TODO:如果没有logs目录会出现“找不到系统路径的异常” */
             file.createNewFile();
         }
         inputStream = new FileInputStream(file);
@@ -54,7 +55,6 @@ public class BinaryLog {
             if(value != null) {
                 append(value);
             }
-            logger.debug("Write a entry to log file.");
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.exception.EventTypeException;
@@ -33,9 +34,10 @@ public class MdtpSocketServer extends Executor<Event<?>> {
     private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts
             = new ConcurrentHashMap<>();
 
-    public MdtpSocketServer(Configuration config, EventBus eventBus) {
-        super(eventBus);
-        this.config = config;
+    public MdtpSocketServer() {
+        ServerContext context = ServerContext.getInstance();
+        eventBus = context.getEventBus();
+        config = context.getConfiguration();
         this.executor = new ThreadPoolExecutor(config.getIoThreadCorePoolSize(),
                 config.getIoThreadMaxPoolSize(),
                 config.getIoThreadKeepAliveTime(),
@@ -44,7 +46,6 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                 /* TODO:需要自定义线程工厂 */
                 Executors.defaultThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
-        this.eventBus = eventBus;
     }
 
     @Override

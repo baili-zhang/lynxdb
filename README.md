@@ -81,20 +81,20 @@ server:
   host: "xxx.xxx.xxx.xxx"
 ```
 
-|配置项|说明|
-|---|---|
-|server.host|主机|
-|server.port|端口号|
-|server.backlog|最大连接数|
-|server.io_thread_core_pool_size|IO线程池的核心线程数|
-|server.io_thread_max_pool_size|IO线程池的最大线程数|
-|server.io_thread_keep_alive_time|IO线程池的非核心线程的存活时间|
-|server.io_thread_blocking_queue_size|IO线程池的阻塞队列大小|
-|sync_write_log|是否同步写二进制日志|
-|cache.capacity|cache的最大容量|
-|mode|运行模式（"single"或"cluster"）|
-|cluster|集群的相关配置（集群功能暂时未实现）|
-|cluster.nodes|集群的节点信息（集群功能暂时未实现）|
+| 配置项                                  | 说明                       |
+|--------------------------------------|--------------------------|
+| server.host                          | 主机                       |
+| server.port                          | 端口号                      |
+| server.backlog                       | 最大连接数                    |
+| server.io_thread_core_pool_size      | IO线程池的核心线程数              |
+| server.io_thread_max_pool_size       | IO线程池的最大线程数              |
+| server.io_thread_keep_alive_time     | IO线程池的非核心线程的存活时间         |
+| server.io_thread_blocking_queue_size | IO线程池的阻塞队列大小             |
+| sync_write_log                       | 是否同步写二进制日志               |
+| cache.capacity                       | cache的最大容量               |
+| mode                                 | 运行模式（"single"或"cluster"） |
+| cluster                              | 集群的相关配置（集群功能暂时未实现）       |
+| cluster.nodes                        | 集群的节点信息（集群功能暂时未实现）       |
 
 ## 版本
 
@@ -104,7 +104,7 @@ server:
 
 - 实现PING命令
 - 心跳检测
-- 主从复制
+- 基于Raft一致性协议的集群实现
 - 日志复制
 - 定义传输协议的scheme，并根据scheme的格式来读取数据和格式化数据
 

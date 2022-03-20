@@ -2,6 +2,7 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -17,10 +18,10 @@ public abstract class Engine extends Executor<Event<?>> {
     private static final Logger logger = LogManager.getLogger("Engine");
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
+    private final EventBus eventBus;
 
-    protected Engine(EventBus eventBus) {
-        super(eventBus);
-
+    protected Engine() {
+        eventBus = ServerContext.getInstance().getEventBus();
         Method[] methods = this.getClass().getDeclaredMethods();
         for(Method method : methods) {
             MethodMapping methodMapping = method.getAnnotation(MethodMapping.class);
@@ -43,7 +44,7 @@ public abstract class Engine extends Executor<Event<?>> {
              MdtpResponse response = exec(request);
              /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
              if(event.getSelectionKey() != null) {
-                 send(new Event<>(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
+                 eventBus.offer(new Event<>(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
              }
         }
     }
@@ -57,7 +58,6 @@ public abstract class Engine extends Executor<Event<?>> {
         }
 
         try {
-            logger.debug("Invoked method {}", method);
             return (MdtpResponse) method.invoke(this, mdtpRequest);
         } catch (Exception e) {
             e.printStackTrace();

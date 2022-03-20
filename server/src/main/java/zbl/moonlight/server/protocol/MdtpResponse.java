@@ -90,7 +90,6 @@ public class MdtpResponse implements Transportable {
 
     @Override
     public void write(SocketChannel socketChannel) throws IOException {
-        logger.info("send response to client.");
         try {
             if(!isOver(header)) {
                 socketChannel.write(header);

@@ -1,6 +1,7 @@
 package zbl.moonlight.server.engine.simple;
 
 import lombok.Getter;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.MethodMapping;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.protocol.MdtpMethod;
@@ -17,9 +18,8 @@ public class SimpleCache extends Engine {
 
     private final SimpleLRU<ByteBuffer, ByteBuffer> cache;
 
-    public SimpleCache(int capacity, EventBus eventBus) {
-        super(eventBus);
-        cache = new SimpleLRU<>(capacity);
+    public SimpleCache() {
+        cache = new SimpleLRU<>(ServerContext.getInstance().getConfiguration().getCacheCapacity());
     }
 
     @MethodMapping(MdtpMethod.SET)

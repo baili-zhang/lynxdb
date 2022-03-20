@@ -2,6 +2,7 @@ package zbl.moonlight.server.log;
 
 import lombok.Getter;
 import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
@@ -15,10 +16,14 @@ public class BinaryLogWriter extends Executor<Event<?>> {
     private final BinaryLog binaryLog;
     private final Configuration config;
 
-    public BinaryLogWriter(BinaryLog binaryLog, EventBus eventBus, Configuration config) {
-        super(eventBus);
+    /* 事件总线 */
+    private final EventBus eventBus;
+
+    public BinaryLogWriter(BinaryLog binaryLog) {
+        ServerContext context = ServerContext.getInstance();
+        eventBus = context.getEventBus();
+        config = context.getConfiguration();
         this.binaryLog = binaryLog;
-        this.config = config;
     }
 
     @Override
@@ -33,7 +38,7 @@ public class BinaryLogWriter extends Executor<Event<?>> {
 
             if(config.getSyncWriteLog()) {
                 event.setType(EventType.CLIENT_REQUEST);
-                send(event);
+                eventBus.offer(event);
             }
         }
     }
