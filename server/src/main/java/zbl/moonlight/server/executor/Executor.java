@@ -1,14 +1,27 @@
 package zbl.moonlight.server.executor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.eventbus.Event;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public abstract class Executor<E> implements Executable<E> {
+public abstract class Executor implements Executable {
+    private static final Logger logger = LogManager.getLogger("Executor");
+
     /* 输入队列 */
-    private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<Event> queue = new ConcurrentLinkedQueue<>();
+
+    public static Executable start(Executable executable) {
+        String name = executable.getClass().getSimpleName();
+        new Thread(executable, name).start();
+        logger.info("Executor \"{}\" has started.", name);
+        return executable;
+    }
 
     @Override
     /* 向输入队列中添加元素 */
-    public final void offer(E event) {
+    public final void offer(Event event) {
         if(event != null) {
             queue.offer(event);
             synchronized (queue) {
@@ -18,7 +31,7 @@ public abstract class Executor<E> implements Executable<E> {
     }
 
     /* 向输入队列中移除元素，如果没有输入队列元素，则进入等待 */
-    protected final E pollSleep() {
+    protected final Event pollSleep() {
         if(queue.isEmpty()) {
             synchronized (queue) {
                 try {
@@ -32,7 +45,7 @@ public abstract class Executor<E> implements Executable<E> {
     }
 
     /* 从输入队列中移除元素 */
-    protected final E poll() {
+    protected final Event poll() {
         return queue.poll();
     }
 

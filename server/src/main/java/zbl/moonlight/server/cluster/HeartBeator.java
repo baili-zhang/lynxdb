@@ -1,17 +1,28 @@
-package zbl.moonlight.server.io;
+package zbl.moonlight.server.cluster;
 
 import lombok.Getter;
+import zbl.moonlight.server.config.ClusterConfiguration;
+import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.context.ServerContext;
+import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.server.executor.Executable;
 
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
-public class HeartBeator implements Runnable {
-    @Getter
-    private static final String NAME = "HeartBeator";
+/* 心跳线程：用于发送心跳和Leader选举 */
+public class HeartBeator implements Executable {
     /* 默认心跳的时间间隔，为300毫秒 */
-    private static final long DEFAULT_TIME_INTERVAL = 3000;
+    private static final long DEFAULT_TIME_INTERVAL = 300;
+    /* 初始的Leader节点 */
+    public static final RaftNode DEFAULT_LEADER = null;
 
+    /* 当前节点的角色 */
+    private RaftRole raftRole = RaftRole.Follower;
+    /* Leader节点 */
+    private RaftNode leader = DEFAULT_LEADER;
+    /* 延迟队列定时任务 */
     private final DelayQueue<HeartBeatTask> queue = new DelayQueue<>();
     /* 心跳的时间间隔 */
     private final long interval;
@@ -22,9 +33,17 @@ public class HeartBeator implements Runnable {
 
     public HeartBeator(long interval) {
         this.interval = interval;
+        Configuration config = ServerContext.getInstance().getConfiguration();
+        ClusterConfiguration clusterConfig = config.getClusterConfiguration();
+        System.out.println(clusterConfig);
     }
 
-    private class HeartBeatTask implements Delayed {
+    @Override
+    public void offer(Event event) {
+
+    }
+
+    private static class HeartBeatTask implements Delayed {
         private final long timeMillis;
 
         private HeartBeatTask(long delayTimeMillis) {
@@ -55,8 +74,11 @@ public class HeartBeator implements Runnable {
         while (true) {
             try {
                 HeartBeatTask task = queue.take();
-                /* TODO:发送心跳给各个客户端 */
-                // System.out.println("send heart beat to other server.");
+                if(leader == DEFAULT_LEADER) {
+                    // 发起选举
+                    // new RequestVoteRpc(new RaftNode("localhost", 7830))
+                    //         .call(new RequestVoteRpc.Arguments(0,0,0,0));
+                }
                 queue.offer(new HeartBeatTask(interval));
             } catch (InterruptedException e) {
                 e.printStackTrace();

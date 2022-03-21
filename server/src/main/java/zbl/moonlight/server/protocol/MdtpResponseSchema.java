@@ -1,4 +1,4 @@
 package zbl.moonlight.server.protocol;
 
-public class MdtpResponse {
+public interface MdtpResponseSchema {
 }

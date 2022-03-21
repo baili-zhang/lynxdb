@@ -7,8 +7,6 @@ import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.protocol.MdtpMethod;
-import zbl.moonlight.server.protocol.MdtpRequest;
-import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -64,21 +62,21 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
                 if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                    eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(new Event(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 }
                 /* 否则向事件总线发送客户端请求 */
                 else {
-                    eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(new Event(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 }
             }
             /* 如果是异步写二进制日志 */
             else {
                 /* 向事件总线发送客户端请求 */
-                eventBus.offer(new Event<>(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                eventBus.offer(new Event(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
                 if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                    eventBus.offer(new Event<>(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(new Event(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
                 }
             }
         }

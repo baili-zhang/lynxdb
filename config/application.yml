@@ -19,11 +19,17 @@ cache:
 #是否同步写二进制日志
 sync_write_log: false
 #运行模式，"single"表示单机，"cluster"表示集群
-mode: 'single'
+mode: 'cluster'
 #集群的配置信息
 cluster:
   #集群的节点信息
   nodes:
     -
       host: '127.0.0.1'
-      port: 7823
+      port: 7820
+    -
+      host: '127.0.0.1'
+      port: 7821
+    -
+      host: '127.0.0.1'
+      port: 7822

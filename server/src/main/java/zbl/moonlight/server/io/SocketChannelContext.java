@@ -1,8 +1,5 @@
 package zbl.moonlight.server.io;
 
-import zbl.moonlight.server.protocol.MdtpRequest;
-import zbl.moonlight.server.protocol.MdtpResponse;
-
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 

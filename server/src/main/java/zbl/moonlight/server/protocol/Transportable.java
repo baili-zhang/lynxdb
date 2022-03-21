@@ -1,9 +1,10 @@
 package zbl.moonlight.server.protocol;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.channels.SocketChannel;
 
-public interface Transportable {
+public interface Transportable extends Serializable {
     /* 从SocketChannel中读数据 */
     void read(SocketChannel socketChannel) throws IOException;
     /* 写数据到SocketChannel中 */

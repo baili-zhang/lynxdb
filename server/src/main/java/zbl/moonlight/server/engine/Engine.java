@@ -7,14 +7,12 @@ import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.MdtpRequest;
 import zbl.moonlight.server.protocol.MdtpMethod;
-import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
-public abstract class Engine extends Executor<Event<?>> {
+public abstract class Engine extends Executor {
     private static final Logger logger = LogManager.getLogger("Engine");
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
@@ -36,7 +34,7 @@ public abstract class Engine extends Executor<Event<?>> {
     @Override
     public final void run() {
         while (true) {
-             Event<?> event = pollSleep();
+             Event event = pollSleep();
              if(event == null) {
                  continue;
              }
@@ -44,7 +42,7 @@ public abstract class Engine extends Executor<Event<?>> {
              MdtpResponse response = exec(request);
              /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
              if(event.getSelectionKey() != null) {
-                 eventBus.offer(new Event<>(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
+                 eventBus.offer(new Event(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
              }
         }
     }

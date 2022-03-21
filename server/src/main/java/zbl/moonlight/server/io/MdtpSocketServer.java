@@ -1,15 +1,13 @@
 package zbl.moonlight.server.io;
 
-import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.exception.EventTypeException;
+import zbl.moonlight.server.exception.UnSupportedEventTypeException;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.MdtpResponse;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -20,10 +18,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
 
-public class MdtpSocketServer extends Executor<Event<?>> {
+public class MdtpSocketServer extends Executor {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
-    @Getter
-    private final String NAME = "MdtpSocketServer";
 
     private final Configuration config;
     private final ThreadPoolExecutor executor;
@@ -84,16 +80,17 @@ public class MdtpSocketServer extends Executor<Event<?>> {
                         break;
                     }
 
-                    Object response = event.getValue();
-                    if(!(response instanceof MdtpResponse)) {
-                        throw new EventTypeException("value is not an instance of MdtpResponse.");
+                    Object value = event.value();
+                    if(!(value instanceof MdtpResponse)) {
+                        throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
                     }
-                    SelectionKey selectionKey = event.getSelectionKey();
+                    MdtpResponse response = (MdtpResponse) value;
+                    SelectionKey selectionKey = response.getSelectionKey();
                     SocketChannelContext context = contexts.get(selectionKey);
                     if(context == null) {
                         throw new IOException("SocketChannelContext object not found.");
                     }
-                    context.offer((MdtpResponse) response);
+                    context.offer(response);
                 }
 
                 latch.await();

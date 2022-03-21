@@ -7,9 +7,8 @@ import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.MdtpRequest;
 
-public class BinaryLogWriter extends Executor<Event<?>> {
+public class BinaryLogWriter extends Executor {
     @Getter
     private final String NAME = "BinaryLogWriter";
     /* 二进制日志文件 */
@@ -29,15 +28,15 @@ public class BinaryLogWriter extends Executor<Event<?>> {
     @Override
     public void run() {
         while (true) {
-            Event<?> event = pollSleep();
+            Event event = pollSleep();
             if(event == null) {
                 continue;
             }
-            MdtpRequest request = (MdtpRequest) event.getValue();
+            MdtpRequest request = (MdtpRequest) event.value();
             binaryLog.write(request);
 
             if(config.getSyncWriteLog()) {
-                event.setType(EventType.CLIENT_REQUEST);
+                event.type(EventType.CLIENT_REQUEST);
                 eventBus.offer(event);
             }
         }

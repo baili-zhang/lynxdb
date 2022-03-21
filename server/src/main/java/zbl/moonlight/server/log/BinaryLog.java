@@ -3,7 +3,6 @@ package zbl.moonlight.server.log;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
-import zbl.moonlight.server.protocol.MdtpRequest;
 
 import java.io.*;
 import java.nio.ByteBuffer;
