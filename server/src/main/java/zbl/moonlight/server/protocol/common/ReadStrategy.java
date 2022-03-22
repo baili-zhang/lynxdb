@@ -1,5 +1,6 @@
-package zbl.moonlight.server.protocol;
+package zbl.moonlight.server.protocol.common;
 
+import zbl.moonlight.server.protocol.mdtp.MdtpRequestSchema;
 import zbl.moonlight.server.protocol.annotations.Schema;
 import zbl.moonlight.server.protocol.annotations.SchemaEntry;
 import zbl.moonlight.server.utils.ByteBufferUtils;
@@ -13,32 +14,32 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 
 /* 抽象协议，为MDTP请求和响应协议提供支持，不能同时用来读写 */
-/* TODO: 根据单一职责原则，读和写应该在两个类中实现       */
-public abstract class AbstractProtocol implements Transportable {
+public class ReadStrategy implements Readable {
     private static final int NO_LENGTH = -1;
 
+    /* 用来存储各个属性的map */
+    private HashMap<String, byte[]> map;
     /* 传输的数据，不包括数据长度 */
     private ByteBuffer data;
     /* 数据总长度 */
     private int length = NO_LENGTH;
     /* 数据总长度ByteBuffer */
     private ByteBuffer lengthByteBuffer = ByteBuffer.allocate(4);
-    /* 用来存储各个属性的map */
-    private HashMap<String, byte[]> map;
     /* 继承Protocol的接口 */
-    private final Class<? extends ProtocolSchema> schemaClass;
+    private final Class<? extends Parsable> schemaClass;
+    /* 是否已完成parse */
+    private boolean parseFlag = false;
 
     /* 给读数据用的构造函数 */
-    AbstractProtocol(Class<? extends ProtocolSchema> schemaClass) {
+    public ReadStrategy(Class<? extends Parsable> schemaClass) {
         this.schemaClass = schemaClass;
     }
 
-    /* 给写数据用的构造函数 */
-    AbstractProtocol(Class<? extends ProtocolSchema> schemaClass, byte[] data) {
-        this.schemaClass = schemaClass;
-        this.data = ByteBuffer.wrap(data);
-        this.length = data.length;
-        lengthByteBuffer.putInt(this.length);
+    public byte[] mapGet(String name) {
+        if(!parseFlag) {
+            throw new RuntimeException("Can NOT get before parsing.");
+        }
+        return map.get(name);
     }
 
     @Override
@@ -59,30 +60,22 @@ public abstract class AbstractProtocol implements Transportable {
     }
 
     @Override
-    public void write(SocketChannel socketChannel) throws IOException {
-        if(!ByteBufferUtils.isOver(lengthByteBuffer)) {
-            socketChannel.write(lengthByteBuffer);
-            if(!ByteBufferUtils.isOver(lengthByteBuffer)) {
-                return;
-            }
-        }
-        if(!ByteBufferUtils.isOver(data)) {
-            socketChannel.read(data);
-        }
-    }
-
-    @Override
     public boolean isReadCompleted() {
         return ByteBufferUtils.isOver(data);
     }
 
-    @Override
-    public boolean isWriteCompleted() {
-        return ByteBufferUtils.isOver(data);
+    public void parse() {
+        if(!isReadCompleted()) {
+            throw new RuntimeException("Can NOT parse before reading completed.");
+        }
+        Parsable schema = (Parsable) Proxy.newProxyInstance(ReadStrategy.class.getClassLoader(),
+                new Class[]{MdtpRequestSchema.class}, new ParseHandler());
+        /* 把ByteBuffer类型的数据解析成map */
+        map = schema.parse(data);
     }
 
-    /* JDK动态代理的InvocationHandler */
-    private class InvH implements InvocationHandler {
+    /* 解析操作的JDK动态代理InvocationHandler */
+    private class ParseHandler implements InvocationHandler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
             if(!(args[0] instanceof ByteBuffer)) {
@@ -117,12 +110,5 @@ public abstract class AbstractProtocol implements Transportable {
             }
             return map;
         }
-    }
-
-    public void parse() {
-        ProtocolSchema schema = (ProtocolSchema) Proxy.newProxyInstance(MdtpRequest.class.getClassLoader(),
-                new Class[]{MdtpRequestSchema.class}, new InvH());
-        /* 把ByteBuffer类型的数据解析成map */
-        map = schema.parse(data);
     }
 }

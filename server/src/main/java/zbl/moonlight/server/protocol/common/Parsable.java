@@ -1,8 +1,9 @@
-package zbl.moonlight.server.protocol;
+package zbl.moonlight.server.protocol.common;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 
-public interface ProtocolSchema {
+public interface Parsable {
+    /* 将数据解析成map */
     HashMap<String, byte[]> parse(ByteBuffer data);
 }

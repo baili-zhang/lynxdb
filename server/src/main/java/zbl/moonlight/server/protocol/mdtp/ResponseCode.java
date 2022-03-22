@@ -1,4 +1,4 @@
-package zbl.moonlight.server.protocol;
+package zbl.moonlight.server.protocol.mdtp;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
