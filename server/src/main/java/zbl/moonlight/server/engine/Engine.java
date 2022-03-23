@@ -3,11 +3,9 @@ package zbl.moonlight.server.engine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.context.ServerContext;
-import zbl.moonlight.server.eventbus.Event;
-import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.eventbus.EventType;
+import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.MdtpMethod;
+import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -38,35 +36,34 @@ public abstract class Engine extends Executor {
              if(event == null) {
                  continue;
              }
-             MdtpRequest request = (MdtpRequest) event.getValue();
-             MdtpResponse response = exec(request);
+             MdtpRequestEvent request = (MdtpRequestEvent) event.value();
+             MdtpResponseEvent response = exec(request);
              /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
-             if(event.getSelectionKey() != null) {
-                 eventBus.offer(new Event(EventType.CLIENT_RESPONSE, event.getSelectionKey(), response));
+             if(request.selectionKey() != null) {
+                 eventBus.offer(new Event(EventType.CLIENT_RESPONSE, response));
              }
         }
     }
 
-    private MdtpResponse exec(MdtpRequest mdtpRequest) {
-        String methodName = MdtpMethod.getMethodName(mdtpRequest.getMethod());
-        Method method = methodMap.get(mdtpRequest.getMethod());
+    private MdtpResponseEvent exec(MdtpRequestEvent event) {
+        byte mdtpMethod = event.request().getMethod();
+        String methodName = MdtpMethod.getMethodName(mdtpMethod);
+        Method method = methodMap.get(mdtpMethod);
 
         if(method == null || methodName == null) {
-            return errorResponse(mdtpRequest);
+            return errorResponse(event);
         }
 
         try {
-            return (MdtpResponse) method.invoke(this, mdtpRequest);
+            return (MdtpResponseEvent) method.invoke(this, event);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return errorResponse(mdtpRequest);
+        return errorResponse(event);
     }
 
-    private MdtpResponse errorResponse(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-        response.setError();
-        return response;
+    private MdtpResponseEvent errorResponse(MdtpRequestEvent mdtpRequest) {
+        return null;
     }
 }

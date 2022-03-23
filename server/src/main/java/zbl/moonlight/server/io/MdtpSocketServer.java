@@ -6,8 +6,10 @@ import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.eventbus.MdtpResponseEvent;
 import zbl.moonlight.server.exception.UnSupportedEventTypeException;
 import zbl.moonlight.server.executor.Executor;
+import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -81,11 +83,11 @@ public class MdtpSocketServer extends Executor {
                     }
 
                     Object value = event.value();
-                    if(!(value instanceof MdtpResponse)) {
+                    if(!(value instanceof MdtpResponseEvent)) {
                         throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
                     }
-                    MdtpResponse response = (MdtpResponse) value;
-                    SelectionKey selectionKey = response.getSelectionKey();
+                    MdtpResponseEvent response = (MdtpResponseEvent) value;
+                    SelectionKey selectionKey = response.selectionKey();
                     SocketChannelContext context = contexts.get(selectionKey);
                     if(context == null) {
                         throw new IOException("SocketChannelContext object not found.");

@@ -3,7 +3,9 @@ package zbl.moonlight.server.engine.simple;
 import lombok.Getter;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.MethodMapping;
-import zbl.moonlight.server.protocol.MdtpMethod;
+import zbl.moonlight.server.eventbus.MdtpRequestEvent;
+import zbl.moonlight.server.eventbus.MdtpResponseEvent;
+import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
 import zbl.moonlight.server.engine.Engine;
 
 import java.nio.ByteBuffer;
@@ -20,57 +22,22 @@ public class SimpleCache extends Engine {
     }
 
     @MethodMapping(MdtpMethod.SET)
-    public MdtpResponse doSet(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-
-        ByteBuffer key = mdtpRequest.getKey();
-        ByteBuffer value = mdtpRequest.getValue();
-        key.rewind();
-        value.rewind();
-
-        cache.put(key, value);
-
-        response.setSuccessNoValue();
-        return response;
+    public MdtpResponseEvent doSet(MdtpRequestEvent mdtpRequest) {
+        return null;
     }
 
     @MethodMapping(MdtpMethod.GET)
-    public MdtpResponse doGet(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-
-        ByteBuffer key = mdtpRequest.getKey();
-        key.rewind();
-
-        ByteBuffer value = cache.get(key);
-
-        if(value == null) {
-            response.setValueNotExist();
-            return response;
-        }
-
-        response.setValue(value.asReadOnlyBuffer());
-        response.setValueExist();
-        return response;
+    public MdtpResponseEvent doGet(MdtpRequestEvent mdtpRequest) {
+        return null;
     }
 
     @MethodMapping(MdtpMethod.DELETE)
-    public MdtpResponse doDelete(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-
-        ByteBuffer key = mdtpRequest.getKey();
-        key.rewind();
-
-        cache.remove(key);
-
-        response.setSuccessNoValue();
-        return response;
+    public MdtpResponseEvent doDelete(MdtpRequestEvent mdtpRequest) {
+        return null;
     }
 
     @MethodMapping(MdtpMethod.PING)
-    public MdtpResponse doPing(MdtpRequest mdtpRequest) {
-        MdtpResponse response = new MdtpResponse(mdtpRequest.getIdentifier());
-        response.setValue(ByteBuffer.wrap("PONG".getBytes(StandardCharsets.UTF_8)));
-        response.setValueExist();
-        return response;
+    public MdtpResponseEvent doPing(MdtpRequestEvent mdtpRequest) {
+        return null;
     }
 }

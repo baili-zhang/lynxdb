@@ -14,7 +14,6 @@ import java.util.List;
 public class BinaryLog {
     private static final Logger logger = LogManager.getLogger("BinaryLog");
 
-    private static final int HEADER_LIMIT = 6;
     private static final String FILENAME = "binlog";
     private static final String FILE_EXTENSION = ".log";
     private static final String DEFAULT_FOLDER = "/logs";
@@ -33,70 +32,6 @@ public class BinaryLog {
         }
         inputStream = new FileInputStream(file);
         outputStream = new FileOutputStream(file, true);
-    }
-
-    /* TODO:会不会出现MdtpRequest没写完的情况 */
-    public void write(MdtpRequest request) {
-        ByteBuffer header = request.getHeader();
-        header.limit(6);
-        ByteBuffer key = request.getKey();
-        ByteBuffer value = request.getValue();
-
-        header.rewind();
-        key.rewind();
-        if(value != null) {
-            value.rewind();
-        }
-
-        try {
-            append(request.getHeader());
-            append(request.getKey());
-            if(value != null) {
-                append(value);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public List<MdtpRequest> read() throws IOException, IncompleteBinaryLogException {
-        List<MdtpRequest> requests = new ArrayList<>();
-        FileChannel channel = inputStream.getChannel();
-        long readLength;
-        while (true) {
-            MdtpRequest request = new MdtpRequest();
-
-            ByteBuffer header = request.getHeader();
-            header.limit(HEADER_LIMIT);
-            readLength = channel.read(header, position);
-            /* 读取到文件末尾 */
-            if(readLength == -1) {
-                logger.debug("Read {} requests from log file.", requests.size());
-                return requests;
-            }
-            position += readLength;
-            header.limit(header.capacity());
-            /* 设置序列号，TODO:二进制日志文件格式要重新定义 */
-            header.putInt(0);
-            request.parseHeader();
-
-            readLength = channel.read(request.getKey(), position);
-            if(readLength == -1) {
-                throw new IncompleteBinaryLogException("Incomplete binary log file");
-            }
-            position += readLength;
-
-            ByteBuffer value = request.getValue();
-            if(value == null) {
-                requests.add(request);
-                continue;
-            }
-
-            readLength = channel.read(value, position);
-            position += readLength;
-
-            requests.add(request);
-        }
     }
 
     private void append(ByteBuffer byteBuffer) throws IOException {

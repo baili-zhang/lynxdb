@@ -1,12 +1,15 @@
 package zbl.moonlight.server.io;
 
+import zbl.moonlight.server.eventbus.MdtpResponseEvent;
+import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
+
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SocketChannelContext {
     private final SelectionKey selectionKey;
     /* 响应队列 */
-    private final ConcurrentLinkedQueue<MdtpResponse> responses = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<MdtpResponseEvent> responses = new ConcurrentLinkedQueue<>();
     /* 正在处理的请求数量，需要同步处理 */
     private int requestCount = 0;
 
@@ -14,15 +17,15 @@ public class SocketChannelContext {
         this.selectionKey = selectionKey;
     }
 
-    public MdtpResponse poll() {
+    public MdtpResponseEvent poll() {
         return responses.poll();
     }
 
-    public MdtpResponse peek() {
+    public MdtpResponseEvent peek() {
         return responses.peek();
     }
 
-    public void offer(MdtpResponse response) {
+    public void offer(MdtpResponseEvent response) {
         responses.offer(response);
     }
 
@@ -35,7 +38,7 @@ public class SocketChannelContext {
             /* 设置新的请求对象 */
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
-        selectionKey.attach(new MdtpRequest());
+        selectionKey.attach(new WritableMdtpResponse());
         requestCount ++;
     }
 

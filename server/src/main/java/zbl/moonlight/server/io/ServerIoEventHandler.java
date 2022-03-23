@@ -3,10 +3,10 @@ package zbl.moonlight.server.io;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.eventbus.Event;
-import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.eventbus.EventType;
-import zbl.moonlight.server.protocol.MdtpMethod;
+import zbl.moonlight.server.eventbus.*;
+import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
+import zbl.moonlight.server.protocol.mdtp.ReadableMdtpRequest;
+import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -30,14 +30,14 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
         channel.configureBlocking(false);
 
         synchronized (selector) {
-            channel.register(selector, SelectionKey.OP_READ, new MdtpRequest());
+            channel.register(selector, SelectionKey.OP_READ, new ReadableMdtpRequest());
         }
     }
 
     /* 每次读一个请求 */
     private void doRead(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        MdtpRequest mdtpRequest = (MdtpRequest) selectionKey.attachment();
+        ReadableMdtpRequest mdtpRequest = (ReadableMdtpRequest) selectionKey.attachment();
         mdtpRequest.read(socketChannel);
 
         if (mdtpRequest.isReadCompleted()) {
@@ -58,25 +58,27 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
             context.increaseRequestCount();
 
             /* 如果是同步写二进制日志 */
+            Event logEvent = new Event(EventType.BINARY_LOG_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
+            Event event = new Event(EventType.CLIENT_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
             if (config.getSyncWriteLog()) {
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
                 if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                    eventBus.offer(new Event(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(logEvent);
                 }
                 /* 否则向事件总线发送客户端请求 */
                 else {
-                    eventBus.offer(new Event(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(event);
                 }
             }
             /* 如果是异步写二进制日志 */
             else {
                 /* 向事件总线发送客户端请求 */
-                eventBus.offer(new Event(EventType.CLIENT_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                eventBus.offer(event);
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
                 if (mdtpRequest.getMethod() == MdtpMethod.SET
                         || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
-                    eventBus.offer(new Event(EventType.BINARY_LOG_REQUEST, selectionKey, mdtpRequest.duplicate()));
+                    eventBus.offer(logEvent);
                 }
             }
         }
@@ -88,7 +90,8 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
         SocketChannelContext context = contexts.get(selectionKey);
 
         while (!context.isEmpty()) {
-            MdtpResponse mdtpResponse = context.peek();
+            MdtpResponseEvent event = context.peek();
+            WritableMdtpResponse mdtpResponse = event.response();
             if (mdtpResponse != null) {
                 mdtpResponse.write(socketChannel);
                 if (mdtpResponse.isWriteCompleted()) {

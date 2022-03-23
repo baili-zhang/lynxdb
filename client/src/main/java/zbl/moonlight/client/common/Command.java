@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.ToString;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
-import zbl.moonlight.server.protocol.MdtpMethod;
+import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
 
 @ToString
 public class Command {

@@ -8,10 +8,5 @@ import java.util.List;
 
 @Getter
 @ToString
-public class ClusterConfiguration {
-    private final List<LinkedHashMap<String, Object>> nodes;
-
-    ClusterConfiguration(List<LinkedHashMap<String, Object>> nodes) {
-        this.nodes = nodes;
-    }
+public record ClusterConfiguration(List<LinkedHashMap<String, Object>> nodes) {
 }

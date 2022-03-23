@@ -6,6 +6,7 @@ import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
+import zbl.moonlight.server.eventbus.MdtpRequestEvent;
 import zbl.moonlight.server.executor.Executor;
 
 public class BinaryLogWriter extends Executor {
@@ -32,11 +33,11 @@ public class BinaryLogWriter extends Executor {
             if(event == null) {
                 continue;
             }
-            MdtpRequest request = (MdtpRequest) event.value();
-            binaryLog.write(request);
+            MdtpRequestEvent request = (MdtpRequestEvent) event.value();
+            // binaryLog.write(request);
 
             if(config.getSyncWriteLog()) {
-                event.type(EventType.CLIENT_REQUEST);
+                // event.type(EventType.CLIENT_REQUEST);
                 eventBus.offer(event);
             }
         }
