@@ -5,9 +5,9 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.*;
-import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
-import zbl.moonlight.server.protocol.mdtp.ReadableMdtpRequest;
-import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
+import zbl.moonlight.core.protocol.mdtp.MdtpMethod;
+import zbl.moonlight.core.protocol.mdtp.ReadableMdtpRequest;
+import zbl.moonlight.core.protocol.mdtp.WritableMdtpResponse;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -17,7 +17,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 public class IoEventHandler implements Runnable {
 

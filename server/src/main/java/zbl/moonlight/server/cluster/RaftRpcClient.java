@@ -27,8 +27,4 @@ public class RaftRpcClient implements Executable {
             e.printStackTrace();
         }
     }
-
-    public static void main(String[] args) {
-        new RaftRpcClient().run();
-    }
 }

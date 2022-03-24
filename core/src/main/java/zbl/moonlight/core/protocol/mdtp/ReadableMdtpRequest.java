@@ -1,7 +1,7 @@
-package zbl.moonlight.server.protocol.mdtp;
+package zbl.moonlight.core.protocol.mdtp;
 
-import zbl.moonlight.server.protocol.common.ReadStrategy;
-import zbl.moonlight.server.utils.ByteArrayUtils;
+import zbl.moonlight.core.protocol.common.ReadStrategy;
+import zbl.moonlight.core.utils.ByteArrayUtils;
 
 public class ReadableMdtpRequest extends ReadStrategy {
     public ReadableMdtpRequest() {

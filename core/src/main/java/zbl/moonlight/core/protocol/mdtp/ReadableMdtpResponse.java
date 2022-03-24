@@ -1,6 +1,6 @@
-package zbl.moonlight.server.protocol.mdtp;
+package zbl.moonlight.core.protocol.mdtp;
 
-import zbl.moonlight.server.protocol.common.ReadStrategy;
+import zbl.moonlight.core.protocol.common.ReadStrategy;
 
 public class ReadableMdtpResponse extends ReadStrategy {
     public ReadableMdtpResponse() {

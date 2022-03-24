@@ -35,7 +35,6 @@ public class HeartBeator implements Executable {
         this.interval = interval;
         Configuration config = ServerContext.getInstance().getConfiguration();
         ClusterConfiguration clusterConfig = config.getClusterConfiguration();
-        System.out.println(clusterConfig);
     }
 
     @Override

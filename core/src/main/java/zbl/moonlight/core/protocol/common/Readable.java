@@ -1,4 +1,4 @@
-package zbl.moonlight.server.protocol.common;
+package zbl.moonlight.core.protocol.common;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;

@@ -43,8 +43,4 @@ public class RaftRpcServer implements Executable {
     public void offer(Event event) {
 
     }
-
-    public static void main(String[] args) {
-        new RaftRpcServer().run();
-    }
 }

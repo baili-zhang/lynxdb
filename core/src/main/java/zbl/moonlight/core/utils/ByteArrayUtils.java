@@ -1,4 +1,4 @@
-package zbl.moonlight.server.utils;
+package zbl.moonlight.core.utils;
 
 import java.nio.ByteBuffer;
 

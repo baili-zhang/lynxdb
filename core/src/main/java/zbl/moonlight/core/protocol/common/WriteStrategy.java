@@ -1,9 +1,9 @@
-package zbl.moonlight.server.protocol.common;
+package zbl.moonlight.core.protocol.common;
 
-import zbl.moonlight.server.protocol.mdtp.MdtpRequestSchema;
-import zbl.moonlight.server.protocol.annotations.Schema;
-import zbl.moonlight.server.protocol.annotations.SchemaEntry;
-import zbl.moonlight.server.utils.ByteBufferUtils;
+import zbl.moonlight.core.protocol.mdtp.MdtpRequestSchema;
+import zbl.moonlight.core.protocol.annotations.Schema;
+import zbl.moonlight.core.protocol.annotations.SchemaEntry;
+import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;

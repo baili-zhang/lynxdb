@@ -1,6 +1,6 @@
-package zbl.moonlight.server.protocol.mdtp;
+package zbl.moonlight.core.protocol.mdtp;
 
-import zbl.moonlight.server.protocol.common.WriteStrategy;
+import zbl.moonlight.core.protocol.common.WriteStrategy;
 
 public class WritableMdtpRequest extends WriteStrategy {
     public WritableMdtpRequest() {

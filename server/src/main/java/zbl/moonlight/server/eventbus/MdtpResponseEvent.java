@@ -1,6 +1,6 @@
 package zbl.moonlight.server.eventbus;
 
-import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
+import zbl.moonlight.core.protocol.mdtp.WritableMdtpResponse;
 
 import java.nio.channels.SelectionKey;
 

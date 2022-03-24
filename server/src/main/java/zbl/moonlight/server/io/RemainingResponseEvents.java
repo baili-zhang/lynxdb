@@ -1,7 +1,7 @@
 package zbl.moonlight.server.io;
 
-import zbl.moonlight.server.protocol.mdtp.ReadableMdtpRequest;
-import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
+import zbl.moonlight.core.protocol.mdtp.ReadableMdtpRequest;
+import zbl.moonlight.core.protocol.mdtp.WritableMdtpResponse;
 
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;

@@ -1,4 +1,4 @@
-package zbl.moonlight.server.protocol.mdtp;
+package zbl.moonlight.core.protocol.mdtp;
 
 public interface MdtpSchema {
     /* 请求方法 */

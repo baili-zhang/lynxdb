@@ -1,9 +1,9 @@
-package zbl.moonlight.server.protocol.mdtp;
+package zbl.moonlight.core.protocol.mdtp;
 
-import zbl.moonlight.server.protocol.annotations.Schema;
-import zbl.moonlight.server.protocol.annotations.SchemaEntry;
-import zbl.moonlight.server.protocol.common.MSerializable;
-import zbl.moonlight.server.protocol.common.Parsable;
+import zbl.moonlight.core.protocol.annotations.Schema;
+import zbl.moonlight.core.protocol.annotations.SchemaEntry;
+import zbl.moonlight.core.protocol.common.MSerializable;
+import zbl.moonlight.core.protocol.common.Parsable;
 
 @Schema({
         /* 请求方法 */
