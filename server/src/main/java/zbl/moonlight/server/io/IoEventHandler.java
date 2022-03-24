@@ -42,7 +42,7 @@ public class IoEventHandler implements Runnable {
 
     private static final Logger logger = LogManager.getLogger("IoEventHandler");
 
-    private void doAccept(SelectionKey selectionKey)
+    private void doAccept()
             throws IOException {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         SocketChannel channel = serverSocketChannel.accept();
@@ -56,7 +56,7 @@ public class IoEventHandler implements Runnable {
     }
 
     /* 每次读一个请求 */
-    private void doRead(SelectionKey selectionKey) throws IOException {
+    private void doRead() throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         ReadableMdtpRequest mdtpRequest = (ReadableMdtpRequest) selectionKey.attachment();
 
@@ -115,7 +115,7 @@ public class IoEventHandler implements Runnable {
     }
 
     /* 每次写多个请求 */
-    private void doWrite(SelectionKey selectionKey) throws IOException {
+    private void doWrite() throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
         while (!remainingResponseEvents.isEmpty()) {
@@ -139,11 +139,11 @@ public class IoEventHandler implements Runnable {
     public void run() {
         try {
             if (selectionKey.isAcceptable()) {
-                doAccept(selectionKey);
+                doAccept();
             } else if (selectionKey.isReadable()) {
-                doRead(selectionKey);
+                doRead();
             } else if (selectionKey.isWritable()) {
-                doWrite(selectionKey);
+                doWrite();
             }
         } catch (Exception e) {
             e.printStackTrace();

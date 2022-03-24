@@ -3,6 +3,7 @@ package zbl.moonlight.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.cluster.HeartBeator;
+import zbl.moonlight.server.cluster.RaftRpcClient;
 import zbl.moonlight.server.cluster.RaftRpcServer;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.context.ServerContext;
@@ -57,7 +58,9 @@ public class MoonlightServer {
         /* 如果运行模式为集群，则启动心跳线程和RaftRpc服务器 */
         if(ServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
-            Executor.start(new HeartBeator());
+            RaftRpcClient client = new RaftRpcClient();
+            Executor.start(client);
+            Executor.start(new HeartBeator(client));
             Executor.start(new RaftRpcServer());
         }
     }

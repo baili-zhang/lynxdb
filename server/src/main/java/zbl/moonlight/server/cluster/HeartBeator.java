@@ -1,45 +1,37 @@
 package zbl.moonlight.server.cluster;
 
-import lombok.Getter;
-import zbl.moonlight.server.config.ClusterConfiguration;
-import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.server.executor.Executable;
+import zbl.moonlight.server.executor.Executor;
 
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
-/* 心跳线程：用于发送心跳和Leader选举 */
+/* 心跳线程，用于定时向RaftRpcClient执行器offer心跳 */
 public class HeartBeator implements Executable {
     /* 默认心跳的时间间隔，为300毫秒 */
     private static final long DEFAULT_TIME_INTERVAL = 300;
-    /* 初始的Leader节点 */
-    public static final RaftNode DEFAULT_LEADER = null;
-
-    /* 当前节点的角色 */
-    private RaftRole raftRole = RaftRole.Follower;
-    /* Leader节点 */
-    private RaftNode leader = DEFAULT_LEADER;
     /* 延迟队列定时任务 */
     private final DelayQueue<HeartBeatTask> queue = new DelayQueue<>();
     /* 心跳的时间间隔 */
     private final long interval;
+    /* 直接向RaftRpcClient执行器offer心跳，不经过事件总线 */
+    private final Executor raftRpcClient;
 
-    public HeartBeator () {
-        this(DEFAULT_TIME_INTERVAL);
+    public HeartBeator (Executor raftRpcClient) {
+        this(raftRpcClient, DEFAULT_TIME_INTERVAL);
     }
 
-    public HeartBeator(long interval) {
+    public HeartBeator(Executor raftRpcClient, long interval) {
+        this.raftRpcClient = raftRpcClient;
         this.interval = interval;
-        Configuration config = ServerContext.getInstance().getConfiguration();
-        ClusterConfiguration clusterConfig = config.getClusterConfiguration();
     }
 
     @Override
     public void offer(Event event) {
-
+        throw new RuntimeException("HeartBeator executor can not offer event.");
     }
 
     private static class HeartBeatTask implements Delayed {
@@ -72,15 +64,14 @@ public class HeartBeator implements Executable {
         queue.offer(new HeartBeatTask(interval));
         while (true) {
             try {
-                HeartBeatTask task = queue.take();
-                if(leader == DEFAULT_LEADER) {
-                    // 发起选举
-                    // new RequestVoteRpc(new RaftNode("localhost", 7830))
-                    //         .call(new RequestVoteRpc.Arguments(0,0,0,0));
-                }
+                queue.take();
+                raftRpcClient.offer(new Event(EventType.HEARTBEAT, null));
                 queue.offer(new HeartBeatTask(interval));
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                /* 清空延迟队列，相当于清空定时器 */
+                queue.clear();
+                /* 队列尾部加入一个心跳事件，相当于重新设置定时器 */
+                queue.offer(new HeartBeatTask(interval));
             }
         }
     }
