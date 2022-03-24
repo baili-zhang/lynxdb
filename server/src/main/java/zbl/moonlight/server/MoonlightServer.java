@@ -40,19 +40,19 @@ public class MoonlightServer {
         /* 初始化二进制日志文件 */
         BinaryLog binaryLog = new BinaryLog();
         /* 读取二进制日志文件 */
-        List<MdtpRequest> requests = binaryLog.read();
+        // List<MdtpRequest> requests = binaryLog.read();
         /* 注册二进制文件线程到事件总线 */
         eventBus.register(EventType.BINARY_LOG_REQUEST, Executor.start(new BinaryLogWriter(binaryLog)));
 
         /* 注册存储引擎到事件总线 */
-        eventBus.register(EventType.CLIENT_REQUEST, Executor.start(new SimpleCache()));
+        eventBus.register(EventType.ENGINE_REQUEST, Executor.start(new SimpleCache()));
 
         /* 启动事件总线线程 */
         eventBusThread.start();
         /* 恢复数据 */
-        for(MdtpRequest request : requests) {
-            eventBus.offer(new Event(EventType.CLIENT_REQUEST, request));
-        }
+        // for(MdtpRequest request : requests) {
+        //     eventBus.offer(new Event(EventType.CLIENT_REQUEST, request));
+        // }
 
         /* 如果运行模式为集群，则启动心跳线程和RaftRpc服务器 */
         if(ServerContext.getInstance().getConfiguration()

@@ -24,7 +24,7 @@ public class ReadStrategy implements Readable {
     /* 数据总长度 */
     private int length = NO_LENGTH;
     /* 数据总长度ByteBuffer */
-    private ByteBuffer lengthByteBuffer = ByteBuffer.allocate(4);
+    private final ByteBuffer lengthByteBuffer = ByteBuffer.allocate(4);
     /* 继承Protocol的接口 */
     private final Class<? extends Parsable> schemaClass;
     /* 是否已完成parse */
@@ -35,7 +35,7 @@ public class ReadStrategy implements Readable {
         this.schemaClass = schemaClass;
     }
 
-    public byte[] mapGet(String name) {
+    protected byte[] mapGet(String name) {
         if(!parseFlag) {
             throw new RuntimeException("Can NOT get before parsing.");
         }
@@ -56,6 +56,10 @@ public class ReadStrategy implements Readable {
 
         if(!ByteBufferUtils.isOver(data)) {
             socketChannel.read(data);
+            /* 如果读取完成，则解析读取的数据 */
+            if(isReadCompleted()) {
+                parse();
+            }
         }
     }
 
@@ -64,14 +68,12 @@ public class ReadStrategy implements Readable {
         return ByteBufferUtils.isOver(data);
     }
 
-    public void parse() {
-        if(!isReadCompleted()) {
-            throw new RuntimeException("Can NOT parse before reading completed.");
-        }
+    private void parse() {
         Parsable schema = (Parsable) Proxy.newProxyInstance(ReadStrategy.class.getClassLoader(),
                 new Class[]{MdtpRequestSchema.class}, new ParseHandler());
         /* 把ByteBuffer类型的数据解析成map */
         map = schema.parse(data);
+        parseFlag = true;
     }
 
     /* 解析操作的JDK动态代理InvocationHandler */

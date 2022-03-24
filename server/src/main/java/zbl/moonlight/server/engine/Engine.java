@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
+import zbl.moonlight.server.protocol.mdtp.*;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ public abstract class Engine extends Executor {
     }
 
     private MdtpResponseEvent exec(MdtpRequestEvent event) {
-        byte mdtpMethod = event.request().getMethod();
+        byte mdtpMethod = event.request().method();
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
 
@@ -63,7 +63,12 @@ public abstract class Engine extends Executor {
         return errorResponse(event);
     }
 
-    private MdtpResponseEvent errorResponse(MdtpRequestEvent mdtpRequest) {
-        return null;
+    /* 处理请求错误的情况 */
+    private MdtpResponseEvent errorResponse(MdtpRequestEvent event) {
+        ReadableMdtpRequest request = event.request();
+        WritableMdtpResponse response = new WritableMdtpResponse();
+        response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.ERROR});
+        response.put(MdtpSchema.SERIAL, request.serial());
+        return new MdtpResponseEvent(event.selectionKey(), response);
     }
 }

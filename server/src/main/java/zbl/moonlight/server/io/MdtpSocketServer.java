@@ -5,20 +5,18 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.Event;
-import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.MdtpResponseEvent;
 import zbl.moonlight.server.exception.UnSupportedEventTypeException;
 import zbl.moonlight.server.executor.Executor;
-import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.util.Iterator;
-import java.util.Set;
+import java.nio.channels.SocketChannel;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MdtpSocketServer extends Executor {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
@@ -26,23 +24,34 @@ public class MdtpSocketServer extends Executor {
     private final Configuration config;
     private final ThreadPoolExecutor executor;
 
-    /* 事件总线的对象和线程 */
-    private final EventBus eventBus;
-
-    private final ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts
+    /* 响应的队列 */
+    private final ConcurrentHashMap<SelectionKey, RemainingResponseEvents> responses
             = new ConcurrentHashMap<>();
+
+    /* IO线程的线程工厂 */
+    private static class IoThreadFactory implements ThreadFactory {
+        private static final AtomicInteger poolNumber = new AtomicInteger(1);
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix;
+
+        IoThreadFactory() {
+            namePrefix = "IO-" + poolNumber.getAndIncrement() + "-Thread-";
+        }
+
+        public Thread newThread(Runnable r) {
+            return new Thread(r, namePrefix + threadNumber.getAndIncrement());
+        }
+    }
 
     public MdtpSocketServer() {
         ServerContext context = ServerContext.getInstance();
-        eventBus = context.getEventBus();
         config = context.getConfiguration();
         this.executor = new ThreadPoolExecutor(config.getIoThreadCorePoolSize(),
                 config.getIoThreadMaxPoolSize(),
                 config.getIoThreadKeepAliveTime(),
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(config.getIoThreadBlockingQueueSize()),
-                /* TODO:需要自定义线程工厂 */
-                Executors.defaultThreadFactory(),
+                new IoThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
@@ -65,34 +74,40 @@ public class MdtpSocketServer extends Executor {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         try {
-                            executor.execute(new ServerIoEventHandler(selectionKey, latch, selector,
-                                    eventBus, contexts, config));
+                            RemainingResponseEvents events = responses.get(selectionKey);
+                            if(events == null) {
+                                events = new RemainingResponseEvents(selectionKey);
+                                responses.put(selectionKey, events);
+                            }
+                            executor.execute(new ServerIoEventHandler(selectionKey, latch, selector, events));
                         } catch (RejectedExecutionException e) {
-                            e.printStackTrace();
                             latch.countDown();
+                            e.printStackTrace();
                         }
                         iterator.remove();
                     }
                 }
 
-                /* 从队列中拿出响应事件放入responsesMap中 */
+                /* 从responseQueues中移除已经取消的selectionKey */
+                for (SelectionKey key : responses.keySet()) {
+                    if(!key.isValid()) {
+                        responses.remove(key);
+                    }
+                }
+
+                /* 从队列中拿出响应事件 */
                 while (true) {
                     Event event = poll();
                     if(event == null) {
                         break;
                     }
 
-                    Object value = event.value();
-                    if(!(value instanceof MdtpResponseEvent)) {
+                    if(!(event.value() instanceof MdtpResponseEvent responseEvent)) {
                         throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
                     }
-                    MdtpResponseEvent response = (MdtpResponseEvent) value;
-                    SelectionKey selectionKey = response.selectionKey();
-                    SocketChannelContext context = contexts.get(selectionKey);
-                    if(context == null) {
-                        throw new IOException("SocketChannelContext object not found.");
-                    }
-                    context.offer(response);
+                    SelectionKey selectionKey = responseEvent.selectionKey();
+                    RemainingResponseEvents events = responses.get(selectionKey);
+                    events.offer(responseEvent.response());
                 }
 
                 latch.await();

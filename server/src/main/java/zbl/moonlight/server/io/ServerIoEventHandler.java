@@ -3,6 +3,7 @@ package zbl.moonlight.server.io;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
 import zbl.moonlight.server.protocol.mdtp.ReadableMdtpRequest;
@@ -13,14 +14,29 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
-public record ServerIoEventHandler(SelectionKey selectionKey,
-                                   CountDownLatch latch, Selector selector,
-                                   EventBus eventBus,
-                                   ConcurrentHashMap<SelectionKey, SocketChannelContext> contexts,
-                                   Configuration config) implements Runnable {
+public class ServerIoEventHandler implements Runnable {
+
+    private final SelectionKey selectionKey;
+    private final CountDownLatch latch;
+    private final Selector selector;
+    private final RemainingResponseEvents remainingResponseEvents;
+    private final EventBus eventBus;
+    private final Configuration config;
+
+    public ServerIoEventHandler(SelectionKey selectionKey,
+                                CountDownLatch latch, Selector selector,
+                                RemainingResponseEvents remainingResponseEvents) {
+        this.selectionKey = selectionKey;
+        this.latch = latch;
+        this.selector = selector;
+        this.remainingResponseEvents = remainingResponseEvents;
+        ServerContext context = ServerContext.getInstance();
+        this.eventBus = context.getEventBus();
+        this.config = context.getConfiguration();
+    }
+
     private static final Logger logger = LogManager.getLogger("ServerIoEventHandler");
 
     private void doAccept(SelectionKey selectionKey)
@@ -42,28 +58,22 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
 
         if (mdtpRequest.isReadCompleted()) {
             /* 如果为EXIT命令，直接将selectionKey取消掉 */
-            if (mdtpRequest.getMethod() == MdtpMethod.EXIT) {
-                contexts.remove(selectionKey);
+            if (mdtpRequest.method() == MdtpMethod.EXIT) {
                 selectionKey.cancel();
                 logger.info("A client exit connection.");
                 return;
             }
-            SocketChannelContext context = contexts.get(selectionKey);
-            /* 如果没有上下文对象，则添加上下文对象 */
-            if (context == null) {
-                /* TODO:Socket连接关闭时需要删除对应的上下文，不然会导致内存溢出 */
-                context = new SocketChannelContext(selectionKey);
-                contexts.put(selectionKey, context);
-            }
-            context.increaseRequestCount();
+
+            /* 未写回完成的请求数量加一 */
+            remainingResponseEvents.increaseRequestCount();
 
             /* 如果是同步写二进制日志 */
             Event logEvent = new Event(EventType.BINARY_LOG_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
-            Event event = new Event(EventType.CLIENT_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
+            Event event = new Event(EventType.ENGINE_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
             if (config.getSyncWriteLog()) {
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
-                if (mdtpRequest.getMethod() == MdtpMethod.SET
-                        || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
+                if (mdtpRequest.method() == MdtpMethod.SET
+                        || mdtpRequest.method() == MdtpMethod.DELETE) {
                     eventBus.offer(logEvent);
                 }
                 /* 否则向事件总线发送客户端请求 */
@@ -76,8 +86,8 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
                 /* 向事件总线发送客户端请求 */
                 eventBus.offer(event);
                 /* 如果是SET或者DELETE请求，则向事件总线发送二进制日志请求 */
-                if (mdtpRequest.getMethod() == MdtpMethod.SET
-                        || mdtpRequest.getMethod() == MdtpMethod.DELETE) {
+                if (mdtpRequest.method() == MdtpMethod.SET
+                        || mdtpRequest.method() == MdtpMethod.DELETE) {
                     eventBus.offer(logEvent);
                 }
             }
@@ -87,22 +97,20 @@ public record ServerIoEventHandler(SelectionKey selectionKey,
     /* 每次写多个请求 */
     private void doWrite(SelectionKey selectionKey) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        SocketChannelContext context = contexts.get(selectionKey);
 
-        while (!context.isEmpty()) {
-            MdtpResponseEvent event = context.peek();
-            WritableMdtpResponse mdtpResponse = event.response();
-            if (mdtpResponse != null) {
-                mdtpResponse.write(socketChannel);
-                if (mdtpResponse.isWriteCompleted()) {
-                    /* 从队列首部移除已经写完的响应 */
-                    context.poll();
-                    context.decreaseRequestCount();
-                } else {
-                    /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
-                    break;
-                }
+        while (!remainingResponseEvents.isEmpty()) {
+            WritableMdtpResponse response = remainingResponseEvents.peek();
+            response.write(socketChannel);
+
+            if (response.isWriteCompleted()) {
+                /* 从队列首部移除已经写完的响应 */
+                remainingResponseEvents.poll();
+                remainingResponseEvents.decreaseRequestCount();
+            } else {
+                /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
+                break;
             }
+
         }
     }
 

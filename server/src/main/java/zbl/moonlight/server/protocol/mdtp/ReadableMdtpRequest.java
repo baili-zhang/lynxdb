@@ -7,7 +7,19 @@ public class ReadableMdtpRequest extends ReadStrategy {
         super(MdtpRequestSchema.class);
     }
 
-    public byte getMethod() {
-        return mapGet("method")[0];
+    public byte method() {
+        return mapGet(MdtpSchema.METHOD)[0];
+    }
+
+    public byte[] serial() {
+        return mapGet(MdtpSchema.SERIAL);
+    }
+
+    public byte[] key() {
+        return mapGet(MdtpSchema.KEY);
+    }
+
+    public byte[] value() {
+        return mapGet(MdtpSchema.VALUE);
     }
 }

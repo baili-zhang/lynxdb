@@ -1,7 +1,7 @@
 package zbl.moonlight.test;
 
 import zbl.moonlight.client.common.Command;
-import zbl.moonlight.server.protocol.mdtp.ResponseCode;
+import zbl.moonlight.server.protocol.mdtp.ResponseStatus;
 
 import java.io.*;
 import java.net.Socket;
@@ -49,7 +49,7 @@ public class ClientThread implements Runnable {
             for (int j = 0; j < offset; j++) {
                 try {
                     byte code = Client.get(inputStream);
-                    if(code == ResponseCode.SUCCESS_NO_VALUE) {
+                    if(code == ResponseStatus.SUCCESS_NO_VALUE) {
                         successCount.incrementAndGet();
                     }
                 } catch (IOException e) {

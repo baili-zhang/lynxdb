@@ -4,7 +4,7 @@ import zbl.moonlight.client.common.Command;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
 import zbl.moonlight.server.protocol.mdtp.MdtpMethod;
-import zbl.moonlight.server.protocol.mdtp.ResponseCode;
+import zbl.moonlight.server.protocol.mdtp.ResponseStatus;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -107,7 +107,7 @@ public class MoonlightClient {
             inputStream.read(responseValueBytes);
             responseValue += new String(responseValueBytes);
         }
-        System.out.println("[" + ResponseCode.getCodeName(responseCode) + "]["
+        System.out.println("[" + ResponseStatus.getCodeName(responseCode) + "]["
                 + valueLength + "][" + identifier + "][" + responseValue + "]");
     }
 }

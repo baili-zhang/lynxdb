@@ -3,7 +3,7 @@ package zbl.moonlight.server.protocol.mdtp;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ResponseCode {
+public class ResponseStatus {
     public static final byte VALUE_EXIST = (byte) 0x01;
     public static final byte VALUE_NOT_EXIST = (byte) 0x02;
     public static final byte SUCCESS_NO_VALUE = (byte) 0x03;
@@ -13,10 +13,10 @@ public class ResponseCode {
 
     static {
         try {
-            Field[] fields = ResponseCode.class.getDeclaredFields();
+            Field[] fields = ResponseStatus.class.getDeclaredFields();
             for (Field field : fields) {
                 if(field.getType().equals(byte.class)) {
-                    codeMap.put(field.getByte(ResponseCode.class), field.getName());
+                    codeMap.put(field.getByte(ResponseStatus.class), field.getName());
                 }
             }
         } catch (IllegalAccessException e) {
