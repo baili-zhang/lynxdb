@@ -8,6 +8,7 @@ import zbl.moonlight.server.executor.Executor;
 import zbl.moonlight.server.protocol.mdtp.*;
 
 import java.lang.reflect.Method;
+import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 
 public abstract class Engine extends Executor {
@@ -55,6 +56,7 @@ public abstract class Engine extends Executor {
         }
 
         try {
+            logger.debug("Invoke method [{}].", method.getName());
             return (MdtpResponseEvent) method.invoke(this, event);
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,12 +65,27 @@ public abstract class Engine extends Executor {
         return errorResponse(event);
     }
 
+    protected MdtpResponseEvent buildMdtpResponseEvent(SelectionKey key,
+                                                       byte status,
+                                                       byte[] serial,
+                                                       byte[] value) {
+        WritableMdtpResponse response = new WritableMdtpResponse();
+        response.put(MdtpSchema.STATUS, new byte[]{status});
+        response.put(MdtpSchema.SERIAL, serial);
+        response.put(MdtpSchema.VALUE, value == null ? new byte[0] : value);
+        response.serialize();
+        return new MdtpResponseEvent(key, response);
+    }
+
+    protected MdtpResponseEvent buildMdtpResponseEvent(SelectionKey key,
+                                                       byte status,
+                                                       byte[] serial) {
+        return buildMdtpResponseEvent(key, status, serial, null);
+    }
+
     /* 处理请求错误的情况 */
     private MdtpResponseEvent errorResponse(MdtpRequestEvent event) {
         ReadableMdtpRequest request = event.request();
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.ERROR});
-        response.put(MdtpSchema.SERIAL, request.serial());
-        return new MdtpResponseEvent(event.selectionKey(), response);
+        return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.ERROR, request.serial());
     }
 }

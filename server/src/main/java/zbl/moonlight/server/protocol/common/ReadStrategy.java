@@ -93,11 +93,16 @@ public class ReadStrategy implements Readable {
             for (int i = 0; i < schemaEntries.length; i++) {
                 SchemaEntry entry = schemaEntries[i];
                 if(entry.hasLengthSize()) {
-                    /* TODO:禁止魔数（"4"） */
-                    if(entry.lengthSize() != 4) {
-                        throw new IllegalStateException("lengthSize can only be 4, as type \"int\"");
+                    /* TODO:禁止魔数（"4", "1"） */
+                    int length;
+                    if(entry.lengthSize() == 4) {
+                        length = data.getInt();
+                    } else if (entry.lengthSize() == 1) {
+                        /* byte转int，防止最高位为1时，变成负数 */
+                        length = data.get() & 0xff;
+                    } else {
+                        throw new IllegalStateException("lengthSize can only be 4 (for int) or 1 (byte), as type \"int\"");
                     }
-                    int length = data.getInt();
                     byte[] value = new byte[length];
                     data.get(value);
                     map.put(entry.name(), value);

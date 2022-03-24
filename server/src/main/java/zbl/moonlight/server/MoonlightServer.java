@@ -36,13 +36,13 @@ public class MoonlightServer {
         /* 注册MDTP服务到事件总线 */
         eventBus.register(EventType.CLIENT_RESPONSE, Executor.start(new MdtpSocketServer()));
 
-        logger.info("Reading data from binary log file...");
+        // logger.info("Reading data from binary log file...");
         /* 初始化二进制日志文件 */
-        BinaryLog binaryLog = new BinaryLog();
+        // BinaryLog binaryLog = new BinaryLog();
         /* 读取二进制日志文件 */
         // List<MdtpRequest> requests = binaryLog.read();
         /* 注册二进制文件线程到事件总线 */
-        eventBus.register(EventType.BINARY_LOG_REQUEST, Executor.start(new BinaryLogWriter(binaryLog)));
+        // eventBus.register(EventType.BINARY_LOG_REQUEST, Executor.start(new BinaryLogWriter(binaryLog)));
 
         /* 注册存储引擎到事件总线 */
         eventBus.register(EventType.ENGINE_REQUEST, Executor.start(new SimpleCache()));

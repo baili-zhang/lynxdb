@@ -74,40 +74,50 @@ public class MoonlightClient {
     }
 
     private void printError(String type, String message) {
-        System.out.println("[Invalid " + type + "][" + message + "]");
+        System.out.println("Error: (Invalid " + type + ") " + message + "");
     }
 
+    /* TODO:取消硬编码，使用MdtpRequestSchema和MdtpResponseSchema重构 */
     private void send(Command command) throws IOException, InvalidCommandException {
+        int length = 10;
         byte method = command.getCode();
         byte[] key = command.getKey().toString().getBytes(StandardCharsets.UTF_8);
         byte[] value = command.getValue().toString().getBytes(StandardCharsets.UTF_8);
         if(key.length > 255) {
             throw new InvalidCommandException("key is too long.");
         }
+        length += key.length;
+        length += value.length;
         byte keyLength = (byte) key.length;
         int valueLength = value.length;
 
-        /* 写方法和键的长度 */
-        outputStream.write(new byte[]{method, keyLength});
-        /* 写值的长度 */
-        outputStream.writeInt(valueLength);
+        outputStream.writeInt(length);
+        outputStream.write(method);
         outputStream.writeInt(++ identifier);
+        outputStream.write(keyLength);
         outputStream.write(key);
+        outputStream.writeInt(valueLength);
         outputStream.write(value);
         outputStream.flush();
     }
 
     private void showResponse() throws IOException {
+        inputStream.readInt();
         byte responseCode = inputStream.readByte();
-        int valueLength = inputStream.readInt();
         int identifier = inputStream.readInt();
+        int valueLength = inputStream.readInt();
         String responseValue = "";
         if(valueLength != 0) {
             byte[] responseValueBytes = new byte[valueLength];
             inputStream.read(responseValueBytes);
             responseValue += new String(responseValueBytes);
         }
-        System.out.println("[" + ResponseStatus.getCodeName(responseCode) + "]["
-                + valueLength + "][" + identifier + "][" + responseValue + "]");
+
+        System.out.println("------------------ RESPONSE ------------------");
+        System.out.println("Status: " + ResponseStatus.getCodeName(responseCode)
+                + "\nSerial number: " + identifier
+                + "\nValue length: " + valueLength
+                + "\nValue: " + responseValue);
+        System.out.println("---------------- RESPONSE END ----------------");
     }
 }

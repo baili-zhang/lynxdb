@@ -10,6 +10,7 @@ import zbl.moonlight.server.exception.UnSupportedEventTypeException;
 import zbl.moonlight.server.executor.Executor;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -30,12 +31,11 @@ public class MdtpSocketServer extends Executor {
 
     /* IO线程的线程工厂 */
     private static class IoThreadFactory implements ThreadFactory {
-        private static final AtomicInteger poolNumber = new AtomicInteger(1);
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         private final String namePrefix;
 
         IoThreadFactory() {
-            namePrefix = "IO-" + poolNumber.getAndIncrement() + "-Thread-";
+            namePrefix = "IO" + "-Thread-";
         }
 
         public Thread newThread(Runnable r) {
@@ -79,7 +79,7 @@ public class MdtpSocketServer extends Executor {
                                 events = new RemainingResponseEvents(selectionKey);
                                 responses.put(selectionKey, events);
                             }
-                            executor.execute(new ServerIoEventHandler(selectionKey, latch, selector, events));
+                            executor.execute(new IoEventHandler(selectionKey, latch, selector, events));
                         } catch (RejectedExecutionException e) {
                             latch.countDown();
                             e.printStackTrace();
@@ -88,10 +88,12 @@ public class MdtpSocketServer extends Executor {
                     }
                 }
 
-                /* 从responseQueues中移除已经取消的selectionKey */
+                /* 从responses中移除已经取消的selectionKey */
                 for (SelectionKey key : responses.keySet()) {
                     if(!key.isValid()) {
+                        SocketAddress address = ((SocketChannel)key.channel()).getRemoteAddress();
                         responses.remove(key);
+                        logger.info("Delete response queue from [responses](map) of {}.", address);
                     }
                 }
 

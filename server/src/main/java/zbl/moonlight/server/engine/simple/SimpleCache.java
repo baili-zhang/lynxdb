@@ -7,10 +7,8 @@ import zbl.moonlight.server.eventbus.MdtpResponseEvent;
 import zbl.moonlight.server.protocol.mdtp.*;
 import zbl.moonlight.server.engine.Engine;
 
-import java.nio.charset.StandardCharsets;
-
 public class SimpleCache extends Engine {
-    private final SimpleLRU<byte[], byte[]> cache;
+    private final SimpleLRU<String, byte[]> cache;
 
     public SimpleCache() {
         cache = new SimpleLRU<>(ServerContext.getInstance().getConfiguration().getCacheCapacity());
@@ -19,45 +17,28 @@ public class SimpleCache extends Engine {
     @MethodMapping(MdtpMethod.GET)
     public MdtpResponseEvent doGet(MdtpRequestEvent event) {
         ReadableMdtpRequest request = event.request();
-        byte[] value = cache.get(request.key());
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        if(value == null) {
-            response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.VALUE_NOT_EXIST});
-        } else {
-            response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.VALUE_EXIST});
-            response.put(MdtpSchema.VALUE, value);
-        }
-        response.put(MdtpSchema.SERIAL, request.serial());
-        return new MdtpResponseEvent(event.selectionKey(), response);
+        byte[] value = cache.get(new String(request.key()));
+        byte status = value == null ? ResponseStatus.VALUE_NOT_EXIST : ResponseStatus.VALUE_EXIST;
+        return buildMdtpResponseEvent(event.selectionKey(), status, request.serial(), value);
     }
 
     @MethodMapping(MdtpMethod.SET)
     public MdtpResponseEvent doSet(MdtpRequestEvent event) {
         ReadableMdtpRequest request = event.request();
-        cache.put(request.key(), request.value());
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.SUCCESS_NO_VALUE});
-        response.put(MdtpSchema.SERIAL, request.serial());
-        return new MdtpResponseEvent(event.selectionKey(), response);
+        cache.put(new String(request.key()), request.value());
+        return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.SUCCESS_NO_VALUE, request.serial());
     }
 
     @MethodMapping(MdtpMethod.DELETE)
     public MdtpResponseEvent doDelete(MdtpRequestEvent event) {
         ReadableMdtpRequest request = event.request();
-        cache.remove(request.key());
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.SUCCESS_NO_VALUE});
-        response.put(MdtpSchema.SERIAL, request.serial());
-        return new MdtpResponseEvent(event.selectionKey(), response);
+        cache.remove(new String(request.key()));
+        return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.SUCCESS_NO_VALUE, request.serial());
     }
 
     @MethodMapping(MdtpMethod.PING)
     public MdtpResponseEvent doPing(MdtpRequestEvent event) {
         ReadableMdtpRequest request = event.request();
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        response.put(MdtpSchema.STATUS, new byte[]{ResponseStatus.VALUE_EXIST});
-        response.put(MdtpSchema.VALUE, "PONG".getBytes(StandardCharsets.UTF_8));
-        response.put(MdtpSchema.SERIAL, request.serial());
-        return new MdtpResponseEvent(event.selectionKey(), response);
+        return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.PONG, request.serial());
     }
 }

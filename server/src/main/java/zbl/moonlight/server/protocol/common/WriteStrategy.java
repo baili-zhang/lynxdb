@@ -19,6 +19,8 @@ public class WriteStrategy implements Writable {
     private ByteBuffer data;
     /* 继承MSerializable的接口 */
     private final Class<? extends MSerializable> schemaClass;
+    /* 是否已经序列化 */
+    private boolean flag = false;
 
     public WriteStrategy(Class<? extends MSerializable> schemaClass) {
         this.schemaClass = schemaClass;
@@ -26,6 +28,9 @@ public class WriteStrategy implements Writable {
 
     @Override
     public void write(SocketChannel socketChannel) throws IOException {
+        if(!flag) {
+            throw new RuntimeException("Can NOT write to socket channel before serializing.");
+        }
         if(!ByteBufferUtils.isOver(lengthByteBuffer)) {
             socketChannel.write(lengthByteBuffer);
             if(!ByteBufferUtils.isOver(lengthByteBuffer)) {
@@ -33,7 +38,7 @@ public class WriteStrategy implements Writable {
             }
         }
         if(!ByteBufferUtils.isOver(data)) {
-            socketChannel.read(data);
+            socketChannel.write(data);
         }
     }
 
@@ -50,9 +55,14 @@ public class WriteStrategy implements Writable {
     public void serialize() {
         MSerializable schema = (MSerializable) Proxy.newProxyInstance(WriteStrategy.class.getClassLoader(),
                 new Class[]{MdtpRequestSchema.class}, new SerializeHandler());
-        /* 把ByteBuffer类型的数据解析成map */
+        /* 将map序列化成ByteBuffer */
         data = schema.serialize(map);
+        data.rewind();
+        /* 设置总长度 */
         lengthByteBuffer.putInt(data.limit());
+        lengthByteBuffer.rewind();
+        /* 将序列化标志位设置为true */
+        flag = true;
     }
 
     /* 序列化操作的JDK动态代理InvocationHandler */

@@ -1,5 +1,6 @@
 package zbl.moonlight.server.io;
 
+import zbl.moonlight.server.protocol.mdtp.ReadableMdtpRequest;
 import zbl.moonlight.server.protocol.mdtp.WritableMdtpResponse;
 
 import java.nio.channels.SelectionKey;
@@ -39,7 +40,7 @@ public class RemainingResponseEvents {
             /* 设置新的request对象 */
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
-        selectionKey.attach(new WritableMdtpResponse());
+        selectionKey.attach(new ReadableMdtpRequest());
         requestCount.getAndIncrement();
     }
 
