@@ -2,7 +2,9 @@ package zbl.moonlight.server.eventbus;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.executor.Executable;
+import zbl.moonlight.core.executor.Event;
+import zbl.moonlight.core.executor.EventType;
+import zbl.moonlight.core.executor.Executable;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;

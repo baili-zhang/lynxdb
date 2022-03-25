@@ -1,4 +1,4 @@
-package zbl.moonlight.server.eventbus;
+package zbl.moonlight.core.executor;
 
 public enum EventType {
     CLIENT_RESPONSE,

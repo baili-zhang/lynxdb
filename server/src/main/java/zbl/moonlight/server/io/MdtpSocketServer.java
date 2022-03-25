@@ -4,10 +4,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
-import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.server.eventbus.MdtpResponseEvent;
 import zbl.moonlight.server.exception.UnSupportedEventTypeException;
-import zbl.moonlight.server.executor.Executor;
+import zbl.moonlight.core.executor.Executor;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -26,7 +26,7 @@ public class MdtpSocketServer extends Executor {
     private final ThreadPoolExecutor executor;
 
     /* 响应的队列 */
-    private final ConcurrentHashMap<SelectionKey, RemainingResponseEvents> responses
+    private final ConcurrentHashMap<SelectionKey, RemainingWritableEvents> responses
             = new ConcurrentHashMap<>();
 
     /* IO线程的线程工厂 */
@@ -70,13 +70,14 @@ public class MdtpSocketServer extends Executor {
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
                 CountDownLatch latch = new CountDownLatch(selectionKeys.size());
 
+                /* 对Set进行迭代，不同步处理的话，可能会出问题 */
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         try {
-                            RemainingResponseEvents events = responses.get(selectionKey);
+                            RemainingWritableEvents events = responses.get(selectionKey);
                             if(events == null) {
-                                events = new RemainingResponseEvents(selectionKey);
+                                events = new RemainingWritableEvents(selectionKey);
                                 responses.put(selectionKey, events);
                             }
                             executor.execute(new IoEventHandler(selectionKey, latch, selector, events));
@@ -108,7 +109,7 @@ public class MdtpSocketServer extends Executor {
                         throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
                     }
                     SelectionKey selectionKey = responseEvent.selectionKey();
-                    RemainingResponseEvents events = responses.get(selectionKey);
+                    RemainingWritableEvents events = responses.get(selectionKey);
                     events.offer(responseEvent.response());
                 }
 

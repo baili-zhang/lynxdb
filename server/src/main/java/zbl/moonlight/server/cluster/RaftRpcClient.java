@@ -1,12 +1,15 @@
 package zbl.moonlight.server.cluster;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.executor.Executor;
+import zbl.moonlight.core.executor.Executor;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
@@ -20,10 +23,12 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RaftRpcClient extends Executor {
+    private final static Logger logger = LogManager.getLogger("RaftRpcClient");
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
     private final static int DEFAULT_CAPACITY = 200;
 
     private final List<RaftNode> nodes = new ArrayList<>();
+    private final List<RaftNode> failureNodes = new ArrayList<>();
     private final ThreadPoolExecutor executor;
 
     public RaftRpcClient() {
@@ -51,32 +56,53 @@ public class RaftRpcClient extends Executor {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
+    private void connect(List<RaftNode> nodes, Selector selector) throws IOException {
+        for(RaftNode node : nodes) {
+            SocketAddress address = new InetSocketAddress(node.host(), node.port());
+            SocketChannel socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(false);
+            socketChannel.connect(address);
+
+            synchronized (selector) {
+                socketChannel.register(selector, SelectionKey.OP_CONNECT, node);
+            }
+        }
+    }
+
     @Override
     public void run() {
         try {
             Selector selector = Selector.open();
-            for(RaftNode node : nodes) {
-                SocketAddress address = new InetSocketAddress(node.host(), node.port());
-                SocketChannel socketChannel = SocketChannel.open(address);
-                socketChannel.register(selector, SelectionKey.OP_CONNECT);
-            }
+            connect(nodes, selector);
 
-            /* Leader选举的投票请求（包括心跳） */
-            while (true) {
-                selector.select();
-                Set<SelectionKey> keys = selector.selectedKeys();
-                CountDownLatch latch = new CountDownLatch(keys.size());
+            /* 对Set进行迭代，不同步处理的话，可能会出问题 */
+            synchronized (selector) {
+                /* Leader选举的投票请求（包括心跳） */
+                while (true) {
+                    /* 每隔一定时间检查一次 */
+                    selector.select(3000);
+                    Set<SelectionKey> keys = selector.selectedKeys();
+                    CountDownLatch latch = new CountDownLatch(keys.size());
 
-                for(SelectionKey key : keys) {
-                    try {
-                        executor.execute(new RpcClientIoEventHandler(latch, selector, key));
-                    } catch (RejectedExecutionException e) {
-                        latch.countDown();
-                        e.printStackTrace();
+                    for(SelectionKey key : keys) {
+                        try {
+                            executor.execute(new RpcClientIoEventHandler(latch, selector, key));
+                        } catch (RejectedExecutionException e) {
+                            latch.countDown();
+                            e.printStackTrace();
+                        }
                     }
+
+                    /* 处理连接失败的节点，进行重连 */
+                    if(!failureNodes.isEmpty()) {
+                        connect(failureNodes, selector);
+                        failureNodes.clear();
+                    }
+
+                    latch.await();
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -87,7 +113,7 @@ public class RaftRpcClient extends Executor {
         private final String namePrefix;
 
         RpcClientThreadFactory() {
-            namePrefix = "Rpc-Client" + "-Thread-";
+            namePrefix = "Rpc-Client-IO-";
         }
 
         public Thread newThread(Runnable r) {
@@ -96,7 +122,7 @@ public class RaftRpcClient extends Executor {
     }
 
     /* 处理IO事件的线程 */
-    private static class RpcClientIoEventHandler implements Runnable {
+    private class RpcClientIoEventHandler implements Runnable {
         private final CountDownLatch latch;
         private final Selector selector;
         private final SelectionKey selectionKey;
@@ -128,8 +154,22 @@ public class RaftRpcClient extends Executor {
             }
         }
 
-        private void doConnect() {
+        private void doConnect() throws IOException {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+
+            try {
+                while (!socketChannel.finishConnect()) {
+                }
+            } catch (ConnectException e) {
+                RaftNode node = (RaftNode) selectionKey.attachment();
+                failureNodes.add(node);
+                logger.info("Raft Node {} connected failure.", node);
+                return;
+            }
+
+            synchronized (selector) {
+                socketChannel.register(selector, SelectionKey.OP_WRITE);
+            }
         }
 
         private void doRead() {

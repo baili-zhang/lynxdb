@@ -2,23 +2,18 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.cluster.HeartBeator;
 import zbl.moonlight.server.cluster.RaftRpcClient;
 import zbl.moonlight.server.cluster.RaftRpcServer;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
-import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.server.eventbus.EventType;
+import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.server.exception.IncompleteBinaryLogException;
-import zbl.moonlight.server.executor.Executor;
+import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.io.MdtpSocketServer;
-import zbl.moonlight.server.log.BinaryLog;
-import zbl.moonlight.server.log.BinaryLogWriter;
 
 import java.io.IOException;
-import java.util.List;
 
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
@@ -55,12 +50,10 @@ public class MoonlightServer {
         //     eventBus.offer(new Event(EventType.CLIENT_REQUEST, request));
         // }
 
-        /* 如果运行模式为集群，则启动心跳线程和RaftRpc服务器 */
+        /* 如果运行模式为集群，则启动RaftRpc客户端和RaftRpc服务器 */
         if(ServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
-            RaftRpcClient client = new RaftRpcClient();
-            Executor.start(client);
-            Executor.start(new HeartBeator(client));
+            Executor.start(new RaftRpcClient());
             Executor.start(new RaftRpcServer());
         }
     }

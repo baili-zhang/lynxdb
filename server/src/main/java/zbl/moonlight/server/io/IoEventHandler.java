@@ -2,12 +2,14 @@ package zbl.moonlight.server.io;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.protocol.common.WriteStrategy;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.protocol.mdtp.MdtpMethod;
 import zbl.moonlight.core.protocol.mdtp.ReadableMdtpRequest;
-import zbl.moonlight.core.protocol.mdtp.WritableMdtpResponse;
+import zbl.moonlight.core.executor.Event;
+import zbl.moonlight.core.executor.EventType;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -23,18 +25,18 @@ public class IoEventHandler implements Runnable {
     private final SelectionKey selectionKey;
     private final CountDownLatch latch;
     private final Selector selector;
-    private final RemainingResponseEvents remainingResponseEvents;
+    private final RemainingWritableEvents remainingWritableEvents;
     private final EventBus eventBus;
     /* 事件分发的时候要查询是否是异步写日志 */
     private final Configuration config;
 
     public IoEventHandler(SelectionKey selectionKey,
                           CountDownLatch latch, Selector selector,
-                          RemainingResponseEvents remainingResponseEvents) {
+                          RemainingWritableEvents remainingWritableEvents) {
         this.selectionKey = selectionKey;
         this.latch = latch;
         this.selector = selector;
-        this.remainingResponseEvents = remainingResponseEvents;
+        this.remainingWritableEvents = remainingWritableEvents;
         ServerContext context = ServerContext.getInstance();
         this.eventBus = context.getEventBus();
         this.config = context.getConfiguration();
@@ -84,7 +86,7 @@ public class IoEventHandler implements Runnable {
             logger.debug("Received MDTP request is: {}", mdtpRequest);
 
             /* 未写回完成的请求数量加一 */
-            remainingResponseEvents.increaseRequestCount();
+            remainingWritableEvents.increaseRequestCount();
 
             /* 如果是同步写二进制日志 */
 //            Event logEvent = new Event(EventType.BINARY_LOG_REQUEST, new MdtpRequestEvent(selectionKey, mdtpRequest));
@@ -118,14 +120,14 @@ public class IoEventHandler implements Runnable {
     private void doWrite() throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
-        while (!remainingResponseEvents.isEmpty()) {
-            WritableMdtpResponse response = remainingResponseEvents.peek();
+        while (!remainingWritableEvents.isEmpty()) {
+            WriteStrategy response = remainingWritableEvents.peek();
             response.write(socketChannel);
 
             if (response.isWriteCompleted()) {
                 /* 从队列首部移除已经写完的响应 */
-                remainingResponseEvents.poll();
-                remainingResponseEvents.decreaseRequestCount();
+                remainingWritableEvents.poll();
+                remainingWritableEvents.decreaseRequestCount();
                 logger.debug("Send MDTP response: {} to client.", response);
             } else {
                 /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
