@@ -24,11 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RaftRpcClient extends Executor {
     private final static Logger logger = LogManager.getLogger("RaftRpcClient");
+
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
     private final static int DEFAULT_CAPACITY = 200;
+    /** 默认心跳的时间间隔（毫秒数） */
+    private final static int DEFAULT_INTERVAL_MILLIS = 3000;
 
-    private final List<RaftNode> nodes = new ArrayList<>();
-    private final List<RaftNode> failureNodes = new ArrayList<>();
+    private final ConcurrentLinkedQueue<RaftNode> nodes = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<RaftNode> failureNodes = new ConcurrentLinkedQueue<>();
     private final ThreadPoolExecutor executor;
 
     public RaftRpcClient() {
@@ -56,8 +59,9 @@ public class RaftRpcClient extends Executor {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
-    private void connect(List<RaftNode> nodes, Selector selector) throws IOException {
-        for(RaftNode node : nodes) {
+    private void connect(ConcurrentLinkedQueue<RaftNode> nodes, Selector selector) throws IOException {
+        while(!nodes.isEmpty()) {
+            RaftNode node = nodes.poll();
             SocketAddress address = new InetSocketAddress(node.host(), node.port());
             SocketChannel socketChannel = SocketChannel.open();
             socketChannel.configureBlocking(false);
@@ -75,12 +79,15 @@ public class RaftRpcClient extends Executor {
             Selector selector = Selector.open();
             connect(nodes, selector);
 
+            /* 获取当前的毫秒数 */
+            long lastTimeMillis = System.currentTimeMillis();
+
             /* 对Set进行迭代，不同步处理的话，可能会出问题 */
             synchronized (selector) {
                 /* Leader选举的投票请求（包括心跳） */
                 while (true) {
                     /* 每隔一定时间检查一次 */
-                    selector.select(3000);
+                    selector.select(DEFAULT_INTERVAL_MILLIS);
                     Set<SelectionKey> keys = selector.selectedKeys();
                     CountDownLatch latch = new CountDownLatch(keys.size());
 
@@ -93,13 +100,15 @@ public class RaftRpcClient extends Executor {
                         }
                     }
 
+                    latch.await();
+
                     /* 处理连接失败的节点，进行重连 */
-                    if(!failureNodes.isEmpty()) {
+                    long newTimeMillis = System.currentTimeMillis();
+                    if(!failureNodes.isEmpty() && newTimeMillis > lastTimeMillis + DEFAULT_INTERVAL_MILLIS) {
                         connect(failureNodes, selector);
                         failureNodes.clear();
+                        lastTimeMillis = newTimeMillis;
                     }
-
-                    latch.await();
                 }
             }
         } catch (IOException | InterruptedException e) {
@@ -162,7 +171,7 @@ public class RaftRpcClient extends Executor {
                 }
             } catch (ConnectException e) {
                 RaftNode node = (RaftNode) selectionKey.attachment();
-                failureNodes.add(node);
+                failureNodes.offer(node);
                 logger.info("Raft Node {} connected failure.", node);
                 return;
             }

@@ -6,5 +6,6 @@ public enum EventType {
     CLUSTER_REQUEST,
     ENGINE_REQUEST,
     HEARTBEAT,
+    RAFT_REQUEST,
     NONE
 }
