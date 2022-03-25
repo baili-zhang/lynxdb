@@ -18,13 +18,11 @@ import java.io.IOException;
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
-    public static void main(String[] args) throws IOException,
-            IncompleteBinaryLogException {
+    public static void main(String[] args) {
         new MoonlightServer().run();
     }
 
-    public void run() throws IOException,
-            IncompleteBinaryLogException {
+    public void run() {
 
         EventBus eventBus = ServerContext.getInstance().getEventBus();
         Thread eventBusThread = new Thread(eventBus, eventBus.getClass().getSimpleName());

@@ -1,4 +1,4 @@
-package zbl.moonlight.server.exception;
+package zbl.moonlight.core.exception;
 
 public class UnSupportedEventTypeException extends Exception {
     public UnSupportedEventTypeException(String message) {

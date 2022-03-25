@@ -8,6 +8,8 @@ import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.protocol.common.ReadableEvent;
+import zbl.moonlight.core.protocol.common.WritableEvent;
 
 import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
@@ -39,8 +41,8 @@ public abstract class Engine extends Executor {
              if(event == null) {
                  continue;
              }
-             MdtpRequestEvent request = (MdtpRequestEvent) event.value();
-             MdtpResponseEvent response = exec(request);
+             ReadableEvent request = (ReadableEvent) event.value();
+             WritableEvent response = exec(request);
              /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
              if(request.selectionKey() != null) {
                  eventBus.offer(new Event(EventType.CLIENT_RESPONSE, response));
@@ -48,8 +50,8 @@ public abstract class Engine extends Executor {
         }
     }
 
-    private MdtpResponseEvent exec(MdtpRequestEvent event) {
-        byte mdtpMethod = event.request().method();
+    private WritableEvent exec(ReadableEvent event) {
+        byte mdtpMethod = ((ReadableMdtpRequest) event.readable()).method();
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
 
@@ -59,7 +61,7 @@ public abstract class Engine extends Executor {
 
         try {
             logger.debug("Invoke method [{}].", method.getName());
-            return (MdtpResponseEvent) method.invoke(this, event);
+            return (WritableEvent) method.invoke(this, event);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,27 +69,27 @@ public abstract class Engine extends Executor {
         return errorResponse(event);
     }
 
-    protected MdtpResponseEvent buildMdtpResponseEvent(SelectionKey key,
-                                                       byte status,
-                                                       byte[] serial,
-                                                       byte[] value) {
+    protected WritableEvent buildMdtpResponseEvent(SelectionKey key,
+                                                   byte status,
+                                                   byte[] serial,
+                                                   byte[] value) {
         WritableMdtpResponse response = new WritableMdtpResponse();
         response.put(MdtpSchema.STATUS, new byte[]{status});
         response.put(MdtpSchema.SERIAL, serial);
         response.put(MdtpSchema.VALUE, value == null ? new byte[0] : value);
         response.serialize();
-        return new MdtpResponseEvent(key, response);
+        return new WritableEvent(key, response);
     }
 
-    protected MdtpResponseEvent buildMdtpResponseEvent(SelectionKey key,
-                                                       byte status,
-                                                       byte[] serial) {
+    protected WritableEvent buildMdtpResponseEvent(SelectionKey key,
+                                                   byte status,
+                                                   byte[] serial) {
         return buildMdtpResponseEvent(key, status, serial, null);
     }
 
     /* 处理请求错误的情况 */
-    private MdtpResponseEvent errorResponse(MdtpRequestEvent event) {
-        ReadableMdtpRequest request = event.request();
+    private WritableEvent errorResponse(ReadableEvent event) {
+        ReadableMdtpRequest request = (ReadableMdtpRequest) event.readable();
         return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.ERROR, request.serial());
     }
 }
