@@ -1,50 +1,49 @@
 package zbl.moonlight.core.socket;
 
-import zbl.moonlight.core.protocol.common.Readable;
-import zbl.moonlight.core.protocol.common.Writable;
+import zbl.moonlight.core.protocol.Parsable;
+import zbl.moonlight.core.protocol.nio.NioReader;
+import zbl.moonlight.core.protocol.nio.NioWriter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* 保存还未写回客户端的响应，用一个队列来维护 */
-public class RemainingWritableEvents {
+public class RemainingNioWriter {
     private final SelectionKey selectionKey;
-    private final Class<? extends Readable> readableClass;
+    private final Class<? extends Parsable> schemaClass;
     /* 响应队列 */
-    private final ConcurrentLinkedQueue<Writable> responses = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<NioWriter> responses = new ConcurrentLinkedQueue<>();
     /* 正在处理的请求数量 */
     private final AtomicInteger requestCount = new AtomicInteger(0);
 
-    public RemainingWritableEvents(SelectionKey selectionKey, Class<? extends Readable> readableClass) {
+    public RemainingNioWriter(SelectionKey selectionKey, Class<? extends Parsable> schemaClass) {
         this.selectionKey = selectionKey;
-        this.readableClass = readableClass;
+        this.schemaClass = schemaClass;
     }
 
     public void poll() {
         responses.poll();
     }
 
-    public Writable peek() {
+    public NioWriter peek() {
         return responses.peek();
     }
 
-    public void offer(Writable response) {
-        responses.offer(response);
+    public void offer(NioWriter writer) {
+        responses.offer(writer);
     }
 
     public boolean isEmpty() {
         return responses.isEmpty();
     }
 
-    public void increaseRequestCount() throws NoSuchMethodException, InvocationTargetException,
-            InstantiationException, IllegalAccessException {
+    public void increaseRequestCount() {
         if(requestCount.get() == 0) {
             /* 设置新的request对象 */
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
-        selectionKey.attach(readableClass.getDeclaredConstructor().newInstance());
+        selectionKey.attach(new NioReader(schemaClass, selectionKey));
         requestCount.getAndIncrement();
     }
 

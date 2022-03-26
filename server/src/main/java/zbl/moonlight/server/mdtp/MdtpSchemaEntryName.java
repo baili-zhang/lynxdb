@@ -1,6 +1,6 @@
-package zbl.moonlight.core.protocol.mdtp;
+package zbl.moonlight.server.mdtp;
 
-public interface MdtpSchema {
+public interface MdtpSchemaEntryName {
     /* 请求方法 */
     String METHOD = "method";
     /* 请求序列号 */

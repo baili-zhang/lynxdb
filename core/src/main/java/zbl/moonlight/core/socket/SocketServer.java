@@ -4,11 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.exception.UnSupportedEventTypeException;
 import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.EventType;
-import zbl.moonlight.core.executor.Executable;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.protocol.common.Readable;
-import zbl.moonlight.core.protocol.common.WritableEvent;
+import zbl.moonlight.core.protocol.nio.NioWriter;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -23,16 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SocketServer extends Executor {
     private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
 
-    private final int port;
-    private final int backlog;
-    private final Executable downstream;
-    private final EventType eventType;
+    private final SocketServerConfig config;
     private final ThreadPoolExecutor executor;
-    private final String ioThreadNamePrefix;
-    private final Class<? extends Readable> readableClass;
 
     /* 响应的队列 */
-    private final ConcurrentHashMap<SelectionKey, RemainingWritableEvents> responses
+    private final ConcurrentHashMap<SelectionKey, RemainingNioWriter> responses
             = new ConcurrentHashMap<>();
 
     /* IO线程的线程工厂 */
@@ -40,29 +32,19 @@ public class SocketServer extends Executor {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
 
         public Thread newThread(Runnable r) {
-            return new Thread(r, ioThreadNamePrefix + threadNumber.getAndIncrement());
+            return new Thread(r, config.ioThreadNamePrefix() + threadNumber.getAndIncrement());
         }
     }
 
-    public SocketServer(int coreSize, int maxPoolSize, int keepAliveTime,
-                        int blockingQueueSize, int port, int backlog,
-                        Executable downstream,
-                        EventType eventType,
-                        String ioThreadNamePrefix,
-                        Class<? extends Readable> readableClass) {
-        this.executor = new ThreadPoolExecutor(coreSize,
-                maxPoolSize,
-                keepAliveTime,
+    public SocketServer(SocketServerConfig socketServerConfig) {
+        this.config = socketServerConfig;
+        this.executor = new ThreadPoolExecutor(config.coreSize(),
+                config.maxPoolSize(),
+                config.keepAliveTime(),
                 TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(blockingQueueSize),
+                new ArrayBlockingQueue<>(config.blockingQueueSize()),
                 new IoThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
-        this.port = port;
-        this.backlog = backlog;
-        this.downstream = downstream;
-        this.eventType = eventType;
-        this.ioThreadNamePrefix = ioThreadNamePrefix;
-        this.readableClass = readableClass;
     }
 
     @Override
@@ -71,7 +53,7 @@ public class SocketServer extends Executor {
             Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.bind(new InetSocketAddress(port), backlog);
+            serverSocketChannel.bind(new InetSocketAddress(config.port()), config.backlog());
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             while (true) {
@@ -85,13 +67,13 @@ public class SocketServer extends Executor {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         try {
-                            RemainingWritableEvents events = responses.get(selectionKey);
+                            RemainingNioWriter events = responses.get(selectionKey);
                             if(events == null) {
-                                events = new RemainingWritableEvents(selectionKey, readableClass);
+                                events = new RemainingNioWriter(selectionKey, config.schemaClass());
                                 responses.put(selectionKey, events);
                             }
                             executor.execute(new IoEventHandler(selectionKey, latch, selector,
-                                    events, downstream, eventType, readableClass));
+                                    events, config.downstream(), config.eventType(), config.schemaClass()));
                         } catch (RejectedExecutionException e) {
                             latch.countDown();
                             e.printStackTrace();
@@ -116,12 +98,12 @@ public class SocketServer extends Executor {
                         break;
                     }
 
-                    if(!(event.value() instanceof WritableEvent writableEvent)) {
+                    if(!(event.value() instanceof NioWriter writer)) {
                         throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
                     }
-                    SelectionKey selectionKey = writableEvent.selectionKey();
-                    RemainingWritableEvents events = responses.get(selectionKey);
-                    events.offer(writableEvent.writable());
+                    SelectionKey selectionKey = writer.getSelectionKey();
+                    RemainingNioWriter events = responses.get(selectionKey);
+                    events.offer(writer);
                 }
 
                 latch.await();

@@ -2,14 +2,15 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.protocol.MSerializable;
 import zbl.moonlight.core.protocol.mdtp.*;
+import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.protocol.common.ReadableEvent;
-import zbl.moonlight.core.protocol.common.WritableEvent;
+import zbl.moonlight.server.mdtp.*;
 
 import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
@@ -20,6 +21,7 @@ public abstract class Engine extends Executor {
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
     private final EventBus eventBus;
+    protected final Class<? extends MSerializable> schemaClass = MdtpResponseSchema.class;
 
     protected Engine() {
         eventBus = ServerContext.getInstance().getEventBus();
@@ -41,8 +43,8 @@ public abstract class Engine extends Executor {
              if(event == null) {
                  continue;
              }
-             ReadableEvent request = (ReadableEvent) event.value();
-             WritableEvent response = exec(request);
+             NioReadableEvent request = (NioReadableEvent) event.value();
+             NioWritableEvent response = exec(request);
              /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
              if(request.selectionKey() != null) {
                  eventBus.offer(new Event(EventType.CLIENT_RESPONSE, response));
@@ -50,8 +52,8 @@ public abstract class Engine extends Executor {
         }
     }
 
-    private WritableEvent exec(ReadableEvent event) {
-        byte mdtpMethod = ((ReadableMdtpRequest) event.readable()).method();
+    private NioWritableEvent exec(NioReadableEvent event) {
+        byte mdtpMethod = (new MdtpRequest(event.reader())).method();
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
 
@@ -61,7 +63,7 @@ public abstract class Engine extends Executor {
 
         try {
             logger.debug("Invoke method [{}].", method.getName());
-            return (WritableEvent) method.invoke(this, event);
+            return (NioWritableEvent) method.invoke(this, event);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -69,27 +71,27 @@ public abstract class Engine extends Executor {
         return errorResponse(event);
     }
 
-    protected WritableEvent buildMdtpResponseEvent(SelectionKey key,
-                                                   byte status,
-                                                   byte[] serial,
-                                                   byte[] value) {
-        WritableMdtpResponse response = new WritableMdtpResponse();
-        response.put(MdtpSchema.STATUS, new byte[]{status});
-        response.put(MdtpSchema.SERIAL, serial);
-        response.put(MdtpSchema.VALUE, value == null ? new byte[0] : value);
+    protected NioWritableEvent buildMdtpResponseEvent(SelectionKey key,
+                                                      byte status,
+                                                      byte[] serial,
+                                                      byte[] value) {
+        WritableMdtpResponse response = new NioWriter(schemaClass);
+        response.mapPut(MdtpSchemaEntryName.STATUS, new byte[]{status});
+        response.mapPut(MdtpSchemaEntryName.SERIAL, serial);
+        response.mapPut(MdtpSchemaEntryName.VALUE, value == null ? new byte[0] : value);
         response.serialize();
-        return new WritableEvent(key, response);
+        return new NioWritableEvent(key, response);
     }
 
-    protected WritableEvent buildMdtpResponseEvent(SelectionKey key,
-                                                   byte status,
-                                                   byte[] serial) {
+    protected NioWritableEvent buildMdtpResponseEvent(SelectionKey key,
+                                                      byte status,
+                                                      byte[] serial) {
         return buildMdtpResponseEvent(key, status, serial, null);
     }
 
     /* 处理请求错误的情况 */
-    private WritableEvent errorResponse(ReadableEvent event) {
-        ReadableMdtpRequest request = (ReadableMdtpRequest) event.readable();
+    private NioWritableEvent errorResponse(NioReadableEvent event) {
+        MdtpRequest request = (MdtpRequest) event.value();
         return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.ERROR, request.serial());
     }
 }

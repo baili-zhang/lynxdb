@@ -1,4 +1,4 @@
-package zbl.moonlight.core.protocol.mdtp;
+package zbl.moonlight.server.mdtp;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +12,9 @@ public class MdtpMethod {
     public static final byte SYSTEM = (byte) 0x06;
     public static final byte CLUSTER = (byte) 0x07;
     public static final byte PING = (byte) 0x08;
+    /* Raft相关 */
+    public static final byte APPEND_ENTRIES = (byte) 0x09;
+    public static final byte REQUEST_VOTE = (byte) 0x0a;
 
     public static final ConcurrentHashMap<Byte, String> methodNamesMap = new ConcurrentHashMap<>();
 

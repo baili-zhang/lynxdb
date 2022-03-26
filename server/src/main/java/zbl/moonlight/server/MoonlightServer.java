@@ -3,17 +3,13 @@ package zbl.moonlight.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.cluster.RaftRpcClient;
-import zbl.moonlight.server.cluster.RaftRpcServer;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.EventType;
-import zbl.moonlight.server.exception.IncompleteBinaryLogException;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.server.io.MdtpSocketServer;
-
-import java.io.IOException;
+import zbl.moonlight.server.mdtp.server.MdtpSocketServer;
 
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
@@ -52,7 +48,6 @@ public class MoonlightServer {
         if(ServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
             Executor.start(new RaftRpcClient());
-            Executor.start(new RaftRpcServer());
         }
     }
 }

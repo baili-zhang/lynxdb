@@ -3,8 +3,8 @@ package zbl.moonlight.client;
 import zbl.moonlight.client.common.Command;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
-import zbl.moonlight.core.protocol.mdtp.MdtpMethod;
-import zbl.moonlight.core.protocol.mdtp.ResponseStatus;
+import zbl.moonlight.server.mdtp.MdtpMethod;
+import zbl.moonlight.server.mdtp.ResponseStatus;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

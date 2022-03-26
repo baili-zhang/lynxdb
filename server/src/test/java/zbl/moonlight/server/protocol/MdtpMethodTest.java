@@ -1,7 +1,7 @@
 package zbl.moonlight.server.protocol;
 
 import org.junit.jupiter.api.Test;
-import zbl.moonlight.core.protocol.mdtp.MdtpMethod;
+import zbl.moonlight.server.mdtp.MdtpMethod;
 
 class MdtpMethodTest {
     @Test

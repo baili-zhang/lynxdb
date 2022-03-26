@@ -1,6 +1,8 @@
-package zbl.moonlight.core.protocol.common;
+package zbl.moonlight.core.protocol.nio;
 
-import zbl.moonlight.core.protocol.mdtp.MdtpRequestSchema;
+import lombok.Getter;
+import zbl.moonlight.core.protocol.MSerializable;
+import zbl.moonlight.core.protocol.Writable;
 import zbl.moonlight.core.protocol.annotations.Schema;
 import zbl.moonlight.core.protocol.annotations.SchemaEntry;
 import zbl.moonlight.core.utils.ByteBufferUtils;
@@ -10,24 +12,30 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 
-public class WriteStrategy implements Writable {
+public class NioWriter implements Writable {
     protected HashMap<String, byte[]> map = new HashMap<>();
     private final ByteBuffer lengthByteBuffer = ByteBuffer.allocate(4);
     private ByteBuffer data;
-    /* 继承MSerializable的接口 */
+    /** 继承MSerializable的接口 */
     private final Class<? extends MSerializable> schemaClass;
-    /* 是否已经序列化 */
+
+    @Getter
+    private final SelectionKey selectionKey;
+    /** 是否已经序列化 */
     private boolean flag = false;
 
-    public WriteStrategy(Class<? extends MSerializable> schemaClass) {
+    public NioWriter(Class<? extends MSerializable> schemaClass, SelectionKey selectionKey) {
         this.schemaClass = schemaClass;
+        this.selectionKey = selectionKey;
     }
 
     @Override
-    public void write(SocketChannel socketChannel) throws IOException {
+    public void write() throws IOException {
+        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         if(!flag) {
             throw new RuntimeException("Can NOT write to socket channel before serializing.");
         }
@@ -48,13 +56,13 @@ public class WriteStrategy implements Writable {
     }
 
     /* 往map中添加数据 */
-    public void put(String name, byte[] data) {
+    public void mapPut(String name, byte[] data) {
         map.put(name, data);
     }
 
     public void serialize() {
-        MSerializable schema = (MSerializable) Proxy.newProxyInstance(WriteStrategy.class.getClassLoader(),
-                new Class[]{MdtpRequestSchema.class}, new SerializeHandler());
+        MSerializable schema = (MSerializable) Proxy.newProxyInstance(NioWriter.class.getClassLoader(),
+                new Class[]{schemaClass}, new SerializeHandler());
         /* 将map序列化成ByteBuffer */
         data = schema.serialize(map);
         data.rewind();

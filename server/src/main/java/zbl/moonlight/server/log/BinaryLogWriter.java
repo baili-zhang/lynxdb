@@ -5,7 +5,6 @@ import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.context.ServerContext;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.server.eventbus.EventBus;
-import zbl.moonlight.core.protocol.common.ReadableEvent;
 import zbl.moonlight.core.executor.Executor;
 
 public class BinaryLogWriter extends Executor {
@@ -32,7 +31,7 @@ public class BinaryLogWriter extends Executor {
             if(event == null) {
                 continue;
             }
-            ReadableEvent request = (ReadableEvent) event.value();
+            NioReadableEvent request = (NioReadableEvent) event.value();
             // binaryLog.write(request);
 
             if(config.getSyncWriteLog()) {
