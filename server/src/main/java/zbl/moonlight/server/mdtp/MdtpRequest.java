@@ -4,35 +4,41 @@ import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 
 public class MdtpRequest {
-    private NioReader reader;
+    private final byte method;
+    private final byte[] serial;
+    private final byte[] key;
+    private final byte[] value;
 
     public MdtpRequest(NioReader reader) {
-        this.reader = reader;
+        method = reader.mapGet(MdtpSchemaEntryName.METHOD)[0];
+        serial = reader.mapGet(MdtpSchemaEntryName.SERIAL);
+        key = reader.mapGet(MdtpSchemaEntryName.KEY);
+        value = reader.mapGet(MdtpSchemaEntryName.VALUE);
     }
 
     public byte method() {
-        return reader.mapGet(MdtpSchemaEntryName.METHOD)[0];
+        return method;
     }
 
     public byte[] serial() {
-        return reader.mapGet(MdtpSchemaEntryName.SERIAL);
+        return serial;
     }
 
     public byte[] key() {
-        return reader.mapGet(MdtpSchemaEntryName.KEY);
+        return key;
     }
 
     public byte[] value() {
-        return reader.mapGet(MdtpSchemaEntryName.VALUE);
+        return value;
     }
 
     @Override
     public String toString() {
         return "{" +
-                MdtpSchemaEntryName.METHOD + ": " + MdtpMethod.getMethodName(method()) + ", " +
-                MdtpSchemaEntryName.SERIAL + ": " + ByteArrayUtils.toInt(serial()) + ", " +
-                MdtpSchemaEntryName.KEY + ": " + new String(key()) + ", " +
-                MdtpSchemaEntryName.VALUE + ": " + new String(value())
+                MdtpSchemaEntryName.METHOD + ": " + MdtpMethod.getMethodName(method) + ", " +
+                MdtpSchemaEntryName.SERIAL + ": " + ByteArrayUtils.toInt(serial) + ", " +
+                MdtpSchemaEntryName.KEY + ": " + new String(key) + ", " +
+                MdtpSchemaEntryName.VALUE + ": " + new String(value)
                 + "}";
     }
 }

@@ -1,5 +1,6 @@
 package zbl.moonlight.core.protocol.nio;
 
+import lombok.Getter;
 import zbl.moonlight.core.protocol.Parsable;
 import zbl.moonlight.core.protocol.Readable;
 import zbl.moonlight.core.protocol.annotations.Schema;
@@ -33,6 +34,7 @@ public class NioReader implements Readable {
     private boolean keepConnection = true;
     /** 继承Protocol的接口 */
     private final Class<? extends Parsable> schemaClass;
+    @Getter
     private final SelectionKey selectionKey;
     /** 是否已完成parse */
     private boolean parseFlag = false;

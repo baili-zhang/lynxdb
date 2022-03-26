@@ -2,8 +2,7 @@ package zbl.moonlight.server.log;
 
 import lombok.Getter;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.context.ServerContext;
-import zbl.moonlight.core.executor.Event;
+import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.Executor;
 
@@ -18,7 +17,7 @@ public class BinaryLogWriter extends Executor {
     private final EventBus eventBus;
 
     public BinaryLogWriter(BinaryLog binaryLog) {
-        ServerContext context = ServerContext.getInstance();
+        MdtpServerContext context = MdtpServerContext.getInstance();
         eventBus = context.getEventBus();
         config = context.getConfiguration();
         this.binaryLog = binaryLog;
@@ -26,18 +25,5 @@ public class BinaryLogWriter extends Executor {
 
     @Override
     public void run() {
-        while (true) {
-            Event event = pollSleep();
-            if(event == null) {
-                continue;
-            }
-            NioReadableEvent request = (NioReadableEvent) event.value();
-            // binaryLog.write(request);
-
-            if(config.getSyncWriteLog()) {
-                // event.type(EventType.CLIENT_REQUEST);
-                eventBus.offer(event);
-            }
-        }
     }
 }

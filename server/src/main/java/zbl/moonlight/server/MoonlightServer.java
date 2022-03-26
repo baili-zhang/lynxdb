@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.cluster.RaftRpcClient;
 import zbl.moonlight.server.config.RunningMode;
-import zbl.moonlight.server.context.ServerContext;
+import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.EventType;
@@ -20,7 +20,7 @@ public class MoonlightServer {
 
     public void run() {
 
-        EventBus eventBus = ServerContext.getInstance().getEventBus();
+        EventBus eventBus = MdtpServerContext.getInstance().getEventBus();
         Thread eventBusThread = new Thread(eventBus, eventBus.getClass().getSimpleName());
 
         /* 注册MDTP服务到事件总线 */
@@ -45,7 +45,7 @@ public class MoonlightServer {
         // }
 
         /* 如果运行模式为集群，则启动RaftRpc客户端和RaftRpc服务器 */
-        if(ServerContext.getInstance().getConfiguration()
+        if(MdtpServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
             Executor.start(new RaftRpcClient());
         }

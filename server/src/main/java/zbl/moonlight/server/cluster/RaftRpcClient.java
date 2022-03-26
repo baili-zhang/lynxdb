@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.context.ServerContext;
+import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.Executor;
 
@@ -15,9 +15,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +34,7 @@ public class RaftRpcClient extends Executor {
 
     public RaftRpcClient() {
         /* 解析集群各个节点的地址 */
-        Configuration config = ServerContext.getInstance()
+        Configuration config = MdtpServerContext.getInstance()
                 .getConfiguration();
         String nativeHost = config.getHost();
         int nativePort = config.getPort();
@@ -143,7 +141,7 @@ public class RaftRpcClient extends Executor {
             this.latch = latch;
             this.selector = selector;
             this.selectionKey = selectionKey;
-            this.eventBus = ServerContext.getInstance().getEventBus();
+            this.eventBus = MdtpServerContext.getInstance().getEventBus();
         }
 
         @Override

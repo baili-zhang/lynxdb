@@ -1,4 +1,4 @@
-package zbl.moonlight.server.context;
+package zbl.moonlight.server.mdtp.server;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -9,13 +9,13 @@ import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.exception.ConfigurationException;
 
-public class ServerContext {
+public class MdtpServerContext {
     private static final Logger logger = LogManager.getLogger("ServerContext");
-    private static ServerContext instance;
+    private static MdtpServerContext instance;
 
     static {
         try {
-            instance = new ServerContext();
+            instance = new MdtpServerContext();
         } catch (ConfigurationException e) {
             e.printStackTrace();
         }
@@ -31,7 +31,7 @@ public class ServerContext {
     /* raft协议定义的角色，候选人，跟随者，领导者 */
     private RaftRole raftRole;
 
-    private ServerContext() throws ConfigurationException {
+    private MdtpServerContext() throws ConfigurationException {
         /* 读取服务器的相关配置 */
         configuration = new Configuration();
         logger.info("Read configuration completed.");
@@ -40,7 +40,7 @@ public class ServerContext {
         eventBus = new EventBus();
     }
 
-    public static ServerContext getInstance() {
+    public static MdtpServerContext getInstance() {
         return instance;
     }
 }

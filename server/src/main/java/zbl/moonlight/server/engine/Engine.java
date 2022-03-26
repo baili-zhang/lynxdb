@@ -3,12 +3,11 @@ package zbl.moonlight.server.engine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.protocol.MSerializable;
-import zbl.moonlight.core.protocol.mdtp.*;
+import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
-import zbl.moonlight.server.context.ServerContext;
+import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.*;
 
@@ -24,7 +23,7 @@ public abstract class Engine extends Executor {
     protected final Class<? extends MSerializable> schemaClass = MdtpResponseSchema.class;
 
     protected Engine() {
-        eventBus = ServerContext.getInstance().getEventBus();
+        eventBus = MdtpServerContext.getInstance().getEventBus();
         Method[] methods = this.getClass().getDeclaredMethods();
         for(Method method : methods) {
             MethodMapping methodMapping = method.getAnnotation(MethodMapping.class);
@@ -43,55 +42,51 @@ public abstract class Engine extends Executor {
              if(event == null) {
                  continue;
              }
-             NioReadableEvent request = (NioReadableEvent) event.value();
-             NioWritableEvent response = exec(request);
-             /* selectionKey为null时，event为读取二进制日志文件的客户端请求，不需要写回 */
-             if(request.selectionKey() != null) {
-                 eventBus.offer(new Event(EventType.CLIENT_RESPONSE, response));
-             }
+             NioReader reader = (NioReader) event.value();
+             NioWriter writer = exec(reader);
         }
     }
 
-    private NioWritableEvent exec(NioReadableEvent event) {
-        byte mdtpMethod = (new MdtpRequest(event.reader())).method();
+    private NioWriter exec(NioReader reader) {
+        byte mdtpMethod = (new MdtpRequest(reader)).method();
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
 
         if(method == null || methodName == null) {
-            return errorResponse(event);
+            return errorResponse(reader);
         }
 
         try {
             logger.debug("Invoke method [{}].", method.getName());
-            return (NioWritableEvent) method.invoke(this, event);
+            return (NioWriter) method.invoke(this, reader);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return errorResponse(event);
+        return errorResponse(reader);
     }
 
-    protected NioWritableEvent buildMdtpResponseEvent(SelectionKey key,
+    protected NioWriter buildMdtpResponseEvent(SelectionKey key,
                                                       byte status,
                                                       byte[] serial,
                                                       byte[] value) {
-        WritableMdtpResponse response = new NioWriter(schemaClass);
-        response.mapPut(MdtpSchemaEntryName.STATUS, new byte[]{status});
-        response.mapPut(MdtpSchemaEntryName.SERIAL, serial);
-        response.mapPut(MdtpSchemaEntryName.VALUE, value == null ? new byte[0] : value);
-        response.serialize();
-        return new NioWritableEvent(key, response);
+        NioWriter writer = new NioWriter(schemaClass, key);
+        writer.mapPut(MdtpSchemaEntryName.STATUS, new byte[]{status});
+        writer.mapPut(MdtpSchemaEntryName.SERIAL, serial);
+        writer.mapPut(MdtpSchemaEntryName.VALUE, value == null ? new byte[0] : value);
+        writer.serialize();
+        return writer;
     }
 
-    protected NioWritableEvent buildMdtpResponseEvent(SelectionKey key,
+    protected NioWriter buildMdtpResponseEvent(SelectionKey key,
                                                       byte status,
                                                       byte[] serial) {
         return buildMdtpResponseEvent(key, status, serial, null);
     }
 
     /* 处理请求错误的情况 */
-    private NioWritableEvent errorResponse(NioReadableEvent event) {
-        MdtpRequest request = (MdtpRequest) event.value();
-        return buildMdtpResponseEvent(event.selectionKey(), ResponseStatus.ERROR, request.serial());
+    private NioWriter errorResponse(NioReader reader) {
+        MdtpRequest request = new MdtpRequest(reader);
+        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.ERROR, request.serial());
     }
 }
