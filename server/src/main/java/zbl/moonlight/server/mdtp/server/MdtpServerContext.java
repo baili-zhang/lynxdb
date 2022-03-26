@@ -1,10 +1,9 @@
 package zbl.moonlight.server.mdtp.server;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.cluster.RaftRole;
+import zbl.moonlight.server.cluster.RaftState;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.exception.ConfigurationException;
@@ -25,11 +24,8 @@ public class MdtpServerContext {
     private final EventBus eventBus;
     @Getter
     private final Configuration configuration;
-
     @Getter
-    @Setter
-    /* raft协议定义的角色，候选人，跟随者，领导者 */
-    private RaftRole raftRole;
+    private final RaftState raftState;
 
     private MdtpServerContext() throws ConfigurationException {
         /* 读取服务器的相关配置 */
@@ -38,6 +34,8 @@ public class MdtpServerContext {
 
         /* 初始化事件总线 */
         eventBus = new EventBus();
+        /* 初始化Raft的相关状态 */
+        raftState = new RaftState();
     }
 
     public static MdtpServerContext getInstance() {

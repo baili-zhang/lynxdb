@@ -1,6 +1,13 @@
 package zbl.moonlight.server.cluster;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class RaftState {
+    private volatile RaftRole raftRole = RaftRole.Follower;
+
     /* -------------- 持久化数据 -------------- */
     /* 任期号 */
     private int currentTerm;
@@ -14,6 +21,6 @@ public class RaftState {
     private int lastApplied;
 
     /* ----------- 易失的状态（Leader） -------- */
-    private String[] nextIndex;
-    private String[] matchIndex;
+    private int[] nextIndex;
+    private int[] matchIndex;
 }

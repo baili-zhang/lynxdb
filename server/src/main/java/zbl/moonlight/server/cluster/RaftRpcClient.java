@@ -66,7 +66,8 @@ public class RaftRpcClient extends Executor {
             socketChannel.connect(address);
 
             synchronized (selector) {
-                socketChannel.register(selector, SelectionKey.OP_CONNECT, node);
+                socketChannel.register(selector,
+                        SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE, node);
             }
         }
     }
@@ -76,37 +77,44 @@ public class RaftRpcClient extends Executor {
         try {
             Selector selector = Selector.open();
             connect(nodes, selector);
-
             /* 获取当前的毫秒数 */
             long lastTimeMillis = System.currentTimeMillis();
 
-            /* 对Set进行迭代，不同步处理的话，可能会出问题 */
-            synchronized (selector) {
-                /* Leader选举的投票请求（包括心跳） */
-                while (true) {
-                    /* 每隔一定时间检查一次 */
-                    selector.select(DEFAULT_INTERVAL_MILLIS);
-                    Set<SelectionKey> keys = selector.selectedKeys();
-                    CountDownLatch latch = new CountDownLatch(keys.size());
+            while (true) {
+                /* 每隔一定时间检查一次 */
+                selector.select(DEFAULT_INTERVAL_MILLIS);
+                Set<SelectionKey> keys = selector.selectedKeys();
+                CountDownLatch latch = new CountDownLatch(keys.size());
 
-                    for(SelectionKey key : keys) {
+                /* 对Set进行迭代，不同步处理的话，可能会出问题 */
+                synchronized (selector) {
+                    for (SelectionKey key : keys) {
                         try {
-                            executor.execute(new RpcClientIoEventHandler(latch, selector, key));
+                            executor.execute(new RpcClientIoEventHandler(latch, key));
                         } catch (RejectedExecutionException e) {
                             latch.countDown();
                             e.printStackTrace();
                         }
                     }
+                }
 
-                    latch.await();
+                latch.await();
+
+                long newTimeMillis = System.currentTimeMillis();
+                if(newTimeMillis > lastTimeMillis + DEFAULT_INTERVAL_MILLIS) {
+                    RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+                    if(raftState.getRaftRole() == RaftRole.Candidate) {
+                        System.out.println("发起请求投票" + raftState.getRaftRole());
+                    }
 
                     /* 处理连接失败的节点，进行重连 */
-                    long newTimeMillis = System.currentTimeMillis();
-                    if(!failureNodes.isEmpty() && newTimeMillis > lastTimeMillis + DEFAULT_INTERVAL_MILLIS) {
+                    if(!failureNodes.isEmpty()) {
                         connect(failureNodes, selector);
                         failureNodes.clear();
-                        lastTimeMillis = newTimeMillis;
                     }
+
+                    /* 重新设置lastTimeMillis，相当于重置定时器 */
+                    lastTimeMillis = newTimeMillis;
                 }
             }
         } catch (IOException | InterruptedException e) {
@@ -131,28 +139,30 @@ public class RaftRpcClient extends Executor {
     /* 处理IO事件的线程 */
     private class RpcClientIoEventHandler implements Runnable {
         private final CountDownLatch latch;
-        private final Selector selector;
         private final SelectionKey selectionKey;
         private final EventBus eventBus;
 
         public RpcClientIoEventHandler(CountDownLatch latch,
-                                       Selector selector,
                                        SelectionKey selectionKey) {
             this.latch = latch;
-            this.selector = selector;
             this.selectionKey = selectionKey;
             this.eventBus = MdtpServerContext.getInstance().getEventBus();
         }
 
         @Override
         public void run() {
+            SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
             try {
-                if (selectionKey.isConnectable()) {
-                    doConnect();
-                } else if (selectionKey.isReadable()) {
-                    doRead();
-                } else if (selectionKey.isWritable()) {
-                    doWrite();
+                if(!socketChannel.isConnected()) {
+                    if (selectionKey.isConnectable()) {
+                        doConnect();
+                    }
+                } else {
+                    if (selectionKey.isReadable()) {
+                        doRead();
+                    } else if (selectionKey.isWritable()) {
+                        doWrite();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -163,26 +173,26 @@ public class RaftRpcClient extends Executor {
 
         private void doConnect() throws IOException {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+            RaftNode node = (RaftNode) selectionKey.attachment();
 
             try {
                 while (!socketChannel.finishConnect()) {
                 }
+                logger.info("Has connected to raft node {}.", node);
             } catch (ConnectException e) {
-                RaftNode node = (RaftNode) selectionKey.attachment();
                 failureNodes.offer(node);
-                logger.info("Raft Node {} connected failure.", node);
+                logger.info("Connect to raft node {} failure.", node);
                 return;
             }
-
-            synchronized (selector) {
-                socketChannel.register(selector, SelectionKey.OP_WRITE);
-            }
+            selectionKey.interestOpsAnd(SelectionKey.OP_WRITE);
         }
 
-        private void doRead() {
+        private void doRead() throws InterruptedException {
+            TimeUnit.MILLISECONDS.sleep(3000);
         }
 
-        private void doWrite() {
+        private void doWrite() throws InterruptedException {
+            TimeUnit.MILLISECONDS.sleep(3000);
         }
     }
 }

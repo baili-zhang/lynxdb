@@ -35,7 +35,8 @@ public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
         channel.configureBlocking(false);
 
         synchronized (selector) {
-            channel.register(selector, SelectionKey.OP_READ, new NioReader(schemaClass, selectionKey));
+            SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
+            key.attach(new NioReader(schemaClass, key));
         }
 
         logger.info("Client {} has connected to server.", channel.getRemoteAddress());
