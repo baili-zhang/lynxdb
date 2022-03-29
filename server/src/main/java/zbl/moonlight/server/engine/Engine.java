@@ -2,9 +2,12 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.protocol.MSerializable;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.core.protocol.nio.SocketState;
+import zbl.moonlight.core.socket.SocketSchemaEntryName;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
@@ -44,10 +47,12 @@ public abstract class Engine extends Executor {
              }
              NioReader reader = (NioReader) event.value();
              NioWriter writer = exec(reader);
+             eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));
         }
     }
 
     private NioWriter exec(NioReader reader) {
+        MdtpRequest mdtpRequest = new MdtpRequest(reader);
         byte mdtpMethod = (new MdtpRequest(reader)).method();
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
@@ -57,7 +62,7 @@ public abstract class Engine extends Executor {
         }
 
         try {
-            logger.debug("Invoke method [{}].", method.getName());
+            logger.debug("Received MDTP request is: {}", mdtpRequest);
             return (NioWriter) method.invoke(this, reader);
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,10 +76,10 @@ public abstract class Engine extends Executor {
                                                       byte[] serial,
                                                       byte[] value) {
         NioWriter writer = new NioWriter(schemaClass, key);
+        writer.mapPut(SocketSchemaEntryName.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
         writer.mapPut(MdtpSchemaEntryName.STATUS, new byte[]{status});
         writer.mapPut(MdtpSchemaEntryName.SERIAL, serial);
         writer.mapPut(MdtpSchemaEntryName.VALUE, value == null ? new byte[0] : value);
-        writer.serialize();
         return writer;
     }
 

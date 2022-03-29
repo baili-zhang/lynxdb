@@ -2,7 +2,7 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.cluster.RaftRpcClient;
+import zbl.moonlight.server.raft.RaftRpcClient;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;

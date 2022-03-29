@@ -5,13 +5,12 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executable;
-import zbl.moonlight.server.cluster.RaftRole;
-import zbl.moonlight.server.cluster.RaftState;
+import zbl.moonlight.server.raft.RaftRole;
+import zbl.moonlight.server.raft.RaftState;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 public class EventBus implements Executable {
     private static final Logger logger = LogManager.getLogger("EventBus");
@@ -63,8 +62,9 @@ public class EventBus implements Executable {
             /* 如果在超过选取领导人时间之前没有收到来自当前领导人的AppendEntries RPC */
             /* 或者没有收到候选人的投票请求，则自己转换状态为候选人                  */
             long currentTimeMillis = System.currentTimeMillis();
-            if(raftEventCount == 0 && currentTimeMillis > lastTimeMillis + DEFAULT_HEARTBEAT_INTERVAL) {
-                RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+            RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+            if(raftEventCount == 0 &&  raftState.getRaftRole() != RaftRole.Leader
+                    && currentTimeMillis > lastTimeMillis + DEFAULT_HEARTBEAT_INTERVAL) {
                 raftState.setRaftRole(RaftRole.Candidate);
                 logger.info("Set raft role to [RaftRole.Candidate], ready for leader election.");
                 lastTimeMillis = currentTimeMillis;

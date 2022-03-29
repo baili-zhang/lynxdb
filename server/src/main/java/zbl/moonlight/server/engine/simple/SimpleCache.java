@@ -43,4 +43,10 @@ public class SimpleCache extends Engine {
         MdtpRequest request = new MdtpRequest(reader);
         return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.PONG, request.serial());
     }
+
+    @MethodMapping(MdtpMethod.REQUEST_VOTE)
+    public NioWriter doRequestVote(NioReader reader) {
+        MdtpRequest request = new MdtpRequest(reader);
+        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.PONG, request.serial());
+    }
 }

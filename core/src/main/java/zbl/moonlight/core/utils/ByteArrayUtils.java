@@ -9,4 +9,10 @@ public class ByteArrayUtils {
         }
         return ByteBuffer.wrap(data).getInt();
     }
+
+    public static byte[] fromInt(int i) {
+        ByteBuffer buffer = ByteBuffer.allocate(4);
+        buffer.putInt(i);
+        return buffer.array();
+    }
 }

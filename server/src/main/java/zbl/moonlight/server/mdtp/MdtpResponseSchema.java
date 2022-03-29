@@ -1,17 +1,17 @@
 package zbl.moonlight.server.mdtp;
 
-import zbl.moonlight.core.protocol.annotations.Schema;
-import zbl.moonlight.core.protocol.annotations.SchemaEntry;
-import zbl.moonlight.core.protocol.MSerializable;
-import zbl.moonlight.core.protocol.Parsable;
+import zbl.moonlight.core.protocol.schema.Schema;
+import zbl.moonlight.core.protocol.schema.SchemaEntry;
+import zbl.moonlight.core.protocol.schema.SchemaEntryType;
+import zbl.moonlight.core.socket.SocketSchema;
 
 @Schema({
         /* 状态码 */
-        @SchemaEntry(name = MdtpSchemaEntryName.STATUS, hasLengthSize = false, length = 1),
+        @SchemaEntry(name = MdtpSchemaEntryName.STATUS, type = SchemaEntryType.BYTE, order = 101),
         /* 请求序列号 */
-        @SchemaEntry(name = MdtpSchemaEntryName.SERIAL, hasLengthSize = false, length = 4),
+        @SchemaEntry(name = MdtpSchemaEntryName.SERIAL, type = SchemaEntryType.INT, order = 102),
         /* 值 */
-        @SchemaEntry(name = MdtpSchemaEntryName.VALUE, hasLengthSize = true, lengthSize = 4)
+        @SchemaEntry(name = MdtpSchemaEntryName.VALUE, type = SchemaEntryType.STRING, order = 103)
 })
-public interface MdtpResponseSchema extends Parsable, MSerializable {
+public interface MdtpResponseSchema extends SocketSchema {
 }

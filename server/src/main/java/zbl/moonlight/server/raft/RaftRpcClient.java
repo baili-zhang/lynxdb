@@ -1,20 +1,26 @@
-package zbl.moonlight.server.cluster;
+package zbl.moonlight.server.raft;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.protocol.nio.NioReader;
+import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.mdtp.MdtpResponseSchema;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.server.raft.schema.RequestVoteResultSchema;
 
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -30,6 +36,12 @@ public class RaftRpcClient extends Executor {
 
     private final ConcurrentLinkedQueue<RaftNode> nodes = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<RaftNode> failureNodes = new ConcurrentLinkedQueue<>();
+    /** 已经连接上的节点 */
+    private final ConcurrentHashMap<SelectionKey, RaftNode> connected = new ConcurrentHashMap<>();
+    /** 请求投票中 */
+    private final ConcurrentHashMap<SelectionKey, NioWriter> voting = new ConcurrentHashMap<>();
+    /** 保存每个channel对应的reader */
+    private final ConcurrentHashMap<SelectionKey, NioReader> readers = new ConcurrentHashMap<>();
     private final ThreadPoolExecutor executor;
 
     public RaftRpcClient() {
@@ -84,17 +96,20 @@ public class RaftRpcClient extends Executor {
                 /* 每隔一定时间检查一次 */
                 selector.select(DEFAULT_INTERVAL_MILLIS);
                 Set<SelectionKey> keys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = keys.iterator();
                 CountDownLatch latch = new CountDownLatch(keys.size());
 
                 /* 对Set进行迭代，不同步处理的话，可能会出问题 */
                 synchronized (selector) {
-                    for (SelectionKey key : keys) {
+                    while (iterator.hasNext()) {
+                        SelectionKey key = iterator.next();
                         try {
                             executor.execute(new RpcClientIoEventHandler(latch, key));
                         } catch (RejectedExecutionException e) {
                             latch.countDown();
                             e.printStackTrace();
                         }
+                        iterator.remove();
                     }
                 }
 
@@ -103,8 +118,10 @@ public class RaftRpcClient extends Executor {
                 long newTimeMillis = System.currentTimeMillis();
                 if(newTimeMillis > lastTimeMillis + DEFAULT_INTERVAL_MILLIS) {
                     RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+
+                    /* 如果当前角色为Candidate，发起请求投票 */
                     if(raftState.getRaftRole() == RaftRole.Candidate) {
-                        System.out.println("发起请求投票" + raftState.getRaftRole());
+                        requestVote();
                     }
 
                     /* 处理连接失败的节点，进行重连 */
@@ -119,6 +136,15 @@ public class RaftRpcClient extends Executor {
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    /** 请求投票的响应 */
+    private void requestVote() {
+        voting.clear();
+        for (SelectionKey key : connected.keySet()) {
+            voting.put(key, RaftRpc.newRequestVote(key));
+            key.interestOpsOr(SelectionKey.OP_WRITE);
         }
     }
 
@@ -184,15 +210,48 @@ public class RaftRpcClient extends Executor {
                 logger.info("Connect to raft node {} failure.", node);
                 return;
             }
-            selectionKey.interestOpsAnd(SelectionKey.OP_WRITE);
+            connected.put(selectionKey, node);
+            readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
+            selectionKey.interestOpsAnd(SelectionKey.OP_READ);
         }
 
-        private void doRead() throws InterruptedException {
-            TimeUnit.MILLISECONDS.sleep(3000);
+        private void doRead() throws IOException {
+            NioReader reader = readers.get(selectionKey);
+            if(reader.isReadCompleted()) {
+                RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+                raftState.setRaftRole(RaftRole.Leader);
+                System.out.println("set to Leader");
+                readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
+                return;
+            }
+            try {
+                reader.read();
+            } catch (SocketException e) {
+                handleDisconnect();
+                e.printStackTrace();
+            }
         }
 
-        private void doWrite() throws InterruptedException {
-            TimeUnit.MILLISECONDS.sleep(3000);
+        private void doWrite() throws IOException {
+            NioWriter writer = voting.get(selectionKey);
+
+            if(writer == null) return;
+
+            if(writer.isWriteCompleted()) {
+                voting.remove(selectionKey);
+                /* 只监听读 */
+                selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+                return;
+            }
+            writer.write();
+        }
+
+        /** 处理节点断开连接的情况 */
+        private void handleDisconnect() {
+            failureNodes.add((RaftNode) selectionKey.attachment());
+            selectionKey.cancel();
+            connected.remove(selectionKey);
+            logger.info("Raft Node {} is disconnect.", selectionKey.attachment());
         }
     }
 }

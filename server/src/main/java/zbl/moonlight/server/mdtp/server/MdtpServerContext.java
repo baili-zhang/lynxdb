@@ -3,7 +3,7 @@ package zbl.moonlight.server.mdtp.server;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.cluster.RaftState;
+import zbl.moonlight.server.raft.RaftState;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.exception.ConfigurationException;

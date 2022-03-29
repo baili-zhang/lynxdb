@@ -1,4 +1,4 @@
-package zbl.moonlight.server.cluster;
+package zbl.moonlight.server.raft;
 
 import lombok.Getter;
 import lombok.Setter;

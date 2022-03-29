@@ -67,8 +67,6 @@ public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
                 return;
             }
 
-            logger.debug("Received MDTP request is: {}", reader);
-
             /* 未写回完成的请求数量加一 */
             remainingNioWriter.increaseRequestCount();
 
