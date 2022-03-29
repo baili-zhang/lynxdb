@@ -1,5 +1,6 @@
 package zbl.moonlight.core.protocol;
 
+import lombok.Setter;
 import zbl.moonlight.core.protocol.schema.SchemaEntry;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.schema.SchemaUtils;
@@ -16,6 +17,7 @@ public class Parser {
     /** 用来存储各个属性的map */
     protected HashMap<String, byte[]> map;
     /** 传输的数据，不包括数据长度 */
+    @Setter
     protected ByteBuffer byteBuffer;
     /** 继承Parsable的接口 */
     private final Class<? extends Parsable> schemaClass;
@@ -32,7 +34,7 @@ public class Parser {
         return map.get(name);
     }
 
-    protected void parse() {
+    public void parse() {
         Parsable schema = (Parsable) Proxy.newProxyInstance(NioReader.class.getClassLoader(),
                 new Class[]{schemaClass}, new ParseHandler());
         /* 把ByteBuffer类型的数据解析成map */

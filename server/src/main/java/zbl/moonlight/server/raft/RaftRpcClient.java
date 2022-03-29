@@ -218,9 +218,7 @@ public class RaftRpcClient extends Executor {
         private void doRead() throws IOException {
             NioReader reader = readers.get(selectionKey);
             if(reader.isReadCompleted()) {
-                RaftState raftState = MdtpServerContext.getInstance().getRaftState();
-                raftState.setRaftRole(RaftRole.Leader);
-                System.out.println("set to Leader");
+                handleRequestVote();
                 readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
                 return;
             }
@@ -252,6 +250,11 @@ public class RaftRpcClient extends Executor {
             selectionKey.cancel();
             connected.remove(selectionKey);
             logger.info("Raft Node {} is disconnect.", selectionKey.attachment());
+        }
+
+        /** 处理选举请求 */
+        private void handleRequestVote() {
+
         }
     }
 }

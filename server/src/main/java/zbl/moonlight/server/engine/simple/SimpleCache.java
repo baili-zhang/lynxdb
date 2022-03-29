@@ -8,6 +8,10 @@ import zbl.moonlight.server.mdtp.ResponseStatus;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.engine.MethodMapping;
 import zbl.moonlight.server.engine.Engine;
+import zbl.moonlight.server.raft.RaftNode;
+import zbl.moonlight.server.raft.RaftRole;
+import zbl.moonlight.server.raft.RaftState;
+import zbl.moonlight.server.raft.schema.RequestVoteArgs;
 
 public class SimpleCache extends Engine {
     private final SimpleLRU<String, byte[]> cache;
@@ -47,6 +51,32 @@ public class SimpleCache extends Engine {
     @MethodMapping(MdtpMethod.REQUEST_VOTE)
     public NioWriter doRequestVote(NioReader reader) {
         MdtpRequest request = new MdtpRequest(reader);
+
+        /* 解析候选人的Host和Port */
+        String key = new String(request.key());
+        String[] strings = key.split(":");
+        String candidateHost = strings[0];
+        int candidatePort = Integer.parseInt(strings[1]);
+
+        byte[] value = request.value();
+
+        RequestVoteArgs args = new RequestVoteArgs(value);
+
+        RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+        RaftRole raftRole = raftState.getRaftRole();
+
+        if(args.term() < raftState.getCurrentTerm()) {
+            // false
+        }
+
+        RaftNode votedFor = raftState.getVotedFor();
+
+        if(votedFor == null
+                /* TODO:（添加条件）或者日志一样新 */
+                || (votedFor.host().equals(candidateHost) && votedFor.port() == candidatePort)) {
+            // true
+        }
+
         return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.PONG, request.serial());
     }
 }
