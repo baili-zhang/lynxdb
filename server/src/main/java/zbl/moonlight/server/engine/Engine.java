@@ -13,6 +13,8 @@ import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.*;
+import zbl.moonlight.server.raft.RaftRole;
+import zbl.moonlight.server.raft.RaftState;
 
 import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
@@ -23,10 +25,15 @@ public abstract class Engine extends Executor {
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
     private final EventBus eventBus;
+    /* Raft集群节点的相关状态 */
+    protected final RaftState raftState;
     protected final Class<? extends MSerializable> schemaClass = MdtpResponseSchema.class;
 
     protected Engine() {
-        eventBus = MdtpServerContext.getInstance().getEventBus();
+        MdtpServerContext context = MdtpServerContext.getInstance();
+        eventBus = context.getEventBus();
+        raftState = context.getRaftState();
+
         Method[] methods = this.getClass().getDeclaredMethods();
         for(Method method : methods) {
             MethodMapping methodMapping = method.getAnnotation(MethodMapping.class);
@@ -54,6 +61,15 @@ public abstract class Engine extends Executor {
     private NioWriter exec(NioReader reader) {
         MdtpRequest mdtpRequest = new MdtpRequest(reader);
         byte mdtpMethod = (new MdtpRequest(reader)).method();
+
+        /* 接收到心跳，更新Raft的计时器时间 */
+        if(mdtpMethod == MdtpMethod.APPEND_ENTRIES
+                || (mdtpMethod == MdtpMethod.REQUEST_VOTE
+                    && raftState.getRaftRole() == RaftRole.Follower)) {
+            raftState.setHeartbeatTimeMillis(System.currentTimeMillis());
+            logger.debug("Reset timer.");
+        }
+
         String methodName = MdtpMethod.getMethodName(mdtpMethod);
         Method method = methodMap.get(mdtpMethod);
 

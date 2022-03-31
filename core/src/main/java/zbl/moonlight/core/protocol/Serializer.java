@@ -20,8 +20,14 @@ public class Serializer {
     protected ByteBuffer byteBuffer;
     /** 继承MSerializable的接口 */
     private final Class<? extends MSerializable> schemaClass;
+    private boolean withLength;
 
     public Serializer(Class<? extends MSerializable> schemaClass) {
+        this(schemaClass, true);
+    }
+
+    public Serializer(Class<? extends MSerializable> schemaClass, boolean withLength) {
+        this.withLength = withLength;
         this.schemaClass = schemaClass;
     }
 
@@ -36,7 +42,7 @@ public class Serializer {
         public Object invoke(Object proxy, Method method, Object[] args) {
             List<SchemaEntry> schemaEntries = SchemaUtils.listAll(schemaClass);
             SchemaUtils.sort(schemaEntries);
-            int length = 4;
+            int length = withLength ? 4 : 0;
 
             /* 先遍历一遍求序列化后的总长度 */
             for(SchemaEntry entry : schemaEntries) {
@@ -52,7 +58,8 @@ public class Serializer {
             }
 
             ByteBuffer data = ByteBuffer.allocate(length);
-            data.putInt(length - 4);
+            if(withLength) data.putInt(length - 4);
+
             /* 序列化数据 */
             for(SchemaEntry entry : schemaEntries) {
                 byte[] bytes = map.get(entry.name());

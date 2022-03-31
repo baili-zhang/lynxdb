@@ -5,7 +5,5 @@ public enum EventType {
     BINARY_LOG_REQUEST,
     CLUSTER_REQUEST,
     ENGINE_REQUEST,
-    HEARTBEAT,
-    RAFT_REQUEST,
     NONE
 }

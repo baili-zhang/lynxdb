@@ -25,5 +25,6 @@ public class BinaryLogWriter extends Executor {
 
     @Override
     public void run() {
+        /*  */
     }
 }

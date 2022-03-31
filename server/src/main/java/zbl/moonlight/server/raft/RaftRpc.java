@@ -1,5 +1,7 @@
 package zbl.moonlight.server.raft;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.protocol.Serializer;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.protocol.nio.SocketState;
@@ -35,7 +37,7 @@ public class RaftRpc {
         String key = config.getHost() + ":" + config.getPort();
 
         /* 序列化出value */
-        Serializer serializer = new Serializer(RequestVoteArgsSchema.class);
+        Serializer serializer = new Serializer(RequestVoteArgsSchema.class, false);
         serializer.mapPut(RaftSchemaEntryName.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
         serializer.mapPut(RaftSchemaEntryName.LAST_LOG_INDEX, ByteArrayUtils.fromInt(raftState.getLastApplied()));
         serializer.mapPut(RaftSchemaEntryName.LAST_LOG_TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
@@ -46,6 +48,19 @@ public class RaftRpc {
         writer.mapPut(MdtpSchemaEntryName.SERIAL, ByteArrayUtils.fromInt(serial ++));
         writer.mapPut(MdtpSchemaEntryName.KEY, key.getBytes(StandardCharsets.UTF_8));
         writer.mapPut(MdtpSchemaEntryName.VALUE, serializer.getByteBuffer().array());
+
+        return writer;
+    }
+
+    public static NioWriter newAppendEntries(SelectionKey selectionKey) {
+        NioWriter writer = new NioWriter(MdtpRequestSchema.class, selectionKey);
+        String key = config.getHost() + ":" + config.getPort();
+
+        writer.mapPut(SocketSchemaEntryName.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
+        writer.mapPut(MdtpSchemaEntryName.METHOD, new byte[]{MdtpMethod.APPEND_ENTRIES});
+        writer.mapPut(MdtpSchemaEntryName.SERIAL, ByteArrayUtils.fromInt(serial ++));
+        writer.mapPut(MdtpSchemaEntryName.KEY, key.getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(MdtpSchemaEntryName.VALUE, "hallo".getBytes(StandardCharsets.UTF_8));
 
         return writer;
     }

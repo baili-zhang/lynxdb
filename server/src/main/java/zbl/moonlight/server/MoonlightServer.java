@@ -2,6 +2,7 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.log.BinaryLog;
 import zbl.moonlight.server.raft.RaftRpcClient;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
@@ -11,14 +12,16 @@ import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.server.MdtpSocketServer;
 
+import java.io.IOException;
+
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         new MoonlightServer().run();
     }
 
-    public void run() {
+    public void run() throws IOException {
 
         EventBus eventBus = MdtpServerContext.getInstance().getEventBus();
         Thread eventBusThread = new Thread(eventBus, eventBus.getClass().getSimpleName());
@@ -28,7 +31,7 @@ public class MoonlightServer {
 
         // logger.info("Reading data from binary log file...");
         /* 初始化二进制日志文件 */
-        // BinaryLog binaryLog = new BinaryLog();
+        BinaryLog binaryLog = new BinaryLog();
         /* 读取二进制日志文件 */
         // List<MdtpRequest> requests = binaryLog.read();
         /* 注册二进制文件线程到事件总线 */

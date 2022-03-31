@@ -10,4 +10,8 @@ public class ByteBufferUtils {
         }
         return byteBuffer.position() == byteBuffer.limit();
     }
+
+    public static ByteBuffer intByteBuffer() {
+        return ByteBuffer.allocate(4);
+    }
 }

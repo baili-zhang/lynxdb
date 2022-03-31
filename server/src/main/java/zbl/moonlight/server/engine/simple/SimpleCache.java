@@ -1,5 +1,7 @@
 package zbl.moonlight.server.engine.simple;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.server.mdtp.MdtpMethod;
@@ -10,10 +12,11 @@ import zbl.moonlight.server.engine.MethodMapping;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.raft.RaftNode;
 import zbl.moonlight.server.raft.RaftRole;
-import zbl.moonlight.server.raft.RaftState;
 import zbl.moonlight.server.raft.schema.RequestVoteArgs;
 
 public class SimpleCache extends Engine {
+    private final Logger logger = LogManager.getLogger("SimpleCache");
+
     private final SimpleLRU<String, byte[]> cache;
 
     public SimpleCache() {
@@ -52,31 +55,50 @@ public class SimpleCache extends Engine {
     public NioWriter doRequestVote(NioReader reader) {
         MdtpRequest request = new MdtpRequest(reader);
 
-        /* 解析候选人的Host和Port */
-        String key = new String(request.key());
-        String[] strings = key.split(":");
-        String candidateHost = strings[0];
-        int candidatePort = Integer.parseInt(strings[1]);
-
+        RaftNode node = parseRaftNode(request.key());
         byte[] value = request.value();
-
         RequestVoteArgs args = new RequestVoteArgs(value);
 
-        RaftState raftState = MdtpServerContext.getInstance().getRaftState();
         RaftRole raftRole = raftState.getRaftRole();
-
-        if(args.term() < raftState.getCurrentTerm()) {
-            // false
-        }
-
         RaftNode votedFor = raftState.getVotedFor();
 
-        if(votedFor == null
-                /* TODO:（添加条件）或者日志一样新 */
-                || (votedFor.host().equals(candidateHost) && votedFor.port() == candidatePort)) {
-            // true
+        logger.debug("Request term is: {}, Current term is: {}."
+                , args.term(), raftState.getCurrentTerm());
+
+        if(args.term() > raftState.getCurrentTerm()) {
+            raftState.setCurrentTerm(args.term());
+            raftState.setRaftRole(RaftRole.Follower);
+            raftState.setVotedFor(node);
+            return buildMdtpResponseEvent(reader.getSelectionKey(),
+                    ResponseStatus.GET_VOTE, request.serial());
         }
 
-        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.PONG, request.serial());
+        /* TODO:日志条目判断 */
+        if(args.term() == raftState.getCurrentTerm()
+                && votedFor == null) {
+            raftState.setVotedFor(node);
+            return buildMdtpResponseEvent(reader.getSelectionKey(),
+                    ResponseStatus.GET_VOTE, request.serial());
+        }
+
+        return buildMdtpResponseEvent(reader.getSelectionKey(),
+                ResponseStatus.DID_NOT_GET_VOTE, request.serial());
+    }
+
+    @MethodMapping(MdtpMethod.APPEND_ENTRIES)
+    public NioWriter doAppendEntries(NioReader reader) {
+        MdtpRequest request = new MdtpRequest(reader);
+
+        /* 重置定时器 */
+        raftState.setHeartbeatTimeMillis(System.currentTimeMillis());
+
+        return buildMdtpResponseEvent(reader.getSelectionKey(),
+                ResponseStatus.APPEND_ENTRIES_SUCCESS, request.serial());
+    }
+
+    private RaftNode parseRaftNode(byte[] bytes) {
+        String key = new String(bytes);
+        String[] strings = key.split(":");
+        return new RaftNode(strings[0], Integer.parseInt(strings[1]));
     }
 }
