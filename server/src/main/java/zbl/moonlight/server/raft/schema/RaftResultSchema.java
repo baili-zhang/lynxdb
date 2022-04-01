@@ -9,7 +9,6 @@ import zbl.moonlight.core.protocol.schema.SchemaEntryType;
 @Schema({
         /* 任期 */
         @SchemaEntry(name = RaftSchemaEntryName.TERM, type = SchemaEntryType.INT, order = 0),
-        @SchemaEntry(name = RaftSchemaEntryName.VOTE_GRANTED, type = SchemaEntryType.BYTE, order = 1),
 })
-public interface RequestVoteResultSchema extends MSerializable, Parsable {
+public interface RaftResultSchema extends MSerializable, Parsable {
 }

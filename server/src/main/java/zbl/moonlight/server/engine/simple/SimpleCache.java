@@ -90,7 +90,7 @@ public class SimpleCache extends Engine {
         MdtpRequest request = new MdtpRequest(reader);
 
         /* 重置定时器 */
-        raftState.setHeartbeatTimeMillis(System.currentTimeMillis());
+        raftState.setTimeoutTimeMillis(System.currentTimeMillis());
 
         return buildMdtpResponseEvent(reader.getSelectionKey(),
                 ResponseStatus.APPEND_ENTRIES_SUCCESS, request.serial());
