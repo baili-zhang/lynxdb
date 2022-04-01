@@ -66,8 +66,8 @@ public abstract class Engine extends Executor {
         if(mdtpMethod == MdtpMethod.APPEND_ENTRIES
                 || (mdtpMethod == MdtpMethod.REQUEST_VOTE
                     && raftState.getRaftRole() == RaftRole.Follower)) {
-            raftState.setHeartbeatTimeMillis(System.currentTimeMillis());
-            logger.debug("Reset timer.");
+            raftState.setTimeoutTimeMillis(System.currentTimeMillis());
+            logger.debug("[#{}] Reset timeout timer.", raftState.getRaftRole());
         }
 
         String methodName = MdtpMethod.getMethodName(mdtpMethod);

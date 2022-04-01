@@ -179,6 +179,8 @@ public class RaftRpcClient extends Executor {
             }
             key.interestOpsOr(SelectionKey.OP_WRITE);
         }
+
+        logger.info("Initiate a request to vote, Current Term is: {}", raftState.getCurrentTerm());
     }
 
     /* IO线程的线程工厂 */
@@ -251,16 +253,18 @@ public class RaftRpcClient extends Executor {
 
         private void doRead() throws IOException {
             NioReader reader = readers.get(selectionKey);
-            if(reader.isReadCompleted()) {
-                handleRequestVote(reader);
-                readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
-                return;
-            }
+
             try {
                 reader.read();
             } catch (SocketException e) {
                 handleDisconnect();
                 e.printStackTrace();
+            }
+
+            if(reader.isReadCompleted()) {
+                handleRequestVote(reader);
+                readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
+                return;
             }
         }
 
@@ -305,7 +309,7 @@ public class RaftRpcClient extends Executor {
                 /* 接受到一半以上的选票，成为Leader */
                 if(voting.size() < (nodes.size() >> 1) || voting.size() == 0) {
                     raftState.setRaftRole(RaftRole.Leader);
-                    logger.info("Get most votes, Change role to [RaftRole.Leader].");
+                    logger.info("Get most votes, Change role to [RaftRole.Leader], Current term is {}.", raftState.getCurrentTerm());
                 }
             }
         }

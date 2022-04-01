@@ -62,7 +62,7 @@ public class SimpleCache extends Engine {
         RaftRole raftRole = raftState.getRaftRole();
         RaftNode votedFor = raftState.getVotedFor();
 
-        logger.debug("Request term is: {}, Current term is: {}."
+        logger.debug("Remote(Request) term is: {}, Local(Current) term is: {}."
                 , args.term(), raftState.getCurrentTerm());
 
         if(args.term() > raftState.getCurrentTerm()) {
