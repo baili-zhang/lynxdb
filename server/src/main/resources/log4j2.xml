@@ -2,21 +2,21 @@
 <Configuration>
     <Properties>
         <!-- 定义日志格式 -->
-        <Property name="binaryLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%18t] [%5level] [%15logger] -- %msg%n</Property>
+        <Property name="raftLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%18t] [%5level] [%15logger] -- %msg%n</Property>
         <!-- 定义文件名变量 -->
-        <Property name="file.err.filename">binaryLog/err.binaryLog</Property>
-        <Property name="file.err.pattern">binaryLog/err.%i.binaryLog.gz</Property>
+        <Property name="file.err.filename">raftLog/err.raftLog</Property>
+        <Property name="file.err.pattern">raftLog/err.%i.raftLog.gz</Property>
     </Properties>
     <!-- 定义Appender，即目的地 -->
     <Appenders>
         <!-- 定义输出到屏幕 -->
         <Console name="console" target="SYSTEM_OUT">
             <!-- 日志格式引用上面定义的log.pattern -->
-            <PatternLayout pattern="${binaryLog.pattern}" />
+            <PatternLayout pattern="${raftLog.pattern}" />
         </Console>
         <!-- 定义输出到文件,文件名引用上面定义的file.err.filename -->
         <Console name="err" target="SYSTEM_OUT">
-            <PatternLayout pattern="${binaryLog.pattern}" />
+            <PatternLayout pattern="${raftLog.pattern}" />
         </Console>
     </Appenders>
     <Loggers>

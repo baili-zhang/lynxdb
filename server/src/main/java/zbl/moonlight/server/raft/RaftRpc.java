@@ -1,20 +1,15 @@
 package zbl.moonlight.server.raft;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.protocol.Serializer;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.protocol.nio.SocketState;
 import zbl.moonlight.core.socket.SocketSchema;
-import zbl.moonlight.core.socket.SocketSchemaEntryName;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.raft.schema.AppendEntriesArgsSchema;
-import zbl.moonlight.server.raft.schema.RaftSchemaEntryName;
 import zbl.moonlight.server.raft.schema.RequestVoteArgsSchema;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.mdtp.MdtpMethod;
 import zbl.moonlight.server.mdtp.MdtpRequestSchema;
-import zbl.moonlight.server.mdtp.MdtpSchemaEntryName;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
 import java.nio.channels.SelectionKey;
@@ -39,16 +34,16 @@ public class RaftRpc {
 
         /* 序列化出value */
         Serializer serializer = new Serializer(RequestVoteArgsSchema.class, false);
-        serializer.mapPut(RaftSchemaEntryName.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
-        serializer.mapPut(RaftSchemaEntryName.LAST_LOG_INDEX, ByteArrayUtils.fromInt(raftState.getLastApplied()));
-        serializer.mapPut(RaftSchemaEntryName.LAST_LOG_TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
+        serializer.mapPut(RequestVoteArgsSchema.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
+        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_INDEX, ByteArrayUtils.fromInt(raftState.getLastApplied()));
+        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
 
         /* 设置writer的map值 */
-        writer.mapPut(SocketSchemaEntryName.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
-        writer.mapPut(MdtpSchemaEntryName.METHOD, new byte[]{MdtpMethod.REQUEST_VOTE});
-        writer.mapPut(MdtpSchemaEntryName.SERIAL, ByteArrayUtils.fromInt(serial ++));
-        writer.mapPut(MdtpSchemaEntryName.KEY, key.getBytes(StandardCharsets.UTF_8));
-        writer.mapPut(MdtpSchemaEntryName.VALUE, serializer.getByteBuffer().array());
+        writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
+        writer.mapPut(MdtpRequestSchema.METHOD, new byte[]{MdtpMethod.REQUEST_VOTE});
+        writer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
+        writer.mapPut(MdtpRequestSchema.KEY, key.getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(MdtpRequestSchema.VALUE, serializer.getByteBuffer().array());
 
         return writer;
     }
@@ -59,17 +54,17 @@ public class RaftRpc {
 
         /* 序列化出value */
         Serializer serializer = new Serializer(AppendEntriesArgsSchema.class, false);
-        serializer.mapPut(RaftSchemaEntryName.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
-        serializer.mapPut(RaftSchemaEntryName.PREV_LOG_INDEX, ByteArrayUtils.fromInt(0));
-        serializer.mapPut(RaftSchemaEntryName.PREV_LOG_TERM, ByteArrayUtils.fromInt(0));
-        serializer.mapPut(RaftSchemaEntryName.ENTRIES, "hallo".getBytes(StandardCharsets.UTF_8));
-        serializer.mapPut(RaftSchemaEntryName.LEADER_COMMIT, ByteArrayUtils.fromInt(0));
+        serializer.mapPut(AppendEntriesArgsSchema.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
+        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_INDEX, ByteArrayUtils.fromInt(0));
+        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_TERM, ByteArrayUtils.fromInt(0));
+        serializer.mapPut(AppendEntriesArgsSchema.ENTRIES, "hallo".getBytes(StandardCharsets.UTF_8));
+        serializer.mapPut(AppendEntriesArgsSchema.LEADER_COMMIT, ByteArrayUtils.fromInt(0));
 
-        writer.mapPut(SocketSchemaEntryName.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
-        writer.mapPut(MdtpSchemaEntryName.METHOD, new byte[]{MdtpMethod.APPEND_ENTRIES});
-        writer.mapPut(MdtpSchemaEntryName.SERIAL, ByteArrayUtils.fromInt(serial ++));
-        writer.mapPut(MdtpSchemaEntryName.KEY, key.getBytes(StandardCharsets.UTF_8));
-        writer.mapPut(MdtpSchemaEntryName.VALUE, "hallo".getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
+        writer.mapPut(MdtpRequestSchema.METHOD, new byte[]{MdtpMethod.APPEND_ENTRIES});
+        writer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
+        writer.mapPut(MdtpRequestSchema.KEY, key.getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(MdtpRequestSchema.VALUE, "hallo".getBytes(StandardCharsets.UTF_8));
 
         return writer;
     }

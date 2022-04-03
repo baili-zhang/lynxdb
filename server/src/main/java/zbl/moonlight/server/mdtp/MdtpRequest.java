@@ -10,10 +10,10 @@ public class MdtpRequest {
     private final byte[] value;
 
     public MdtpRequest(NioReader reader) {
-        method = reader.mapGet(MdtpSchemaEntryName.METHOD)[0];
-        serial = reader.mapGet(MdtpSchemaEntryName.SERIAL);
-        key = reader.mapGet(MdtpSchemaEntryName.KEY);
-        value = reader.mapGet(MdtpSchemaEntryName.VALUE);
+        method = reader.mapGet(MdtpRequestSchema.METHOD)[0];
+        serial = reader.mapGet(MdtpRequestSchema.SERIAL);
+        key = reader.mapGet(MdtpRequestSchema.KEY);
+        value = reader.mapGet(MdtpRequestSchema.VALUE);
     }
 
     public byte method() {
@@ -34,11 +34,9 @@ public class MdtpRequest {
 
     @Override
     public String toString() {
-        return "{" +
-                MdtpSchemaEntryName.METHOD + ": " + MdtpMethod.getMethodName(method) + ", " +
-                MdtpSchemaEntryName.SERIAL + ": " + ByteArrayUtils.toInt(serial) + ", " +
-                MdtpSchemaEntryName.KEY + ": " + new String(key) + ", " +
-                MdtpSchemaEntryName.VALUE + ": " + new String(value)
-                + "}";
+        return "{method: " + MdtpMethod.getMethodName(method) + ", " +
+                "serial: " + ByteArrayUtils.toInt(serial) + ", " +
+                "key: " + new String(key) + ", " +
+                "value: " + new String(value) + "}";
     }
 }

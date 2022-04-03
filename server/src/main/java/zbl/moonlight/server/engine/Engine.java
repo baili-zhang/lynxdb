@@ -7,7 +7,7 @@ import zbl.moonlight.core.protocol.MSerializable;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.protocol.nio.SocketState;
-import zbl.moonlight.core.socket.SocketSchemaEntryName;
+import zbl.moonlight.core.socket.SocketSchema;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
@@ -92,10 +92,10 @@ public abstract class Engine extends Executor {
                                                       byte[] serial,
                                                       byte[] value) {
         NioWriter writer = new NioWriter(schemaClass, key);
-        writer.mapPut(SocketSchemaEntryName.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
-        writer.mapPut(MdtpSchemaEntryName.STATUS, new byte[]{status});
-        writer.mapPut(MdtpSchemaEntryName.SERIAL, serial);
-        writer.mapPut(MdtpSchemaEntryName.VALUE, value == null ? new byte[0] : value);
+        writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
+        writer.mapPut(MdtpResponseSchema.STATUS, new byte[]{status});
+        writer.mapPut(MdtpResponseSchema.SERIAL, serial);
+        writer.mapPut(MdtpResponseSchema.VALUE, value == null ? new byte[0] : value);
         return writer;
     }
 

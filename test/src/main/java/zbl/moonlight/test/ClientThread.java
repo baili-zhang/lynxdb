@@ -1,7 +1,7 @@
 package zbl.moonlight.test;
 
 import zbl.moonlight.client.common.Command;
-import zbl.moonlight.server.protocol.mdtp.ResponseStatus;
+import zbl.moonlight.server.mdtp.ResponseStatus;
 
 import java.io.*;
 import java.net.Socket;

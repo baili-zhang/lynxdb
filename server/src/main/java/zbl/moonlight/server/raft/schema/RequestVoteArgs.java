@@ -16,9 +16,9 @@ public class RequestVoteArgs {
         Parser parser = new Parser(RequestVoteArgsSchema.class);
         parser.setByteBuffer(ByteBuffer.wrap(bytes));
         parser.parse();
-        term = ByteArrayUtils.toInt(parser.mapGet(RaftSchemaEntryName.TERM));
-        lastLogIndex = ByteArrayUtils.toInt(parser.mapGet(RaftSchemaEntryName.LAST_LOG_INDEX));
-        lastLogTerm = ByteArrayUtils.toInt(parser.mapGet(RaftSchemaEntryName.LAST_LOG_TERM));
+        term = ByteArrayUtils.toInt(parser.mapGet(RequestVoteArgsSchema.TERM));
+        lastLogIndex = ByteArrayUtils.toInt(parser.mapGet(RequestVoteArgsSchema.LAST_LOG_INDEX));
+        lastLogTerm = ByteArrayUtils.toInt(parser.mapGet(RequestVoteArgsSchema.LAST_LOG_TERM));
     }
 
     public int term() {

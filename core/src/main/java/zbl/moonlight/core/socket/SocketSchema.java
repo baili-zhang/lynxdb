@@ -8,7 +8,8 @@ import zbl.moonlight.core.protocol.schema.SchemaEntryType;
 
 @Schema({
         /* 是否保持连接 */
-        @SchemaEntry(name = SocketSchemaEntryName.SOCKET_STATUS, type = SchemaEntryType.BYTE, order = 0),
+        @SchemaEntry(name = SocketSchema.SOCKET_STATUS, type = SchemaEntryType.BYTE, order = 0),
 })
 public interface SocketSchema extends MSerializable, Parsable {
+    String SOCKET_STATUS = "SocketSchema.SOCKET_STATUS";
 }

@@ -2,7 +2,7 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.log.BinaryLog;
+import zbl.moonlight.server.raft.log.RaftLog;
 import zbl.moonlight.server.raft.RaftRpcClient;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
@@ -31,7 +31,7 @@ public class MoonlightServer {
 
         // logger.info("Reading data from binary log file...");
         /* 初始化二进制日志文件 */
-        BinaryLog binaryLog = new BinaryLog();
+        RaftLog raftLog = new RaftLog();
         /* 读取二进制日志文件 */
         // List<MdtpRequest> requests = binaryLog.read();
         /* 注册二进制文件线程到事件总线 */

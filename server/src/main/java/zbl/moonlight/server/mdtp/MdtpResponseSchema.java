@@ -7,11 +7,17 @@ import zbl.moonlight.core.socket.SocketSchema;
 
 @Schema({
         /* 状态码 */
-        @SchemaEntry(name = MdtpSchemaEntryName.STATUS, type = SchemaEntryType.BYTE, order = 101),
+        @SchemaEntry(name = MdtpResponseSchema.STATUS, type = SchemaEntryType.BYTE, order = 101),
         /* 请求序列号 */
-        @SchemaEntry(name = MdtpSchemaEntryName.SERIAL, type = SchemaEntryType.INT, order = 102),
+        @SchemaEntry(name = MdtpResponseSchema.SERIAL, type = SchemaEntryType.INT, order = 102),
         /* 值 */
-        @SchemaEntry(name = MdtpSchemaEntryName.VALUE, type = SchemaEntryType.STRING, order = 103)
+        @SchemaEntry(name = MdtpResponseSchema.VALUE, type = SchemaEntryType.STRING, order = 103)
 })
 public interface MdtpResponseSchema extends SocketSchema {
+    /* 请求序列号 */
+    String SERIAL = "MdtpResponseSchema.SERIAL";
+    /* 值 */
+    String VALUE = "MdtpResponseSchema.VALUE";
+    /* 响应状态码 */
+    String STATUS = "MdtpResponseSchema.STATUS";
 }

@@ -9,9 +9,9 @@ public class MdtpResponse {
     private final byte[] value;
 
     public MdtpResponse(NioReader reader) {
-        status = reader.mapGet(MdtpSchemaEntryName.STATUS)[0];
-        serial = ByteArrayUtils.toInt(reader.mapGet(MdtpSchemaEntryName.SERIAL));
-        value = reader.mapGet(MdtpSchemaEntryName.VALUE);
+        status = reader.mapGet(MdtpResponseSchema.STATUS)[0];
+        serial = ByteArrayUtils.toInt(reader.mapGet(MdtpResponseSchema.SERIAL));
+        value = reader.mapGet(MdtpResponseSchema.VALUE);
     }
 
     public byte status() {
@@ -29,9 +29,8 @@ public class MdtpResponse {
     @Override
     public String toString() {
         return "{" +
-                MdtpSchemaEntryName.STATUS + ": " + ResponseStatus.getCodeName(status) + ", " +
-                MdtpSchemaEntryName.SERIAL + ": " + serial + ", " +
-                MdtpSchemaEntryName.VALUE + ": " + new String(value)
-                + "}";
+                "status: " + ResponseStatus.getCodeName(status) + ", " +
+                "serial: " + serial + ", " +
+                "value: " + new String(value) + "}";
     }
 }
