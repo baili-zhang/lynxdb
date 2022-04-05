@@ -73,10 +73,10 @@ public class Parser {
 
                 data.get(bytes);
                 map.put(entry.name(), bytes);
-
-                assert data.position() == data.limit();
-                assert data.position() == data.capacity();
             }
+
+            assert data.position() == data.limit();
+            assert data.position() == data.capacity();
 
             return map;
         }

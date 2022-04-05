@@ -31,7 +31,7 @@ public class MoonlightServer {
 
         // logger.info("Reading data from binary log file...");
         /* 初始化二进制日志文件 */
-        RaftLog raftLog = new RaftLog();
+        // RaftLog raftLog = new RaftLog();
         /* 读取二进制日志文件 */
         // List<MdtpRequest> requests = binaryLog.read();
         /* 注册二进制文件线程到事件总线 */

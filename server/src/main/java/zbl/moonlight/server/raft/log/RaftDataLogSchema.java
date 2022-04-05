@@ -12,7 +12,7 @@ import zbl.moonlight.core.protocol.schema.SchemaEntryType;
         @SchemaEntry(name = RaftDataLogSchema.VALUE, type = SchemaEntryType.STRING, order = 2)
 })
 public interface RaftDataLogSchema extends MSerializable, Parsable {
-    String METHOD = "RaftLogSchema.METHOD";
-    String KEY = "RaftLogSchema.KEY";
-    String VALUE = "RaftLogSchema.VALUE";
+    String METHOD = "RaftDataLogSchema.METHOD";
+    String KEY = "RaftDataLogSchema.KEY";
+    String VALUE = "RaftDataLogSchema.VALUE";
 }
