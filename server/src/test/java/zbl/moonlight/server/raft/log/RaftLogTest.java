@@ -19,7 +19,7 @@ class RaftLogTest {
     }
 
     @Test
-    void testAppendByPosAndReadByPos() throws IOException {
+    void testAppendAndRead() throws IOException {
         RaftLogEntry logEntry = new RaftLogEntry(2, 2,
                 MdtpMethod.SET, "key".getBytes(StandardCharsets.UTF_8),
                 "value".getBytes(StandardCharsets.UTF_8));

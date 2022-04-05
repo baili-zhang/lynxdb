@@ -2,7 +2,6 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.server.raft.log.RaftLog;
 import zbl.moonlight.server.raft.RaftRpcClient;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
@@ -23,34 +22,26 @@ public class MoonlightServer {
 
     public void run() throws IOException {
 
-        EventBus eventBus = MdtpServerContext.getInstance().getEventBus();
+        MdtpServerContext context = MdtpServerContext.getInstance();
+        EventBus eventBus = context.getEventBus();
         Thread eventBusThread = new Thread(eventBus, eventBus.getClass().getSimpleName());
 
         /* 注册MDTP服务到事件总线 */
         eventBus.register(EventType.CLIENT_RESPONSE, Executor.start(new MdtpSocketServer()));
-
-        // logger.info("Reading data from binary log file...");
-        /* 初始化二进制日志文件 */
-        // RaftLog raftLog = new RaftLog();
-        /* 读取二进制日志文件 */
-        // List<MdtpRequest> requests = binaryLog.read();
-        /* 注册二进制文件线程到事件总线 */
-        // eventBus.register(EventType.BINARY_LOG_REQUEST, Executor.start(new BinaryLogWriter(binaryLog)));
 
         /* 注册存储引擎到事件总线 */
         eventBus.register(EventType.ENGINE_REQUEST, Executor.start(new SimpleCache()));
 
         /* 启动事件总线线程 */
         eventBusThread.start();
-        /* 恢复数据 */
-        // for(MdtpRequest request : requests) {
-        //     eventBus.offer(new Event(EventType.CLIENT_REQUEST, request));
-        // }
 
         /* 如果运行模式为集群，则启动RaftRpc客户端和RaftRpc服务器 */
         if(MdtpServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
             Executor.start(new RaftRpcClient());
         }
+
+        /* 从日志文件中恢复数据 */
+        context.getRaftState().getLog().recover();
     }
 }

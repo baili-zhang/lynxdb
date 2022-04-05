@@ -2,7 +2,11 @@ package zbl.moonlight.server.raft.log;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.executor.Event;
+import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.protocol.Parser;
+import zbl.moonlight.server.eventbus.EventBus;
+import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -26,6 +30,13 @@ import static zbl.moonlight.server.raft.log.RaftIndexEntry.*;
  *  |任期    |日志的提交索引  |数据文件中的偏移量  |日志条目的长度   |
  *  |---    |---          |---              |---           |
  *  |term   |commit_index |offset           |length        |
+ *
+ * cursor:
+ *   指向下一个写入的位置
+ *
+ *  |log index   |0      |1(cursor)|2      |3      |4      |
+ *  |---         |---    |---      |---    |---    |---    |
+ *  |log entry   |(entry)|(empty)  |(empty)|(empty)|(empty)|
  */
 public class RaftLog {
     private static final Logger logger = LogManager.getLogger("BinaryLog");
@@ -39,8 +50,8 @@ public class RaftLog {
     private final FileOutputStream indexFileOutputStream;
     private final FileInputStream indexFileInputStream;
 
-    private long dataFileOffset = 0;
-    private long indexFileOffset = 0;
+    /** 逻辑游标 */
+    private int cursor = 0;
 
     public RaftLog(String dataFilename, String indexFilename) throws IOException {
         String baseDir = System.getProperty("user.dir");
@@ -69,69 +80,65 @@ public class RaftLog {
         indexFileOutputStream = new FileOutputStream(indexFile);
     }
 
-    public void append(RaftLogEntry logEntry) throws IOException {
-        ByteBuffer dataEntryBuffer = logEntry.serializeData();
-        ByteBuffer indexEntryBuffer = logEntry.serializeIndex((int) dataFileOffset, dataEntryBuffer.limit());
+    /** 从磁盘的文件中恢复数据 */
+    public void recover() throws IOException {
+        EventBus eventBus = MdtpServerContext.getInstance().getEventBus();
+        RaftLogEntry logEntry;
 
-        FileChannel dataFileChannel = dataFileOutputStream.getChannel();
-        dataFileOffset += dataFileChannel.write(dataEntryBuffer, dataFileOffset);
-
-        FileChannel indexFileChannel = indexFileOutputStream.getChannel();
-        indexFileOffset += indexFileChannel.write(indexEntryBuffer, indexFileOffset);
+        while ((logEntry = read(cursor)) != null) {
+            /* 发送事件给事件总线 */
+            eventBus.offer(new Event(EventType.ENGINE_REQUEST, logEntry));
+            cursor ++;
+        }
     }
 
-    public void append(RaftLogEntry logEntry, int pos) throws IOException {
-        resetPosition(pos);
+    public void append(RaftLogEntry logEntry) throws IOException {
+        int dataFileOffset = 0;
+        /* 获取最后一个index log entry */
+        RaftIndexEntry lastIndexEntry = RaftIndexEntry.read(indexFileInputStream.getChannel(), cursor - 1);
+
+        if(lastIndexEntry != null) {
+            dataFileOffset = lastIndexEntry.offset() + lastIndexEntry.length();
+        }
+
+        ByteBuffer dataEntryBuffer = logEntry.serializeData();
+        ByteBuffer indexEntryBuffer = logEntry.serializeIndex(
+                dataFileOffset, dataEntryBuffer.limit());
+
+        /* 写入data entry */
+        FileChannel dataFileChannel = dataFileOutputStream.getChannel();
+        dataFileChannel.write(dataEntryBuffer, dataFileOffset);
+
+        RaftIndexEntry.write(indexFileOutputStream.getChannel(), indexEntryBuffer, cursor ++);
+    }
+
+    public void append(RaftLogEntry logEntry, int cursor) throws IOException {
+        resetCursor(cursor);
         append(logEntry);
     }
 
-    /** 重置日志到pos位置，pos位置的日志被保留，后面的日志被覆盖 */
-    private void resetPosition(int pos) throws IOException {
-        long offset = pos * (long) INDEX_ENTRY_LENGTH;
-
-        if(offset > indexFileOffset) {
+    /** 重置游标 */
+    private void resetCursor(int newCursor) {
+        if(newCursor > cursor) {
             throw new RuntimeException("Index file overflow.");
         }
-
-        if(offset == indexFileOffset) {
-            return;
-        }
-
-        FileChannel channel = indexFileInputStream.getChannel();
-        ByteBuffer lastEntry = ByteBuffer.allocate(INDEX_ENTRY_LENGTH);
-        channel.read(lastEntry, offset);
-        RaftIndexEntry entry = RaftIndexEntry.parse(lastEntry);
-
-        indexFileOffset = offset;
-        dataFileOffset = entry.offset() + entry.length();
+        cursor = newCursor;
     }
 
-    public void appendAll(RaftLogEntry[] entries, int pos) throws IOException {
-        resetPosition(pos);
+    public void appendAll(RaftLogEntry[] entries, int cursor) throws IOException {
+        resetCursor(cursor);
         for (RaftLogEntry entry : entries) {
             append(entry);
         }
     }
 
-    public RaftLogEntry[] readAll() throws IOException {
-        int n = (int) indexFileOffset / 4;
-        RaftLogEntry[] entries = new RaftLogEntry[n];
-
-        for (int i = 0; i < n; i++) {
-            entries[i] = read(i);
-        }
-
-        return entries;
-    }
-
-    public RaftLogEntry read(int pos) throws IOException {
+    public RaftLogEntry read(int cursor) throws IOException {
         FileChannel dataFileChannel = dataFileInputStream.getChannel();
         FileChannel indexFileChannel = indexFileInputStream.getChannel();
 
-        ByteBuffer indexEntryByteBuffer = ByteBuffer.allocate(INDEX_ENTRY_LENGTH);
+        RaftIndexEntry indexEntry = RaftIndexEntry.read(indexFileChannel, cursor);
 
-        indexFileChannel.read(indexEntryByteBuffer, (long) pos * INDEX_ENTRY_LENGTH);
-        RaftIndexEntry indexEntry = RaftIndexEntry.parse(indexEntryByteBuffer);
+        if(indexEntry == null) return null;
 
         ByteBuffer entryBuffer = ByteBuffer.allocate(indexEntry.length());
         dataFileChannel.read(entryBuffer, indexEntry.offset());
@@ -146,11 +153,11 @@ public class RaftLog {
         return new RaftLogEntry(indexEntry.term(), indexEntry.commitIndex(), method, key, value);
     }
 
-    public RaftLogEntry[] readN(int pos, int n) throws IOException {
+    public RaftLogEntry[] readN(int cursor, int n) throws IOException {
         RaftLogEntry[] logEntries = new RaftLogEntry[n];
 
-        for (int i = pos; i < n; i++) {
-            logEntries[i] = read(i);
+        for (int i = 0; i < n; i++) {
+            logEntries[i] = read(cursor + i);
         }
 
         return logEntries;

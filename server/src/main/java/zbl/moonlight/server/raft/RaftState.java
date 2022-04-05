@@ -2,6 +2,7 @@ package zbl.moonlight.server.raft;
 
 import lombok.Getter;
 import lombok.Setter;
+import zbl.moonlight.server.raft.log.RaftLog;
 
 @Setter
 @Getter
@@ -22,12 +23,12 @@ public class RaftState {
     private volatile RaftRole raftRole = RaftRole.Follower;
 
     /* -------------- 持久化数据 -------------- */
-    /* 任期号 */
+    /** 任期号 */
     private volatile int currentTerm;
-    /* 投票给了哪个节点 */
+    /** 投票给了哪个节点 */
     private volatile RaftNode votedFor;
-    /* 需要同步的日志 */
-    private volatile String[] logs;
+    /** 需要同步的日志 */
+    private volatile RaftLog log;
 
     /* ---------- 易失的状态（所有服务器） ------- */
     private volatile int commitIndex;

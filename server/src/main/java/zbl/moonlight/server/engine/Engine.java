@@ -15,6 +15,7 @@ import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.*;
 import zbl.moonlight.server.raft.RaftRole;
 import zbl.moonlight.server.raft.RaftState;
+import zbl.moonlight.server.raft.log.RaftLogEntry;
 
 import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
@@ -52,6 +53,13 @@ public abstract class Engine extends Executor {
              if(event == null) {
                  continue;
              }
+
+             /* TODO:恢复数据 */
+             if(event.value() instanceof RaftLogEntry logEntry) {
+                 System.out.println(logEntry);
+                 continue;
+             }
+
              NioReader reader = (NioReader) event.value();
              NioWriter writer = exec(reader);
              eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));

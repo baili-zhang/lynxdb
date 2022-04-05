@@ -4,7 +4,11 @@ import zbl.moonlight.core.protocol.Serializer;
 
 import java.nio.ByteBuffer;
 
-public record RaftLogEntry(int term, int commitIndex, byte method, byte[] key, byte[] value) {
+public record RaftLogEntry(int term,
+                           int commitIndex,
+                           byte method,
+                           byte[] key,
+                           byte[] value) {
     public ByteBuffer serializeData() {
         Serializer serializer = new Serializer(RaftDataLogSchema.class, false);
         serializer.mapPut(RaftDataLogSchema.METHOD, new byte[]{method});
