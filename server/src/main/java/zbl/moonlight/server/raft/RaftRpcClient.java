@@ -127,6 +127,10 @@ public class RaftRpcClient extends Executor {
 
                 latch.await();
 
+                /* 从队列里拿出一个事件 */
+                Event event = poll();
+
+
                 if(System.currentTimeMillis() > raftState.getHeartbeatTimeMillis()
                         + RaftState.HEARTBEAT_INTERVAL_MILLIS) {
                     /* 处理连接失败的节点，进行重连 */
@@ -135,7 +139,6 @@ public class RaftRpcClient extends Executor {
                         failureNodes.clear();
                     }
 
-                    Event event = poll();
                     if(event == null && raftState.getRaftRole() == RaftRole.Leader) {
                         for(SelectionKey key : jobsQueueMap.keySet()) {
                             ConcurrentLinkedQueue<NioWriter> queue = jobsQueueMap.get(key);
