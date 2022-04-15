@@ -59,13 +59,14 @@ public class SimpleCache extends Engine {
         byte[] value = request.value();
         RequestVoteArgs args = new RequestVoteArgs(value);
 
+        int currentTerm = raftState.getCurrentTerm();
         RaftRole raftRole = raftState.getRaftRole();
         RaftNode votedFor = raftState.getVotedFor();
 
         logger.debug("Remote(Request) term is: {}, Local(Current) term is: {}."
                 , args.term(), raftState.getCurrentTerm());
 
-        if(args.term() > raftState.getCurrentTerm()) {
+        if(args.term() > currentTerm) {
             raftState.setCurrentTerm(args.term());
             raftState.setRaftRole(RaftRole.Follower);
             raftState.setVotedFor(node);

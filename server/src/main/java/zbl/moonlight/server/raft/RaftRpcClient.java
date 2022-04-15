@@ -40,15 +40,7 @@ public class RaftRpcClient extends Executor {
 
     private final ConcurrentLinkedQueue<RaftNode> nodes = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<RaftNode> failureNodes = new ConcurrentLinkedQueue<>();
-    /** 已经连接上的节点 */
-    private final ConcurrentHashMap<SelectionKey, RaftNode> connected = new ConcurrentHashMap<>();
-    /** 请求投票中 */
-    private final Set<SelectionKey> voting = new HashSet<>();
-    /** 任务事件队列 */
-    private final ConcurrentHashMap<SelectionKey, ConcurrentLinkedQueue<NioWriter>> jobsQueueMap
-            = new ConcurrentHashMap<>();
-    /** 保存每个channel对应的reader */
-    private final ConcurrentHashMap<SelectionKey, NioReader> readers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SelectionKey, RaftRpcClientContext> contexts = new ConcurrentHashMap<>();
     private final ThreadPoolExecutor executor;
 
     public RaftRpcClient() {
@@ -140,8 +132,8 @@ public class RaftRpcClient extends Executor {
                     }
 
                     if(event == null && raftState.getRaftRole() == RaftRole.Leader) {
-                        for(SelectionKey key : jobsQueueMap.keySet()) {
-                            ConcurrentLinkedQueue<NioWriter> queue = jobsQueueMap.get(key);
+                        for(SelectionKey key : contexts.keySet()) {
+                            ConcurrentLinkedQueue<NioWriter> queue = contexts.get(key).getWriters();
                             queue.offer(RaftRpc.newAppendEntries(key));
                             key.interestOpsOr(SelectionKey.OP_WRITE);
                         }
@@ -171,15 +163,9 @@ public class RaftRpcClient extends Executor {
         raftState.setCurrentTerm(raftState.getCurrentTerm() + 1);
         raftState.setVotedFor(new RaftNode(config.getHost(), config.getPort()));
 
-        synchronized (voting) {
-            voting.clear();
-        }
-
-        for (SelectionKey key : connected.keySet()) {
-            jobsQueueMap.get(key).offer(RaftRpc.newRequestVote(key));
-            synchronized (voting) {
-                voting.add(key);
-            }
+        for (SelectionKey key : contexts.keySet()) {
+            RaftRpcClientContext context = contexts.get(key);
+            context.getWriters().offer(RaftRpc.newRequestVote(key));
             key.interestOpsOr(SelectionKey.OP_WRITE);
         }
 
@@ -204,13 +190,11 @@ public class RaftRpcClient extends Executor {
     private class RpcClientIoEventHandler implements Runnable {
         private final CountDownLatch latch;
         private final SelectionKey selectionKey;
-        private final EventBus eventBus;
 
         public RpcClientIoEventHandler(CountDownLatch latch,
                                        SelectionKey selectionKey) {
             this.latch = latch;
             this.selectionKey = selectionKey;
-            this.eventBus = MdtpServerContext.getInstance().getEventBus();
         }
 
         @Override
@@ -248,14 +232,13 @@ public class RaftRpcClient extends Executor {
                 logger.info("Connect to raft node {} failure.", node);
                 return;
             }
-            connected.put(selectionKey, node);
-            readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
-            jobsQueueMap.put(selectionKey, new ConcurrentLinkedQueue<>());
+            contexts.put(selectionKey, new RaftRpcClientContext(selectionKey));
             selectionKey.interestOpsAnd(SelectionKey.OP_READ);
         }
 
         private void doRead() throws IOException {
-            NioReader reader = readers.get(selectionKey);
+            RaftRpcClientContext context = contexts.get(selectionKey);
+            NioReader reader = context.getReader();
 
             try {
                 reader.read();
@@ -265,22 +248,21 @@ public class RaftRpcClient extends Executor {
             }
 
             if(reader.isReadCompleted()) {
-                handleRequestVote(reader);
-                readers.put(selectionKey, new NioReader(MdtpResponseSchema.class, selectionKey));
-                return;
+                ResponseHandler.handle(reader);
+                context.newReader();
             }
         }
 
         private void doWrite() throws IOException {
-            ConcurrentLinkedQueue<NioWriter> queue = jobsQueueMap.get(selectionKey);
-            NioWriter writer = queue.peek();
+            ConcurrentLinkedQueue<NioWriter> writers = contexts.get(selectionKey).getWriters();
+            NioWriter writer = writers.peek();
 
             if(writer == null) return;
             writer.write();
 
             if(writer.isWriteCompleted()) {
-                queue.poll();
-                if(queue.isEmpty()) {
+                writers.poll();
+                if(writers.isEmpty()) {
                     /* 只监听读 */
                     selectionKey.interestOpsAnd(SelectionKey.OP_READ);
                 } else {
@@ -290,31 +272,14 @@ public class RaftRpcClient extends Executor {
             }
         }
 
-        /** 处理节点断开连接的情况 */
+        /**
+         * 处理节点断开连接的情况
+         */
         private void handleDisconnect() {
             failureNodes.add((RaftNode) selectionKey.attachment());
             selectionKey.cancel();
-            connected.remove(selectionKey);
-            jobsQueueMap.remove(selectionKey);
+            contexts.remove(selectionKey);
             logger.info("Raft Node {} is disconnect.", selectionKey.attachment());
-        }
-
-        /** 处理选举请求 */
-        private void handleRequestVote(NioReader reader) {
-            MdtpResponse response = new MdtpResponse(reader);
-            logger.info("Raft client has received response: {}", response);
-
-            /* 如果请求投票响应成功 */
-            if(response.status() == ResponseStatus.GET_VOTE) {
-                synchronized (voting) {
-                    voting.remove(selectionKey);
-                }
-                /* 接受到一半以上的选票，成为Leader */
-                if(voting.size() < (nodes.size() >> 1) || voting.size() == 0) {
-                    raftState.setRaftRole(RaftRole.Leader);
-                    logger.info("Get most votes, Change role to [RaftRole.Leader], Current term is {}.", raftState.getCurrentTerm());
-                }
-            }
         }
     }
 }
