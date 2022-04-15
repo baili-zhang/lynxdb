@@ -40,13 +40,17 @@ public class MdtpServerContext {
 
         /* 初始化Raft的相关状态 */
         raftState = new RaftState();
+
+        String fileNamePrefix = configuration.getHost() + "_"
+                + configuration.getPort() + "_";
+
         /* 数据文件名 */
-        String dataFileName = configuration.getHost() + "_"
-                + configuration.getPort() + "_" + "data";
+        String dataFileName = fileNamePrefix + "data";
         /* 索引文件名 */
-        String indexFileName = configuration.getHost() + "_"
-                + configuration.getPort() + "_" + "index";
-        raftState.setLog(new RaftLog(dataFileName, indexFileName));
+        String indexFileName = fileNamePrefix + "index";
+        /* 验证文件名 */
+        String verifyFileName = fileNamePrefix + "verify";
+        raftState.setLog(new RaftLog(dataFileName, indexFileName, verifyFileName));
     }
 
     public static MdtpServerContext getInstance() {

@@ -1,5 +1,6 @@
 package zbl.moonlight.server.raft.log;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import zbl.moonlight.server.mdtp.MdtpMethod;
@@ -14,28 +15,10 @@ class RaftLogTest {
     private static RaftLog raftLog;
 
     @BeforeAll
-    static void before() throws IOException {
-        raftLog = new RaftLog("data", "index");
-    }
+    static void append() throws IOException {
+        raftLog = new RaftLog("data", "index", "verify");
 
-    @Test
-    void testAppendAndRead() throws IOException {
-        RaftLogEntry logEntry = new RaftLogEntry(2, 2,
-                MdtpMethod.SET, "key".getBytes(StandardCharsets.UTF_8),
-                "value".getBytes(StandardCharsets.UTF_8));
-        raftLog.append(logEntry, 0);
-        RaftLogEntry readLogEntry = raftLog.read(0);
-
-        assert readLogEntry.term() == 2;
-        assert readLogEntry.commitIndex() == 2;
-        assert readLogEntry.method() == MdtpMethod.SET;
-        assert new String(readLogEntry.key()).equals("key");
-        assert new String(readLogEntry.value()).equals("value");
-    }
-
-    @Test
-    void testAppendAllAndReadN() throws IOException {
-        int n = 10;
+        int n = 20;
         RaftLogEntry[] logEntries = new RaftLogEntry[n];
 
         for (int i = 0; i < n; i++) {
@@ -45,7 +28,29 @@ class RaftLogTest {
         }
 
         raftLog.appendAll(logEntries, 0);
-        RaftLogEntry[] readLogEntries = raftLog.readN(0, 10);
+    }
+
+    @AfterAll
+    static void close() throws IOException {
+        raftLog.close();
+    }
+
+    @Test
+    void testRead() throws IOException {
+        int i = 0;
+        RaftLogEntry readLogEntry = raftLog.read(i);
+
+        assert readLogEntry.term() == i;
+        assert readLogEntry.commitIndex() == i;
+        assert readLogEntry.method() == MdtpMethod.SET;
+        assert new String(readLogEntry.key()).equals("key" + i);
+        assert new String(readLogEntry.value()).equals("value" + i);
+    }
+
+    @Test
+    void testReadN() throws IOException {
+        int n = 10;
+        RaftLogEntry[] readLogEntries = raftLog.readN(0, n);
 
         for (int i = 0; i < n; i++) {
             assert readLogEntries[i].term() == i;
@@ -54,5 +59,37 @@ class RaftLogTest {
             assert new String(readLogEntries[i].key()).equals("key" + i);
             assert new String(readLogEntries[i].value()).equals("value" + i);
         }
+    }
+
+    @Test
+    void testAppendAndRead() throws IOException {
+        int index = 20;
+        RaftLogEntry entry = new RaftLogEntry(index, index, MdtpMethod.SET,
+                ("key" + index).getBytes(StandardCharsets.UTF_8),
+                ("value" + index).getBytes(StandardCharsets.UTF_8));
+        raftLog.append(entry);
+
+        RaftLogEntry readLogEntry = raftLog.read(index);
+        assert readLogEntry.term() == index;
+        assert readLogEntry.commitIndex() == index;
+        assert readLogEntry.method() == MdtpMethod.SET;
+        assert new String(readLogEntry.key()).equals("key" + index);
+        assert new String(readLogEntry.value()).equals("value" + index);
+    }
+
+    @Test
+    void testAppendAndReadByIndex() throws IOException {
+        int index = 21, cursor = 11;
+        RaftLogEntry entry = new RaftLogEntry(index, index, MdtpMethod.SET,
+                ("key" + index).getBytes(StandardCharsets.UTF_8),
+                ("value" + index).getBytes(StandardCharsets.UTF_8));
+        raftLog.append(entry, cursor);
+
+        RaftLogEntry readLogEntry = raftLog.read(cursor);
+        assert readLogEntry.term() == index;
+        assert readLogEntry.commitIndex() == index;
+        assert readLogEntry.method() == MdtpMethod.SET;
+        assert new String(readLogEntry.key()).equals("key" + index);
+        assert new String(readLogEntry.value()).equals("value" + index);
     }
 }

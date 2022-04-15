@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.protocol.Parser;
+import zbl.moonlight.core.utils.ByteArrayUtils;
+import zbl.moonlight.core.utils.ByteBufferUtils;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
@@ -14,12 +16,11 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static zbl.moonlight.server.raft.log.RaftIndexEntry.*;
-
 /**
  * 二进制日志（给Raft协议用的）：
  *  1.数据文件
  *  2.索引文件
+ *  3.验证文件
  *
  * 数据文件格式：
  *  |方法    |键     |值      |
@@ -37,9 +38,13 @@ import static zbl.moonlight.server.raft.log.RaftIndexEntry.*;
  *  |log index   |0      |1(cursor)|2      |3      |4      |
  *  |---         |---    |---      |---    |---    |---    |
  *  |log entry   |(entry)|(empty)  |(empty)|(empty)|(empty)|
+ *
+ *  验证文件：
+ *  |有效的最大索引条目数 |
+ *  |int              |
  */
 public class RaftLog {
-    private static final Logger logger = LogManager.getLogger("BinaryLog");
+    private static final Logger logger = LogManager.getLogger("RaftLog");
 
     private static final String FILE_EXTENSION = ".log";
     private static final String DEFAULT_FOLDER = "/logs";
@@ -50,10 +55,13 @@ public class RaftLog {
     private final FileOutputStream indexFileOutputStream;
     private final FileInputStream indexFileInputStream;
 
+    private final FileOutputStream verifyFileOutputStream;
+    private final FileInputStream verifyFileInputStream;
+
     /** 逻辑游标 */
     private int cursor = 0;
 
-    public RaftLog(String dataFilename, String indexFilename) throws IOException {
+    public RaftLog(String dataFilename, String indexFilename, String verifyFilename) throws IOException {
         String baseDir = System.getProperty("user.dir");
 
         Path dir = Path.of(baseDir, DEFAULT_FOLDER);
@@ -62,33 +70,53 @@ public class RaftLog {
         }
 
         Path dataPath = Path.of(baseDir, DEFAULT_FOLDER, dataFilename + FILE_EXTENSION);
-        File dataFile = dataPath.toFile();
-        if (!dataFile.exists()) {
-            dataFile.createNewFile();
-        }
+        File dataFile = createIfNotExisted(dataPath);
 
         dataFileInputStream = new FileInputStream(dataFile);
-        dataFileOutputStream = new FileOutputStream(dataFile);
+        dataFileOutputStream = new FileOutputStream(dataFile, true);
 
         Path indexPath = Path.of(baseDir, DEFAULT_FOLDER, indexFilename + FILE_EXTENSION);
-        File indexFile = indexPath.toFile();
-        if (!indexFile.exists()) {
-            indexFile.createNewFile();
-        }
+        File indexFile = createIfNotExisted(indexPath);
 
         indexFileInputStream = new FileInputStream(indexFile);
-        indexFileOutputStream = new FileOutputStream(indexFile);
+        indexFileOutputStream = new FileOutputStream(indexFile, true);
+
+        Path verifyPath = Path.of(baseDir, DEFAULT_FOLDER, verifyFilename + FILE_EXTENSION);
+        boolean verifyFileExisted = verifyPath.toFile().exists();
+        File verifyFile = createIfNotExisted(verifyPath);
+
+        verifyFileInputStream = new FileInputStream(verifyFile);
+        verifyFileOutputStream = new FileOutputStream(verifyFile, true);
+
+        if(verifyFileExisted) {
+            byte[] bytes = verifyFileInputStream.readAllBytes();
+            assert bytes.length == 4;
+            cursor = ByteArrayUtils.toInt(bytes);
+        }
+        logger.info("Max entry size is: {}", cursor);
+    }
+
+    private File createIfNotExisted(Path path) throws IOException {
+        File file = path.toFile();
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        return file;
     }
 
     /** 从磁盘的文件中恢复数据 */
     public void recover() throws IOException {
         EventBus eventBus = MdtpServerContext.getInstance().getEventBus();
         RaftLogEntry logEntry;
+        int i = 0;
 
-        while ((logEntry = read(cursor)) != null) {
+        while (i < cursor) {
+            if((logEntry = read(i)) == null) {
+                throw new RuntimeException("The raft log is incomplete");
+            }
             /* 发送事件给事件总线 */
             eventBus.offer(new Event(EventType.ENGINE_REQUEST, logEntry));
-            cursor ++;
+            i ++;
         }
     }
 
@@ -110,6 +138,11 @@ public class RaftLog {
         dataFileChannel.write(dataEntryBuffer, dataFileOffset);
 
         RaftIndexEntry.write(indexFileOutputStream.getChannel(), indexEntryBuffer, cursor ++);
+        writeCursor(cursor);
+    }
+
+    public void writeCursor(int cursor) throws IOException {
+        verifyFileOutputStream.getChannel().write(ByteBuffer.wrap(ByteArrayUtils.fromInt(cursor)), 0);
     }
 
     public void append(RaftLogEntry logEntry, int cursor) throws IOException {
@@ -118,11 +151,12 @@ public class RaftLog {
     }
 
     /** 重置游标 */
-    private void resetCursor(int newCursor) {
+    private void resetCursor(int newCursor) throws IOException {
         if(newCursor > cursor) {
             throw new RuntimeException("Index file overflow.");
         }
         cursor = newCursor;
+        writeCursor(cursor);
     }
 
     public void appendAll(RaftLogEntry[] entries, int cursor) throws IOException {
@@ -161,5 +195,14 @@ public class RaftLog {
         }
 
         return logEntries;
+    }
+
+    public void close() throws IOException {
+        dataFileInputStream.close();
+        dataFileOutputStream.close();
+        indexFileInputStream.close();
+        indexFileOutputStream.close();
+        verifyFileInputStream.close();
+        verifyFileOutputStream.close();
     }
 }
