@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.mdtp.MdtpMethod;
 import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.mdtp.ResponseStatus;
@@ -13,6 +14,8 @@ import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.raft.RaftNode;
 import zbl.moonlight.server.raft.RaftRole;
 import zbl.moonlight.server.raft.schema.RequestVoteArgs;
+
+import java.io.IOException;
 
 public class SimpleCache extends Engine {
     private final Logger logger = LogManager.getLogger("SimpleCache");
@@ -52,7 +55,7 @@ public class SimpleCache extends Engine {
     }
 
     @MethodMapping(MdtpMethod.REQUEST_VOTE)
-    public NioWriter doRequestVote(NioReader reader) {
+    public NioWriter doRequestVote(NioReader reader) throws IOException {
         MdtpRequest request = new MdtpRequest(reader);
 
         RaftNode node = parseRaftNode(request.key());
@@ -60,26 +63,26 @@ public class SimpleCache extends Engine {
         RequestVoteArgs args = new RequestVoteArgs(value);
 
         int currentTerm = raftState.getCurrentTerm();
-        RaftRole raftRole = raftState.getRaftRole();
         RaftNode votedFor = raftState.getVotedFor();
 
         logger.debug("Remote(Request) term is: {}, Local(Current) term is: {}."
                 , args.term(), raftState.getCurrentTerm());
 
-        if(args.term() > currentTerm) {
+        if(args.term() < currentTerm) {
+            return buildMdtpResponseEvent(reader.getSelectionKey(),
+                    ResponseStatus.DID_NOT_GET_VOTE, request.serial(), ByteArrayUtils.fromInt(currentTerm));
+        } else if(args.term() > currentTerm) {
             raftState.setCurrentTerm(args.term());
             raftState.setRaftRole(RaftRole.Follower);
-            raftState.setVotedFor(node);
-            return buildMdtpResponseEvent(reader.getSelectionKey(),
-                    ResponseStatus.GET_VOTE, request.serial());
         }
 
-        /* TODO:日志条目判断 */
-        if(args.term() == raftState.getCurrentTerm()
-                && votedFor == null) {
+        if((votedFor == null || votedFor.equals(node)) && args.lastLogTerm() >= raftState.lastLogTerm()
+                && args.lastLogIndex() >= raftState.lastApplied()) {
+            logger.info("Voted for node: {}", node);
+
             raftState.setVotedFor(node);
             return buildMdtpResponseEvent(reader.getSelectionKey(),
-                    ResponseStatus.GET_VOTE, request.serial());
+                    ResponseStatus.GET_VOTE, request.serial(), ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
         }
 
         return buildMdtpResponseEvent(reader.getSelectionKey(),

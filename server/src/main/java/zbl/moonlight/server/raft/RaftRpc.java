@@ -12,6 +12,7 @@ import zbl.moonlight.server.mdtp.MdtpMethod;
 import zbl.moonlight.server.mdtp.MdtpRequestSchema;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 
@@ -28,15 +29,15 @@ public class RaftRpc {
     private static Configuration config = MdtpServerContext.getInstance().getConfiguration();
     private static RaftState raftState = MdtpServerContext.getInstance().getRaftState();
 
-    public static NioWriter newRequestVote(SelectionKey selectionKey) {
+    public static NioWriter newRequestVote(SelectionKey selectionKey) throws IOException {
         NioWriter writer = new NioWriter(MdtpRequestSchema.class, selectionKey);
         String key = config.getHost() + ":" + config.getPort();
 
         /* 序列化出value */
         Serializer serializer = new Serializer(RequestVoteArgsSchema.class, false);
         serializer.mapPut(RequestVoteArgsSchema.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
-        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_INDEX, ByteArrayUtils.fromInt(raftState.getLastApplied()));
-        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
+        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_INDEX, ByteArrayUtils.fromInt(raftState.lastApplied()));
+        serializer.mapPut(RequestVoteArgsSchema.LAST_LOG_TERM, ByteArrayUtils.fromInt(raftState.lastLogTerm()));
 
         /* 设置writer的map值 */
         writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});

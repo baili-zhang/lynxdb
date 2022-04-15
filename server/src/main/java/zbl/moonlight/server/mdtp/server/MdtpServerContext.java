@@ -50,7 +50,7 @@ public class MdtpServerContext {
         String indexFileName = fileNamePrefix + "index";
         /* 验证文件名 */
         String verifyFileName = fileNamePrefix + "verify";
-        raftState.setLog(new RaftLog(dataFileName, indexFileName, verifyFileName));
+        raftState.setRaftLog(new RaftLog(dataFileName, indexFileName, verifyFileName));
     }
 
     public static MdtpServerContext getInstance() {

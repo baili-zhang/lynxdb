@@ -5,13 +5,8 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
-import zbl.moonlight.server.config.ClusterConfiguration;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.mdtp.MdtpResponse;
-import zbl.moonlight.server.mdtp.MdtpResponseSchema;
-import zbl.moonlight.server.mdtp.ResponseStatus;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
-import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.core.executor.Executor;
 
 import java.io.IOException;
@@ -22,9 +17,9 @@ import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,17 +47,12 @@ public class RaftRpcClient extends Executor {
         /* Raft集群相关的信息 */
         raftState = context.getRaftState();
 
-        /* 解析集群各个节点的地址 */
-        String nativeHost = config.getHost();
-        int nativePort = config.getPort();
-        ClusterConfiguration clusterConfig = config.getClusterConfiguration();
-        for(LinkedHashMap<String, Object> node : clusterConfig.nodes()) {
-            /* TODO:禁止魔法值（“host”,"port"） RaftNode列表应该放到Configuration中解析 */
-            String host = (String) node.get("host");
-            int port = (int) node.get("port");
-            if(nativeHost.equals(host) && nativePort == port) continue;
-            nodes.add(new RaftNode(host, port));
-        }
+        /* 不包含当前节点的其他节点 */
+        nodes.addAll(config.getRaftNodes().stream()
+                .filter((node) -> !node.equals(new RaftNode(config.getHost(), config.getPort())))
+                .toList());
+
+        logger.debug("Raft node need to connect: {}", nodes);
 
         /* 线程池执行器 */
         executor = new ThreadPoolExecutor(nodes.size(),
@@ -158,10 +148,11 @@ public class RaftRpcClient extends Executor {
     }
 
     /** 请求投票的响应 */
-    private void requestVote() {
+    private void requestVote() throws IOException {
         raftState.setRaftRole(RaftRole.Candidate);
         raftState.setCurrentTerm(raftState.getCurrentTerm() + 1);
         raftState.setVotedFor(new RaftNode(config.getHost(), config.getPort()));
+        raftState.getVoteCount().set(1);
 
         for (SelectionKey key : contexts.keySet()) {
             RaftRpcClientContext context = contexts.get(key);

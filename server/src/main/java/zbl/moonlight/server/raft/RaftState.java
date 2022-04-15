@@ -3,6 +3,11 @@ package zbl.moonlight.server.raft;
 import lombok.Getter;
 import lombok.Setter;
 import zbl.moonlight.server.raft.log.RaftLog;
+import zbl.moonlight.server.raft.log.RaftLogEntry;
+
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Setter
 @Getter
@@ -22,19 +27,35 @@ public class RaftState {
     private volatile long timeoutTimeMillis = System.currentTimeMillis();
     private volatile RaftRole raftRole = RaftRole.Follower;
 
+    /**
+     * 当前获取到的投票数
+     */
+    private AtomicInteger voteCount = new AtomicInteger(0);
+
     /* -------------- 持久化数据 -------------- */
     /** 任期号 */
     private volatile int currentTerm;
     /** 投票给了哪个节点 */
     private volatile RaftNode votedFor;
     /** 需要同步的日志 */
-    private volatile RaftLog log;
+    private volatile RaftLog raftLog;
 
     /* ---------- 易失的状态（所有服务器） ------- */
     private volatile int commitIndex;
-    private volatile int lastApplied;
+
+    public int lastApplied() {
+        return raftLog.getCursor() - 1;
+    }
 
     /* ----------- 易失的状态（Leader） -------- */
-    private volatile int[] nextIndex;
-    private volatile int[] matchIndex;
+    private volatile ConcurrentHashMap<RaftNode, Integer> nextIndex;
+    private volatile ConcurrentHashMap<RaftNode, Integer> matchIndex;
+
+    public int lastLogTerm() throws IOException {
+        if(lastApplied() == -1) {
+            return 0;
+        }
+        RaftLogEntry logEntry = raftLog.read(lastApplied());
+        return logEntry.term();
+    }
 }

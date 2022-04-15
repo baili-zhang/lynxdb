@@ -7,10 +7,12 @@ import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 import zbl.moonlight.server.exception.ClusterConfigurationNotFoundException;
 import zbl.moonlight.server.exception.ConfigurationException;
+import zbl.moonlight.server.raft.RaftNode;
 
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +55,7 @@ public class Configuration {
     private RunningMode runningMode;
 
     @Getter
-    private ClusterConfiguration clusterConfiguration;
+    private List<RaftNode> raftNodes;
 
     public Configuration() throws ConfigurationException {
         try {
@@ -151,13 +153,20 @@ public class Configuration {
         }
 
         /* 当运行模式为集群时，设置集群配置 */
-        if(runningMode.equals(RunningMode.CLUSTER) && clusterConfiguration == null) {
+        if(runningMode.equals(RunningMode.CLUSTER) && raftNodes == null) {
             Map<String, Object> clusterConfig = (Map<String, Object>)config.get("cluster");
             if(clusterConfig == null) {
                 throw new ClusterConfigurationNotFoundException("cluster option is not found in application.yml");
             }
             List<LinkedHashMap<String, Object>> nodes = (List<LinkedHashMap<String, Object>>) clusterConfig.get("nodes");
-            setClusterConfiguration(new ClusterConfiguration(nodes));
+            List<RaftNode> raftNodes = new ArrayList<>();
+            for(LinkedHashMap<String, Object> node : nodes) {
+                /* TODO:禁止魔法值（“host”,"port"） RaftNode列表应该放到Configuration中解析 */
+                String host = (String) node.get("host");
+                int port = (int) node.get("port");
+                raftNodes.add(new RaftNode(host, port));
+            }
+            setRaftNodes(raftNodes);
         }
     }
 
@@ -231,19 +240,15 @@ public class Configuration {
     private void setRunningMode(String mode) {
         if(runningMode == null) {
             switch (mode) {
-                case "single":
-                    runningMode = RunningMode.SINGLE;
-                    break;
-                case "cluster":
-                    runningMode = RunningMode.CLUSTER;
-                    break;
+                case "single" -> runningMode = RunningMode.SINGLE;
+                case "cluster" -> runningMode = RunningMode.CLUSTER;
             }
         }
     }
 
-    private void setClusterConfiguration(ClusterConfiguration config) {
-        if(clusterConfiguration == null) {
-            clusterConfiguration = config;
+    private void setRaftNodes(List<RaftNode> nodes) {
+        if(raftNodes == null) {
+            raftNodes = nodes;
         }
     }
 }

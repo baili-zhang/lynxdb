@@ -1,5 +1,6 @@
 package zbl.moonlight.server.raft.log;
 
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Event;
@@ -59,6 +60,7 @@ public class RaftLog {
     private final FileInputStream verifyFileInputStream;
 
     /** 逻辑游标 */
+    @Getter
     private int cursor = 0;
 
     public RaftLog(String dataFilename, String indexFilename, String verifyFilename) throws IOException {
@@ -92,6 +94,8 @@ public class RaftLog {
             byte[] bytes = verifyFileInputStream.readAllBytes();
             assert bytes.length == 4;
             cursor = ByteArrayUtils.toInt(bytes);
+        } else {
+            writeCursor(0);
         }
         logger.info("Max entry size is: {}", cursor);
     }
