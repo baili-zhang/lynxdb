@@ -5,6 +5,8 @@ import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.protocol.nio.SocketState;
 import zbl.moonlight.core.socket.SocketSchema;
 import zbl.moonlight.core.utils.ByteArrayUtils;
+import zbl.moonlight.server.raft.log.RaftLog;
+import zbl.moonlight.server.raft.log.RaftLogEntry;
 import zbl.moonlight.server.raft.schema.AppendEntriesArgsSchema;
 import zbl.moonlight.server.raft.schema.RequestVoteArgsSchema;
 import zbl.moonlight.server.config.Configuration;
@@ -26,12 +28,14 @@ import java.nio.charset.StandardCharsets;
  */
 public class RaftRpc {
     private static int serial = 0;
-    private static Configuration config = MdtpServerContext.getInstance().getConfiguration();
-    private static RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+    private static final Configuration config = MdtpServerContext.getInstance().getConfiguration();
+    private static final byte[] key = (config.getHost() + ":" + config.getPort()).getBytes(StandardCharsets.UTF_8);
+
+    private static final RaftState raftState = MdtpServerContext.getInstance().getRaftState();
+    private static final RaftLog raftLog = raftState.getRaftLog();
 
     public static NioWriter newRequestVote(SelectionKey selectionKey) throws IOException {
         NioWriter writer = new NioWriter(MdtpRequestSchema.class, selectionKey);
-        String key = config.getHost() + ":" + config.getPort();
 
         /* 序列化出value */
         Serializer serializer = new Serializer(RequestVoteArgsSchema.class, false);
@@ -43,30 +47,43 @@ public class RaftRpc {
         writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
         writer.mapPut(MdtpRequestSchema.METHOD, new byte[]{MdtpMethod.REQUEST_VOTE});
         writer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
-        writer.mapPut(MdtpRequestSchema.KEY, key.getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(MdtpRequestSchema.KEY, key);
         writer.mapPut(MdtpRequestSchema.VALUE, serializer.getByteBuffer().array());
 
         return writer;
     }
 
-    public static NioWriter newAppendEntries(SelectionKey selectionKey) {
+    public static NioWriter newAppendEntries(SelectionKey selectionKey, byte[] entry) throws IOException {
         NioWriter writer = new NioWriter(MdtpRequestSchema.class, selectionKey);
-        String key = config.getHost() + ":" + config.getPort();
+
+        RaftLogEntry prevLogEntry = raftLog.read(raftState.lastApplied());
+        byte[] prevLogIndex = ByteArrayUtils.fromInt(prevLogEntry.commitIndex());
+        byte[] prevLogTerm = ByteArrayUtils.fromInt(prevLogEntry.term());
+        byte[] leaderCommit = ByteArrayUtils.fromInt(raftState.lastApplied());
 
         /* 序列化出value */
         Serializer serializer = new Serializer(AppendEntriesArgsSchema.class, false);
         serializer.mapPut(AppendEntriesArgsSchema.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
-        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_INDEX, ByteArrayUtils.fromInt(0));
-        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_TERM, ByteArrayUtils.fromInt(0));
-        serializer.mapPut(AppendEntriesArgsSchema.ENTRIES, "hallo".getBytes(StandardCharsets.UTF_8));
-        serializer.mapPut(AppendEntriesArgsSchema.LEADER_COMMIT, ByteArrayUtils.fromInt(0));
+        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_INDEX, prevLogIndex);
+        serializer.mapPut(AppendEntriesArgsSchema.PREV_LOG_TERM, prevLogTerm);
+        serializer.mapPut(AppendEntriesArgsSchema.ENTRIES, entry);
+        serializer.mapPut(AppendEntriesArgsSchema.LEADER_COMMIT, leaderCommit);
 
         writer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
         writer.mapPut(MdtpRequestSchema.METHOD, new byte[]{MdtpMethod.APPEND_ENTRIES});
         writer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
-        writer.mapPut(MdtpRequestSchema.KEY, key.getBytes(StandardCharsets.UTF_8));
-        writer.mapPut(MdtpRequestSchema.VALUE, "hallo".getBytes(StandardCharsets.UTF_8));
+        writer.mapPut(MdtpRequestSchema.KEY, key);
+        writer.mapPut(MdtpRequestSchema.VALUE, serializer.getByteBuffer().array());
 
         return writer;
+    }
+
+    public static NioWriter newAppendEntries(SelectionKey selectionKey,
+                                             RaftLogEntry entry) throws IOException {
+        return newAppendEntries(selectionKey, entry.serializeEntry());
+    }
+
+    public static NioWriter newHeartBeat(SelectionKey selectionKey) throws IOException {
+        return newAppendEntries(selectionKey, new byte[0]);
     }
 }

@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 public @interface SchemaEntry {
     /* 名称 */
     String name();
-    /* 是否有内容长度 */
+    /* 类型 */
     SchemaEntryType type();
     /* 排序用 */
     int order();

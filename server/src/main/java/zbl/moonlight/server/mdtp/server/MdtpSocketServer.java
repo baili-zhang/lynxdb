@@ -14,7 +14,7 @@ public class MdtpSocketServer extends SocketServer {
 
     static  {
         socketServerConfig = new SocketServerConfig(config.getPort(), MDTP_SERVER_CONTEXT.getEventBus(),
-                EventType.ENGINE_REQUEST, MdtpRequestSchema.class);
+                EventType.CLIENT_REQUEST, MdtpRequestSchema.class);
 
         socketServerConfig
                 .coreSize(config.getIoThreadCorePoolSize())

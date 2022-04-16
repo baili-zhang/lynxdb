@@ -8,6 +8,8 @@ import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.protocol.nio.SocketState;
 import zbl.moonlight.core.socket.SocketSchema;
+import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.core.executor.Event;
@@ -26,6 +28,7 @@ public abstract class Engine extends Executor {
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
     private final EventBus eventBus;
+    private final Configuration config;
     /* Raft集群节点的相关状态 */
     protected final RaftState raftState;
     protected final Class<? extends MSerializable> schemaClass = MdtpResponseSchema.class;
@@ -33,6 +36,7 @@ public abstract class Engine extends Executor {
     protected Engine() {
         MdtpServerContext context = MdtpServerContext.getInstance();
         eventBus = context.getEventBus();
+        config = context.getConfiguration();
         raftState = context.getRaftState();
 
         Method[] methods = this.getClass().getDeclaredMethods();
@@ -60,10 +64,26 @@ public abstract class Engine extends Executor {
                  continue;
              }
 
-             NioReader reader = (NioReader) event.value();
-             NioWriter writer = exec(reader);
-             eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));
+             /* 如果当前是集群模式 */
+             if(config.getRunningMode().equals(RunningMode.CLUSTER)) {
+                 switch (event.type()) {
+                     case CLIENT_REQUEST -> handleClientRequest(event);
+                     case CLUSTER_RESPONSE -> handleEvent(event);
+                 }
+             } else {
+                 handleEvent(event);
+             }
         }
+    }
+
+    private void handleClientRequest(Event event) {
+        eventBus.offer(new Event(EventType.CLUSTER_REQUEST, event.value()));
+    }
+
+    private void handleEvent(Event event) {
+        NioReader reader = (NioReader) event.value();
+        NioWriter writer = exec(reader);
+        eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));
     }
 
     private NioWriter exec(NioReader reader) {

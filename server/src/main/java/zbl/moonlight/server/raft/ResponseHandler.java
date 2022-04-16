@@ -38,6 +38,7 @@ public class ResponseHandler {
      */
     public static void handleGetVote(MdtpResponse response) {
         int term = ByteArrayUtils.toInt(response.value());
+        /* TODO:假设有一个服务器响应两次，会出问题 */
         if(term == raftState.getCurrentTerm()) {
             AtomicInteger voteCount = raftState.getVoteCount();
 
@@ -57,7 +58,7 @@ public class ResponseHandler {
      * 处理请求投票失败
      */
     public static void handleDidNotGetVote(MdtpResponse response) {
-
+        logger.info("Did not get vote.");
     }
 
     /**

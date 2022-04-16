@@ -6,6 +6,8 @@ import zbl.moonlight.core.executor.Event;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.mdtp.MdtpMethod;
+import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.core.executor.Executor;
 
@@ -112,7 +114,6 @@ public class RaftRpcClient extends Executor {
                 /* 从队列里拿出一个事件 */
                 Event event = poll();
 
-
                 if(System.currentTimeMillis() > raftState.getHeartbeatTimeMillis()
                         + RaftState.HEARTBEAT_INTERVAL_MILLIS) {
                     /* 处理连接失败的节点，进行重连 */
@@ -124,9 +125,22 @@ public class RaftRpcClient extends Executor {
                     if(event == null && raftState.getRaftRole() == RaftRole.Leader) {
                         for(SelectionKey key : contexts.keySet()) {
                             ConcurrentLinkedQueue<NioWriter> queue = contexts.get(key).getWriters();
-                            queue.offer(RaftRpc.newAppendEntries(key));
+                            queue.offer(RaftRpc.newHeartBeat(key));
                             key.interestOpsOr(SelectionKey.OP_WRITE);
                         }
+                    }
+
+                    while(event != null) {
+                        MdtpRequest mdtpRequest = new MdtpRequest((NioReader) event.value());
+                        if(mdtpRequest.method() == MdtpMethod.SET
+                                || mdtpRequest.method() == MdtpMethod.DELETE) {
+                            if(raftState.getRaftRole() == RaftRole.Leader) {
+                                /* 发送AppendEntries */
+                            } else if(raftState.getRaftRole() == RaftRole.Follower) {
+                                /* 发送重定向的请求 */
+                            }
+                        }
+                        event = poll();
                     }
 
                     /* 重新设置lastTimeMillis，相当于重置定时器 */

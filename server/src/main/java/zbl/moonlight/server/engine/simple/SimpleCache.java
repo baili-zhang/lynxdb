@@ -93,9 +93,6 @@ public class SimpleCache extends Engine {
     public NioWriter doAppendEntries(NioReader reader) {
         MdtpRequest request = new MdtpRequest(reader);
 
-        /* 重置定时器 */
-        raftState.setTimeoutTimeMillis(System.currentTimeMillis());
-
         return buildMdtpResponseEvent(reader.getSelectionKey(),
                 ResponseStatus.APPEND_ENTRIES_SUCCESS, request.serial());
     }

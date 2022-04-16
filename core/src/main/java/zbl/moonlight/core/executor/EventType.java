@@ -1,9 +1,10 @@
 package zbl.moonlight.core.executor;
 
 public enum EventType {
+    CLIENT_REQUEST,
     CLIENT_RESPONSE,
     BINARY_LOG_REQUEST,
     CLUSTER_REQUEST,
-    ENGINE_REQUEST,
+    CLUSTER_RESPONSE,
     NONE
 }
