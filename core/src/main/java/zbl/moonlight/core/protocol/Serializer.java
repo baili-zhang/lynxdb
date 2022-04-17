@@ -20,7 +20,7 @@ public class Serializer {
     protected ByteBuffer byteBuffer;
     /** 继承MSerializable的接口 */
     private final Class<? extends MSerializable> schemaClass;
-    private boolean withLength;
+    private final boolean withLength;
 
     public Serializer(Class<? extends MSerializable> schemaClass) {
         this(schemaClass, true);
