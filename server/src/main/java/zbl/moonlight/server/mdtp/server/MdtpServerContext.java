@@ -3,6 +3,7 @@ package zbl.moonlight.server.mdtp.server;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.raft.RaftNode;
 import zbl.moonlight.server.raft.RaftState;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.eventbus.EventBus;
@@ -10,6 +11,7 @@ import zbl.moonlight.server.exception.ConfigurationException;
 import zbl.moonlight.server.raft.log.RaftLog;
 
 import java.io.IOException;
+import java.util.List;
 
 public class MdtpServerContext {
     private static final Logger logger = LogManager.getLogger("ServerContext");
@@ -38,19 +40,12 @@ public class MdtpServerContext {
         /* 初始化事件总线 */
         eventBus = new EventBus();
 
+        List<RaftNode> nodes = configuration.getRaftNodes().stream()
+                .filter((node) -> !node.equals(new RaftNode(configuration.getHost(), configuration.getPort())))
+                .toList();
+
         /* 初始化Raft的相关状态 */
-        raftState = new RaftState();
-
-        String fileNamePrefix = configuration.getHost() + "_"
-                + configuration.getPort() + "_";
-
-        /* 数据文件名 */
-        String dataFileName = fileNamePrefix + "data";
-        /* 索引文件名 */
-        String indexFileName = fileNamePrefix + "index";
-        /* 验证文件名 */
-        String verifyFileName = fileNamePrefix + "verify";
-        raftState.setRaftLog(new RaftLog(dataFileName, indexFileName, verifyFileName));
+        raftState = new RaftState(nodes, configuration.getHost(), configuration.getPort());
     }
 
     public static MdtpServerContext getInstance() {

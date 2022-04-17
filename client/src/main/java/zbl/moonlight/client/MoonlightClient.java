@@ -45,10 +45,8 @@ public class MoonlightClient {
                 }
             } catch (InvalidMethodException e) {
                 printError("Method", e.getMessage());
-                continue;
             } catch (InvalidCommandException e) {
                 printError("Command", e.getMessage());
-                continue;
             }
         }
     }

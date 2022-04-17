@@ -9,6 +9,7 @@ import zbl.moonlight.server.mdtp.MdtpResponse;
 import zbl.moonlight.server.mdtp.ResponseStatus;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ResponseHandler {
@@ -16,38 +17,36 @@ public class ResponseHandler {
 
     private static final RaftState raftState;
     private static final Configuration config;
+    private static final HashSet<RaftNode> votedNodes;
 
     static {
         MdtpServerContext context = MdtpServerContext.getInstance();
         raftState = context.getRaftState();
         config = context.getConfiguration();
+        votedNodes = raftState.getVotedNodes();
     }
 
-    public static void handle(NioReader reader) {
+    public static void handle(NioReader reader, RaftNode raftNode) {
         MdtpResponse response = new MdtpResponse(reader);
         switch (response.status()) {
-            case ResponseStatus.GET_VOTE -> handleGetVote(response);
-            case ResponseStatus.DID_NOT_GET_VOTE -> handleDidNotGetVote(response);
-            case ResponseStatus.APPEND_ENTRIES_SUCCESS -> handleAppendEntriesSuccess(response);
-            case ResponseStatus.APPEND_ENTRIES_FAIL -> handleAppendEntriesFail(response);
+            case ResponseStatus.GET_VOTE -> handleGetVote(response, raftNode);
+            case ResponseStatus.DID_NOT_GET_VOTE -> handleDidNotGetVote(raftNode);
+            case ResponseStatus.APPEND_ENTRIES_SUCCESS -> handleAppendEntriesSuccess(response, raftNode);
+            case ResponseStatus.APPEND_ENTRIES_FAIL -> handleAppendEntriesFail(response, raftNode);
         }
     }
 
     /**
      * 处理请求投票成功
      */
-    public static void handleGetVote(MdtpResponse response) {
+    public static void handleGetVote(MdtpResponse response, RaftNode raftNode) {
         int term = ByteArrayUtils.toInt(response.value());
-        /* TODO:假设有一个服务器响应两次，会出问题 */
         if(term == raftState.getCurrentTerm()) {
-            AtomicInteger voteCount = raftState.getVoteCount();
-
-            int count = voteCount.get();
-            while(!voteCount.compareAndSet(count, count + 1)) {
-                count = voteCount.get();
+            synchronized (votedNodes) {
+                votedNodes.add(raftNode);
             }
 
-            if(voteCount.get() >= (config.getRaftNodes().size() >> 1) + 1) {
+            if(votedNodes.size() >= (config.getRaftNodes().size() >> 1) + 1) {
                 raftState.setRaftRole(RaftRole.Leader);
                 logger.info("Set raft role to [RaftRole.Leader].");
             }
@@ -57,21 +56,21 @@ public class ResponseHandler {
     /**
      * 处理请求投票失败
      */
-    public static void handleDidNotGetVote(MdtpResponse response) {
-        logger.info("Did not get vote.");
+    public static void handleDidNotGetVote(RaftNode raftNode) {
+        logger.info("Did not get vote from {}.", raftNode);
     }
 
     /**
      * 处理增加日志条目成功
      */
-    public static void handleAppendEntriesSuccess(MdtpResponse response) {
+    public static void handleAppendEntriesSuccess(MdtpResponse response, RaftNode raftNode) {
 
     }
 
     /**
      * 处理增加日志条目失败
      */
-    public static void handleAppendEntriesFail(MdtpResponse response) {
+    public static void handleAppendEntriesFail(MdtpResponse response, RaftNode raftNode) {
 
     }
 }

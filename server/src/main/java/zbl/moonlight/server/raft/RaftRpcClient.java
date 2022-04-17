@@ -19,10 +19,7 @@ import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,9 +47,7 @@ public class RaftRpcClient extends Executor {
         raftState = context.getRaftState();
 
         /* 不包含当前节点的其他节点 */
-        nodes.addAll(config.getRaftNodes().stream()
-                .filter((node) -> !node.equals(new RaftNode(config.getHost(), config.getPort())))
-                .toList());
+        nodes.addAll(raftState.getRaftNodes());
 
         logger.debug("Raft node need to connect: {}", nodes);
 
@@ -166,7 +161,11 @@ public class RaftRpcClient extends Executor {
         raftState.setRaftRole(RaftRole.Candidate);
         raftState.setCurrentTerm(raftState.getCurrentTerm() + 1);
         raftState.setVotedFor(new RaftNode(config.getHost(), config.getPort()));
-        raftState.getVoteCount().set(1);
+        HashSet<RaftNode> votedNodes = raftState.getVotedNodes();
+
+        synchronized (votedNodes) {
+            votedNodes.clear();
+        }
 
         for (SelectionKey key : contexts.keySet()) {
             RaftRpcClientContext context = contexts.get(key);
@@ -244,6 +243,7 @@ public class RaftRpcClient extends Executor {
         private void doRead() throws IOException {
             RaftRpcClientContext context = contexts.get(selectionKey);
             NioReader reader = context.getReader();
+            RaftNode raftNode = (RaftNode) selectionKey.attachment();
 
             try {
                 reader.read();
@@ -253,7 +253,7 @@ public class RaftRpcClient extends Executor {
             }
 
             if(reader.isReadCompleted()) {
-                ResponseHandler.handle(reader);
+                ResponseHandler.handle(reader, raftNode);
                 context.newReader();
             }
         }
