@@ -119,7 +119,7 @@ public class RaftLog {
                 throw new RuntimeException("The raft log is incomplete");
             }
             /* 发送事件给事件总线 */
-            eventBus.offer(new Event(EventType.ENGINE_REQUEST, logEntry));
+            eventBus.offer(new Event(EventType.LOG_RECOVER, logEntry));
             i ++;
         }
     }

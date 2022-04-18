@@ -3,6 +3,7 @@ package zbl.moonlight.server.mdtp.server;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.raft.RaftNode;
 import zbl.moonlight.server.raft.RaftState;
 import zbl.moonlight.server.config.Configuration;
@@ -40,12 +41,15 @@ public class MdtpServerContext {
         /* 初始化事件总线 */
         eventBus = new EventBus();
 
-        List<RaftNode> nodes = configuration.getRaftNodes().stream()
-                .filter((node) -> !node.equals(new RaftNode(configuration.getHost(), configuration.getPort())))
-                .toList();
-
-        /* 初始化Raft的相关状态 */
-        raftState = new RaftState(nodes, configuration.getHost(), configuration.getPort());
+        if(configuration.getRunningMode().equals(RunningMode.CLUSTER)) {
+            List<RaftNode> nodes = configuration.getRaftNodes().stream()
+                    .filter((node) -> !node.equals(new RaftNode(configuration.getHost(), configuration.getPort())))
+                    .toList();
+            /* 初始化Raft的相关状态 */
+            raftState = new RaftState(nodes, configuration.getHost(), configuration.getPort());
+        } else {
+            raftState = null;
+        }
     }
 
     public static MdtpServerContext getInstance() {

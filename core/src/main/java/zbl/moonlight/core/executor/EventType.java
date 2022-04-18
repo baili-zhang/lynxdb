@@ -6,5 +6,6 @@ public enum EventType {
     BINARY_LOG_REQUEST,
     CLUSTER_REQUEST,
     CLUSTER_RESPONSE,
+    LOG_RECOVER,
     NONE
 }

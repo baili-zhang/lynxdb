@@ -3,7 +3,12 @@ package zbl.moonlight.client;
 import zbl.moonlight.client.common.Command;
 import zbl.moonlight.client.exception.InvalidCommandException;
 import zbl.moonlight.client.exception.InvalidMethodException;
+import zbl.moonlight.core.protocol.Serializer;
+import zbl.moonlight.core.protocol.nio.SocketState;
+import zbl.moonlight.core.socket.SocketSchema;
+import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.mdtp.MdtpMethod;
+import zbl.moonlight.server.mdtp.MdtpRequestSchema;
 import zbl.moonlight.server.mdtp.ResponseStatus;
 
 import java.io.BufferedInputStream;
@@ -21,13 +26,13 @@ public class MoonlightClient {
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
     private Scanner scanner;
-    private int identifier;
+    private int serial;
     private boolean connectionHold = true;
 
     public MoonlightClient(String host, int port) {
         this.host = host;
         this.port = port;
-        identifier = 0;
+        serial = 0;
     }
 
     public void runInTerminal() throws IOException {
@@ -77,30 +82,24 @@ public class MoonlightClient {
 
     /* TODO:取消硬编码，使用MdtpRequestSchema和MdtpResponseSchema重构 */
     private void send(Command command) throws IOException, InvalidCommandException {
-        int length = 10;
         byte method = command.getCode();
         byte[] key = command.getKey().toString().getBytes(StandardCharsets.UTF_8);
         byte[] value = command.getValue().toString().getBytes(StandardCharsets.UTF_8);
-        if(key.length > 255) {
-            throw new InvalidCommandException("key is too long.");
-        }
-        length += key.length;
-        length += value.length;
-        byte keyLength = (byte) key.length;
-        int valueLength = value.length;
 
-        outputStream.writeInt(length);
-        outputStream.write(method);
-        outputStream.writeInt(++ identifier);
-        outputStream.write(keyLength);
-        outputStream.write(key);
-        outputStream.writeInt(valueLength);
-        outputStream.write(value);
+        Serializer serializer = new Serializer(MdtpRequestSchema.class);
+        serializer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
+        serializer.mapPut(MdtpRequestSchema.METHOD, new byte[]{method});
+        serializer.mapPut(MdtpRequestSchema.KEY, key);
+        serializer.mapPut(MdtpRequestSchema.VALUE, value);
+        serializer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
+
+        outputStream.write(serializer.getByteBuffer().array());
         outputStream.flush();
     }
 
     private void showResponse() throws IOException {
         inputStream.readInt();
+        byte socketState = inputStream.readByte();
         byte responseCode = inputStream.readByte();
         int identifier = inputStream.readInt();
         int valueLength = inputStream.readInt();

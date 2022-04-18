@@ -45,6 +45,6 @@ public class MoonlightServer {
         }
 
         /* 从日志文件中恢复数据 */
-        context.getRaftState().getRaftLog().recover();
+        // context.getRaftState().getRaftLog().recover();
     }
 }
