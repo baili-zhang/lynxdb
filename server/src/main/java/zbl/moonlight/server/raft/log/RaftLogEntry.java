@@ -1,5 +1,6 @@
 package zbl.moonlight.server.raft.log;
 
+import zbl.moonlight.core.protocol.Parser;
 import zbl.moonlight.core.protocol.Serializer;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.raft.schema.EntrySchema;
@@ -33,5 +34,16 @@ public record RaftLogEntry(int term,
         serializer.mapPut(EntrySchema.KEY, key);
         serializer.mapPut(EntrySchema.VALUE, value);
         return serializer.getByteBuffer().array();
+    }
+
+    public static RaftLogEntry parseFrom(byte[] bytes) {
+        Parser parser = new Parser(EntrySchema.class);
+        parser.setByteBuffer(ByteBuffer.wrap(bytes));
+        parser.parse();
+        return new RaftLogEntry(ByteArrayUtils.toInt(parser.mapGet(EntrySchema.TERM)),
+                ByteArrayUtils.toInt(parser.mapGet(EntrySchema.COMMIT_INDEX)),
+                parser.mapGet(EntrySchema.METHOD)[0],
+                parser.mapGet(EntrySchema.KEY),
+                parser.mapGet(EntrySchema.VALUE));
     }
 }

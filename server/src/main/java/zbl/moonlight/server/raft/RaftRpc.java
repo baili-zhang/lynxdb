@@ -91,18 +91,15 @@ public class RaftRpc {
     }
 
     public static NioWriter newAppendEntries(SelectionKey selectionKey, MdtpRequest request) throws IOException {
-        Serializer serializer = new Serializer(EntrySchema.class);
-        serializer.mapPut(EntrySchema.TERM, ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
-        serializer.mapPut(EntrySchema.COMMIT_INDEX, ByteArrayUtils.fromInt(raftState.nextApplied()));
-        serializer.mapPut(EntrySchema.METHOD, new byte[]{request.method()});
-        serializer.mapPut(EntrySchema.KEY, request.key());
-        serializer.mapPut(EntrySchema.VALUE, request.value());
+        RaftLogEntry entry = new RaftLogEntry(raftState.getCurrentTerm(),
+                raftState.nextApplied(), request.method(), request.key(),
+                request.value());
 
-        byte[] entry = serializer.getByteBuffer().array();
+        byte[] bytes = entry.serializeEntry();
         /* TODO:禁止魔数“4” */
-        ByteBuffer entries = ByteBuffer.allocate(entry.length + 4);
+        ByteBuffer entries = ByteBuffer.allocate(bytes.length + 4);
         entries.putInt(DEFAULT_ENTRIES_SIZE);
-        entries.put(entry);
+        entries.put(bytes);
 
         return newAppendEntries(selectionKey, entries.array());
     }

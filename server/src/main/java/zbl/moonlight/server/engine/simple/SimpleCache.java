@@ -2,6 +2,7 @@ package zbl.moonlight.server.engine.simple;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.protocol.Parser;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.utils.ByteArrayUtils;
@@ -13,9 +14,13 @@ import zbl.moonlight.server.engine.MethodMapping;
 import zbl.moonlight.server.engine.Engine;
 import zbl.moonlight.server.raft.RaftNode;
 import zbl.moonlight.server.raft.RaftRole;
+import zbl.moonlight.server.raft.log.RaftLogEntry;
+import zbl.moonlight.server.raft.schema.AppendEntriesArgs;
+import zbl.moonlight.server.raft.schema.AppendEntriesArgsSchema;
 import zbl.moonlight.server.raft.schema.RequestVoteArgs;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
 public class SimpleCache extends Engine {
@@ -91,6 +96,17 @@ public class SimpleCache extends Engine {
 
     @MethodMapping(MdtpMethod.APPEND_ENTRIES)
     public NioWriter doAppendEntries(MdtpRequest request) {
+        byte[] value = request.value();
+
+        if(value.length == 0) {
+            logger.info("Received heartbeat from leader: {}",
+                    request.selectionKey().attachment());
+        } else {
+            AppendEntriesArgs args = new AppendEntriesArgs(value);
+            for(RaftLogEntry entry : args.entries()) {
+            }
+        }
+
         return buildMdtpResponseEvent(request.selectionKey(),
                 ResponseStatus.APPEND_ENTRIES_SUCCESS, request.serial());
     }
