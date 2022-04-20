@@ -73,6 +73,13 @@ public class RaftState {
         return raftLog.getCursor() - 1;
     }
 
+    /**
+     * @return 下一个应用到状态机的COMMIT INDEX
+     */
+    public int nextApplied() {
+        return raftLog.getCursor();
+    }
+
     /* ----------- 易失的状态（Leader） -------- */
     private final ConcurrentHashMap<RaftNode, Integer> nextIndex;
     private final ConcurrentHashMap<RaftNode, Integer> matchIndex;

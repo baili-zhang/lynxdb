@@ -22,9 +22,9 @@
 
 ENTRIES格式：
 
-| ENTRY size | ENTRY item                | ENTRY item                | ... |
-|------------|---------------------------|---------------------------|-----|
-| 4 byte     | (4 byte) + (ENTRY length) | (4 byte) + (ENTRY length) | ... |
+| ENTRIES size | ENTRY item                | ENTRY item                | ... |
+|--------------|---------------------------|---------------------------|-----|
+| 4 byte       | (4 byte) + (ENTRY length) | (4 byte) + (ENTRY length) | ... |
 
 ENTRY格式：
 

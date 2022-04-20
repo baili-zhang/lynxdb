@@ -53,42 +53,39 @@ public abstract class Engine extends Executor {
     @Override
     public final void run() {
         while (true) {
-             Event event = pollSleep();
-             if(event == null) {
-                 continue;
-             }
+            Event event = pollSleep();
+            if(event == null) {
+                continue;
+            }
 
-             /* TODO:恢复数据 */
-             if(event.value() instanceof RaftLogEntry logEntry) {
-                 System.out.println(logEntry);
-                 continue;
-             }
+            /* TODO:恢复数据，应该在完全启动之前进行数据的恢复 */
+            if(event.value() instanceof RaftLogEntry logEntry) {
+                System.out.println(logEntry);
+                continue;
+            }
 
-             /* 如果当前是集群模式 */
-             if(config.getRunningMode().equals(RunningMode.CLUSTER)) {
-                 switch (event.type()) {
-                     case CLIENT_REQUEST -> handleClientRequest(event);
-                     case CLUSTER_RESPONSE -> handleEvent(event);
-                 }
-             } else {
-                 handleEvent(event);
-             }
+            NioReader reader = (NioReader) event.value();
+            MdtpRequest request = new MdtpRequest(reader);
+            byte mdtpMethod = request.method();
+
+            if(config.getRunningMode().equals(RunningMode.CLUSTER)
+                    && event.type().equals(EventType.CLIENT_REQUEST)
+                    && (mdtpMethod == MdtpMethod.SET || mdtpMethod == MdtpMethod.DELETE)) {
+                sendToRaftClient(reader);
+                continue;
+            }
+
+            NioWriter writer = exec(request);
+            eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));
         }
     }
 
-    private void handleClientRequest(Event event) {
-        eventBus.offer(new Event(EventType.CLUSTER_REQUEST, event.value()));
+    private void sendToRaftClient(NioReader reader) {
+        eventBus.offer(new Event(EventType.CLUSTER_REQUEST, reader));
     }
 
-    private void handleEvent(Event event) {
-        NioReader reader = (NioReader) event.value();
-        NioWriter writer = exec(reader);
-        eventBus.offer(new Event(EventType.CLIENT_RESPONSE, writer));
-    }
-
-    private NioWriter exec(NioReader reader) {
-        MdtpRequest mdtpRequest = new MdtpRequest(reader);
-        byte mdtpMethod = (new MdtpRequest(reader)).method();
+    private NioWriter exec(MdtpRequest mdtpRequest) {
+        byte mdtpMethod = mdtpRequest.method();
 
         /* 接收到心跳，更新Raft的计时器时间 */
         if(mdtpMethod == MdtpMethod.APPEND_ENTRIES
@@ -102,17 +99,17 @@ public abstract class Engine extends Executor {
         Method method = methodMap.get(mdtpMethod);
 
         if(method == null || methodName == null) {
-            return errorResponse(reader);
+            return errorResponse(mdtpRequest);
         }
 
         try {
             logger.debug("Received MDTP request is: {}", mdtpRequest);
-            return (NioWriter) method.invoke(this, reader);
+            return (NioWriter) method.invoke(this, mdtpRequest);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return errorResponse(reader);
+        return errorResponse(mdtpRequest);
     }
 
     protected NioWriter buildMdtpResponseEvent(SelectionKey key,
@@ -134,8 +131,7 @@ public abstract class Engine extends Executor {
     }
 
     /* 处理请求错误的情况 */
-    private NioWriter errorResponse(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
-        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.ERROR, request.serial());
+    private NioWriter errorResponse(MdtpRequest request) {
+        return buildMdtpResponseEvent(request.selectionKey(), ResponseStatus.ERROR, request.serial());
     }
 }

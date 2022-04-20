@@ -15,6 +15,9 @@ public class MdtpMethod {
     /* Raft相关 */
     public static final byte APPEND_ENTRIES = (byte) 0x09;
     public static final byte REQUEST_VOTE = (byte) 0x0a;
+    /* 重定向的方法 */
+    public static final byte REDIRECT_SET = (byte) 0x0b;
+    public static final byte REDIRECT_DELETE = (byte) 0x0c;
 
     public static final ConcurrentHashMap<Byte, String> methodNamesMap = new ConcurrentHashMap<>();
 

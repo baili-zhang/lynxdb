@@ -4,17 +4,26 @@ import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 
+import java.nio.channels.SelectionKey;
+
 public class MdtpRequest {
+    private final SelectionKey selectionKey;
+
     private final byte method;
     private final byte[] serial;
     private final byte[] key;
     private final byte[] value;
 
     public MdtpRequest(NioReader reader) {
+        selectionKey = reader.getSelectionKey();
         method = reader.mapGet(MdtpRequestSchema.METHOD)[0];
         serial = reader.mapGet(MdtpRequestSchema.SERIAL);
         key = reader.mapGet(MdtpRequestSchema.KEY);
         value = reader.mapGet(MdtpRequestSchema.VALUE);
+    }
+
+    public SelectionKey selectionKey() {
+        return selectionKey;
     }
 
     public byte method() {

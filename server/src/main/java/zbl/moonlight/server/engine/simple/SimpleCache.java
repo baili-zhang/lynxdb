@@ -16,6 +16,7 @@ import zbl.moonlight.server.raft.RaftRole;
 import zbl.moonlight.server.raft.schema.RequestVoteArgs;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 
 public class SimpleCache extends Engine {
     private final Logger logger = LogManager.getLogger("SimpleCache");
@@ -27,37 +28,33 @@ public class SimpleCache extends Engine {
     }
 
     @MethodMapping(MdtpMethod.GET)
-    public NioWriter doGet(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
+    public NioWriter doGet(MdtpRequest request) {
         byte[] value = cache.get(new String(request.key()));
         byte status = value == null ? ResponseStatus.VALUE_NOT_EXIST : ResponseStatus.VALUE_EXIST;
-        return buildMdtpResponseEvent(reader.getSelectionKey(), status, request.serial(), value);
+        return buildMdtpResponseEvent(request.selectionKey(), status, request.serial(), value);
     }
 
     @MethodMapping(MdtpMethod.SET)
-    public NioWriter doSet(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
+    public NioWriter doSet(MdtpRequest request) {
         cache.put(new String(request.key()), request.value());
-        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.SUCCESS_NO_VALUE, request.serial());
+        return buildMdtpResponseEvent(request.selectionKey(), ResponseStatus.SUCCESS_NO_VALUE,
+                request.serial());
     }
 
     @MethodMapping(MdtpMethod.DELETE)
-    public NioWriter doDelete(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
+    public NioWriter doDelete(MdtpRequest request) {
         cache.remove(new String(request.key()));
-        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.SUCCESS_NO_VALUE, request.serial());
+        return buildMdtpResponseEvent(request.selectionKey(), ResponseStatus.SUCCESS_NO_VALUE,
+                request.serial());
     }
 
     @MethodMapping(MdtpMethod.PING)
-    public NioWriter doPing(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
-        return buildMdtpResponseEvent(reader.getSelectionKey(), ResponseStatus.PONG, request.serial());
+    public NioWriter doPing(MdtpRequest request) {
+        return buildMdtpResponseEvent(request.selectionKey(), ResponseStatus.PONG, request.serial());
     }
 
     @MethodMapping(MdtpMethod.REQUEST_VOTE)
-    public NioWriter doRequestVote(NioReader reader) throws IOException {
-        MdtpRequest request = new MdtpRequest(reader);
-
+    public NioWriter doRequestVote(MdtpRequest request) throws IOException {
         RaftNode node = parseRaftNode(request.key());
         byte[] value = request.value();
         RequestVoteArgs args = new RequestVoteArgs(value);
@@ -69,31 +66,32 @@ public class SimpleCache extends Engine {
                 , args.term(), raftState.getCurrentTerm());
 
         if(args.term() < currentTerm) {
-            return buildMdtpResponseEvent(reader.getSelectionKey(),
-                    ResponseStatus.DID_NOT_GET_VOTE, request.serial(), ByteArrayUtils.fromInt(currentTerm));
+            return buildMdtpResponseEvent(request.selectionKey(),
+                    ResponseStatus.DID_NOT_GET_VOTE, request.serial(),
+                    ByteArrayUtils.fromInt(currentTerm));
         } else if(args.term() > currentTerm) {
             raftState.setCurrentTerm(args.term());
             raftState.setRaftRole(RaftRole.Follower);
         }
 
-        if((votedFor == null || votedFor.equals(node)) && args.lastLogTerm() >= raftState.lastLogTerm()
+        if((votedFor == null || votedFor.equals(node))
+                && args.lastLogTerm() >= raftState.lastLogTerm()
                 && args.lastLogIndex() >= raftState.lastApplied()) {
             logger.info("Voted for node: {}", node);
 
             raftState.setVotedFor(node);
-            return buildMdtpResponseEvent(reader.getSelectionKey(),
-                    ResponseStatus.GET_VOTE, request.serial(), ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
+            return buildMdtpResponseEvent(request.selectionKey(),
+                    ResponseStatus.GET_VOTE, request.serial(),
+                    ByteArrayUtils.fromInt(raftState.getCurrentTerm()));
         }
 
-        return buildMdtpResponseEvent(reader.getSelectionKey(),
+        return buildMdtpResponseEvent(request.selectionKey(),
                 ResponseStatus.DID_NOT_GET_VOTE, request.serial());
     }
 
     @MethodMapping(MdtpMethod.APPEND_ENTRIES)
-    public NioWriter doAppendEntries(NioReader reader) {
-        MdtpRequest request = new MdtpRequest(reader);
-
-        return buildMdtpResponseEvent(reader.getSelectionKey(),
+    public NioWriter doAppendEntries(MdtpRequest request) {
+        return buildMdtpResponseEvent(request.selectionKey(),
                 ResponseStatus.APPEND_ENTRIES_SUCCESS, request.serial());
     }
 

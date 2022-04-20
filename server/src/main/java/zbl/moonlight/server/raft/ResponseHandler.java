@@ -46,7 +46,7 @@ public class ResponseHandler {
                 votedNodes.add(raftNode);
             }
 
-            if(votedNodes.size() >= (config.getRaftNodes().size() >> 1) + 1) {
+            if(votedNodes.size() >= (raftState.getRaftNodes().size() >> 1) + 1) {
                 raftState.setRaftRole(RaftRole.Leader);
                 logger.info("Set raft role to [RaftRole.Leader].");
             }

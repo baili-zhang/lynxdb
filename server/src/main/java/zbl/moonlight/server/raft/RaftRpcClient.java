@@ -123,17 +123,27 @@ public class RaftRpcClient extends Executor {
                             queue.offer(RaftRpc.newHeartBeat(key));
                             key.interestOpsOr(SelectionKey.OP_WRITE);
                         }
+                        logger.info("Send heartbeat to followers.");
                     }
 
                     while(event != null) {
                         MdtpRequest mdtpRequest = new MdtpRequest((NioReader) event.value());
-                        if(mdtpRequest.method() == MdtpMethod.SET
-                                || mdtpRequest.method() == MdtpMethod.DELETE) {
-                            if(raftState.getRaftRole() == RaftRole.Leader) {
-                                /* 发送AppendEntries */
-                            } else if(raftState.getRaftRole() == RaftRole.Follower) {
-                                /* 发送重定向的请求 */
+
+                        for(SelectionKey key : contexts.keySet()) {
+                            ConcurrentLinkedQueue<NioWriter> queue = contexts.get(key).getWriters();
+
+                            if(mdtpRequest.method() == MdtpMethod.SET
+                                    || mdtpRequest.method() == MdtpMethod.DELETE) {
+                                if(raftState.getRaftRole() == RaftRole.Leader) {
+                                    /* 发送AppendEntries */
+                                    queue.offer(RaftRpc.newAppendEntries(key, mdtpRequest));
+                                } else if(raftState.getRaftRole() == RaftRole.Follower) {
+                                    /* 发送重定向的请求 */
+                                    queue.offer(RaftRpc.newRedirectMdtpRequest(key, mdtpRequest));
+                                }
                             }
+
+                            key.interestOpsOr(SelectionKey.OP_WRITE);
                         }
                         event = poll();
                     }
