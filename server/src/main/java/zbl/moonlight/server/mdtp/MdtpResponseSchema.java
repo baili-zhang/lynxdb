@@ -3,7 +3,6 @@ package zbl.moonlight.server.mdtp;
 import zbl.moonlight.core.protocol.schema.Schema;
 import zbl.moonlight.core.protocol.schema.SchemaEntry;
 import zbl.moonlight.core.protocol.schema.SchemaEntryType;
-import zbl.moonlight.core.socket.SocketSchema;
 
 @Schema({
         /* 状态码 */

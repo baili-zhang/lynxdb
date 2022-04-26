@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.mdtp.MdtpResponseSchema;
 
 import java.nio.channels.SelectionKey;
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class RaftRpcClientContext {
     private final SelectionKey selectionKey;
     private final ConcurrentLinkedQueue<NioWriter> writers;
+    private final ConcurrentLinkedQueue<MdtpRequest> pendingRequests;
 
     @Setter
     private boolean connected;
@@ -22,6 +24,7 @@ public class RaftRpcClientContext {
         selectionKey = key;
         connected = false;
         writers = new ConcurrentLinkedQueue<>();
+        pendingRequests = new ConcurrentLinkedQueue<>();
         reader = new NioReader(MdtpResponseSchema.class, selectionKey);
     }
 

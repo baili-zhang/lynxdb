@@ -2,14 +2,12 @@ package zbl.moonlight.server.raft;
 
 import zbl.moonlight.core.protocol.Serializer;
 import zbl.moonlight.core.protocol.nio.NioWriter;
-import zbl.moonlight.core.protocol.nio.SocketState;
-import zbl.moonlight.core.socket.SocketSchema;
+import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.raft.log.RaftLog;
 import zbl.moonlight.server.raft.log.RaftLogEntry;
 import zbl.moonlight.server.raft.schema.AppendEntriesArgsSchema;
-import zbl.moonlight.server.raft.schema.EntrySchema;
 import zbl.moonlight.server.raft.schema.RequestVoteArgsSchema;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.mdtp.MdtpMethod;

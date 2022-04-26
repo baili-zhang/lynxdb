@@ -1,10 +1,10 @@
 package zbl.moonlight.server.mdtp.server;
 
-import zbl.moonlight.core.executor.EventType;
-import zbl.moonlight.core.socket.SocketServerConfig;
-import zbl.moonlight.core.socket.SocketServer;
+import zbl.moonlight.core.socket.server.SocketServerConfig;
+import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.mdtp.MdtpRequestSchema;
+
+import java.io.IOException;
 
 public class MdtpSocketServer extends SocketServer {
     private static final MdtpServerContext MDTP_SERVER_CONTEXT = MdtpServerContext.getInstance();
@@ -12,9 +12,8 @@ public class MdtpSocketServer extends SocketServer {
     private static final SocketServerConfig socketServerConfig;
     private static final String ioThreadNamePrefix = "Server-IO-";
 
-    static  {
-        socketServerConfig = new SocketServerConfig(config.getPort(), MDTP_SERVER_CONTEXT.getEventBus(),
-                EventType.CLIENT_REQUEST, MdtpRequestSchema.class);
+    static {
+        socketServerConfig = new SocketServerConfig(config.getPort());
 
         socketServerConfig
                 .coreSize(config.getIoThreadCorePoolSize())
@@ -25,7 +24,7 @@ public class MdtpSocketServer extends SocketServer {
                 .backlog(config.getBacklog());
     }
 
-    public MdtpSocketServer() {
+    public MdtpSocketServer() throws IOException {
         super(socketServerConfig);
     }
 }

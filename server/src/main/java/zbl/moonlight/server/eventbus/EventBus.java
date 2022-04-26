@@ -1,7 +1,5 @@
 package zbl.moonlight.server.eventbus;
 
-import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.EventType;
 import zbl.moonlight.core.executor.Executable;
 
 import java.util.concurrent.ConcurrentHashMap;

@@ -3,7 +3,7 @@ package zbl.moonlight.core.protocol.nio;
 import lombok.Getter;
 import zbl.moonlight.core.protocol.MSerializable;
 import zbl.moonlight.core.protocol.Serializer;
-import zbl.moonlight.core.protocol.Writable;
+import zbl.moonlight.core.socket.interfaces.Writable;
 import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;

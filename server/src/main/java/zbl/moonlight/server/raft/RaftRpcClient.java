@@ -2,14 +2,14 @@ package zbl.moonlight.server.raft;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.executor.Event;
+import zbl.moonlight.server.eventbus.Event;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.mdtp.MdtpMethod;
 import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
-import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.executor.AbstractExecutor;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class RaftRpcClient extends Executor {
+public class RaftRpcClient extends AbstractExecutor {
     private final static Logger logger = LogManager.getLogger("RaftRpcClient");
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
@@ -130,13 +130,16 @@ public class RaftRpcClient extends Executor {
                         MdtpRequest mdtpRequest = new MdtpRequest((NioReader) event.value());
 
                         for(SelectionKey key : contexts.keySet()) {
-                            ConcurrentLinkedQueue<NioWriter> queue = contexts.get(key).getWriters();
+                            RaftRpcClientContext context = contexts.get(key);
+                            ConcurrentLinkedQueue<NioWriter> queue = context.getWriters();
+                            ConcurrentLinkedQueue<MdtpRequest> pendingRequests = context.getPendingRequests();
 
                             if(mdtpRequest.method() == MdtpMethod.SET
                                     || mdtpRequest.method() == MdtpMethod.DELETE) {
                                 if(raftState.getRaftRole() == RaftRole.Leader) {
                                     /* 发送AppendEntries */
                                     queue.offer(RaftRpc.newAppendEntries(key, mdtpRequest));
+                                    pendingRequests.offer(mdtpRequest);
                                 } else if(raftState.getRaftRole() == RaftRole.Follower) {
                                     /* 发送重定向的请求 */
                                     queue.offer(RaftRpc.newRedirectMdtpRequest(key, mdtpRequest));
@@ -263,7 +266,7 @@ public class RaftRpcClient extends Executor {
             }
 
             if(reader.isReadCompleted()) {
-                ResponseHandler.handle(reader, raftNode);
+                ResponseHandler.handle(reader, raftNode, context.getPendingRequests());
                 context.newReader();
             }
         }

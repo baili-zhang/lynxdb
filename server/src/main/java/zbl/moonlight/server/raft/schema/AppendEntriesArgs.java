@@ -1,6 +1,7 @@
 package zbl.moonlight.server.raft.schema;
 
 import zbl.moonlight.core.protocol.Parser;
+import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.raft.log.RaftLogEntry;
 
 import java.nio.ByteBuffer;
@@ -8,12 +9,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AppendEntriesArgs {
+    private final int term;
+    private final int preLogIndex;
+    private final int preLogTerm;
+    private final int leaderCommit;
+
     private final Parser parser;
 
     public AppendEntriesArgs(byte[] bytes) {
         parser = new Parser(AppendEntriesArgsSchema.class);
         parser.setByteBuffer(ByteBuffer.wrap(bytes));
         parser.parse();
+        term = ByteArrayUtils.toInt(parser.mapGet(AppendEntriesArgsSchema.TERM));
+        preLogIndex = ByteArrayUtils.toInt(parser.mapGet(AppendEntriesArgsSchema.PREV_LOG_INDEX));
+        preLogTerm = ByteArrayUtils.toInt(parser.mapGet(AppendEntriesArgsSchema.PREV_LOG_TERM));
+        leaderCommit = ByteArrayUtils.toInt(parser.mapGet(AppendEntriesArgsSchema.LEADER_COMMIT));
     }
 
     public List<RaftLogEntry> entries() {
@@ -34,15 +44,19 @@ public class AppendEntriesArgs {
         return entries;
     }
 
-    public void term() {
+    public int term() {
+        return term;
     }
 
-    public void prevLogIndex() {
+    public int prevLogIndex() {
+        return preLogIndex;
     }
 
-    public void prevLogTerm() {
+    public int prevLogTerm() {
+        return preLogTerm;
     }
 
-    public void leaderCommit() {
+    public int leaderCommit() {
+        return leaderCommit;
     }
 }

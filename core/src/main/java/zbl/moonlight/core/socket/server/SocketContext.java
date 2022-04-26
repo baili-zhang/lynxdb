@@ -1,40 +1,41 @@
-package zbl.moonlight.core.socket;
+package zbl.moonlight.core.socket.server;
 
-import zbl.moonlight.core.protocol.Parsable;
-import zbl.moonlight.core.protocol.nio.NioReader;
-import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.core.socket.request.ReadableSocketRequest;
+import zbl.moonlight.core.socket.response.WritableSocketResponse;
 
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* 保存还未写回客户端的响应，用一个队列来维护 */
-public class RemainingNioWriter {
+public class SocketContext {
     private final SelectionKey selectionKey;
-    private final Class<? extends Parsable> schemaClass;
     /* 响应队列 */
-    private final ConcurrentLinkedQueue<NioWriter> responses = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<WritableSocketResponse> responses = new ConcurrentLinkedQueue<>();
     /* 正在处理的请求数量 */
     private final AtomicInteger requestCount = new AtomicInteger(0);
 
-    public RemainingNioWriter(SelectionKey selectionKey, Class<? extends Parsable> schemaClass) {
+    public SocketContext(SelectionKey selectionKey) {
         this.selectionKey = selectionKey;
-        this.schemaClass = schemaClass;
     }
 
-    public void poll() {
+    public SelectionKey selectionKey() {
+        return selectionKey;
+    }
+
+    public void pollResponse() {
         responses.poll();
     }
 
-    public NioWriter peek() {
+    public WritableSocketResponse peekResponse() {
         return responses.peek();
     }
 
-    public void offer(NioWriter writer) {
-        responses.offer(writer);
+    public void offerResponse(WritableSocketResponse response) {
+        responses.offer(response);
     }
 
-    public boolean isEmpty() {
+    public boolean responseQueueIsEmpty() {
         return responses.isEmpty();
     }
 
@@ -43,7 +44,7 @@ public class RemainingNioWriter {
             /* 设置新的request对象 */
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
-        selectionKey.attach(new NioReader(schemaClass, selectionKey));
+        selectionKey.attach(new ReadableSocketRequest(selectionKey));
         requestCount.getAndIncrement();
     }
 

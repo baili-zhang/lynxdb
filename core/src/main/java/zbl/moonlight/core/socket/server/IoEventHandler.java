@@ -1,13 +1,10 @@
-package zbl.moonlight.core.socket;
+package zbl.moonlight.core.socket.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.executor.Executable;
-import zbl.moonlight.core.protocol.Parsable;
-import zbl.moonlight.core.protocol.nio.NioReader;
-import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.EventType;
-import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.core.socket.interfaces.RequestHandler;
+import zbl.moonlight.core.socket.request.ReadableSocketRequest;
+import zbl.moonlight.core.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -18,16 +15,22 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
 
-public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
-                             Selector selector,
-                             RemainingNioWriter remainingNioWriter,
-                             /* 下游执行器 */
-                             Executable downstream,
-                             /* 事件类型 */
-                             EventType eventType,
-                             Class<? extends Parsable> schemaClass) implements Runnable {
-
+public class IoEventHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger("IoEventHandler");
+
+    private final SocketContext context;
+    private final CountDownLatch latch;
+    private final RequestHandler handler;
+    private final SelectionKey selectionKey;
+    private final Selector selector;
+
+    IoEventHandler(SocketContext socketContext, CountDownLatch countDownLatch, RequestHandler requestHandler) {
+        context = socketContext;
+        latch = countDownLatch;
+        handler = requestHandler;
+        selectionKey = context.selectionKey();
+        selector = selectionKey.selector();
+    }
 
     private void doAccept() throws IOException {
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
@@ -36,7 +39,7 @@ public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
 
         synchronized (selector) {
             SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
-            key.attach(new NioReader(schemaClass, key));
+            key.attach(new ReadableSocketRequest(key));
         }
 
         logger.info("Client {} has connected to server.", channel.getRemoteAddress());
@@ -44,11 +47,11 @@ public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
 
     /* 每次读一个请求 */
     private void doRead() throws IOException {
-        NioReader reader = (NioReader) selectionKey.attachment();
+        ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
 
         /* 从socket channel中读取数据 */
         try {
-            reader.read();
+            request.read();
         } catch (SocketException e) {
             /* 取消掉selectionKey */
             selectionKey.cancel();
@@ -59,38 +62,35 @@ public record IoEventHandler(SelectionKey selectionKey, CountDownLatch latch,
             return;
         }
 
-        if (reader.isReadCompleted()) {
+        if (request.isReadCompleted()) {
             /* 是否断开连接 */
-            if (!reader.isKeepConnection()) {
+            if (!request.isKeepConnection()) {
                 selectionKey.cancel();
                 logger.info("A client exit connection.");
                 return;
             }
-
+            /* 处理Socket请求 */
+            handler.handle(request);
             /* 未写回完成的请求数量加一 */
-            remainingNioWriter.increaseRequestCount();
-
-            Event event = new Event(eventType, reader);
-            downstream.offer(event);
+            context.increaseRequestCount();
         }
     }
 
     /* 每次写多个请求 */
     private void doWrite() throws IOException {
-        while (!remainingNioWriter.isEmpty()) {
-            NioWriter writer = remainingNioWriter.peek();
-            writer.write();
+        while (!context.responseQueueIsEmpty()) {
+            WritableSocketResponse response = context.peekResponse();
+            response.write();
 
-            if (writer.isWriteCompleted()) {
+            if (response.isWriteCompleted()) {
                 /* 从队列首部移除已经写完的响应 */
-                remainingNioWriter.poll();
-                remainingNioWriter.decreaseRequestCount();
-                logger.debug("Send MDTP response: {} to client.", writer);
+                context.pollResponse();
+                context.decreaseRequestCount();
+                logger.debug("Send socket response: {} to client.", response);
             } else {
                 /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                 break;
             }
-
         }
     }
 

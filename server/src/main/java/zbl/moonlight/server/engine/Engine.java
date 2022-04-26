@@ -2,18 +2,17 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.executor.EventType;
+import zbl.moonlight.server.eventbus.EventType;
 import zbl.moonlight.core.protocol.MSerializable;
 import zbl.moonlight.core.protocol.nio.NioReader;
 import zbl.moonlight.core.protocol.nio.NioWriter;
-import zbl.moonlight.core.protocol.nio.SocketState;
-import zbl.moonlight.core.socket.SocketSchema;
+import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
-import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.server.eventbus.Event;
+import zbl.moonlight.core.executor.AbstractExecutor;
 import zbl.moonlight.server.mdtp.*;
 import zbl.moonlight.server.raft.RaftRole;
 import zbl.moonlight.server.raft.RaftState;
@@ -23,7 +22,7 @@ import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 
-public abstract class Engine extends Executor {
+public abstract class Engine extends AbstractExecutor {
     private static final Logger logger = LogManager.getLogger("Engine");
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();
@@ -53,7 +52,7 @@ public abstract class Engine extends Executor {
     @Override
     public final void run() {
         while (true) {
-            Event event = pollSleep();
+            Event event = blockPoll();
             if(event == null) {
                 continue;
             }

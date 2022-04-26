@@ -1,8 +1,4 @@
-package zbl.moonlight.core.socket;
-
-import zbl.moonlight.core.executor.EventType;
-import zbl.moonlight.core.executor.Executable;
-import zbl.moonlight.core.protocol.Parsable;
+package zbl.moonlight.core.socket.server;
 
 public class SocketServerConfig {
     private static final int DEFAULT_CORE_SIZE = 10;
@@ -26,19 +22,9 @@ public class SocketServerConfig {
     private final int port;
     /** 服务器的最大连接数 */
     private int backlog = DEFAULT_BACKLOG;
-    /** 下游执行器 */
-    private final Executable downstream;
-    /** 发送给下游执行器的事件类型 */
-    private final EventType eventType;
-    /** Reader的Class对象 */
-    private final Class<? extends Parsable> schemaClass;
 
-    public SocketServerConfig(int port, Executable downstream, EventType eventType,
-                              Class<? extends Parsable> schemaClass) {
+    public SocketServerConfig(int port) {
         this.port = port;
-        this.downstream = downstream;
-        this.eventType = eventType;
-        this.schemaClass = schemaClass;
     }
 
     public int coreSize() {
@@ -98,17 +84,5 @@ public class SocketServerConfig {
     public SocketServerConfig backlog(int backlog) {
         this.backlog = backlog;
         return this;
-    }
-
-    public Executable downstream() {
-        return downstream;
-    }
-
-    public EventType eventType() {
-        return eventType;
-    }
-
-    public Class<? extends Parsable> schemaClass() {
-        return schemaClass;
     }
 }

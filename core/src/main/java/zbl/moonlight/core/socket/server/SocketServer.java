@@ -1,12 +1,14 @@
-package zbl.moonlight.core.socket;
+package zbl.moonlight.core.socket.server;
 
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.exception.UnSupportedEventTypeException;
-import zbl.moonlight.core.executor.Event;
-import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.protocol.nio.NioWriter;
+import zbl.moonlight.core.executor.AbstractExecutor;
+import zbl.moonlight.core.socket.interfaces.Callback;
+import zbl.moonlight.core.socket.interfaces.RequestHandler;
+import zbl.moonlight.core.socket.response.WritableSocketResponse;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
@@ -17,14 +19,22 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SocketServer extends Executor {
-    private static final Logger logger = LogManager.getLogger("MdtpSocketServer");
+public class SocketServer extends AbstractExecutor<WritableSocketResponse> {
+    private static final Logger logger = LogManager.getLogger("SocketServer");
 
     private final SocketServerConfig config;
     private final ThreadPoolExecutor executor;
+    private final Selector selector;
+
+    @Setter
+    private RequestHandler handler;
+    @Setter
+    private Callback callback;
+
+    private volatile boolean shutdown = false;
 
     /* 响应的队列 */
-    private final ConcurrentHashMap<SelectionKey, RemainingNioWriter> responses
+    private final ConcurrentHashMap<SelectionKey, SocketContext> contexts
             = new ConcurrentHashMap<>();
 
     /* IO线程的线程工厂 */
@@ -36,8 +46,9 @@ public class SocketServer extends Executor {
         }
     }
 
-    public SocketServer(SocketServerConfig socketServerConfig) {
+    public SocketServer(SocketServerConfig socketServerConfig) throws IOException {
         this.config = socketServerConfig;
+
         this.executor = new ThreadPoolExecutor(config.coreSize(),
                 config.maxPoolSize(),
                 config.keepAliveTime(),
@@ -45,35 +56,45 @@ public class SocketServer extends Executor {
                 new ArrayBlockingQueue<>(config.blockingQueueSize()),
                 new IoThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
+
+        selector = Selector.open();
+    }
+
+    public void shutdown() {
+        shutdown = true;
     }
 
     @Override
     public void run() {
+        if(handler == null) {
+            throw new RuntimeException("Handler can not be null.");
+        }
+
         try {
-            Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.bind(new InetSocketAddress(config.port()), config.backlog());
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            while (true) {
+            callback.doAfterRunning();
+
+            /* TODO: 实现优雅关机 */
+            while (!shutdown) {
                 selector.select();
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
                 CountDownLatch latch = new CountDownLatch(selectionKeys.size());
 
-                /* 对Set进行迭代，不同步处理的话，可能会出问题 */
                 synchronized (selector) {
                     while (iterator.hasNext()) {
                         SelectionKey selectionKey = iterator.next();
                         try {
-                            RemainingNioWriter events = responses.get(selectionKey);
-                            if(events == null) {
-                                events = new RemainingNioWriter(selectionKey, config.schemaClass());
-                                responses.put(selectionKey, events);
+                            SocketContext context = contexts.get(selectionKey);
+                            if(context == null) {
+                                context = new SocketContext(selectionKey);
+                                contexts.put(selectionKey, context);
                             }
-                            executor.execute(new IoEventHandler(selectionKey, latch, selector,
-                                    events, config.downstream(), config.eventType(), config.schemaClass()));
+                            executor.execute(new IoEventHandler(context, latch, handler));
                         } catch (RejectedExecutionException e) {
                             latch.countDown();
                             e.printStackTrace();
@@ -82,28 +103,25 @@ public class SocketServer extends Executor {
                     }
                 }
 
-                /* 从responses中移除已经取消的selectionKey */
-                for (SelectionKey key : responses.keySet()) {
+                /* 从contexts中移除已经取消的selectionKey */
+                for (SelectionKey key : contexts.keySet()) {
                     if(!key.isValid()) {
                         SocketAddress address = ((SocketChannel)key.channel()).getRemoteAddress();
-                        responses.remove(key);
+                        contexts.remove(key);
                         logger.info("Delete response queue from [responses](map) of {}.", address);
                     }
                 }
 
-                /* 从队列中拿出响应事件 */
+                /* 从队列中拿出 SocketResponse */
                 while (true) {
-                    Event event = poll();
-                    if(event == null) {
+                    WritableSocketResponse response = poll();
+                    if(response == null) {
                         break;
                     }
 
-                    if(!(event.value() instanceof NioWriter writer)) {
-                        throw new UnSupportedEventTypeException("event.value() is not an instance of MdtpResponse.");
-                    }
-                    SelectionKey selectionKey = writer.getSelectionKey();
-                    RemainingNioWriter events = responses.get(selectionKey);
-                    events.offer(writer);
+                    SelectionKey selectionKey = response.selectionKey();
+                    SocketContext context = contexts.get(selectionKey);
+                    context.offerResponse(response);
                 }
 
                 latch.await();

@@ -1,4 +1,4 @@
-package zbl.moonlight.core.executor;
+package zbl.moonlight.server.eventbus;
 
 public record Event(EventType type, Object value) {
 

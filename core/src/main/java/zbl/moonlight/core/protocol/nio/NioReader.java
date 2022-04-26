@@ -3,7 +3,7 @@ package zbl.moonlight.core.protocol.nio;
 import lombok.Getter;
 import zbl.moonlight.core.protocol.Parsable;
 import zbl.moonlight.core.protocol.Parser;
-import zbl.moonlight.core.protocol.Readable;
+import zbl.moonlight.core.socket.interfaces.Readable;
 import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
