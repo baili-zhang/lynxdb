@@ -2,7 +2,7 @@ package zbl.moonlight.core.socket.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.socket.interfaces.RequestHandler;
+import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.ReadableSocketRequest;
 import zbl.moonlight.core.socket.response.WritableSocketResponse;
 
@@ -20,14 +20,14 @@ public class IoEventHandler implements Runnable {
 
     private final SocketContext context;
     private final CountDownLatch latch;
-    private final RequestHandler handler;
+    private final SocketServerHandler handler;
     private final SelectionKey selectionKey;
     private final Selector selector;
 
-    IoEventHandler(SocketContext socketContext, CountDownLatch countDownLatch, RequestHandler requestHandler) {
+    IoEventHandler(SocketContext socketContext, CountDownLatch countDownLatch, SocketServerHandler socketServerHandler) {
         context = socketContext;
         latch = countDownLatch;
-        handler = requestHandler;
+        handler = socketServerHandler;
         selectionKey = context.selectionKey();
         selector = selectionKey.selector();
     }
@@ -70,7 +70,7 @@ public class IoEventHandler implements Runnable {
                 return;
             }
             /* 处理Socket请求 */
-            handler.handle(request);
+            handler.handleRequest(request.socketRequest());
             /* 未写回完成的请求数量加一 */
             context.increaseRequestCount();
         }

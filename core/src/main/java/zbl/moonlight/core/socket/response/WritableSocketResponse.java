@@ -20,6 +20,10 @@ public class WritableSocketResponse implements Writable {
         buffer.rewind();
     }
 
+    public WritableSocketResponse(SocketResponse response) {
+        this(response.selectionKey(), response.data());
+    }
+
     public SelectionKey selectionKey() {
         return selectionKey;
     }

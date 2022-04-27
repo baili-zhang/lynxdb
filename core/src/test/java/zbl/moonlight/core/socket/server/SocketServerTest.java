@@ -1,13 +1,11 @@
-package zbl.moonlight.core.socket;
+package zbl.moonlight.core.socket.server;
 
 import org.junit.jupiter.api.Test;
-import zbl.moonlight.core.executor.Executable;
-import zbl.moonlight.core.socket.interfaces.Callback;
-import zbl.moonlight.core.socket.interfaces.RequestHandler;
+import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.interfaces.SocketState;
-import zbl.moonlight.core.socket.response.WritableSocketResponse;
-import zbl.moonlight.core.socket.server.SocketServer;
-import zbl.moonlight.core.socket.server.SocketServerConfig;
+import zbl.moonlight.core.socket.request.SocketRequest;
+import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -29,26 +27,25 @@ class SocketServerTest {
         CyclicBarrier barrier = new CyclicBarrier(2);
 
         SocketServer server = new SocketServer(new SocketServerConfig(port));
-        RequestHandler handler = (request) -> {
-            byte[] data = request.getData().array();
-            assert new String(data).equals(req);
-            server.offer(new WritableSocketResponse(request.selectionKey(), res.getBytes(StandardCharsets.UTF_8)));
-        };
-
-        Callback callback = new Callback() {
+        server.setHandler(new SocketServerHandler() {
             @Override
-            public void doAfterRunning() {
+            public void handleStartupCompleted() {
                 try {
                     barrier.await();
                 } catch (InterruptedException | BrokenBarrierException e) {
                     e.printStackTrace();
                 }
             }
-        };
 
-        server.setHandler(handler);
-        server.setCallback(callback);
-        Executable.start(server);
+            @Override
+            public void handleRequest(SocketRequest request) {
+                byte[] data = request.data();
+                assert new String(data).equals(req);
+                server.offer(new SocketResponse(request.selectionKey(), res.getBytes(StandardCharsets.UTF_8)));
+            }
+        });
+
+        Executor.start(server);
 
         barrier.await();
 
@@ -58,19 +55,19 @@ class SocketServerTest {
         byte[] data = req.getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH
                 + NumberUtils.BYTE_LENGTH + data.length);
-        buffer.putInt(data.length).put(SocketState.STAY_CONNECTED).put(data);
+        buffer.putInt(data.length).put(SocketState.STAY_CONNECTED_FLAG).put(data);
         outputStream.write(buffer.array());
         outputStream.flush();
 
         InputStream inputStream = socket.getInputStream();
         int len = res.getBytes(StandardCharsets.UTF_8).length;
-        byte[] bytes = new byte[NumberUtils.INT_LENGTH + len];
+        byte[] bytes = new byte[NumberUtils.INT_LENGTH];
         inputStream.read(bytes);
         ByteBuffer buf = ByteBuffer.wrap(bytes);
 
         assert buf.getInt() == len;
         byte[] resData = new byte[len];
-        buf.get(resData);
+        inputStream.read(resData);
         assert new String(resData).equals(res);
     }
 }

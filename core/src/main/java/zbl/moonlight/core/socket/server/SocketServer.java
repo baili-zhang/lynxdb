@@ -3,9 +3,9 @@ package zbl.moonlight.core.socket.server;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.executor.AbstractExecutor;
-import zbl.moonlight.core.socket.interfaces.Callback;
-import zbl.moonlight.core.socket.interfaces.RequestHandler;
+import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
+import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SocketServer extends AbstractExecutor<WritableSocketResponse> {
+public class SocketServer extends Executor<SocketResponse> {
     private static final Logger logger = LogManager.getLogger("SocketServer");
 
     private final SocketServerConfig config;
@@ -27,9 +27,7 @@ public class SocketServer extends AbstractExecutor<WritableSocketResponse> {
     private final Selector selector;
 
     @Setter
-    private RequestHandler handler;
-    @Setter
-    private Callback callback;
+    private SocketServerHandler handler;
 
     private volatile boolean shutdown = false;
 
@@ -76,7 +74,7 @@ public class SocketServer extends AbstractExecutor<WritableSocketResponse> {
             serverSocketChannel.bind(new InetSocketAddress(config.port()), config.backlog());
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            callback.doAfterRunning();
+            handler.handleStartupCompleted();
 
             /* TODO: 实现优雅关机 */
             while (!shutdown) {
@@ -114,14 +112,14 @@ public class SocketServer extends AbstractExecutor<WritableSocketResponse> {
 
                 /* 从队列中拿出 SocketResponse */
                 while (true) {
-                    WritableSocketResponse response = poll();
+                    SocketResponse response = poll();
                     if(response == null) {
                         break;
                     }
 
                     SelectionKey selectionKey = response.selectionKey();
                     SocketContext context = contexts.get(selectionKey);
-                    context.offerResponse(response);
+                    context.offerResponse(new WritableSocketResponse(response));
                 }
 
                 latch.await();

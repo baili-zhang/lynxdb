@@ -64,11 +64,26 @@ public abstract class AbstractExecutor<E> implements Executable<E> {
 
 ### Socket 部分
 
-把每个请求的数据读取成 `SocketRequest`， 然后交给请求处理器 `Handlable` 处理。
+#### SocketRequest 格式
+
+| data length | status | data                  |
+|-------------|--------|-----------------------|
+| 4 byte      | 1 byte | = (data length) bytes |
+
+#### SocketResponse 格式
+
+| data length | data                  |
+|-------------|-----------------------|
+| 4 byte      | = (data length) bytes |
+
+
+#### SocketServer 相关
+
+把每个请求的数据读取成 `ReadableSocketRequest`， 然后交给请求处理器 `RequestHandler` 处理。
 
 ```java
 @FunctionalInterface
-public interface Handlable {
+public interface RequestHandler {
     void handle(ReadableSocketRequest request);
 }
 ```
@@ -79,7 +94,7 @@ public interface Handlable {
 class Main {
     public static void main(String[] args) {
         SocketServer server = new SocketServer(new SocketServerConfig(port));
-        Handlable handler = (request) -> {
+        RequestHandler handler = (request) -> {
             byte[] data = request.getData().array();
             server.offer(new WritableSocketResponse(request.selectionKey(), res.getBytes(StandardCharsets.UTF_8)));
         };
@@ -97,6 +112,12 @@ class Main {
     }
 }
 ```
+
+#### SocketClient 部分
+
+SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器，可以发送**广播请求**和**单播请求**。
+
+
 
 ### Raft 部分
 

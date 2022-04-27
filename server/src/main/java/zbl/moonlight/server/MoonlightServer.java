@@ -9,7 +9,7 @@ import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.engine.simple.SimpleCache;
 import zbl.moonlight.server.eventbus.EventBus;
 import zbl.moonlight.server.eventbus.EventType;
-import zbl.moonlight.core.executor.AbstractExecutor;
+import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.server.MdtpSocketServer;
 
 import java.io.IOException;
@@ -28,10 +28,10 @@ public class MoonlightServer {
         Thread eventBusThread = new Thread(eventBus, eventBus.getClass().getSimpleName());
 
         /* 注册MDTP服务到事件总线 */
-        eventBus.register(EventType.CLIENT_RESPONSE, AbstractExecutor.start(new MdtpSocketServer()));
+        eventBus.register(EventType.CLIENT_RESPONSE, Executor.start(new MdtpSocketServer()));
 
         /* 注册存储引擎到事件总线 */
-        Executable simpleCache = AbstractExecutor.start(new SimpleCache());
+        Executable simpleCache = Executor.start(new SimpleCache());
         eventBus.register(EventType.CLIENT_REQUEST, simpleCache);
 
         /* 启动事件总线线程 */
@@ -41,7 +41,7 @@ public class MoonlightServer {
         if(MdtpServerContext.getInstance().getConfiguration()
                 .getRunningMode().equals(RunningMode.CLUSTER)) {
             eventBus.register(EventType.CLUSTER_RESPONSE, simpleCache);
-            eventBus.register(EventType.CLUSTER_REQUEST, AbstractExecutor.start(new RaftRpcClient()));
+            eventBus.register(EventType.CLUSTER_REQUEST, Executor.start(new RaftRpcClient()));
         }
 
         /* 从日志文件中恢复数据 */

@@ -1,6 +1,7 @@
 package zbl.moonlight.core.socket.client;
 
 import lombok.Getter;
+import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.request.WritableSocketRequest;
 import zbl.moonlight.core.socket.response.ReadableSocketResponse;
 
@@ -10,7 +11,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Getter
 public class ConnectionContext {
     private final SelectionKey selectionKey;
-    private final ServerNode serverNode;
 
     @Getter
     private final ConcurrentLinkedQueue<WritableSocketRequest> requests = new ConcurrentLinkedQueue<>();
@@ -20,16 +20,15 @@ public class ConnectionContext {
 
     public ConnectionContext(SelectionKey key) {
         selectionKey = key;
-        serverNode = (ServerNode) key.attachment();
-        response = new ReadableSocketResponse(serverNode);
+        response = new ReadableSocketResponse(key);
     }
 
     public void replaceResponse() {
-        response = new ReadableSocketResponse(serverNode);
+        response = new ReadableSocketResponse(selectionKey);
     }
 
-    public void offerRequest(WritableSocketRequest request) {
-        requests.offer(request);
+    public void offerRequest(SocketRequest request) {
+        requests.offer(new WritableSocketRequest(request, selectionKey));
         selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
     }
 

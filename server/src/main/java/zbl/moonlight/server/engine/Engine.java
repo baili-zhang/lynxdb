@@ -12,7 +12,7 @@ import zbl.moonlight.server.config.RunningMode;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
 import zbl.moonlight.server.eventbus.*;
 import zbl.moonlight.server.eventbus.Event;
-import zbl.moonlight.core.executor.AbstractExecutor;
+import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.server.mdtp.*;
 import zbl.moonlight.server.raft.RaftRole;
 import zbl.moonlight.server.raft.RaftState;
@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 
-public abstract class Engine extends AbstractExecutor {
+public abstract class Engine extends Executor {
     private static final Logger logger = LogManager.getLogger("Engine");
     /* 方法的code与方法处理函数之间的映射 */
     private final HashMap<Byte, Method> methodMap = new HashMap<>();

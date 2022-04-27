@@ -44,7 +44,7 @@ public class ReadableSocketRequest implements Readable {
             if(!ByteBufferUtils.isOver(status)) {
                 return;
             }
-            isKeepConnection = status.get(0) == SocketState.STAY_CONNECTED;
+            isKeepConnection = SocketState.isStayConnected(status.get(0));
         }
         /* 读取请求数据 */
         if(!ByteBufferUtils.isOver(data)) {
@@ -59,5 +59,19 @@ public class ReadableSocketRequest implements Readable {
 
     public boolean isKeepConnection() {
         return isKeepConnection;
+    }
+
+    public SocketRequest socketRequest() {
+        byte socketStatus = status.get(0);
+
+        if(!isReadCompleted()) {
+            throw new RuntimeException("Can not get socket request before read completed.");
+        }
+
+        if(SocketState.isBroadcast(socketStatus)) {
+            return new SocketRequest(true, socketStatus, data.array(), null, key);
+        } else {
+            return new SocketRequest(false, socketStatus, data.array(), null, key);
+        }
     }
 }

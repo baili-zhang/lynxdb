@@ -9,7 +9,7 @@ import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.mdtp.MdtpMethod;
 import zbl.moonlight.server.mdtp.MdtpRequest;
 import zbl.moonlight.server.mdtp.server.MdtpServerContext;
-import zbl.moonlight.core.executor.AbstractExecutor;
+import zbl.moonlight.core.executor.Executor;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class RaftRpcClient extends AbstractExecutor {
+public class RaftRpcClient extends Executor {
     private final static Logger logger = LogManager.getLogger("RaftRpcClient");
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
