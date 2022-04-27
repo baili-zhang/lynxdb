@@ -68,13 +68,13 @@ public abstract class AbstractExecutor<E> implements Executable<E> {
 
 | data length | status | data                  |
 |-------------|--------|-----------------------|
-| 4 byte      | 1 byte | = (data length) bytes |
+| 4 bytes     | 1 byte | = (data length) bytes |
 
 #### SocketResponse 格式
 
 | data length | data                  |
 |-------------|-----------------------|
-| 4 byte      | = (data length) bytes |
+| 4 bytes     | = (data length) bytes |
 
 
 #### SocketServer 相关
@@ -117,9 +117,38 @@ class Main {
 
 SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器，可以发送**广播请求**和**单播请求**。
 
-
-
 ### Raft 部分
+
+#### Raft RPC 请求
+
+- RequestVote 请求
+- AppendEntries 请求
+
+**Raft RPC 请求**
+
+##### RequestVote 请求
+
+**请求格式**
+
+| method | host length | host                | port    | term    | last log index | last log term |
+|--------|-------------|---------------------|---------|---------|----------------|---------------|
+| 1 byte | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       |
+
+##### AppendEntries 请求
+
+**请求格式**
+
+| method | host length | host                | port    | term    | prev log index | prev log term | leader commit | entries size | entries        |
+|--------|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|----------------|
+| 1 byte | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entries size) |
+
+**entry 格式**
+
+| term    | commit index | method | key length | key                | value length | value                |
+|---------|--------------|--------|------------|--------------------|--------------|----------------------|
+| 4 bytes | 4 bytes      | 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value length) bytes |
+
+#### RaftServer
 
 ### Serializer 部分
 
