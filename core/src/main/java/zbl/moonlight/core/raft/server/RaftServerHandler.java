@@ -70,18 +70,86 @@ public class RaftServerHandler implements SocketServerHandler {
         }
 
         sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
-        return;
     }
 
     private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) {
+        String host = getString(buffer);
+        int port = buffer.getInt();
+        ServerNode leader = new ServerNode(host, port);
+        int term = buffer.getInt();
+        int prevLogIndex = buffer.getInt();
+        int prevLogTerm = buffer.getInt();
+        int leaderCommit = buffer.getInt();
+        Entry[] entries = getEntries(buffer);
+
+        int currentTerm = raftState.currentTerm();
+        Entry leaderPrevEntry = raftState.getEntryByCommitIndex(prevLogIndex);
+
+        if(term < currentTerm) {
+            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            return;
+        } else if(term > currentTerm) {
+            raftState.setCurrentTerm(term);
+            raftState.setRaftRole(RaftRole.Follower);
+        }
+
+        if(leaderPrevEntry == null) {
+            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            return;
+        }
+
+        if(leaderPrevEntry.term() != prevLogTerm) {
+            raftState.resetLogCursor(prevLogIndex);
+            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            return;
+        }
+
+        raftState.append(entries);
+        sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
+
+        if(leaderCommit > raftState.commitIndex()) {
+            Entry lastEntry = raftState.lastEntry();
+            raftState.setCommitIndex(Math.min(leaderCommit, lastEntry.commitIndex()));
+        }
+
+        if(raftState.commitIndex() > raftState.lastApplied()) {
+            raftState.apply(raftState.getEntriesByRange(raftState.lastApplied(),
+                    raftState.commitIndex()));
+        }
     }
 
-    private String getString(ByteBuffer buffer) {
+    private byte[] getBytes(ByteBuffer buffer) {
         int len = buffer.getInt();
         byte[] bytes = new byte[len];
         buffer.get(bytes);
-        return new String(bytes);
+        return bytes;
     }
+
+    private String getString(ByteBuffer buffer) {
+        return new String(getBytes(buffer));
+    }
+
+    private Entry[] getEntries(ByteBuffer buffer) {
+        int size = buffer.getInt();
+        Entry[] entries = new Entry[size];
+
+        for (int i = 0; i < size; i++) {
+            entries[i] = getEntry(buffer);
+        }
+
+        return entries;
+    }
+
+    private Entry getEntry(ByteBuffer buffer) {
+        int term = buffer.getInt();
+        int commitIndex = buffer.getInt();
+        byte method = buffer.get();
+        byte[] key = getBytes(buffer);
+        byte[] value = getBytes(buffer);
+
+        return new Entry(term, commitIndex, method, key, value);
+    }
+
 
     private void sendResult(SelectionKey selectionKey, RaftResult result) {
         SocketResponse response = new SocketResponse(selectionKey, result.toBytes());

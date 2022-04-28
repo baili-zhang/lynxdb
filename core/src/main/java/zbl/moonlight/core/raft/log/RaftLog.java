@@ -25,11 +25,27 @@ public class RaftLog {
         dataFile = new EnhanceFile(dataFilePath);
     }
 
-    public void append(Entry entry) {
+    public void append(Entry[] entries) {
 
     }
 
     public Entry lastEntry() {
+        return null;
+    }
+
+    public Entry getEntryByCommitIndex(int commitIndex) {
+        return null;
+    }
+
+    /**
+     * 重设游标到 index 位置，相当于删除掉 index 位置及以后的日志条目
+     * @param index
+     */
+    public void resetLogCursor(int index) {
+
+    }
+
+    public Entry[] getEntriesByRange(int begin, int end) {
         return null;
     }
 }

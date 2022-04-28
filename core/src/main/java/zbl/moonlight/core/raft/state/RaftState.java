@@ -22,6 +22,18 @@ public class RaftState {
     public Entry lastEntry() {
         return raftLog.lastEntry();
     }
+    public Entry getEntryByCommitIndex(int commitIndex) {
+        return raftLog.getEntryByCommitIndex(commitIndex);
+    }
+    public void resetLogCursor(int index) {
+        raftLog.resetLogCursor(index);
+    }
+    public void append(Entry[] entries) {
+        raftLog.append(entries);
+    }
+    public Entry[] getEntriesByRange(int begin, int end) {
+        return raftLog.getEntriesByRange(begin, end);
+    }
     private final TermLog termLog = new TermLog();
     public int currentTerm() {
         return termLog.currentTerm();
@@ -38,6 +50,9 @@ public class RaftState {
 
     public int commitIndex() {
         return commitIndex.get();
+    }
+    public void setCommitIndex(int index) {
+        commitIndex.set(index);
     }
     public int lastApplied() {
         return lastApplied.get();
