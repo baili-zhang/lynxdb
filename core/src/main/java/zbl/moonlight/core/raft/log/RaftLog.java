@@ -96,8 +96,7 @@ public class RaftLog {
     }
 
     /**
-     * 获取 commitIndex 在闭区间 [begin, end] 上的所有日志条目
-     *
+     * 获取 commitIndex 在前开后闭区间 (begin, end] 上的所有日志条目
      * @param begin 开始位置
      * @param end 结束位置
      * @return 区间中的所有日志条目
@@ -105,10 +104,10 @@ public class RaftLog {
      */
     public Entry[] getEntriesByRange(int begin, int end) throws IOException {
         assert end > begin && begin > 0;
-        Entry[] entries = new Entry[end - begin + 1];
+        Entry[] entries = new Entry[end - begin];
 
         for (int i = 0; i < entries.length; i++) {
-            entries[i] = getEntryByCommitIndex(begin + i);
+            entries[i] = getEntryByCommitIndex(begin + i + 1);
         }
 
         return entries;

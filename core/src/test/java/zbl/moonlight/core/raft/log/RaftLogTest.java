@@ -86,8 +86,8 @@ class RaftLogTest {
     @Test
     void getEntriesByRange() throws IOException {
         Entry[] entries = raftLog.getEntriesByRange(1, 20);
-        assert entries.length == 20;
-        assert entries[0].term() == 1;
-        assert entries[19].term() == 20;
+        assert entries.length == 19;
+        assert entries[0].term() == 2;
+        assert entries[18].term() == 20;
     }
 }
