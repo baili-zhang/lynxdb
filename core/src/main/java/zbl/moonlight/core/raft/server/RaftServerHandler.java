@@ -1,13 +1,15 @@
 package zbl.moonlight.core.raft.server;
 
+import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RaftRequest;
-import zbl.moonlight.core.raft.result.RaftResult;
+import zbl.moonlight.core.raft.response.RaftResult;
 import zbl.moonlight.core.raft.state.Appliable;
 import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
+import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
@@ -19,10 +21,13 @@ import java.nio.channels.SelectionKey;
 public class RaftServerHandler implements SocketServerHandler {
     private final RaftState raftState;
     private final SocketServer socketServer;
+    private final RaftClient raftClient;
 
-    public RaftServerHandler(SocketServer server, Appliable stateMachine) throws IOException {
+    public RaftServerHandler(SocketServer server, Appliable stateMachine,
+                             RaftClient client) throws IOException {
         socketServer = server;
         raftState = new RaftState(stateMachine);
+        raftClient = client;
     }
 
     @Override
@@ -45,6 +50,9 @@ public class RaftServerHandler implements SocketServerHandler {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+            case RaftRequest.CLIENT_REQUEST -> {
+                handleClientRequest(request.selectionKey(), buffer);
             }
         }
     }
@@ -128,6 +136,26 @@ public class RaftServerHandler implements SocketServerHandler {
             raftState.apply(raftState.getEntriesByRange(raftState.lastApplied(),
                     raftState.commitIndex()));
         }
+    }
+
+    private void handleClientRequest(SelectionKey selectionKey, ByteBuffer buffer) {
+        switch (raftState.raftRole()) {
+            case Leader -> {
+
+            }
+
+            case Follower -> {
+
+            }
+
+            case Candidate -> {
+
+            }
+        }
+
+        byte status = SocketState.STAY_CONNECTED_FLAG | SocketState.BROADCAST_FLAG;
+        SocketRequest request = SocketRequest.newBroadcastRequest(status, null);
+        raftClient.offer(request);
     }
 
     private byte[] getBytes(ByteBuffer buffer) {

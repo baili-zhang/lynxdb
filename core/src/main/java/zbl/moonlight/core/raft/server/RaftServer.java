@@ -1,9 +1,8 @@
 package zbl.moonlight.core.raft.server;
 
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.result.RaftResult;
+import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.state.Appliable;
-import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
@@ -16,7 +15,8 @@ public class RaftServer {
 
     RaftServer(Appliable stateMachine) throws IOException {
         socketServer = new SocketServer(new SocketServerConfig(DEFAULT_RAFT_PORT));
-        socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine));
+        RaftClient raftClient = new RaftClient();
+        socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine, raftClient));
     }
 
     public void start() {

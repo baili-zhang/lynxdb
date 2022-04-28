@@ -17,6 +17,9 @@ public class RaftState {
 
     @Setter
     private volatile RaftRole raftRole = RaftRole.Follower;
+    public RaftRole raftRole() {
+        return raftRole;
+    }
 
     private final RaftLog raftLog = new RaftLog();
     public Entry lastEntry() throws IOException {

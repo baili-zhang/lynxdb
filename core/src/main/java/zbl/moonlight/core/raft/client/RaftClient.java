@@ -1,6 +1,10 @@
 package zbl.moonlight.core.raft.client;
 
-import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.socket.client.SocketClient;
 
-public class RaftClient {
+import java.io.IOException;
+
+public class RaftClient extends SocketClient {
+    public RaftClient() throws IOException {
+    }
 }
