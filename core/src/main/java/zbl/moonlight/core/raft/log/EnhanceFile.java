@@ -9,23 +9,32 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class EnhanceFile {
     private static final Logger logger = LogManager.getLogger("EnhanceFile");
 
+    private final File file;
+
     private final FileChannel input;
     private final FileChannel output;
 
-    public EnhanceFile(String filePath) throws IOException {
-        Path path = Path.of(filePath);
-        File file = path.toFile();
-        if(file.createNewFile()) {
+    private final FileInputStream inputStream;
+    private final FileOutputStream outputStream;
+
+    public EnhanceFile(String dirname, String filename) throws IOException {
+        Path dirPath = Path.of(dirname);
+        Files.createDirectories(dirPath);
+
+        Path filePath = Path.of(dirname, filename);
+        file = filePath.toFile();
+        if(!file.exists() && file.createNewFile()) {
             logger.info("Create new file: {}", filePath);
         }
 
-        FileInputStream inputStream = new FileInputStream(file);
-        FileOutputStream outputStream = new FileOutputStream(file, true);
+        inputStream = new FileInputStream(file);
+        outputStream = new FileOutputStream(file, true);
 
         input = inputStream.getChannel();
         output = outputStream.getChannel();
@@ -37,5 +46,11 @@ public class EnhanceFile {
 
     public void write(ByteBuffer src, long position) throws IOException {
         output.write(src, position);
+    }
+
+    public boolean delete() throws IOException {
+        inputStream.close();
+        outputStream.close();
+        return file.delete();
     }
 }

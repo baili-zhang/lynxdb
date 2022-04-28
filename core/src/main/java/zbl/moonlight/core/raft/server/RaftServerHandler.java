@@ -32,12 +32,24 @@ public class RaftServerHandler implements SocketServerHandler {
         byte method = buffer.get();
 
         switch (method) {
-            case RaftRequest.REQUEST_VOTE -> handleRequestVoteRpc(request.selectionKey(), buffer);
-            case RaftRequest.APPEND_ENTRIES -> handleAppendEntriesRpc(request.selectionKey(), buffer);
+            case RaftRequest.REQUEST_VOTE -> {
+                try {
+                    handleRequestVoteRpc(request.selectionKey(), buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            case RaftRequest.APPEND_ENTRIES -> {
+                try {
+                    handleAppendEntriesRpc(request.selectionKey(), buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
-    private void handleRequestVoteRpc(SelectionKey selectionKey, ByteBuffer buffer) {
+    private void handleRequestVoteRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
         String host = getString(buffer);
         int port = buffer.getInt();
         ServerNode candidate = new ServerNode(host, port);
@@ -72,7 +84,7 @@ public class RaftServerHandler implements SocketServerHandler {
         sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
     }
 
-    private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) {
+    private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
         String host = getString(buffer);
         int port = buffer.getInt();
         ServerNode leader = new ServerNode(host, port);

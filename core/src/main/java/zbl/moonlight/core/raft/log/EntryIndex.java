@@ -12,8 +12,10 @@ public record EntryIndex(
 ) {
     public static final int ENTRY_INDEX_LENGTH = 16;
 
-    public static Entry fromBytes(byte[] bytes) {
-        return null;
+    public static EntryIndex fromBytes(byte[] bytes) {
+        assert bytes.length == ENTRY_INDEX_LENGTH;
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        return new EntryIndex(buffer.getInt(), buffer.getInt(), buffer.getInt(), buffer.getInt());
     }
 
     public byte[] toBytes() {

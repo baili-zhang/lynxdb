@@ -3,6 +3,9 @@ build/
 bin/
 */target/
 
+# temp file
+core/temp/
+
 # idea
 .idea/
 
@@ -10,6 +13,7 @@ bin/
 *.class
 
 # Log file
+core/logs/
 server/logs/
 *.log
 

@@ -19,19 +19,19 @@ public class RaftState {
     private volatile RaftRole raftRole = RaftRole.Follower;
 
     private final RaftLog raftLog = new RaftLog();
-    public Entry lastEntry() {
+    public Entry lastEntry() throws IOException {
         return raftLog.lastEntry();
     }
-    public Entry getEntryByCommitIndex(int commitIndex) {
+    public Entry getEntryByCommitIndex(int commitIndex) throws IOException {
         return raftLog.getEntryByCommitIndex(commitIndex);
     }
-    public void resetLogCursor(int index) {
+    public void resetLogCursor(int index) throws IOException {
         raftLog.resetLogCursor(index);
     }
-    public void append(Entry[] entries) {
+    public void append(Entry[] entries) throws IOException {
         raftLog.append(entries);
     }
-    public Entry[] getEntriesByRange(int begin, int end) {
+    public Entry[] getEntriesByRange(int begin, int end) throws IOException {
         return raftLog.getEntriesByRange(begin, end);
     }
     private final TermLog termLog = new TermLog();
