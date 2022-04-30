@@ -74,7 +74,7 @@ public class RaftLog {
      * @param entry 尾部添加的的日志条目
      * @throws IOException IO异常
      */
-    private synchronized void append(Entry entry) throws IOException {
+    public synchronized void append(Entry entry) throws IOException {
         /* 找上一个日志 entry，并得到数据文件写入的 offset */
         int maxIndexValue = getMaxIndexValue(), dataOffset = 0;
         if(maxIndexValue != 0) {

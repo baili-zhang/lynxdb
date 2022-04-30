@@ -119,11 +119,19 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 ### Raft 部分
 
-#### Socket 请求体格式
+#### Socket 请求和响应格式
+
+**请求格式**
 
 | request type | raft request body |
 |--------------|-------------------|
 | 1 byte       | any bytes         |
+
+**响应格式**
+
+| response status | raft response body |
+|-----------------|--------------------|
+| 1 byte          | any bytes          |
 
 **Request type 有哪些：**
 
@@ -146,6 +154,14 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 |-------------|---------------------|---------|---------|----------------|---------------|
 | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       |
 
+**响应格式**
+
+因为 Socket 请求都是做的异步处理，所以在 Raft 协议定义的基础上，还需要返回客户端的 host 和 port。
+
+| term    | host length | host                | port    |
+|---------|-------------|---------------------|---------|
+| 4 bytes | 4 bytes     | (host length) bytes | 4 bytes |
+
 ##### AppendEntries 请求
 
 **请求格式**
@@ -154,19 +170,33 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 |-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|---------------------|-----|
 | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entry length size) | ... |
 
-**entry 格式**
+*entry 格式*
 
 | term    | command   |
 |---------|-----------|
 | 4 bytes | any bytes |
 
+**响应格式**
+
+因为 Socket 请求都是做的异步处理，所以在 Raft 协议定义的基础上，还需要返回客户端的 host 和 port，如果请求成功的话，还需要返回 matchIndex。
+
+| host length | host                | port    | matchIndex |
+|-------------|---------------------|---------|------------|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes    |
+
 #### ClientRequest 请求
 
-**格式**
+**请求格式**
 
 | command     |
 |-------------|
 | (any) bytes |
+
+**响应格式**
+
+| command result |
+|----------------|
+| (any) bytes    |
 
 基于解耦的处理，Raft 模块不做 ClientRequest 请求的解析，将 ClientRequest 的解析操作交给 `RaftClientRequestHandler` 接口处理。
 

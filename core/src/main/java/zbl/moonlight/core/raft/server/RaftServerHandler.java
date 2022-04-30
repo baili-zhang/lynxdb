@@ -21,6 +21,7 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final RaftState raftState;
@@ -28,9 +29,9 @@ public class RaftServerHandler implements SocketServerHandler {
     private final RaftClient raftClient;
 
     public RaftServerHandler(SocketServer server, Appliable stateMachine,
-                             RaftClient client, ServerNode currentNode) throws IOException {
+                             RaftClient client, RaftState state) throws IOException {
         socketServer = server;
-        raftState = new RaftState(stateMachine, currentNode);
+        raftState = state;
         raftClient = client;
     }
 
@@ -156,21 +157,21 @@ public class RaftServerHandler implements SocketServerHandler {
             /* leader 获取到客户端请求，
             需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
             case Leader -> {
-                Entry[] entries = new Entry[]{new Entry(raftState.currentTerm(), command)};
-
-
-                /* 创建 AppendEntries 请求 */
-                AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
-                        raftState.currentTerm(), raftState.lastEntryIndex(), lastEntry.term(),
-                        raftState.commitIndex(), entries);
-
-                /* 将 entries 添加到 RaftLog 中 */
-                raftState.append(entries);
-
-                /* 将请求发送到其他节点 */
-                SocketRequest request = SocketRequest
-                        .newBroadcastRequest(appendEntries.toBytes());
-                raftClient.offer(request);
+                raftState.append(new Entry(raftState.currentTerm(), command));
+                ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
+                for(ServerNode node : nextIndex.keySet()) {
+                    int index = nextIndex.get(node);
+                    Entry lastEntry = raftState.getEntryByIndex(index);
+                    Entry[] entries = raftState.getEntriesByRange(index, raftState.lastEntryIndex());
+                    /* 创建 AppendEntries 请求 */
+                    AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
+                            raftState.currentTerm(), index, lastEntry.term(),
+                            raftState.commitIndex(), entries);
+                    /* 将请求发送到其他节点 */
+                    SocketRequest request = SocketRequest
+                            .newUnicastRequest(appendEntries.toBytes(), node);
+                    raftClient.offer(request);
+                }
             }
 
             /* follower 获取到客户端请求，需要将请求重定向给 leader */

@@ -9,7 +9,6 @@ public record RaftResponse(byte status, BytesConvertable data) implements BytesC
     public static final byte APPEND_ENTRIES_FAILURE = (byte) 0x04;
 
     public static final byte CLIENT_REQUEST_FAILURE = (byte) 0x05;
-    public static final byte REDIRECT_TO_LEADER = (byte) 0x06;
 
     @Override
     public byte[] toBytes() {
