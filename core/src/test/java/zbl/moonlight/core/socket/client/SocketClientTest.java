@@ -84,7 +84,6 @@ class SocketClientTest {
         latch.await();
 
         byte[] data = requestBody.getBytes(StandardCharsets.UTF_8);
-        byte status = SocketState.STAY_CONNECTED_FLAG | SocketState.BROADCAST_FLAG;
-        client.offerInterruptibly(SocketRequest.newBroadcastRequest(status, data));
+        client.offerInterruptibly(SocketRequest.newBroadcastRequest(data));
     }
 }

@@ -142,23 +142,23 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 **请求格式**
 
-| method | host length | host                | port    | term    | last log index | last log term |
-|--------|-------------|---------------------|---------|---------|----------------|---------------|
-| 1 byte | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       |
+| host length | host                | port    | term    | last log index | last log term |
+|-------------|---------------------|---------|---------|----------------|---------------|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       |
 
 ##### AppendEntries 请求
 
 **请求格式**
 
-| method | host length | host                | port    | term    | prev log index | prev log term | leader commit | entries size | entries        |
-|--------|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|----------------|
-| 1 byte | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entries size) |
+| host length | host                | port    | term    | prev log index | prev log term | leader commit | entries size | entries        |
+|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|----------------|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entries size) |
 
 **entry 格式**
 
-| term    | commit index | method | key length | key                | value length | value                |
-|---------|--------------|--------|------------|--------------------|--------------|----------------------|
-| 4 bytes | 4 bytes      | 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value length) bytes |
+| term    | command   |
+|---------|-----------|
+| 4 bytes | any bytes |
 
 #### ClientRequest 请求
 

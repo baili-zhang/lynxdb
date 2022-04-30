@@ -2,13 +2,14 @@ package zbl.moonlight.core.raft.response;
 
 import java.nio.ByteBuffer;
 
-public record Response (byte status, BytesConvertable data) implements BytesConvertable {
+public record RaftResponse(byte status, BytesConvertable data) implements BytesConvertable {
     public static final byte REQUEST_VOTE_SUCCESS = (byte) 0x01;
     public static final byte REQUEST_VOTE_FAILURE = (byte) 0x02;
     public static final byte APPEND_ENTRIES_SUCCESS = (byte) 0x03;
     public static final byte APPEND_ENTRIES_FAILURE = (byte) 0x04;
 
     public static final byte CLIENT_REQUEST_FAILURE = (byte) 0x05;
+    public static final byte REDIRECT_TO_LEADER = (byte) 0x06;
 
     @Override
     public byte[] toBytes() {

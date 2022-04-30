@@ -11,8 +11,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RaftState {
-    public RaftState(Appliable appliable) throws IOException {
+    public RaftState(Appliable appliable, ServerNode node) throws IOException {
         stateMachine = appliable;
+        currentNode = node;
+    }
+
+    private final ServerNode currentNode;
+    public ServerNode currentNode() {
+        return currentNode;
+    }
+
+    @Setter
+    private volatile ServerNode leaderNode;
+    public ServerNode leaderNode() {
+        return leaderNode;
     }
 
     @Setter

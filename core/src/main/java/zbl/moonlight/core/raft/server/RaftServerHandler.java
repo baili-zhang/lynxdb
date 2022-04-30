@@ -1,8 +1,12 @@
 package zbl.moonlight.core.raft.server;
 
 import zbl.moonlight.core.raft.client.RaftClient;
+import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RaftRequest;
+import zbl.moonlight.core.raft.response.BytesConvertable;
+import zbl.moonlight.core.raft.response.ClientResult;
+import zbl.moonlight.core.raft.response.RaftResponse;
 import zbl.moonlight.core.raft.response.RaftResult;
 import zbl.moonlight.core.raft.state.Appliable;
 import zbl.moonlight.core.raft.state.RaftRole;
@@ -24,9 +28,9 @@ public class RaftServerHandler implements SocketServerHandler {
     private final RaftClient raftClient;
 
     public RaftServerHandler(SocketServer server, Appliable stateMachine,
-                             RaftClient client) throws IOException {
+                             RaftClient client, ServerNode currentNode) throws IOException {
         socketServer = server;
-        raftState = new RaftState(stateMachine);
+        raftState = new RaftState(stateMachine, currentNode);
         raftClient = client;
     }
 
@@ -52,7 +56,11 @@ public class RaftServerHandler implements SocketServerHandler {
                 }
             }
             case RaftRequest.CLIENT_REQUEST -> {
-                handleClientRequest(request.selectionKey(), buffer);
+                try {
+                    handleClientRequest(request.selectionKey(), buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -70,7 +78,7 @@ public class RaftServerHandler implements SocketServerHandler {
         ServerNode voteFor = raftState.voteFor();
 
         if(term < currentTerm) {
-            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            sendResult(selectionKey, RaftResponse.REQUEST_VOTE_FAILURE, currentTerm);
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
@@ -79,17 +87,17 @@ public class RaftServerHandler implements SocketServerHandler {
 
         if (voteFor == null || voteFor.equals(candidate)) {
             if(lastLogTerm > lastEntry.term()) {
-                sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
+                sendResult(selectionKey, RaftResponse.REQUEST_VOTE_SUCCESS, currentTerm);
                 return;
             } else if (lastLogTerm == lastEntry.term()) {
                 if(lastLogIndex >= raftState.lastEntryIndex()) {
-                    sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
+                    sendResult(selectionKey, RaftResponse.REQUEST_VOTE_SUCCESS, currentTerm);
                     return;
                 }
             }
         }
 
-        sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+        sendResult(selectionKey, RaftResponse.REQUEST_VOTE_FAILURE, currentTerm);
     }
 
     private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
@@ -106,29 +114,29 @@ public class RaftServerHandler implements SocketServerHandler {
         Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
 
         if(term < currentTerm) {
-            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
             raftState.setRaftRole(RaftRole.Follower);
+            raftState.setLeaderNode(leader);
         }
 
         if(leaderPrevEntry == null) {
-            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
             return;
         }
 
         if(leaderPrevEntry.term() != prevLogTerm) {
             raftState.setMaxIndex(prevLogIndex);
-            sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
+            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
             return;
         }
 
         raftState.append(entries);
-        sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
+        sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_SUCCESS, currentTerm);
 
         if(leaderCommit > raftState.commitIndex()) {
-            Entry lastEntry = raftState.lastEntry();
             raftState.setCommitIndex(Math.min(leaderCommit, raftState.lastEntryIndex()));
         }
 
@@ -138,24 +146,50 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handleClientRequest(SelectionKey selectionKey, ByteBuffer buffer) {
+    private void handleClientRequest(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
+        /* 把 buffer 中没读到的字节数全部拿出来 */
+        int len = buffer.limit() - buffer.position();
+        byte[] command = new byte[len];
+        buffer.get(command);
+
         switch (raftState.raftRole()) {
+            /* leader 获取到客户端请求，
+            需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
             case Leader -> {
+                Entry[] entries = new Entry[]{new Entry(raftState.currentTerm(), command)};
 
+
+                /* 创建 AppendEntries 请求 */
+                AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
+                        raftState.currentTerm(), raftState.lastEntryIndex(), lastEntry.term(),
+                        raftState.commitIndex(), entries);
+
+                /* 将 entries 添加到 RaftLog 中 */
+                raftState.append(entries);
+
+                /* 将请求发送到其他节点 */
+                SocketRequest request = SocketRequest
+                        .newBroadcastRequest(appendEntries.toBytes());
+                raftClient.offer(request);
             }
 
+            /* follower 获取到客户端请求，需要将请求重定向给 leader */
             case Follower -> {
-
+                if(raftState.leaderNode() == null) {
+                    sendResult(selectionKey, RaftResponse.CLIENT_REQUEST_FAILURE,
+                            new ClientResult(new byte[0]));
+                } else {
+                    SocketRequest request = SocketRequest
+                            .newUnicastRequest(command, raftState.leaderNode());
+                    raftClient.offer(request);
+                }
             }
 
+            /* candidate 获取到客户端请求，直接拒绝 */
             case Candidate -> {
 
             }
         }
-
-        byte status = SocketState.STAY_CONNECTED_FLAG | SocketState.BROADCAST_FLAG;
-        SocketRequest request = SocketRequest.newBroadcastRequest(status, null);
-        raftClient.offer(request);
     }
 
     private byte[] getBytes(ByteBuffer buffer) {
@@ -189,8 +223,15 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
 
-    private void sendResult(SelectionKey selectionKey, RaftResult result) {
-        SocketResponse response = new SocketResponse(selectionKey, result.toBytes());
+    private void sendResult(SelectionKey selectionKey, byte status, int term) {
+        RaftResponse raftResponse = new RaftResponse(status, new RaftResult(term));
+        SocketResponse response = new SocketResponse(selectionKey, raftResponse.toBytes());
+        socketServer.offer(response);
+    }
+
+    private void sendResult(SelectionKey selectionKey, byte status, BytesConvertable bytesConvertable) {
+        RaftResponse raftResponse = new RaftResponse(status, bytesConvertable);
+        SocketResponse response = new SocketResponse(selectionKey, raftResponse.toBytes());
         socketServer.offer(response);
     }
 }

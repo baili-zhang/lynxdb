@@ -11,7 +11,7 @@ class RaftServerTest {
     void start() throws IOException {
         RaftServer server = new RaftServer((entries) -> {
             // apply entries to state machine
-        });
+        }, null);
         server.start();
     }
 }
