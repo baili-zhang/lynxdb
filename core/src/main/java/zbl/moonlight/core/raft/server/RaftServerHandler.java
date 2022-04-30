@@ -82,7 +82,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
                 return;
             } else if (lastLogTerm == lastEntry.term()) {
-                if(lastLogIndex >= lastEntry.commitIndex()) {
+                if(lastLogIndex >= raftState.lastEntryIndex()) {
                     sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.SUCCESS));
                     return;
                 }
@@ -103,7 +103,7 @@ public class RaftServerHandler implements SocketServerHandler {
         Entry[] entries = getEntries(buffer);
 
         int currentTerm = raftState.currentTerm();
-        Entry leaderPrevEntry = raftState.getEntryByCommitIndex(prevLogIndex);
+        Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
 
         if(term < currentTerm) {
             sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
@@ -119,7 +119,7 @@ public class RaftServerHandler implements SocketServerHandler {
         }
 
         if(leaderPrevEntry.term() != prevLogTerm) {
-            raftState.resetLogCursor(prevLogIndex);
+            raftState.setMaxIndex(prevLogIndex);
             sendResult(selectionKey, new RaftResult(currentTerm, RaftResult.FAILURE));
             return;
         }
@@ -129,7 +129,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
         if(leaderCommit > raftState.commitIndex()) {
             Entry lastEntry = raftState.lastEntry();
-            raftState.setCommitIndex(Math.min(leaderCommit, lastEntry.commitIndex()));
+            raftState.setCommitIndex(Math.min(leaderCommit, raftState.lastEntryIndex()));
         }
 
         if(raftState.commitIndex() > raftState.lastApplied()) {
@@ -172,7 +172,6 @@ public class RaftServerHandler implements SocketServerHandler {
     private Entry[] getEntries(ByteBuffer buffer) {
         int size = buffer.getInt();
         Entry[] entries = new Entry[size];
-
         for (int i = 0; i < size; i++) {
             entries[i] = getEntry(buffer);
         }
@@ -182,12 +181,11 @@ public class RaftServerHandler implements SocketServerHandler {
 
     private Entry getEntry(ByteBuffer buffer) {
         int term = buffer.getInt();
-        int commitIndex = buffer.getInt();
-        byte method = buffer.get();
-        byte[] key = getBytes(buffer);
-        byte[] value = getBytes(buffer);
+        int len = buffer.limit() - buffer.position();
+        byte[] command = new byte[len];
+        buffer.get(command);
 
-        return new Entry(term, commitIndex, method, key, value);
+        return new Entry(term, command);
     }
 
 

@@ -3,6 +3,7 @@ package zbl.moonlight.core.raft.log;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,5 +34,19 @@ class EnhanceFileTest {
         ByteBuffer buffer = ByteBuffer.allocate(5);
         file.read(buffer, 6);
         assert new String(buffer.array()).equals("world");
+    }
+
+    @Test
+    void length() throws IOException {
+        ByteBuffer intBuffer = ByteBufferUtils.intByteBuffer().putInt(30).rewind();
+        assert file.length() == 0;
+        file.write(intBuffer, 0);
+        assert file.length() == 4;
+
+        /* "hallo" 在 utf-8 编码下占五个字节 */
+        byte[] data = "hallo".getBytes(StandardCharsets.UTF_8);
+        ByteBuffer stringBuffer = ByteBuffer.wrap(data).rewind();
+        file.write(stringBuffer, 0);
+        assert file.length() == 5;
     }
 }

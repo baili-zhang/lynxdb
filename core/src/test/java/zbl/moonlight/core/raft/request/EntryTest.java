@@ -13,24 +13,17 @@ class EntryTest {
     @Test
     void fromBytes() {
         int term = 2;
-        int commitIndex = 4;
-        byte method = RaftRequest.REQUEST_VOTE;
-        byte[] key = "key".getBytes(StandardCharsets.UTF_8);
-        byte[] value = "value".getBytes(StandardCharsets.UTF_8);
+        byte[] command = "command".getBytes(StandardCharsets.UTF_8);
 
-        int len = NumberUtils.INT_LENGTH * 4 + NumberUtils.BYTE_LENGTH + key.length + value.length;
+        int len = NumberUtils.INT_LENGTH + command.length;
         ByteBuffer buffer = ByteBuffer.allocate(len);
-        buffer.putInt(term).putInt(commitIndex).put(method).putInt(key.length)
-                .put(key).putInt(value.length).put(value);
+        buffer.putInt(term).put(command);
         byte[] bytes = buffer.array();
 
         Entry entry = Entry.fromBytes(bytes);
 
         assert entry.term() == term;
-        assert entry.commitIndex() == commitIndex;
-        assert entry.method() == method;
-        assert new String(entry.key()).equals("key");
-        assert new String(entry.value()).equals("value");
+        assert new String(entry.command()).equals("command");
     }
 
     @Test

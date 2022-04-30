@@ -1,5 +1,7 @@
 package zbl.moonlight.core.raft.response;
 
+import java.nio.ByteBuffer;
+
 public record Response (byte status, BytesConvertable data) implements BytesConvertable {
     public static final byte REQUEST_VOTE_SUCCESS = (byte) 0x01;
     public static final byte REQUEST_VOTE_FAILURE = (byte) 0x02;
@@ -10,6 +12,8 @@ public record Response (byte status, BytesConvertable data) implements BytesConv
 
     @Override
     public byte[] toBytes() {
-        return new byte[0];
+        byte[] dataBytes = data.toBytes();
+        ByteBuffer buffer = ByteBuffer.allocate(1 + dataBytes.length);
+        return buffer.put(status).put(dataBytes).array();
     }
 }

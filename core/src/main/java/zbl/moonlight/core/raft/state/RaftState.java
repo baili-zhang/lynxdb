@@ -25,17 +25,20 @@ public class RaftState {
     public Entry lastEntry() throws IOException {
         return raftLog.lastEntry();
     }
-    public Entry getEntryByCommitIndex(int commitIndex) throws IOException {
-        return raftLog.getEntryByCommitIndex(commitIndex);
+    public Entry getEntryByIndex(int commitIndex) throws IOException {
+        return raftLog.getEntryByIndex(commitIndex);
     }
-    public void resetLogCursor(int index) throws IOException {
-        raftLog.resetLogCursor(index);
+    public void setMaxIndex(int index) throws IOException {
+        raftLog.setMaxIndex(index);
     }
     public void append(Entry[] entries) throws IOException {
         raftLog.append(entries);
     }
     public Entry[] getEntriesByRange(int begin, int end) throws IOException {
         return raftLog.getEntriesByRange(begin, end);
+    }
+    public int lastEntryIndex() {
+        return 0;
     }
     private final TermLog termLog = new TermLog();
     public int currentTerm() {

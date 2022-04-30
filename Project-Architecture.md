@@ -119,6 +119,18 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 ### Raft 部分
 
+#### Socket 请求体格式
+
+| request type | raft request body |
+|--------------|-------------------|
+| 1 byte       | any bytes         |
+
+**Request type 有哪些：**
+
+- RequestVote：Raft 协议定义的“请求投票”请求
+- AppendEntries：Raft 协议定义的“尾部添加日志”请求
+- ClientRequest：客户端请求
+
 #### Raft RPC 请求
 
 - RequestVote 请求
@@ -147,6 +159,20 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 | term    | commit index | method | key length | key                | value length | value                |
 |---------|--------------|--------|------------|--------------------|--------------|----------------------|
 | 4 bytes | 4 bytes      | 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value length) bytes |
+
+#### ClientRequest 请求
+
+**格式**
+
+| command     |
+|-------------|
+| (any) bytes |
+
+基于解耦的处理，Raft 模块不做 ClientRequest 请求的解析，将 ClientRequest 的解析操作交给 `RaftClientRequestHandler` 接口处理。
+
+并且 RaftLog 也只对 ClientRequest 的内容做存储操作，并不做解析处理，解析操作留给具体的业务逻辑实现。
+
+
 
 #### RaftServer
 

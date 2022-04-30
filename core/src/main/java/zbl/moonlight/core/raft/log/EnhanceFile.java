@@ -53,4 +53,8 @@ public class EnhanceFile {
         outputStream.close();
         return file.delete();
     }
+
+    public long length() {
+        return file.length();
+    }
 }
