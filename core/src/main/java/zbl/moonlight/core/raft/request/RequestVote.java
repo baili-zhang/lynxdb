@@ -1,6 +1,11 @@
 package zbl.moonlight.core.raft.request;
 
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.utils.ByteBufferUtils;
+import zbl.moonlight.core.utils.NumberUtils;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class RequestVote extends RaftRequest {
     private final ServerNode candidate;
@@ -19,7 +24,9 @@ public class RequestVote extends RaftRequest {
 
     @Override
     public byte[] toBytes() {
-
-        return new byte[0];
+        byte[] host = candidate.host().getBytes(StandardCharsets.UTF_8);
+        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 5 + host.length);
+        return buffer.putInt(host.length).put(host).putInt(candidate.port()).putInt(term)
+                .putInt(lastLogIndex).putInt(lastLogTerm).array();
     }
 }

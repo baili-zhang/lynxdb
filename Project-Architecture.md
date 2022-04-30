@@ -150,9 +150,9 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 **请求格式**
 
-| host length | host                | port    | term    | prev log index | prev log term | leader commit | entries size | entries        |
-|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|----------------|
-| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entries size) |
+| host length | host                | port    | term    | prev log index | prev log term | leader commit | entry length | entry               | ... |
+|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|---------------------|-----|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entry length size) | ... |
 
 **entry 格式**
 
