@@ -109,6 +109,9 @@ public class SocketClient extends Executor<SocketRequest> {
 
                 sync.await();
 
+                /* sync.await() 后执行一些自定义的操作 */
+                handler.handleAfterLatchAwait();
+
                 SocketRequest request = poll();
                 while (request != null) {
                     /* 如果是广播，则发送给所有已连接的服务器 */

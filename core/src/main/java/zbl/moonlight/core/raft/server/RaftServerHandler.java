@@ -52,6 +52,8 @@ public class RaftServerHandler implements SocketServerHandler {
             case RaftRequest.APPEND_ENTRIES -> {
                 try {
                     handleAppendEntriesRpc(request.selectionKey(), buffer);
+                    /* 重置选举计时器 */
+                    raftState.resetElectionTime();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -172,6 +174,8 @@ public class RaftServerHandler implements SocketServerHandler {
                             .newUnicastRequest(appendEntries.toBytes(), node);
                     raftClient.offer(request);
                 }
+                /* 发送完 AppendEntries 请求后，需要重置心跳计时器 */
+                raftState.resetHeartbeatTime();
             }
 
             /* follower 获取到客户端请求，需要将请求重定向给 leader */

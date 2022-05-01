@@ -13,14 +13,34 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RaftState {
-    private final List<ServerNode> allNodes;
+    private static final int HEARTBEAT_INTERVAL_MILLIS = 50;
+    private static final int ELECTION_INTERVAL_MILLIS = 200;
 
-    public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes) throws IOException {
+    public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes)
+            throws IOException {
         stateMachine = appliable;
         currentNode = current;
         allNodes = nodes;
     }
 
+    private volatile long heartbeatTimeMillis = System.currentTimeMillis();
+    private volatile long electionTimeMillis = System.currentTimeMillis();
+    public void resetHeartbeatTime() {
+        heartbeatTimeMillis = System.currentTimeMillis();
+    }
+    public void resetElectionTime() {
+        electionTimeMillis = System.currentTimeMillis();
+    }
+    public boolean isHeartbeatTimeout() {
+        return System.currentTimeMillis() - heartbeatTimeMillis
+                > HEARTBEAT_INTERVAL_MILLIS;
+    }
+    public boolean isElectionTimeout() {
+        return System.currentTimeMillis() - electionTimeMillis
+                > ELECTION_INTERVAL_MILLIS;
+    }
+
+    private final List<ServerNode> allNodes;
     private final HashSet<ServerNode> votedNodes = new HashSet<>();
     public void setVotedNodeAndCheck(ServerNode serverNode) {
         synchronized (votedNodes) {

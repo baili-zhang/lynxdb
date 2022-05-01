@@ -13,6 +13,7 @@ import static zbl.moonlight.core.raft.response.RaftResponse.*;
 
 public record RaftClientHandler(RaftState raftState, SocketServer raftServer)
         implements SocketClientHandler {
+    @Override
     public void handleResponse(SocketResponse response) {
         ByteBuffer buffer = ByteBuffer.wrap(response.data());
         byte status = buffer.get();
@@ -36,6 +37,18 @@ public record RaftClientHandler(RaftState raftState, SocketServer raftServer)
                 raftServer.offer(new SocketResponse((SelectionKey) response.attachment(),
                         commandResult, null));
             }
+        }
+    }
+
+    @Override
+    public void handleAfterLatchAwait() {
+        /* 如果心跳超时，则需要发送心跳包 */
+        if(raftState.isHeartbeatTimeout()) {
+
+        }
+        /* 如果选举超时，则需要升级为 Candidate，并向其他节点发送 RequestVote 请求 */
+        if(raftState.isElectionTimeout()) {
+
         }
     }
 
