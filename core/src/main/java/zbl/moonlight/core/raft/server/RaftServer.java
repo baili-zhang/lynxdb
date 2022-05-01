@@ -1,6 +1,7 @@
 package zbl.moonlight.core.raft.server;
 
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.raft.client.Heartbeat;
 import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.client.RaftClientHandler;
 import zbl.moonlight.core.raft.state.Appliable;
@@ -25,6 +26,7 @@ public class RaftServer {
         raftClient.setHandler(new RaftClientHandler(raftState, raftServer));
         raftServer.setHandler(new RaftServerHandler(raftServer, stateMachine,
                 raftClient, raftState));
+        new Thread(new Heartbeat(raftClient), "Heartbeat").start();
     }
 
     public void start(String name) {
