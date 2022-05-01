@@ -54,7 +54,7 @@ class SocketClientTest {
                     byte[] data = request.data();
                     assert new String(data).equals(requestBody);
                     byte[] res = (responsePrefix + node).getBytes(StandardCharsets.UTF_8);
-                    server.offer(new SocketResponse(request.selectionKey(), res));
+                    server.offer(new SocketResponse(request.selectionKey(), res, null));
                 }
             });
             Executor.start(server);

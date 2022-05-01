@@ -41,7 +41,8 @@ class SocketServerTest {
             public void handleRequest(SocketRequest request) {
                 byte[] data = request.data();
                 assert new String(data).equals(req);
-                server.offer(new SocketResponse(request.selectionKey(), res.getBytes(StandardCharsets.UTF_8)));
+                server.offer(new SocketResponse(request.selectionKey(),
+                        res.getBytes(StandardCharsets.UTF_8), null));
             }
         });
 

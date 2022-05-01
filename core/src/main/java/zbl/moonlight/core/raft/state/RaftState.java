@@ -16,11 +16,14 @@ public class RaftState {
     private static final int HEARTBEAT_INTERVAL_MILLIS = 50;
     private static final int ELECTION_INTERVAL_MILLIS = 200;
 
-    public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes)
+    public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes,
+                     String logFilenamePrefix)
             throws IOException {
         stateMachine = appliable;
         currentNode = current;
         allNodes = nodes;
+        raftLog = new RaftLog(logFilenamePrefix + "_index.log",
+                logFilenamePrefix + "_data.log");
     }
 
     private volatile long heartbeatTimeMillis = System.currentTimeMillis();
@@ -79,16 +82,44 @@ public class RaftState {
         return raftRole;
     }
 
-    private final RaftLog raftLog = new RaftLog();
+    /**
+     * Raft 日志
+     */
+    private final RaftLog raftLog;
+
+    /**
+     * 返回 raft 日志的最后一个条目
+     * @return 最后一个条目
+     * @throws IOException IO异常
+     */
     public Entry lastEntry() throws IOException {
         return raftLog.lastEntry();
     }
+
+    /**
+     * 通过索引值获取该索引值处的日志条目
+     * @param index 索引值
+     * @return 日志条目
+     * @throws IOException IO异常
+     */
     public Entry getEntryByIndex(int index) throws IOException {
         return raftLog.getEntryByIndex(index);
     }
+
+    /**
+     * 设置最大的有效日志索引值
+     * @param index 索引值
+     * @throws IOException IO异常
+     */
     public void setMaxIndex(int index) throws IOException {
         raftLog.setMaxIndex(index);
     }
+
+    /**
+     * 将日志条目添加到日志的尾部
+     * @param entry 日志条目
+     * @throws IOException IO异常
+     */
     public void append(Entry entry) throws IOException {
         raftLog.append(entry);
     }

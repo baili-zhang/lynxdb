@@ -31,6 +31,8 @@ public class EnhanceFile {
         file = filePath.toFile();
         if(!file.exists() && file.createNewFile()) {
             logger.info("Create new file: {}", filePath);
+        } else {
+            logger.info("File existed: {}", filePath);
         }
 
         inputStream = new FileInputStream(file);

@@ -10,20 +10,25 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
 import java.io.IOException;
+import java.util.List;
 
 public class RaftServer {
-    private final SocketServer socketServer;
+    private final SocketServer raftServer;
+    private final RaftClient raftClient;
 
-    RaftServer(Appliable stateMachine, ServerNode currentNode) throws IOException {
-        RaftState raftState = new RaftState(stateMachine, currentNode, null);
-        socketServer = new SocketServer(new SocketServerConfig(currentNode.port()));
-        RaftClient raftClient = new RaftClient();
-        raftClient.setHandler(new RaftClientHandler(raftState, socketServer));
-        socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine,
+    public RaftServer(Appliable stateMachine, ServerNode currentNode,
+                      List<ServerNode> nodes, String logFilenamePrefix)
+            throws IOException {
+        RaftState raftState = new RaftState(stateMachine, currentNode, nodes, logFilenamePrefix);
+        raftServer = new SocketServer(new SocketServerConfig(currentNode.port()));
+        raftClient = new RaftClient();
+        raftClient.setHandler(new RaftClientHandler(raftState, raftServer));
+        raftServer.setHandler(new RaftServerHandler(raftServer, stateMachine,
                 raftClient, raftState));
     }
 
-    public void start() {
-        Executor.start(socketServer);
+    public void start(String name) {
+        Executor.start(raftClient, name + "-client");
+        Executor.start(raftServer, name);
     }
 }

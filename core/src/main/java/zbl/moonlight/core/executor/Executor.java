@@ -13,6 +13,10 @@ public abstract class Executor<E> implements Executable<E>, Interruptable {
 
     public static <E> Executor<E> start(Executor<E> executor) {
         String name = executor.getClass().getSimpleName();
+        return start(executor, name);
+    }
+
+    public static <E> Executor<E> start(Executor<E> executor, String name) {
         Thread thread = new Thread(executor, name);
         executor.setThread(thread);
         thread.start();
