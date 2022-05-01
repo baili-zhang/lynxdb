@@ -180,9 +180,17 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 因为 Socket 请求都是做的异步处理，所以在 Raft 协议定义的基础上，还需要返回客户端的 host 和 port，如果请求成功的话，还需要返回 matchIndex。
 
-| host length | host                | port    | matchIndex |
-|-------------|---------------------|---------|------------|
-| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes    |
+*AppendEntries成功的响应格式*
+
+| term    | host length | host                | port    | matchIndex |
+|---------|-------------|---------------------|---------|------------|
+| 4 bytes | 4 bytes     | (host length) bytes | 4 bytes | 4 bytes    |
+
+*AppendEntries失败的响应格式*
+
+| term    | host length | host                | port    |
+|---------|-------------|---------------------|---------|
+| 4 bytes | 4 bytes     | (host length) bytes | 4 bytes |
 
 #### ClientRequest 请求
 
@@ -201,7 +209,6 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 基于解耦的处理，Raft 模块不做 ClientRequest 请求的解析，将 ClientRequest 的解析操作交给 `RaftClientRequestHandler` 接口处理。
 
 并且 RaftLog 也只对 ClientRequest 的内容做存储操作，并不做解析处理，解析操作留给具体的业务逻辑实现。
-
 
 
 #### RaftServer

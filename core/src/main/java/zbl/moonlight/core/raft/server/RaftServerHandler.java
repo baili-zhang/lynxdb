@@ -226,13 +226,16 @@ public class RaftServerHandler implements SocketServerHandler {
 
     private void sendResult(SelectionKey selectionKey, byte status, int term) {
         RaftResponse raftResponse = new RaftResponse(status, new RaftResult(term));
-        SocketResponse response = new SocketResponse(selectionKey, raftResponse.toBytes());
+        SocketResponse response = new SocketResponse(selectionKey,
+                raftResponse.toBytes(), null);
         socketServer.offer(response);
     }
 
-    private void sendResult(SelectionKey selectionKey, byte status, BytesConvertable bytesConvertable) {
+    private void sendResult(SelectionKey selectionKey, byte status,
+                            BytesConvertable bytesConvertable) {
         RaftResponse raftResponse = new RaftResponse(status, bytesConvertable);
-        SocketResponse response = new SocketResponse(selectionKey, raftResponse.toBytes());
+        SocketResponse response = new SocketResponse(selectionKey,
+                raftResponse.toBytes(), null);
         socketServer.offer(response);
     }
 }

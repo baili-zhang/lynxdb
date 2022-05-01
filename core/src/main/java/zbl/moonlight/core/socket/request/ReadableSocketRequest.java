@@ -69,9 +69,9 @@ public class ReadableSocketRequest implements Readable {
         }
 
         if(SocketState.isBroadcast(socketStatus)) {
-            return new SocketRequest(true, socketStatus, data.array(), null, key);
+            return new SocketRequest(true, socketStatus, data.array(), null, key, null);
         } else {
-            return new SocketRequest(false, socketStatus, data.array(), null, key);
+            return new SocketRequest(false, socketStatus, data.array(), null, key, null);
         }
     }
 }

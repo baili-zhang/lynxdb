@@ -18,7 +18,7 @@ public class RaftServer {
         RaftState raftState = new RaftState(stateMachine, currentNode, null);
         socketServer = new SocketServer(new SocketServerConfig(currentNode.port()));
         RaftClient raftClient = new RaftClient();
-        raftClient.setHandler(new RaftClientHandler(raftState));
+        raftClient.setHandler(new RaftClientHandler(raftState, socketServer));
         socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine,
                 raftClient, raftState));
     }

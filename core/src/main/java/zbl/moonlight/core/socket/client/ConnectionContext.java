@@ -16,23 +16,30 @@ public class ConnectionContext {
     private final ConcurrentLinkedQueue<WritableSocketRequest> requests = new ConcurrentLinkedQueue<>();
 
     @Getter
+    private final ConcurrentLinkedQueue<Object> attachments = new ConcurrentLinkedQueue<>();
+    private final Object nullObject = new Object();
+
+    @Getter
     private ReadableSocketResponse response;
 
     public ConnectionContext(SelectionKey key) {
         selectionKey = key;
-        response = new ReadableSocketResponse(key);
     }
 
-    public void replaceResponse() {
-        response = new ReadableSocketResponse(selectionKey);
+    public void newResponse() {
+        Object attachment = attachments.poll();
+        response = new ReadableSocketResponse(selectionKey, attachment == nullObject ? null : attachment);
     }
 
     public void offerRequest(SocketRequest request) {
         requests.offer(new WritableSocketRequest(request, selectionKey));
+        Object attachment = request.attachment();
+        attachments.offer(attachment == null ? nullObject : attachment);
         selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
     }
 
     public WritableSocketRequest peekRequest() {
+        newResponse();
         return requests.peek();
     }
 

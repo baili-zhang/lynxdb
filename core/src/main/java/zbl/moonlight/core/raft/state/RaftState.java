@@ -115,6 +115,21 @@ public class RaftState {
     public ConcurrentHashMap<ServerNode, Integer> matchedIndex() {
         return matchedIndex;
     }
+    public void checkCommitIndex() {
+        int n = (allNodes.size() >> 1) + 1;
+        int lastEntryIndex = lastEntryIndex();
+        for(int i = commitIndex.get() + 1; i < lastEntryIndex; i ++) {
+            int count  = 0;
+            for(ServerNode node : matchedIndex.keySet()) {
+                if(matchedIndex.get(node) > i) {
+                    count ++;
+                }
+            }
+            if(count >= n) {
+                commitIndex.set(i);
+            }
+        }
+    }
 
     private final Appliable stateMachine;
     public void apply(Entry[] entries) {

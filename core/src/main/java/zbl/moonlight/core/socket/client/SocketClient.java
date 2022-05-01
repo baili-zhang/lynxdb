@@ -212,7 +212,6 @@ public class SocketClient extends Executor<SocketRequest> {
 
             if(response.isReadCompleted()) {
                 handler.handleResponse(response.socketResponse());
-                context.replaceResponse();
             }
         }
 
