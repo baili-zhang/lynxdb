@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
-import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
@@ -65,7 +64,7 @@ class SocketClientTest {
         SocketClient client = new SocketClient();
         client.setHandler(new SocketClientHandler() {
             @Override
-            public void handleConnected() {
+            public void handleConnected(ServerNode node) {
                 latch.countDown();
             }
 

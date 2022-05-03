@@ -9,12 +9,14 @@ import zbl.moonlight.core.socket.client.ServerNode;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class RaftState {
-    private static final int HEARTBEAT_INTERVAL_MILLIS = 50;
-    private static final int ELECTION_INTERVAL_MILLIS = 200;
+    private static final int HEARTBEAT_INTERVAL_MILLIS = 1000;
+    private static final int ELECTION_INTERVAL_MILLIS = 5000;
 
     public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes,
                      String logFilenamePrefix)
@@ -22,6 +24,8 @@ public class RaftState {
         stateMachine = appliable;
         currentNode = current;
         allNodes = nodes;
+        otherNodes = allNodes.stream().filter((node) -> !node.equals(currentNode))
+                .toList();
         raftLog = new RaftLog(logFilenamePrefix + "_index.log",
                 logFilenamePrefix + "_data.log");
     }
@@ -44,6 +48,18 @@ public class RaftState {
     }
 
     private final List<ServerNode> allNodes;
+    /**
+     * Raft 集群中的其他节点
+     */
+    private final List<ServerNode> otherNodes;
+
+    /**
+     * 返回 Raft 集群中的其他节点
+     * @return 集群中的其他节点
+     */
+    public List<ServerNode> otherNodes() {
+        return otherNodes;
+    }
     private final HashSet<ServerNode> votedNodes = new HashSet<>();
     public void setVotedNodeAndCheck(ServerNode serverNode) {
         synchronized (votedNodes) {

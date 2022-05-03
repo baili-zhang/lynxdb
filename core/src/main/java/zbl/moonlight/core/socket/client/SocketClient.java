@@ -17,6 +17,7 @@ import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -35,6 +36,7 @@ public class SocketClient extends Executor<SocketRequest> {
     private final ConcurrentHashMap<ServerNode, ConnectionContext> contexts = new ConcurrentHashMap<>();
     private final Selector selector;
     private final ThreadPoolExecutor executor;
+    private final HashSet<ServerNode> connecting = new HashSet<>();
 
     private boolean closed = false;
     @Setter
@@ -65,8 +67,20 @@ public class SocketClient extends Executor<SocketRequest> {
                     node);
         }
 
+        synchronized (connecting) {
+            connecting.add(node);
+        }
+
         /* 中断执行器，不然执行器会在select()阻塞 */
         interrupt();
+    }
+
+    public boolean isConnecting(ServerNode node) {
+        return connecting.contains(node);
+    }
+
+    public boolean isConnected(ServerNode node) {
+        return contexts.containsKey(node);
     }
 
     public void close() {
@@ -119,6 +133,7 @@ public class SocketClient extends Executor<SocketRequest> {
                         for (ServerNode node : contexts.keySet()) {
                             contexts.get(node).offerRequest(request);
                         }
+                        logger.info("Broadcast request to nodes: {}", contexts.keySet());
                     }
                     /* 如果是单播，则发送给指定的服务器 */
                     else if(request.serverNode() != null) {
@@ -193,7 +208,11 @@ public class SocketClient extends Executor<SocketRequest> {
                 contexts.put(node, new ConnectionContext(selectionKey));
                 selectionKey.interestOpsAnd(SelectionKey.OP_READ);
 
-                handler.handleConnected();
+                synchronized (connecting) {
+                    connecting.remove(node);
+                }
+
+                handler.handleConnected(node);
 
                 logger.info("Has connected to socket node {}.", node);
             } catch (ConnectException e) {

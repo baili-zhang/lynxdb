@@ -1,18 +1,32 @@
 package zbl.moonlight.core.raft.client;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.raft.request.Entry;
+import zbl.moonlight.core.raft.request.RequestVote;
+import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
 import static zbl.moonlight.core.raft.response.RaftResponse.*;
 
-public record RaftClientHandler(RaftState raftState, SocketServer raftServer)
-        implements SocketClientHandler {
+public record RaftClientHandler(RaftState raftState,
+                                SocketServer raftServer,
+                                RaftClient raftClient) implements SocketClientHandler {
+    private final static Logger logger = LogManager.getLogger("RaftClientHandler");
+
+    @Override
+    public void handleConnected(ServerNode node) {
+    }
+
     @Override
     public void handleResponse(SocketResponse response) {
         ByteBuffer buffer = ByteBuffer.wrap(response.data());
@@ -43,12 +57,46 @@ public record RaftClientHandler(RaftState raftState, SocketServer raftServer)
     @Override
     public void handleAfterLatchAwait() {
         /* 如果心跳超时，则需要发送心跳包 */
-        if(raftState.isHeartbeatTimeout()) {
-
+        if (raftState.raftRole() == RaftRole.Leader && raftState.isHeartbeatTimeout()) {
+            logger.info("Heartbeat timeout, need to send AppendEntries to other nodes.");
         }
-        /* 如果选举超时，则需要升级为 Candidate，并向其他节点发送 RequestVote 请求 */
-        if(raftState.isElectionTimeout()) {
+        /* 如果选举超时，且当前角色为 Follower，则需要升级为 Candidate */
+        if (raftState.raftRole() == RaftRole.Follower && raftState.isElectionTimeout()) {
+            logger.info("[{}]Election timeout, change to [Candidate].",
+                    raftState.raftRole());
+            raftState.setRaftRole(RaftRole.Candidate);
+        }
+        /* 如果选举超时，且当前角色为 Candidate，则向其他节点发送 RequestVote 请求 */
+        if (raftState.raftRole() == RaftRole.Candidate && raftState.isElectionTimeout()) {
+            logger.info("[{}]Election timeout, Send RequestVote to other nodes.",
+                    raftState.raftRole());
+            Entry lastEntry = null;
+            try {
+                lastEntry = raftState.lastEntry();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
+            int term = 0;
+            if (lastEntry != null) {
+                term = lastEntry.term();
+            }
+
+            byte[] data = new RequestVote(raftState.currentNode(),
+                    raftState.currentTerm(),
+                    raftState.lastEntryIndex(),
+                    term).toBytes();
+            raftClient.offer(SocketRequest.newBroadcastRequest(data));
+        }
+        /* 连接未连接的节点 */
+        for(ServerNode node : raftState.otherNodes()) {
+            if(!raftClient.isConnecting(node) && !raftClient.isConnected(node)) {
+                try {
+                    raftClient.connect(node);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

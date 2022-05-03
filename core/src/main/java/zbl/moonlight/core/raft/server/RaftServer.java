@@ -11,6 +11,7 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 
 public class RaftServer {
@@ -20,17 +21,19 @@ public class RaftServer {
     public RaftServer(Appliable stateMachine, ServerNode currentNode,
                       List<ServerNode> nodes, String logFilenamePrefix)
             throws IOException {
-        RaftState raftState = new RaftState(stateMachine, currentNode, nodes, logFilenamePrefix);
+        RaftState raftState = new RaftState(stateMachine, currentNode, nodes,
+                logFilenamePrefix);
         raftServer = new SocketServer(new SocketServerConfig(currentNode.port()));
         raftClient = new RaftClient();
-        raftClient.setHandler(new RaftClientHandler(raftState, raftServer));
+        raftClient.setHandler(new RaftClientHandler(raftState, raftServer,
+                raftClient));
         raftServer.setHandler(new RaftServerHandler(raftServer, stateMachine,
                 raftClient, raftState));
-        new Thread(new Heartbeat(raftClient), "Heartbeat").start();
     }
 
     public void start(String name) {
         Executor.start(raftClient, name + "-client");
         Executor.start(raftServer, name);
+        new Thread(new Heartbeat(raftClient), "Heartbeat").start();
     }
 }
