@@ -81,10 +81,15 @@ public record RaftClientHandler(RaftState raftState,
                 term = lastEntry.term();
             }
 
-            byte[] data = new RequestVote(raftState.currentNode(),
-                    raftState.currentTerm(),
-                    raftState.lastEntryIndex(),
-                    term).toBytes();
+            byte[] data = new byte[0];
+            try {
+                data = new RequestVote(raftState.currentNode(),
+                        raftState.currentTerm(),
+                        raftState.lastEntryIndex(),
+                        term).toBytes();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             raftClient.offer(SocketRequest.newBroadcastRequest(data));
             /* 重置选举计时器 */
             raftState.resetElectionTime();

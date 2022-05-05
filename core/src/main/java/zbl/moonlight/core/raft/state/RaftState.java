@@ -9,10 +9,8 @@ import zbl.moonlight.core.socket.client.ServerNode;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class RaftState {
     private static final int HEARTBEAT_INTERVAL_MILLIS = 1000;
@@ -28,6 +26,7 @@ public class RaftState {
                 .toList();
         raftLog = new RaftLog(logFilenamePrefix + "_index.log",
                 logFilenamePrefix + "_data.log");
+        termLog = new TermLog(logFilenamePrefix + "_term.log");
     }
 
     private volatile long heartbeatTimeMillis = System.currentTimeMillis();
@@ -148,18 +147,44 @@ public class RaftState {
     public int lastEntryIndex() {
         return 0;
     }
-    private final TermLog termLog = new TermLog();
-    public int currentTerm() {
+
+    /**
+     * 用来记录当前任期和投票给的节点
+     */
+    private final TermLog termLog;
+
+    /**
+     * 返回当前的任期号
+     * @return 当前任期号
+     */
+    public int currentTerm() throws IOException {
         return termLog.currentTerm();
     }
-    public void setCurrentTerm(int term) {
+
+    /**
+     * 设置当前任期号
+     * @param term 任期号
+     */
+    public void setCurrentTerm(int term) throws IOException {
         termLog.setCurrentTerm(term);
     }
-    public ServerNode voteFor() {
+
+    /**
+     * 获取投票给的节点
+     * @return 投票给的节点
+     */
+    public ServerNode voteFor() throws IOException {
         return termLog.voteFor();
     }
 
+    /**
+     * 已提交的日志索引
+     */
     private final AtomicInteger commitIndex = new AtomicInteger(0);
+
+    /**
+     * 应用到状态机的日志索引
+     */
     private final AtomicInteger lastApplied = new AtomicInteger(0);
 
     public int commitIndex() {
@@ -182,6 +207,10 @@ public class RaftState {
     public ConcurrentHashMap<ServerNode, Integer> matchedIndex() {
         return matchedIndex;
     }
+
+    /**
+     * 检查 commitIndex，如果可以增加，则增加 commitIndex
+     */
     public void checkCommitIndex() {
         int n = (allNodes.size() >> 1) + 1;
         int lastEntryIndex = lastEntryIndex();
@@ -199,6 +228,11 @@ public class RaftState {
     }
 
     private final Appliable stateMachine;
+
+    /**
+     * 将日志条目应用到状态机
+     * @param entries 日志条目
+     */
     public void apply(Entry[] entries) {
         stateMachine.apply(entries);
     }
