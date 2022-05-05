@@ -16,7 +16,7 @@ public class RaftServerTest {
     private final List<ServerNode> nodes = new ArrayList<>();
 
     private RaftServerTest prepare() {
-        for(int i = 0; i < 5; i ++) {
+        for(int i = 0; i < 3; i ++) {
             nodes.add(new ServerNode("127.0.0.1", 7820 + i));
         }
         return this;

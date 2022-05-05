@@ -25,8 +25,9 @@ public class RequestVote extends RaftRequest {
     @Override
     public byte[] toBytes() {
         byte[] host = candidate.host().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 5 + host.length);
-        return buffer.putInt(host.length).put(host).putInt(candidate.port()).putInt(term)
+        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 5 + host.length + 1);
+        return buffer.put(RaftRequest.REQUEST_VOTE).putInt(host.length)
+                .put(host).putInt(candidate.port()).putInt(term)
                 .putInt(lastLogIndex).putInt(lastLogTerm).array();
     }
 }

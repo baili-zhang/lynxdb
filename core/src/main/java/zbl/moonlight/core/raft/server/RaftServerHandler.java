@@ -1,5 +1,7 @@
 package zbl.moonlight.core.raft.server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
@@ -7,13 +9,11 @@ import zbl.moonlight.core.raft.request.RaftRequest;
 import zbl.moonlight.core.raft.response.BytesConvertable;
 import zbl.moonlight.core.raft.response.ClientResult;
 import zbl.moonlight.core.raft.response.RaftResponse;
-import zbl.moonlight.core.raft.response.RaftResult;
 import zbl.moonlight.core.raft.state.Appliable;
 import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
-import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
@@ -24,6 +24,8 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RaftServerHandler implements SocketServerHandler {
+    private final static Logger logger = LogManager.getLogger("RaftServerHandler");
+
     private final RaftState raftState;
     private final SocketServer socketServer;
     private final RaftClient raftClient;
@@ -80,8 +82,12 @@ public class RaftServerHandler implements SocketServerHandler {
         Entry lastEntry = raftState.lastEntry();
         ServerNode voteFor = raftState.voteFor();
 
+        logger.debug("Handle [RequestVote] RPC request: { candidate: {}, term: {}, " +
+                "lastLogIndex: {}, lastLogTerm: {} }", candidate, term, lastLogIndex, lastLogTerm);
+
         if(term < currentTerm) {
-            sendResult(selectionKey, RaftResponse.REQUEST_VOTE_FAILURE, currentTerm);
+            byte[] data = RaftResponse.requestVoteFailure(currentTerm, raftState.currentNode());
+            sendResult(selectionKey, data);
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
@@ -90,17 +96,20 @@ public class RaftServerHandler implements SocketServerHandler {
 
         if (voteFor == null || voteFor.equals(candidate)) {
             if(lastLogTerm > lastEntry.term()) {
-                sendResult(selectionKey, RaftResponse.REQUEST_VOTE_SUCCESS, currentTerm);
+                byte[] data = RaftResponse.requestVoteSuccess(currentTerm, raftState.currentNode());
+                sendResult(selectionKey, data);
                 return;
             } else if (lastLogTerm == lastEntry.term()) {
                 if(lastLogIndex >= raftState.lastEntryIndex()) {
-                    sendResult(selectionKey, RaftResponse.REQUEST_VOTE_SUCCESS, currentTerm);
+                    byte[] data = RaftResponse.requestVoteSuccess(currentTerm, raftState.currentNode());
+                    sendResult(selectionKey, data);
                     return;
                 }
             }
         }
 
-        sendResult(selectionKey, RaftResponse.REQUEST_VOTE_FAILURE, currentTerm);
+        byte[] data = RaftResponse.requestVoteFailure(currentTerm, raftState.currentNode());
+        sendResult(selectionKey, data);
     }
 
     private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
@@ -117,7 +126,8 @@ public class RaftServerHandler implements SocketServerHandler {
         Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
 
         if(term < currentTerm) {
-            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
+            byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
+            sendResult(selectionKey, data);
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
@@ -126,18 +136,22 @@ public class RaftServerHandler implements SocketServerHandler {
         }
 
         if(leaderPrevEntry == null) {
-            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
+            byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
+            sendResult(selectionKey, data);
             return;
         }
 
         if(leaderPrevEntry.term() != prevLogTerm) {
             raftState.setMaxIndex(prevLogIndex);
-            sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_FAILURE, currentTerm);
+            byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
+            sendResult(selectionKey, data);
             return;
         }
 
         raftState.append(entries);
-        sendResult(selectionKey, RaftResponse.APPEND_ENTRIES_SUCCESS, currentTerm);
+        byte[] data = RaftResponse.appendEntriesSuccess(currentTerm, raftState.currentNode(),
+                raftState.lastEntryIndex());
+        sendResult(selectionKey, data);
 
         if(leaderCommit > raftState.commitIndex()) {
             raftState.setCommitIndex(Math.min(leaderCommit, raftState.lastEntryIndex()));
@@ -181,8 +195,7 @@ public class RaftServerHandler implements SocketServerHandler {
             /* follower 获取到客户端请求，需要将请求重定向给 leader */
             case Follower -> {
                 if(raftState.leaderNode() == null) {
-                    sendResult(selectionKey, RaftResponse.CLIENT_REQUEST_FAILURE,
-                            new ClientResult(new byte[0]));
+                    sendResult(selectionKey, null);
                 } else {
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(command, raftState.leaderNode());
@@ -228,18 +241,8 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
 
-    private void sendResult(SelectionKey selectionKey, byte status, int term) {
-        RaftResponse raftResponse = new RaftResponse(status, new RaftResult(term));
-        SocketResponse response = new SocketResponse(selectionKey,
-                raftResponse.toBytes(), null);
-        socketServer.offer(response);
-    }
-
-    private void sendResult(SelectionKey selectionKey, byte status,
-                            BytesConvertable bytesConvertable) {
-        RaftResponse raftResponse = new RaftResponse(status, bytesConvertable);
-        SocketResponse response = new SocketResponse(selectionKey,
-                raftResponse.toBytes(), null);
+    private void sendResult(SelectionKey selectionKey, byte[] data) {
+        SocketResponse response = new SocketResponse(selectionKey, data, null);
         socketServer.offer(response);
     }
 }

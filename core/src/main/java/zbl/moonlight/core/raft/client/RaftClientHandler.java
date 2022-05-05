@@ -59,17 +59,16 @@ public record RaftClientHandler(RaftState raftState,
         /* 如果心跳超时，则需要发送心跳包 */
         if (raftState.raftRole() == RaftRole.Leader && raftState.isHeartbeatTimeout()) {
             logger.info("Heartbeat timeout, need to send AppendEntries to other nodes.");
+            /* 重置心跳计时器 */
+            raftState.resetHeartbeatTime();
         }
-        /* 如果选举超时，且当前角色为 Follower，则需要升级为 Candidate */
-        if (raftState.raftRole() == RaftRole.Follower && raftState.isElectionTimeout()) {
-            logger.info("[{}]Election timeout, change to [Candidate].",
-                    raftState.raftRole());
+        /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
+        if (raftState.isElectionTimeout()) {
             raftState.setRaftRole(RaftRole.Candidate);
-        }
-        /* 如果选举超时，且当前角色为 Candidate，则向其他节点发送 RequestVote 请求 */
-        if (raftState.raftRole() == RaftRole.Candidate && raftState.isElectionTimeout()) {
+
             logger.info("[{}]Election timeout, Send RequestVote to other nodes.",
                     raftState.raftRole());
+
             Entry lastEntry = null;
             try {
                 lastEntry = raftState.lastEntry();
@@ -87,6 +86,8 @@ public record RaftClientHandler(RaftState raftState,
                     raftState.lastEntryIndex(),
                     term).toBytes();
             raftClient.offer(SocketRequest.newBroadcastRequest(data));
+            /* 重置选举计时器 */
+            raftState.resetElectionTime();
         }
         /* 连接未连接的节点 */
         for(ServerNode node : raftState.otherNodes()) {
@@ -104,6 +105,7 @@ public record RaftClientHandler(RaftState raftState,
         switch (status) {
             case REQUEST_VOTE_SUCCESS -> {
                 raftState.setVotedNodeAndCheck(node);
+                logger.info("Get Vote from node: {}", node);
             }
             case APPEND_ENTRIES_SUCCESS -> {
                 int matchedIndex = buffer.getInt();
