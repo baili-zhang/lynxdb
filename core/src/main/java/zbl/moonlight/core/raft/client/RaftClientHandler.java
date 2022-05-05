@@ -65,6 +65,12 @@ public record RaftClientHandler(RaftState raftState,
         /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
         if (raftState.isElectionTimeout()) {
             raftState.setRaftRole(RaftRole.Candidate);
+            try {
+                raftState.setCurrentTerm(raftState.currentTerm() + 1);
+                raftState.setVoteFor(raftState.currentNode());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             logger.info("[{}]Election timeout, Send RequestVote to other nodes.",
                     raftState.raftRole());

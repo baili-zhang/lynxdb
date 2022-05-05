@@ -92,6 +92,7 @@ public class RaftServerHandler implements SocketServerHandler {
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
             raftState.setRaftRole(RaftRole.Follower);
+            raftState.setVoteFor(null);
         }
 
         if (voteFor == null || voteFor.equals(candidate)) {

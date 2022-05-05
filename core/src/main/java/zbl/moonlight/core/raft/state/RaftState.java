@@ -1,6 +1,8 @@
 package zbl.moonlight.core.raft.state;
 
 import lombok.Setter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.raft.log.RaftLog;
 import zbl.moonlight.core.raft.log.TermLog;
 import zbl.moonlight.core.raft.request.Entry;
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RaftState {
+    private static final Logger logger = LogManager.getLogger("RaftState");
+
     private static final int HEARTBEAT_INTERVAL_MILLIS = 1000;
     private static final int ELECTION_INTERVAL_MILLIS = 5000;
 
@@ -76,6 +80,8 @@ public class RaftState {
                     nextIndex.put(node, lastEntryIndex + 1);
                     matchedIndex.put(node, 0);
                 }
+
+                logger.info("{} node get most vote and become [Leader].", currentNode);
             }
         }
     }
@@ -175,6 +181,10 @@ public class RaftState {
      */
     public ServerNode voteFor() throws IOException {
         return termLog.voteFor();
+    }
+
+    public void setVoteFor(ServerNode node) throws IOException {
+        termLog.setVoteFor(node);
     }
 
     /**

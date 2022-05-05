@@ -57,8 +57,12 @@ public class TermLog {
     }
 
     public void setVoteFor(ServerNode node) throws IOException {
-        byte flag = termFile.readByte(FLAG_POSITION);
+        if(node == null) {
+            termFile.writeByte(VOTE_FOR_IS_NULL, FLAG_POSITION);
+            return;
+        }
 
+        byte flag = termFile.readByte(FLAG_POSITION);
         if(flag == VOTE_FOR_IS_NULL) {
             termFile.writeByte(VOTE_FOR_IS_NOT_NULL, FLAG_POSITION);
         }
