@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Heartbeat implements Runnable {
     private final static Logger logger = LogManager.getLogger("Heartbeat");
-    private final static int HEARTBEAT_INTERVAL_MILLIS = 600;
+    private final static int HEARTBEAT_INTERVAL_MILLIS = 5;
 
     private final RaftClient raftClient;
     private final DelayQueue<HeartbeatTask> delayQueue = new DelayQueue<>();

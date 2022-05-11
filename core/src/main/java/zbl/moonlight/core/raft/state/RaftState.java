@@ -17,8 +17,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RaftState {
     private static final Logger logger = LogManager.getLogger("RaftState");
 
-    private static final int HEARTBEAT_INTERVAL_MILLIS = 1000;
-    private static final int ELECTION_INTERVAL_MILLIS = 5000;
+    private static final int HEARTBEAT_INTERVAL_MILLIS = 100;
+    private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
+    private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
+
+    private final int ELECTION_INTERVAL_MILLIS;
 
     public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes,
                      String logFilenamePrefix)
@@ -31,6 +34,12 @@ public class RaftState {
         raftLog = new RaftLog(logFilenamePrefix + "_index.log",
                 logFilenamePrefix + "_data.log");
         termLog = new TermLog(logFilenamePrefix + "_term.log");
+
+        /* 设置随机的选举超时时间 */
+        ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
+                (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
+                + ELECTION_MIN_INTERVAL_MILLIS;
+        logger.info("[{}] -- ELECTION_INTERVAL_MILLIS is {}.", currentNode, ELECTION_INTERVAL_MILLIS);
     }
 
     private volatile long heartbeatTimeMillis = System.currentTimeMillis();

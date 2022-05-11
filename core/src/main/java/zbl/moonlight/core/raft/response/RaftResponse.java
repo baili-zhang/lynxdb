@@ -1,5 +1,8 @@
 package zbl.moonlight.core.raft.response;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
 
@@ -15,20 +18,20 @@ public interface RaftResponse {
     byte CLIENT_REQUEST_SUCCESS = (byte) 0x05;
     byte CLIENT_REQUEST_FAILURE = (byte) 0x06;
 
-    static byte[] requestVoteSuccess(int term, ServerNode node) {
-        byte[] hostBytes = node.host().getBytes(StandardCharsets.UTF_8);
+    static byte[] requestVoteSuccess(int term, ServerNode currentNode) {
+        byte[] hostBytes = currentNode.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(REQUEST_VOTE_SUCCESS).putInt(term).putInt(hostLength).put(hostBytes)
-                .putInt(node.port()).array();
+                .putInt(currentNode.port()).array();
     }
 
-    static byte[] requestVoteFailure(int term, ServerNode node) {
-        byte[] hostBytes = node.host().getBytes(StandardCharsets.UTF_8);
+    static byte[] requestVoteFailure(int term, ServerNode currentNode) {
+        byte[] hostBytes = currentNode.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(REQUEST_VOTE_FAILURE).putInt(term).putInt(hostLength).put(hostBytes)
-                .putInt(node.port()).array();
+                .putInt(currentNode.port()).array();
     }
 
     static byte[] appendEntriesSuccess(int term, ServerNode node, int matchIndex) {

@@ -54,6 +54,7 @@ public class TermLog {
 
     public void setCurrentTerm(int term) throws IOException {
         termFile.writeInt(term, CURRENT_TERM_POSITION);
+        termFile.writeByte(VOTE_FOR_IS_NULL, FLAG_POSITION);
     }
 
     public void setVoteFor(ServerNode node) throws IOException {

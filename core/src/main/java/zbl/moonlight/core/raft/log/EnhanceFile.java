@@ -86,7 +86,7 @@ public class EnhanceFile {
         read(length, position);
         int len = length.rewind().getInt();
         ByteBuffer content = ByteBuffer.allocate(len);
-        long contentPosition = position + len;
+        long contentPosition = position + NumberUtils.INT_LENGTH;
         read(content, contentPosition);
         return new String(content.array());
     }

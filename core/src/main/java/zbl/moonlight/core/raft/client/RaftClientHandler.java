@@ -2,6 +2,7 @@ package zbl.moonlight.core.raft.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RequestVote;
 import zbl.moonlight.core.raft.state.RaftRole;
@@ -58,7 +59,9 @@ public record RaftClientHandler(RaftState raftState,
     public void handleAfterLatchAwait() {
         /* 如果心跳超时，则需要发送心跳包 */
         if (raftState.raftRole() == RaftRole.Leader && raftState.isHeartbeatTimeout()) {
-            logger.info("Heartbeat timeout, need to send AppendEntries to other nodes.");
+            logger.info("[{}] Heartbeat timeout, need to send AppendEntries to other nodes.",
+                    raftState.currentNode());
+            /* TODO: 发送 AppendEntries 请求 */
             /* 重置心跳计时器 */
             raftState.resetHeartbeatTime();
         }
@@ -72,8 +75,9 @@ public record RaftClientHandler(RaftState raftState,
                 e.printStackTrace();
             }
 
-            logger.info("[{}]Election timeout, Send RequestVote to other nodes.",
-                    raftState.raftRole());
+            logger.info("[{}] -- [{}] -- Election timeout, " +
+                            "Send RequestVote to other nodes.",
+                    raftState.currentNode(), raftState.raftRole());
 
             Entry lastEntry = null;
             try {
@@ -116,7 +120,7 @@ public record RaftClientHandler(RaftState raftState,
         switch (status) {
             case REQUEST_VOTE_SUCCESS -> {
                 raftState.setVotedNodeAndCheck(node);
-                logger.info("Get Vote from node: {}", node);
+                logger.info("[{}] -- Get Vote from node: {}", raftState.currentNode(), node);
             }
             case APPEND_ENTRIES_SUCCESS -> {
                 int matchedIndex = buffer.getInt();

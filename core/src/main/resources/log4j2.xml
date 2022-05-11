@@ -2,7 +2,7 @@
 <Configuration>
     <Properties>
         <!-- 定义日志格式 -->
-        <Property name="raftLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%18t] [%5level] [%15logger] -- %msg%n</Property>
+        <Property name="raftLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%20t] [%5level] [%20logger] -- %msg%n</Property>
     </Properties>
     <!-- 定义Appender，即目的地 -->
     <Appenders>
