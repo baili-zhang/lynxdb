@@ -5,6 +5,6 @@ import zbl.moonlight.core.socket.response.SocketResponse;
 
 public interface SocketClientHandler {
     default void handleConnected(ServerNode node) {}
-    default void handleAfterLatchAwait() {}
+    default void handleAfterLatchAwait() throws Exception {}
     default void handleResponse(SocketResponse response) {}
 }

@@ -13,7 +13,6 @@ import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
@@ -56,50 +55,54 @@ public record RaftClientHandler(RaftState raftState,
     }
 
     @Override
-    public void handleAfterLatchAwait() {
+    public void handleAfterLatchAwait() throws Exception {
         /* 如果心跳超时，则需要发送心跳包 */
         if (raftState.raftRole() == RaftRole.Leader && raftState.isHeartbeatTimeout()) {
             logger.info("[{}] Heartbeat timeout, need to send AppendEntries to other nodes.",
                     raftState.currentNode());
-            /* TODO: 发送 AppendEntries 请求 */
+            /* TODO：发送 AppendEntries 请求待测试 */
+            for (ServerNode node : raftState.otherNodes()) {
+                int prevLogIndex = raftState.nextIndex().get(node) - 1;
+                int leaderCommit = raftState.commitIndex();
+
+                int prevLogTerm = prevLogIndex == 0 ? 0
+                        : raftState.getEntryTermByIndex(prevLogIndex);
+                Entry[] entries = raftState.getEntriesByRange(prevLogIndex,
+                        raftState.indexOfLastLogEntry());
+
+                AppendEntries appendEntries = new AppendEntries(
+                        raftState.currentNode(), raftState.currentTerm(),
+                        prevLogIndex, prevLogTerm, leaderCommit,entries);
+
+                raftClient.offer(SocketRequest.newUnicastRequest(
+                        appendEntries.toBytes(), node));
+            }
             /* 重置心跳计时器 */
             raftState.resetHeartbeatTime();
         }
         /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
         if (raftState.isElectionTimeout()) {
             raftState.setRaftRole(RaftRole.Candidate);
-            try {
-                raftState.setCurrentTerm(raftState.currentTerm() + 1);
-                raftState.setVoteFor(raftState.currentNode());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            raftState.setCurrentTerm(raftState.currentTerm() + 1);
+            raftState.setVoteFor(raftState.currentNode());
+
 
             logger.info("[{}] -- [{}] -- Election timeout, " +
                             "Send RequestVote to other nodes.",
                     raftState.currentNode(), raftState.raftRole());
 
-            Entry lastEntry = null;
-            try {
-                lastEntry = raftState.lastEntry();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            Entry lastEntry = raftState.lastEntry();
 
             int term = 0;
             if (lastEntry != null) {
                 term = lastEntry.term();
             }
 
-            byte[] data = new byte[0];
-            try {
-                data = new RequestVote(raftState.currentNode(),
+            byte[] data = new RequestVote(raftState.currentNode(),
                         raftState.currentTerm(),
-                        raftState.lastEntryIndex(),
+                        raftState.indexOfLastLogEntry(),
                         term).toBytes();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
             raftClient.offer(SocketRequest.newBroadcastRequest(data));
             /* 重置选举计时器 */
             raftState.resetElectionTime();
@@ -107,11 +110,7 @@ public record RaftClientHandler(RaftState raftState,
         /* 连接未连接的节点 */
         for(ServerNode node : raftState.otherNodes()) {
             if(!raftClient.isConnecting(node) && !raftClient.isConnected(node)) {
-                try {
-                    raftClient.connect(node);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                raftClient.connect(node);
             }
         }
     }

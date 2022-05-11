@@ -84,7 +84,7 @@ public class RaftState {
                 nextIndex.clear();
                 matchedIndex.clear();
                 /* 初始化 leader 的相关属性 */
-                int lastEntryIndex = lastEntryIndex();
+                int lastEntryIndex = indexOfLastLogEntry();
                 for (ServerNode node : followers) {
                     nextIndex.put(node, lastEntryIndex + 1);
                     matchedIndex.put(node, 0);
@@ -136,6 +136,10 @@ public class RaftState {
         return raftLog.getEntryByIndex(index);
     }
 
+    public int getEntryTermByIndex(int index) throws IOException {
+        return raftLog.getEntryTermByIndex(index);
+    }
+
     /**
      * 设置最大的有效日志索引值
      * @param index 索引值
@@ -159,7 +163,7 @@ public class RaftState {
     public Entry[] getEntriesByRange(int begin, int end) throws IOException {
         return raftLog.getEntriesByRange(begin, end);
     }
-    public int lastEntryIndex() {
+    public int indexOfLastLogEntry() {
         return 0;
     }
 
@@ -232,7 +236,7 @@ public class RaftState {
      */
     public void checkCommitIndex() {
         int n = (allNodes.size() >> 1) + 1;
-        int lastEntryIndex = lastEntryIndex();
+        int lastEntryIndex = indexOfLastLogEntry();
         for(int i = commitIndex.get() + 1; i < lastEntryIndex; i ++) {
             int count  = 0;
             for(ServerNode node : matchedIndex.keySet()) {

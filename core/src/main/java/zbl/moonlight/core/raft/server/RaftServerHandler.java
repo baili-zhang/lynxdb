@@ -107,7 +107,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 sendResult(selectionKey, data);
                 return;
             } else if (lastLogTerm == lastEntry.term()) {
-                if(lastLogIndex >= raftState.lastEntryIndex()) {
+                if(lastLogIndex >= raftState.indexOfLastLogEntry()) {
                     byte[] data = RaftResponse.requestVoteSuccess(currentTerm,
                             raftState.currentNode());
                     sendResult(selectionKey, data);
@@ -161,11 +161,11 @@ public class RaftServerHandler implements SocketServerHandler {
 
         raftState.append(entries);
         byte[] data = RaftResponse.appendEntriesSuccess(currentTerm, raftState.currentNode(),
-                raftState.lastEntryIndex());
+                raftState.indexOfLastLogEntry());
         sendResult(selectionKey, data);
 
         if(leaderCommit > raftState.commitIndex()) {
-            raftState.setCommitIndex(Math.min(leaderCommit, raftState.lastEntryIndex()));
+            raftState.setCommitIndex(Math.min(leaderCommit, raftState.indexOfLastLogEntry()));
         }
 
         if(raftState.commitIndex() > raftState.lastApplied()) {
@@ -189,7 +189,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 for(ServerNode node : nextIndex.keySet()) {
                     int index = nextIndex.get(node);
                     Entry lastEntry = raftState.getEntryByIndex(index);
-                    Entry[] entries = raftState.getEntriesByRange(index, raftState.lastEntryIndex());
+                    Entry[] entries = raftState.getEntriesByRange(index, raftState.indexOfLastLogEntry());
                     /* 创建 AppendEntries 请求 */
                     AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
                             raftState.currentTerm(), index, lastEntry.term(),

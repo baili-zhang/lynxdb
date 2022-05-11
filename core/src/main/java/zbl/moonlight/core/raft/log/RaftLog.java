@@ -123,6 +123,11 @@ public class RaftLog {
         return EntryIndex.fromBytes(buffer.array());
     }
 
+    public int getEntryTermByIndex(int index) throws IOException {
+        EntryIndex entryIndex = getEntryIndexByIndex(index);
+        return entryIndex.term();
+    }
+
     /**
      * 获取 commitIndex 在前开后闭区间 (begin, end] 上的所有日志条目
      * @param begin 开始位置
