@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketClient extends Executor<SocketRequest> {
@@ -30,6 +31,7 @@ public class SocketClient extends Executor<SocketRequest> {
     private final static int DEFAULT_CAPACITY = 200;
     private final static int DEFAULT_CORE_POOL_SIZE = 5;
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
+    private final static long SELECT_TIMEOUT = 5;
 
     private final Object setLock = new Object();
 
@@ -70,9 +72,6 @@ public class SocketClient extends Executor<SocketRequest> {
         synchronized (connecting) {
             connecting.add(node);
         }
-
-        /* 中断执行器，不然执行器会在select()阻塞 */
-        interrupt();
     }
 
     public boolean isConnecting(ServerNode node) {
@@ -96,12 +95,7 @@ public class SocketClient extends Executor<SocketRequest> {
         try {
             /* TODO:实现优雅关机 */
             while (!closed) {
-                selector.select();
-
-                /* 清除中断标志 */
-                if(Thread.interrupted()) {
-                    logger.info("Current thread has bean interrupted.");
-                }
+                selector.select(SELECT_TIMEOUT);
 
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -145,7 +139,7 @@ public class SocketClient extends Executor<SocketRequest> {
                     request = poll();
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -220,7 +214,7 @@ public class SocketClient extends Executor<SocketRequest> {
             }
         }
 
-        private void doRead() throws IOException {
+        private void doRead() throws Exception {
             ServerNode node = (ServerNode) selectionKey.attachment();
             ConnectionContext context = contexts.get(node);
             ReadableSocketResponse response = context.getResponse();

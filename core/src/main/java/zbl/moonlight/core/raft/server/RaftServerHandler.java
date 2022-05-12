@@ -15,6 +15,7 @@ import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
+import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,34 +37,21 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     @Override
-    public void handleRequest(SocketRequest request) {
+    public void handleRequest(SocketRequest request) throws Exception {
         byte[] data = request.data();
         ByteBuffer buffer = ByteBuffer.wrap(data);
         byte method = buffer.get();
 
         switch (method) {
             case RaftRequest.REQUEST_VOTE -> {
-                try {
-                    handleRequestVoteRpc(request.selectionKey(), buffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                handleRequestVoteRpc(request.selectionKey(), buffer);
             }
             case RaftRequest.APPEND_ENTRIES -> {
-                try {
-                    handleAppendEntriesRpc(request.selectionKey(), buffer);
-                    /* 重置选举计时器 */
-                    raftState.resetElectionTime();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                logger.info("Handle [AppendEntries] request.");
+                handleAppendEntriesRpc(request.selectionKey(), buffer);
             }
             case RaftRequest.CLIENT_REQUEST -> {
-                try {
-                    handleClientRequest(request.selectionKey(), buffer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                handleClientRequest(request.selectionKey(), buffer);
             }
         }
     }
@@ -131,7 +119,8 @@ public class RaftServerHandler implements SocketServerHandler {
         int prevLogIndex = buffer.getInt();
         int prevLogTerm = buffer.getInt();
         int leaderCommit = buffer.getInt();
-        Entry[] entries = getEntries(buffer);
+        Entry[] entries = ByteBufferUtils.isOver(buffer)
+                ? new Entry[0] : getEntries(buffer);
 
         int currentTerm = raftState.currentTerm();
         Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
@@ -145,6 +134,11 @@ public class RaftServerHandler implements SocketServerHandler {
             raftState.setRaftRole(RaftRole.Follower);
             raftState.setLeaderNode(leader);
         }
+
+        /* 重置选举计时器 */
+        raftState.resetElectionTime();
+        logger.info("[{}] Received [AppendEntries], reset election timeout",
+                raftState.currentNode());
 
         if(leaderPrevEntry == null) {
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());

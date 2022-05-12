@@ -1,7 +1,6 @@
 package zbl.moonlight.core.raft.server;
 
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.client.Heartbeat;
 import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.client.RaftClientHandler;
 import zbl.moonlight.core.raft.state.Appliable;
@@ -11,7 +10,6 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
 
 public class RaftServer {
@@ -34,6 +32,5 @@ public class RaftServer {
     public void start(String name) {
         Executor.start(raftClient, name + "-client");
         Executor.start(raftServer, name);
-        new Thread(new Heartbeat(raftClient), "Heartbeat").start();
     }
 }

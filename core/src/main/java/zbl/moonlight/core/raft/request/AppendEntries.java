@@ -1,5 +1,6 @@
 package zbl.moonlight.core.raft.request;
 
+import lombok.ToString;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
 
@@ -8,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+@ToString
 public class AppendEntries extends RaftRequest {
     private final ServerNode leader;
     private final int term;
@@ -31,7 +33,7 @@ public class AppendEntries extends RaftRequest {
     @Override
     public byte[] toBytes() {
         byte[] host = leader.host().getBytes(StandardCharsets.UTF_8);
-        int len = NumberUtils.INT_LENGTH * 6 + host.length;
+        int len = NumberUtils.INT_LENGTH * 6 + host.length + 1;
         List<byte[]> entryBytes = new ArrayList<>();
 
         for(Entry entry : entries) {
@@ -41,7 +43,8 @@ public class AppendEntries extends RaftRequest {
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(len);
-        buffer.putInt(host.length).put(host).putInt(leader.port())
+        buffer.put(RaftRequest.APPEND_ENTRIES).putInt(host.length)
+                .put(host).putInt(leader.port())
                 .putInt(term).putInt(prevLogIndex).putInt(prevLogTerm)
                 .putInt(leaderCommit);
 
@@ -49,6 +52,7 @@ public class AppendEntries extends RaftRequest {
             buffer.putInt(bytes.length).put(bytes);
         }
 
+        assert buffer.position() == buffer.limit();
         return buffer.array();
     }
 }

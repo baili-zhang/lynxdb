@@ -46,7 +46,7 @@ public class IoEventHandler implements Runnable {
     }
 
     /* 每次读一个请求 */
-    private void doRead() throws IOException {
+    private void doRead() throws Exception {
         ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
 
         /* 从socket channel中读取数据 */

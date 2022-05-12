@@ -5,7 +5,6 @@ import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.core.raft.log.EntryIndex.ENTRY_INDEX_LENGTH;
 
@@ -105,6 +104,10 @@ public class RaftLog {
         return getEntryByIndex(getMaxIndexValue());
     }
 
+    public int indexOfLastLogEntry() throws IOException {
+        return getMaxIndexValue();
+    }
+
     public synchronized Entry getEntryByIndex(int index) throws IOException {
         assert index > 0;
         if(index > getMaxIndexValue()) {
@@ -118,6 +121,7 @@ public class RaftLog {
     }
 
     private synchronized EntryIndex getEntryIndexByIndex(int index) throws IOException {
+        assert index > 0;
         ByteBuffer buffer = ByteBuffer.allocate(ENTRY_INDEX_LENGTH);
         indexFile.read(buffer, ((long) index) * ENTRY_INDEX_LENGTH);
         return EntryIndex.fromBytes(buffer.array());

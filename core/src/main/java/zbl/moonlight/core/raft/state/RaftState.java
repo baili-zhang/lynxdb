@@ -73,7 +73,7 @@ public class RaftState {
         return otherNodes;
     }
     private final HashSet<ServerNode> votedNodes = new HashSet<>();
-    public void setVotedNodeAndCheck(ServerNode serverNode) {
+    public void setVotedNodeAndCheck(ServerNode serverNode) throws IOException {
         synchronized (votedNodes) {
             votedNodes.add(serverNode);
             if(votedNodes.size() > (allNodes.size() >> 1)) {
@@ -163,8 +163,13 @@ public class RaftState {
     public Entry[] getEntriesByRange(int begin, int end) throws IOException {
         return raftLog.getEntriesByRange(begin, end);
     }
-    public int indexOfLastLogEntry() {
-        return 0;
+
+    /**
+     * 返回最后一个 logEntry 的索引值
+     * @return 索引值
+     */
+    public int indexOfLastLogEntry() throws IOException {
+        return raftLog.indexOfLastLogEntry();
     }
 
     /**
@@ -234,7 +239,7 @@ public class RaftState {
     /**
      * 检查 commitIndex，如果可以增加，则增加 commitIndex
      */
-    public void checkCommitIndex() {
+    public void checkCommitIndex() throws IOException {
         int n = (allNodes.size() >> 1) + 1;
         int lastEntryIndex = indexOfLastLogEntry();
         for(int i = commitIndex.get() + 1; i < lastEntryIndex; i ++) {
