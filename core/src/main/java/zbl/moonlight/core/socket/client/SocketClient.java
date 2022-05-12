@@ -31,7 +31,7 @@ public class SocketClient extends Executor<SocketRequest> {
     private final static int DEFAULT_CAPACITY = 200;
     private final static int DEFAULT_CORE_POOL_SIZE = 5;
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
-    private final static long SELECT_TIMEOUT = 5;
+    private final static long SELECT_TIMEOUT = 2;
 
     private final Object setLock = new Object();
 
@@ -80,6 +80,10 @@ public class SocketClient extends Executor<SocketRequest> {
 
     public boolean isConnected(ServerNode node) {
         return contexts.containsKey(node);
+    }
+
+    public Set<ServerNode> connectedNodes() {
+        return contexts.keySet();
     }
 
     public void close() {

@@ -83,13 +83,18 @@ public record RaftClientHandler(RaftState raftState,
             /* 重置心跳计时器 */
             raftState.resetHeartbeatTime();
         }
+
         /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
+        leaderElection:
         if (raftState.raftRole() != RaftRole.Leader && raftState.isElectionTimeout()) {
-            raftState.setRaftRole(RaftRole.Candidate);
-            raftState.setCurrentTerm(raftState.currentTerm() + 1);
-            raftState.setVoteFor(raftState.currentNode());
+            int count = raftState.clusterNodeCount();
+            /* 如果自身节点加上连接上的节点小于或等于半数，则不转换为 Candidate */
+            if(raftClient.connectedNodes().size() + 1 <= (count >> 1)) {
+                raftState.resetElectionTime();
+                break leaderElection;
+            }
 
-
+            raftState.transformToCandidate();
             logger.info("[{}] -- [{}] -- Election timeout, " +
                             "Send RequestVote to other nodes.",
                     raftState.currentNode(), raftState.raftRole());
@@ -119,6 +124,11 @@ public record RaftClientHandler(RaftState raftState,
     }
 
     private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {
+        if(term > raftState.currentTerm()) {
+            raftState.setCurrentTerm(term);
+            logger.info("[{}] set [currentTerm] to {}", raftState.currentNode(), term);
+        }
+
         switch (status) {
             case REQUEST_VOTE_SUCCESS -> {
                 raftState.setVotedNodeAndCheck(node);

@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RaftState {
     private static final Logger logger = LogManager.getLogger("RaftState");
 
-    private static final int HEARTBEAT_INTERVAL_MILLIS = 100;
+    private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
 
@@ -39,7 +39,8 @@ public class RaftState {
         ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
-        logger.info("[{}] -- ELECTION_INTERVAL_MILLIS is {}.", currentNode, ELECTION_INTERVAL_MILLIS);
+        logger.info("[{}] -- [ELECTION_INTERVAL_MILLIS] is {}, [currentTerm] is {}.",
+                currentNode, ELECTION_INTERVAL_MILLIS, termLog.currentTerm());
     }
 
     private volatile long heartbeatTimeMillis = System.currentTimeMillis();
@@ -60,6 +61,13 @@ public class RaftState {
     }
 
     private final List<ServerNode> allNodes;
+
+    /**
+     * @return 集群的节点数
+     */
+    public int clusterNodeCount() {
+        return allNodes.size();
+    }
     /**
      * Raft 集群中的其他节点
      */
@@ -74,7 +82,10 @@ public class RaftState {
     }
     private final HashSet<ServerNode> votedNodes = new HashSet<>();
     public void setVotedNodeAndCheck(ServerNode serverNode) throws IOException {
-        synchronized (votedNodes) {
+        if(raftRole == RaftRole.Leader) {
+            return;
+        }
+        synchronized (this) {
             votedNodes.add(serverNode);
             if(votedNodes.size() > (allNodes.size() >> 1)) {
                 raftRole = RaftRole.Leader;
@@ -110,6 +121,12 @@ public class RaftState {
     private volatile RaftRole raftRole = RaftRole.Follower;
     public RaftRole raftRole() {
         return raftRole;
+    }
+    public synchronized void transformToCandidate() throws IOException {
+        setRaftRole(RaftRole.Candidate);
+        setCurrentTerm(currentTerm() + 1);
+        setVoteFor(currentNode);
+        votedNodes.add(currentNode);
     }
 
     /**
@@ -201,7 +218,8 @@ public class RaftState {
         return termLog.voteFor();
     }
 
-    public void setVoteFor(ServerNode node) throws IOException {
+    public synchronized void setVoteFor(ServerNode node)
+            throws IOException {
         termLog.setVoteFor(node);
     }
 

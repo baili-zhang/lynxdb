@@ -123,7 +123,7 @@ public class RaftLog {
     private synchronized EntryIndex getEntryIndexByIndex(int index) throws IOException {
         assert index > 0;
         ByteBuffer buffer = ByteBuffer.allocate(ENTRY_INDEX_LENGTH);
-        indexFile.read(buffer, ((long) index) * ENTRY_INDEX_LENGTH);
+        indexFile.read(buffer, ((long) index) * (long) ENTRY_INDEX_LENGTH);
         return EntryIndex.fromBytes(buffer.array());
     }
 

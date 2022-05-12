@@ -75,8 +75,8 @@ public class RaftServerHandler implements SocketServerHandler {
             byte[] data = RaftResponse.requestVoteFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
 
-            logger.info("[RequestVote: term < currentTerm] -- [{}] " +
-                            "-- Has not voted for candidate: {}.",
+            logger.info("[RequestVote: term({}) < currentTerm({})] -- [{}] " +
+                            "-- Has not voted for candidate: {}.", term, currentTerm,
                     raftState.currentNode(), candidate);
             return;
         } else if(term > currentTerm) {
