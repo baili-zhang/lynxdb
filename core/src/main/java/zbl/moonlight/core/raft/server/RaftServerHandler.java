@@ -56,7 +56,8 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handleRequestVoteRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
+    private void handleRequestVoteRpc(SelectionKey selectionKey, ByteBuffer buffer)
+            throws IOException {
         String host = getString(buffer);
         int port = buffer.getInt();
         ServerNode candidate = new ServerNode(host, port);
@@ -90,15 +91,11 @@ public class RaftServerHandler implements SocketServerHandler {
 
         if (voteFor == null || voteFor.equals(candidate)) {
             if(lastLogTerm > lastEntry.term()) {
-                byte[] data = RaftResponse.requestVoteSuccess(currentTerm,
-                        raftState.currentNode());
-                sendResult(selectionKey, data);
+                requestVoteSuccess(currentTerm, candidate, selectionKey);
                 return;
             } else if (lastLogTerm == lastEntry.term()) {
                 if(lastLogIndex >= raftState.indexOfLastLogEntry()) {
-                    byte[] data = RaftResponse.requestVoteSuccess(currentTerm,
-                            raftState.currentNode());
-                    sendResult(selectionKey, data);
+                    requestVoteSuccess(currentTerm, candidate, selectionKey);
                     return;
                 }
             }
@@ -109,6 +106,16 @@ public class RaftServerHandler implements SocketServerHandler {
                 raftState.currentNode(), candidate);
         byte[] data = RaftResponse.requestVoteFailure(currentTerm, raftState.currentNode());
         sendResult(selectionKey, data);
+    }
+
+    private synchronized void requestVoteSuccess(int currentTerm, ServerNode candidate,
+                                    SelectionKey selectionKey) throws IOException {
+        ServerNode voteFor = raftState.voteFor();
+        if (voteFor == null || voteFor.equals(candidate)) {
+            byte[] data = RaftResponse.requestVoteSuccess(currentTerm, raftState.currentNode());
+            raftState.setVoteFor(candidate);
+            sendResult(selectionKey, data);
+        }
     }
 
     private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {

@@ -72,8 +72,10 @@ public record RaftClientHandler(RaftState raftState,
                         raftState.currentNode(), raftState.currentTerm(),
                         prevLogIndex, prevLogTerm, leaderCommit,entries);
 
-                raftClient.offer(SocketRequest.newUnicastRequest(
-                        appendEntries.toBytes(), node));
+                if(raftClient.isConnected(node)) {
+                    raftClient.offer(SocketRequest.newUnicastRequest(
+                            appendEntries.toBytes(), node));
+                }
 
                 logger.info("[{}] send {} to node: {}.", raftState.currentNode(),
                         appendEntries, node);

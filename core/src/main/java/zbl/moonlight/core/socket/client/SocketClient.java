@@ -131,7 +131,10 @@ public class SocketClient extends Executor<SocketRequest> {
                     }
                     /* 如果是单播，则发送给指定的服务器 */
                     else if(request.serverNode() != null) {
-                        contexts.get(request.serverNode()).offerRequest(request);
+                        ConnectionContext context = contexts.get(request.serverNode());
+                        if(context != null) {
+                            context.offerRequest(request);
+                        }
                     }
                     else {
                         throw new RuntimeException("Can not find sending strategy for request.");
