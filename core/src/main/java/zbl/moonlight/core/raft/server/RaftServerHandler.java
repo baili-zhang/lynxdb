@@ -115,6 +115,8 @@ public class RaftServerHandler implements SocketServerHandler {
             byte[] data = RaftResponse.requestVoteSuccess(currentTerm, raftState.currentNode());
             raftState.setVoteFor(candidate);
             sendResult(selectionKey, data);
+            /* 请求投票成功，当前节点的投票给了其他节点，当前节点不可能被选举成 Leader，所以需要重设选举计时器 */
+            raftState.resetElectionTime();
         }
     }
 
@@ -142,9 +144,9 @@ public class RaftServerHandler implements SocketServerHandler {
             raftState.setLeaderNode(leader);
         }
 
-        /* 重置选举计时器 */
+        /* 只有在 leader 的 term >= currentTerm 时，才重设选举计时器 */
         raftState.resetElectionTime();
-        logger.info("[{}] Received [AppendEntries], reset election timeout",
+        logger.info("[{}] Received [AppendEntries], reset election timeout.",
                 raftState.currentNode());
 
         if(leaderPrevEntry == null) {
@@ -182,8 +184,7 @@ public class RaftServerHandler implements SocketServerHandler {
         buffer.get(command);
 
         switch (raftState.raftRole()) {
-            /* leader 获取到客户端请求，
-            需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
+            /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
             case Leader -> {
                 raftState.append(new Entry(raftState.currentTerm(), command));
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
@@ -200,8 +201,6 @@ public class RaftServerHandler implements SocketServerHandler {
                             .newUnicastRequest(appendEntries.toBytes(), node);
                     raftClient.offer(request);
                 }
-                /* 发送完 AppendEntries 请求后，需要重置心跳计时器 */
-                raftState.resetHeartbeatTime();
             }
 
             /* follower 获取到客户端请求，需要将请求重定向给 leader */
