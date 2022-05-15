@@ -7,7 +7,6 @@ import zbl.moonlight.core.protocol.Serializer;
 import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.utils.ByteArrayUtils;
 import zbl.moonlight.server.mdtp.MdtpMethod;
-import zbl.moonlight.server.mdtp.MdtpRequestSchema;
 import zbl.moonlight.server.mdtp.ResponseStatus;
 
 import java.io.BufferedInputStream;

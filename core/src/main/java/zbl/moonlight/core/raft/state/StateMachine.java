@@ -5,18 +5,18 @@ import zbl.moonlight.core.raft.request.Entry;
 import java.nio.channels.SelectionKey;
 
 /**
- * Raft 定义的状态机的抽象实现
+ * Raft 定义的状态机的接口
  */
-public abstract class StateMachine {
+public interface StateMachine {
     /**
      * 应用日志条目
      * @param entries 日志条目
      */
-    public abstract void apply(Entry[] entries);
+    void apply(Entry[] entries);
 
     /**
      * 执行客户端命令请求
      * @param command 命令
      */
-    public abstract void exec(SelectionKey key, byte[] command);
+    void exec(SelectionKey key, byte[] command);
 }

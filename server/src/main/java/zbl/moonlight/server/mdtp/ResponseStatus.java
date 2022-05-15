@@ -10,11 +10,6 @@ public class ResponseStatus {
     public static final byte ERROR = (byte) 0x04;
     /* 检查服务器是否正常工作 */
     public static final byte PONG = (byte) 0x05;
-    /* Raft投票请求相关 */
-    public static final byte GET_VOTE = (byte) 0x06;
-    public static final byte DID_NOT_GET_VOTE = (byte) 0x07;
-    public static final byte APPEND_ENTRIES_SUCCESS = (byte) 0x08;
-    public static final byte APPEND_ENTRIES_FAIL = (byte) 0x09;
 
     public static final ConcurrentHashMap<Byte, String> codeMap = new ConcurrentHashMap<>();
 

@@ -1,4 +1,4 @@
-package zbl.moonlight.server.engine;
+package zbl.moonlight.server.storage;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.util.List;
 
 public class RaftServer {
-    private final SocketServer raftServer;
+    private static final String DEFAULT_NAME = "RAFT_SERVER";
+
+    private final SocketServer socketServer;
     private final RaftClient raftClient;
 
     public RaftServer(StateMachine stateMachine, ServerNode currentNode,
@@ -21,16 +23,24 @@ public class RaftServer {
             throws IOException {
         RaftState raftState = new RaftState(stateMachine, currentNode, nodes,
                 logFilenamePrefix);
-        raftServer = new SocketServer(new SocketServerConfig(currentNode.port()));
+        socketServer = new SocketServer(new SocketServerConfig(currentNode.port()));
         raftClient = new RaftClient();
-        raftClient.setHandler(new RaftClientHandler(raftState, raftServer,
+        raftClient.setHandler(new RaftClientHandler(raftState, socketServer,
                 raftClient));
-        raftServer.setHandler(new RaftServerHandler(raftServer, stateMachine,
+        socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine,
                 raftClient, raftState));
     }
 
     public void start(String name) {
         Executor.start(raftClient, name + "-client");
-        Executor.start(raftServer, name);
+        Executor.start(socketServer, name);
+    }
+
+    public void start() {
+        start(DEFAULT_NAME);
+    }
+
+    public SocketServer socketServer() {
+        return socketServer;
     }
 }

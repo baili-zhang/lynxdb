@@ -24,7 +24,7 @@ public class RaftServerTest {
         return this;
     }
 
-    static class SimpleStateMachine extends StateMachine {
+    static class SimpleStateMachine implements StateMachine {
         @Override
         public void apply(Entry[] entries) {
             for (Entry entry : entries) {

@@ -5,9 +5,9 @@ import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
+import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.server.exception.ClusterConfigurationNotFoundException;
 import zbl.moonlight.server.exception.ConfigurationException;
-import zbl.moonlight.server.raft.RaftNode;
 
 import java.io.*;
 import java.net.URL;
@@ -55,7 +55,11 @@ public class Configuration {
     private RunningMode runningMode;
 
     @Getter
-    private List<RaftNode> raftNodes;
+    private List<ServerNode> raftNodes;
+
+    public ServerNode currentNode() {
+        return new ServerNode(host, port);
+    }
 
     public Configuration() throws ConfigurationException {
         try {
@@ -159,12 +163,12 @@ public class Configuration {
                 throw new ClusterConfigurationNotFoundException("cluster option is not found in application.yml");
             }
             List<LinkedHashMap<String, Object>> nodes = (List<LinkedHashMap<String, Object>>) clusterConfig.get("nodes");
-            List<RaftNode> raftNodes = new ArrayList<>();
+            List<ServerNode> raftNodes = new ArrayList<>();
             for(LinkedHashMap<String, Object> node : nodes) {
                 /* TODO:禁止魔法值（“host”,"port"） RaftNode列表应该放到Configuration中解析 */
                 String host = (String) node.get("host");
                 int port = (int) node.get("port");
-                raftNodes.add(new RaftNode(host, port));
+                raftNodes.add(new ServerNode(host, port));
             }
             setRaftNodes(raftNodes);
         }
@@ -246,7 +250,7 @@ public class Configuration {
         }
     }
 
-    private void setRaftNodes(List<RaftNode> nodes) {
+    private void setRaftNodes(List<ServerNode> nodes) {
         if(raftNodes == null) {
             raftNodes = nodes;
         }
