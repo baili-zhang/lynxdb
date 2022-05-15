@@ -2,6 +2,7 @@ package zbl.moonlight.core.socket.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.socket.client.CountDownSync;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.ReadableSocketRequest;
 import zbl.moonlight.core.socket.response.WritableSocketResponse;
@@ -19,12 +20,12 @@ public class IoEventHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger("IoEventHandler");
 
     private final SocketContext context;
-    private final CountDownLatch latch;
+    private final CountDownSync latch;
     private final SocketServerHandler handler;
     private final SelectionKey selectionKey;
     private final Selector selector;
 
-    IoEventHandler(SocketContext socketContext, CountDownLatch countDownLatch, SocketServerHandler socketServerHandler) {
+    IoEventHandler(SocketContext socketContext, CountDownSync countDownLatch, SocketServerHandler socketServerHandler) {
         context = socketContext;
         latch = countDownLatch;
         handler = socketServerHandler;

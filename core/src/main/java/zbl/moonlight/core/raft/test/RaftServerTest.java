@@ -4,9 +4,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.server.RaftServer;
+import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.core.socket.client.ServerNode;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,14 +24,25 @@ public class RaftServerTest {
         return this;
     }
 
+    static class SimpleStateMachine extends StateMachine {
+        @Override
+        public void apply(Entry[] entries) {
+            for (Entry entry : entries) {
+                System.out.println(new String(entry.command()));
+            }
+        }
+
+        @Override
+        public void exec(SelectionKey key, byte[] command) {
+            System.out.println(new String(command));
+        }
+    }
+
     private void start() throws IOException {
         int count = 1;
         for(ServerNode node : nodes) {
-            new RaftServer((entries) -> {
-                for (Entry entry : entries) {
-                    System.out.println(entry);
-                }
-            }, node, nodes, "raft_server_" + count)
+            new RaftServer(new SimpleStateMachine(),
+                    node,nodes, "raft_server_" + count)
                     .start("RaftServer-" + count ++);
         }
     }

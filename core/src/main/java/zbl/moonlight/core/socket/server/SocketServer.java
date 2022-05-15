@@ -4,6 +4,7 @@ import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.socket.client.CountDownSync;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.response.WritableSocketResponse;
@@ -81,7 +82,7 @@ public class SocketServer extends Executor<SocketResponse> {
                 selector.select();
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
-                CountDownLatch latch = new CountDownLatch(selectionKeys.size());
+                CountDownSync latch = new CountDownSync(selectionKeys.size());
 
                 synchronized (selector) {
                     while (iterator.hasNext()) {
@@ -123,6 +124,8 @@ public class SocketServer extends Executor<SocketResponse> {
                 }
 
                 latch.await();
+
+                handler.handleAfterLatchAwait();
             }
         } catch (Exception e) {
             e.printStackTrace();

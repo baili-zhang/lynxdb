@@ -3,7 +3,7 @@ package zbl.moonlight.core.raft.server;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.client.RaftClientHandler;
-import zbl.moonlight.core.raft.state.Appliable;
+import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.server.SocketServer;
@@ -16,7 +16,7 @@ public class RaftServer {
     private final SocketServer raftServer;
     private final RaftClient raftClient;
 
-    public RaftServer(Appliable stateMachine, ServerNode currentNode,
+    public RaftServer(StateMachine stateMachine, ServerNode currentNode,
                       List<ServerNode> nodes, String logFilenamePrefix)
             throws IOException {
         RaftState raftState = new RaftState(stateMachine, currentNode, nodes,

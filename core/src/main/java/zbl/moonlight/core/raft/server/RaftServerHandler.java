@@ -7,7 +7,7 @@ import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RaftRequest;
 import zbl.moonlight.core.raft.response.RaftResponse;
-import zbl.moonlight.core.raft.state.Appliable;
+import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
@@ -25,15 +25,22 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
 
+    private final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;
+    private final static byte RAFT_CLIENT_REQUEST_SET = (byte) 0x02;
+
     private final RaftState raftState;
     private final SocketServer socketServer;
     private final RaftClient raftClient;
+    private final LogIndexMap logIndexMap;
+    private final StateMachine stateMachine;
 
-    public RaftServerHandler(SocketServer server, Appliable stateMachine,
+    public RaftServerHandler(SocketServer server, StateMachine machine,
                              RaftClient client, RaftState state) {
         socketServer = server;
+        stateMachine = machine;
         raftState = state;
         raftClient = client;
+        logIndexMap = new LogIndexMap();
     }
 
     @Override
@@ -43,15 +50,24 @@ public class RaftServerHandler implements SocketServerHandler {
         byte method = buffer.get();
 
         switch (method) {
-            case RaftRequest.REQUEST_VOTE -> {
-                handleRequestVoteRpc(request.selectionKey(), buffer);
-            }
-            case RaftRequest.APPEND_ENTRIES -> {
-                logger.info("Handle [AppendEntries] request.");
-                handleAppendEntriesRpc(request.selectionKey(), buffer);
-            }
-            case RaftRequest.CLIENT_REQUEST -> {
-                handleClientRequest(request.selectionKey(), buffer);
+            case RaftRequest.REQUEST_VOTE ->
+                    handleRequestVoteRpc(request.selectionKey(), buffer);
+            case RaftRequest.APPEND_ENTRIES ->
+                    handleAppendEntriesRpc(request.selectionKey(), buffer);
+            case RaftRequest.CLIENT_REQUEST ->
+                    handleClientRequest(request.selectionKey(), buffer);
+        }
+    }
+
+    @Override
+    public void handleAfterLatchAwait() {
+        int commitIndex = raftState.commitIndex();
+        for(SelectionKey key : logIndexMap.keySet()) {
+            while (logIndexMap.peek(key) <= commitIndex) {
+                byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
+                SocketResponse response = new SocketResponse(key, data, null);
+                socketServer.offerInterruptibly(response);
+                logIndexMap.poll(key);
             }
         }
     }
@@ -178,15 +194,23 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void handleClientRequest(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
+        /* 将客户端请求的标志拿出来， */
+        byte flag = buffer.get();
         /* 把 buffer 中没读到的字节数全部拿出来 */
         int len = buffer.limit() - buffer.position();
         byte[] command = new byte[len];
         buffer.get(command);
 
+        if(flag == RAFT_CLIENT_REQUEST_GET) {
+            stateMachine.exec(selectionKey, command);
+            return;
+        }
+
+        /* 如果是 RAFT_CLIENT_REQUEST_SET，则执行以下逻辑 */
         switch (raftState.raftRole()) {
             /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
             case Leader -> {
-                raftState.append(new Entry(raftState.currentTerm(), command));
+                int logIndex = raftState.append(new Entry(raftState.currentTerm(), command));
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
                 for(ServerNode node : nextIndex.keySet()) {
                     int index = nextIndex.get(node);
@@ -201,6 +225,12 @@ public class RaftServerHandler implements SocketServerHandler {
                             .newUnicastRequest(appendEntries.toBytes(), node);
                     raftClient.offer(request);
                 }
+
+                /* 重设心跳计时器 */
+                raftState.resetHeartbeatTime();
+
+                /* 将 logIndex 缓存到 logIndexMap */
+                logIndexMap.offer(selectionKey, logIndex);
             }
 
             /* follower 获取到客户端请求，需要将请求重定向给 leader */

@@ -1,8 +1,5 @@
 package zbl.moonlight.core.raft.response;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
 
@@ -16,6 +13,7 @@ public interface RaftResponse {
     byte APPEND_ENTRIES_FAILURE = (byte) 0x04;
 
     byte CLIENT_REQUEST_SUCCESS = (byte) 0x05;
+    /* 解析错误，则客户端请求失败 */
     byte CLIENT_REQUEST_FAILURE = (byte) 0x06;
 
     static byte[] requestVoteSuccess(int term, ServerNode currentNode) {
@@ -48,5 +46,19 @@ public interface RaftResponse {
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(APPEND_ENTRIES_FAILURE).putInt(term).putInt(hostLength).put(hostBytes)
                 .putInt(node.port()).array();
+    }
+
+    static byte[] clientRequestSuccess(byte[] result) {
+        int len = result.length + 1;
+        ByteBuffer buffer = ByteBuffer.allocate(len);
+        return buffer.put(CLIENT_REQUEST_SUCCESS).put(result).array();
+    }
+
+    static byte[] clientRequestSuccessWithoutResult() {
+        return clientRequestSuccess(new byte[0]);
+    }
+
+    static byte[] clientRequestFailure() {
+        return new byte[]{CLIENT_REQUEST_FAILURE};
     }
 }

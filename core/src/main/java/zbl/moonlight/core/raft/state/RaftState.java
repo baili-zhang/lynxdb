@@ -23,10 +23,10 @@ public class RaftState {
 
     private final int ELECTION_INTERVAL_MILLIS;
 
-    public RaftState(Appliable appliable, ServerNode current, List<ServerNode> nodes,
+    public RaftState(StateMachine stateMachine, ServerNode current, List<ServerNode> nodes,
                      String logFilenamePrefix)
             throws IOException {
-        stateMachine = appliable;
+        this.stateMachine = stateMachine;
         currentNode = current;
         allNodes = nodes;
         otherNodes = allNodes.stream().filter((node) -> !node.equals(currentNode))
@@ -171,8 +171,8 @@ public class RaftState {
      * @param entry 日志条目
      * @throws IOException IO异常
      */
-    public void append(Entry entry) throws IOException {
-        raftLog.append(entry);
+    public int append(Entry entry) throws IOException {
+        return raftLog.append(entry);
     }
     public void append(Entry[] entries) throws IOException {
         raftLog.append(entries);
@@ -273,7 +273,7 @@ public class RaftState {
         }
     }
 
-    private final Appliable stateMachine;
+    private final StateMachine stateMachine;
 
     /**
      * 将日志条目应用到状态机

@@ -196,15 +196,19 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 **请求格式**
 
-| command     |
-|-------------|
-| (any) bytes |
+| request type | command     |
+|--------------|-------------|
+| 1 byte       | (any) bytes |
+
+Client request type:
+- GET: （查询操作）不需要增加 Raft 日志，直接从状态机返回相应的数据
+- SET: （修改数据操作）需要增加 Raft 日志，并将日志复制到其他 Raft 节点
 
 **响应格式**
 
-| command result |
-|----------------|
-| (any) bytes    |
+| response status | command result |
+|-----------------|----------------|
+| 1 byte          | (any) bytes    |
 
 基于解耦的处理，Raft 模块不做 ClientRequest 请求的解析，将 ClientRequest 的解析操作交给 `RaftClientRequestHandler` 接口处理。
 
