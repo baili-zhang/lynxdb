@@ -162,7 +162,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
         /* 只有在 leader 的 term >= currentTerm 时，才重设选举计时器 */
         raftState.resetElectionTime();
-        logger.info("[{}] Received [AppendEntries], reset election timeout.",
+        logger.debug("[{}] Received [AppendEntries], reset election timeout.",
                 raftState.currentNode());
 
         if(leaderPrevEntry == null) {

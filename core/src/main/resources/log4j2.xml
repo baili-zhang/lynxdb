@@ -1,31 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
     <Properties>
-        <!-- 定义日志格式 -->
-        <Property name="raftLog.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%20t] [%5level] [%20logger] -- %msg%n</Property>
+        <Property name="log.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%20t] [%5level] [%20logger] -- %msg%n</Property>
     </Properties>
-    <!-- 定义Appender，即目的地 -->
     <Appenders>
-        <!-- 定义输出到屏幕 -->
-        <Console name="console" target="SYSTEM_OUT">
-            <!-- 日志格式引用上面定义的log.pattern -->
-            <PatternLayout pattern="${raftLog.pattern}" />
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${log.pattern}" />
         </Console>
-        <!-- 定义输出到文件,文件名引用上面定义的file.err.filename -->
-        <Console name="err" target="SYSTEM_OUT">
-            <PatternLayout pattern="${raftLog.pattern}" />
-        </Console>
+        <File name="log" fileName="logs/server/test.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+        </File>
+        <RollingFile name="RollingFileInfo" fileName="${sys:user.home}/logs/info.log"
+                     filePattern="${sys:user.home}/logs/$${date:yyyy-MM}/info-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${log.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+        </RollingFile>
+        <RollingFile name="RollingFileWarn" fileName="${sys:user.home}/logs/warn.log"
+                     filePattern="${sys:user.home}/logs/$${date:yyyy-MM}/warn-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="warn" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${log.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingFile>
+        <RollingFile name="RollingFileError" fileName="${sys:user.home}/logs/error.log"
+                     filePattern="${sys:user.home}/logs/$${date:yyyy-MM}/error-%d{yyyy-MM-dd}-%i.log">
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${log.pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+        </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="info">
-            <!-- 对info级别的日志，输出到console -->
-            <AppenderRef ref="console" level="info" />
-            <AppenderRef ref="err" level="error" />
-        </Root>
-    </Loggers>
-    <Loggers>
-        <Root level="debug">
-            <AppenderRef ref="console" level="debug" />
-        </Root>
+        <root level="info">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="RollingFileInfo"/>
+            <appender-ref ref="RollingFileWarn"/>
+            <appender-ref ref="RollingFileError"/>
+        </root>
     </Loggers>
 </Configuration>
