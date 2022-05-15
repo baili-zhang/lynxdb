@@ -8,6 +8,7 @@ import zbl.moonlight.core.raft.request.RequestVote;
 import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
@@ -21,7 +22,7 @@ import static zbl.moonlight.core.raft.response.RaftResponse.*;
 
 public record RaftClientHandler(RaftState raftState,
                                 SocketServer raftServer,
-                                RaftClient raftClient) implements SocketClientHandler {
+                                SocketClient socketClient) implements SocketClientHandler {
     private final static Logger logger = LogManager.getLogger("RaftClientHandler");
 
     @Override
@@ -72,8 +73,8 @@ public record RaftClientHandler(RaftState raftState,
                         raftState.currentNode(), raftState.currentTerm(),
                         prevLogIndex, prevLogTerm, leaderCommit,entries);
 
-                if(raftClient.isConnected(node)) {
-                    raftClient.offer(SocketRequest.newUnicastRequest(
+                if(socketClient.isConnected(node)) {
+                    socketClient.offer(SocketRequest.newUnicastRequest(
                             appendEntries.toBytes(), node));
                 }
 
@@ -89,7 +90,7 @@ public record RaftClientHandler(RaftState raftState,
         if (raftState.raftRole() != RaftRole.Leader && raftState.isElectionTimeout()) {
             int count = raftState.clusterNodeCount();
             /* 如果自身节点加上连接上的节点小于或等于半数，则不转换为 Candidate */
-            if(raftClient.connectedNodes().size() + 1 <= (count >> 1)) {
+            if(socketClient.connectedNodes().size() + 1 <= (count >> 1)) {
                 raftState.resetElectionTime();
                 break leaderElection;
             }
@@ -111,14 +112,14 @@ public record RaftClientHandler(RaftState raftState,
                         raftState.indexOfLastLogEntry(),
                         term).toBytes();
 
-            raftClient.offer(SocketRequest.newBroadcastRequest(data));
+            socketClient.offer(SocketRequest.newBroadcastRequest(data));
             /* 重置选举计时器 */
             raftState.resetElectionTime();
         }
         /* 连接未连接的节点 */
         for(ServerNode node : raftState.otherNodes()) {
-            if(!raftClient.isConnecting(node) && !raftClient.isConnected(node)) {
-                raftClient.connect(node);
+            if(!socketClient.isConnecting(node) && !socketClient.isConnected(node)) {
+                socketClient.connect(node);
             }
         }
     }

@@ -2,7 +2,6 @@ package zbl.moonlight.core.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RaftRequest;
@@ -11,6 +10,7 @@ import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
@@ -30,16 +30,16 @@ public class RaftServerHandler implements SocketServerHandler {
 
     private final RaftState raftState;
     private final SocketServer socketServer;
-    private final RaftClient raftClient;
+    private final SocketClient socketClient;
     private final LogIndexMap logIndexMap;
     private final StateMachine stateMachine;
 
     public RaftServerHandler(SocketServer server, StateMachine machine,
-                             RaftClient client, RaftState state) {
+                             SocketClient client, RaftState state) {
         socketServer = server;
         stateMachine = machine;
         raftState = state;
-        raftClient = client;
+        socketClient = client;
         logIndexMap = new LogIndexMap();
     }
 
@@ -208,7 +208,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
         /* 如果是 RAFT_CLIENT_REQUEST_SET，则执行以下逻辑 */
         switch (raftState.raftRole()) {
-            /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 raftClient */
+            /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 socketClient */
             case Leader -> {
                 int logIndex = raftState.append(new Entry(raftState.currentTerm(), command));
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
@@ -223,7 +223,7 @@ public class RaftServerHandler implements SocketServerHandler {
                     /* 将请求发送到其他节点 */
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(appendEntries.toBytes(), node);
-                    raftClient.offer(request);
+                    socketClient.offer(request);
                 }
 
                 /* 重设心跳计时器 */
@@ -240,7 +240,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 } else {
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(command, raftState.leaderNode());
-                    raftClient.offer(request);
+                    socketClient.offer(request);
                 }
             }
 

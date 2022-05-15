@@ -1,11 +1,11 @@
 package zbl.moonlight.core.raft.server;
 
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.client.RaftClient;
 import zbl.moonlight.core.raft.client.RaftClientHandler;
 import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
@@ -16,7 +16,7 @@ public class RaftServer {
     private static final String DEFAULT_NAME = "RAFT_SERVER";
 
     private final SocketServer socketServer;
-    private final RaftClient raftClient;
+    private final SocketClient socketClient;
 
     public RaftServer(StateMachine stateMachine, ServerNode currentNode,
                       List<ServerNode> nodes, String logFilenamePrefix)
@@ -24,15 +24,15 @@ public class RaftServer {
         RaftState raftState = new RaftState(stateMachine, currentNode, nodes,
                 logFilenamePrefix);
         socketServer = new SocketServer(new SocketServerConfig(currentNode.port()));
-        raftClient = new RaftClient();
-        raftClient.setHandler(new RaftClientHandler(raftState, socketServer,
-                raftClient));
+        socketClient = new SocketClient();
+        socketClient.setHandler(new RaftClientHandler(raftState, socketServer,
+                socketClient));
         socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine,
-                raftClient, raftState));
+                socketClient, raftState));
     }
 
     public void start(String name) {
-        Executor.start(raftClient, name + "-client");
+        Executor.start(socketClient, name + "-client");
         Executor.start(socketServer, name);
     }
 
@@ -42,5 +42,9 @@ public class RaftServer {
 
     public SocketServer socketServer() {
         return socketServer;
+    }
+
+    public SocketClient socketClient() {
+        return socketClient;
     }
 }
