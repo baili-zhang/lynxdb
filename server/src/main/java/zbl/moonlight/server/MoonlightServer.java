@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.raft.server.RaftServer;
+import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.storage.StorageEngine;
 import zbl.moonlight.server.exception.ConfigurationException;
@@ -20,8 +21,12 @@ public class MoonlightServer {
 
     MoonlightServer() throws ConfigurationException, IOException {
         config = new Configuration();
+
+        ServerNode current = config.currentNode();
+        String logFilenamePrefix = "moonlight_" + current.host() + "_" + current.port() + "_raft_";
+
         raftServer = new RaftServer(new MdtpStateMachine(), config.currentNode(),
-                config.getRaftNodes(), "moonlight_" + config.currentNode() + "_raft_");
+                config.getRaftNodes(), logFilenamePrefix);
         storageEngine = new StorageEngine(raftServer.socketServer());
     }
 

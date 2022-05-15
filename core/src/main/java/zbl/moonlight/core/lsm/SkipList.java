@@ -4,11 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-public class LsmTree implements Map<String, byte[]> {
-    public LsmTree() {
-
-    }
-
+public class SkipList implements Map<String, byte[]> {
     @Override
     public int size() {
         return 0;

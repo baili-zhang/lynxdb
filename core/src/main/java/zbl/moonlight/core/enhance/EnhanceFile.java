@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.log;
+package zbl.moonlight.core.enhance;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

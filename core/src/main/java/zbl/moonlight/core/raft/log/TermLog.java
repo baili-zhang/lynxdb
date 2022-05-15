@@ -1,5 +1,6 @@
 package zbl.moonlight.core.raft.log;
 
+import zbl.moonlight.core.enhance.EnhanceFile;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
 

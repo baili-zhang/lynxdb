@@ -77,7 +77,7 @@ public record RaftClientHandler(RaftState raftState,
                             appendEntries.toBytes(), node));
                 }
 
-                logger.info("[{}] send {} to node: {}.", raftState.currentNode(),
+                logger.debug("[{}] send {} to node: {}.", raftState.currentNode(),
                         appendEntries, node);
             }
             /* 重置心跳计时器 */
