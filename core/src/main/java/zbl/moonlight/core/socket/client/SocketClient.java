@@ -135,8 +135,10 @@ public class SocketClient extends Executor<SocketRequest> {
                     }
                     /* 如果是单播，则发送给指定的服务器 */
                     else if(request.serverNode() != null) {
-                        ConnectionContext context = contexts.get(request.serverNode());
+                        ServerNode node = request.serverNode();
+                        ConnectionContext context = contexts.get(node);
                         if(context != null) {
+                            logger.info("Send request to node: {}", node);
                             context.offerRequest(request);
                         }
                     }

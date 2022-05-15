@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
 
-    private final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;
-    private final static byte RAFT_CLIENT_REQUEST_SET = (byte) 0x02;
+    public final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;
+    public final static byte RAFT_CLIENT_REQUEST_SET = (byte) 0x02;
 
     private final RaftState raftState;
     private final SocketServer socketServer;

@@ -12,12 +12,12 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RaftServerTest {
+public class RaftCluster {
     private static final Logger logger = LogManager.getLogger("RaftServerTest");
 
     private final List<ServerNode> nodes = new ArrayList<>();
 
-    private RaftServerTest prepare() {
+    private RaftCluster prepare() {
         for(int i = 0; i < 7; i ++) {
             nodes.add(new ServerNode("127.0.0.1", 7820 + i));
         }
@@ -48,7 +48,7 @@ public class RaftServerTest {
     }
 
     public static void main(String[] args) throws IOException {
-        new RaftServerTest().prepare().start();
+        new RaftCluster().prepare().start();
         logger.info("Test for RaftServer started up.");
     }
 }
