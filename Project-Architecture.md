@@ -27,10 +27,10 @@ public interface Executable<E> extends Runnable {
 }
 ```
 
-`AbstractExecutor` 类定义了向执行器队列中添加元素 `offer` ，移除元素 `poll` 和阻塞移除元素 `blockPoll` 的方法：
+`Executor` 类定义了向执行器队列中添加元素 `offer` ，移除元素 `poll` 和阻塞移除元素 `blockPoll` 的方法：
 
 ```java
-public abstract class AbstractExecutor<E> implements Executable<E> {
+public abstract class Executor<E> implements Executable<E> {
     private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();
 
     @Override
@@ -96,18 +96,11 @@ class Main {
         SocketServer server = new SocketServer(new SocketServerConfig(port));
         RequestHandler handler = (request) -> {
             byte[] data = request.getData().array();
-            server.offer(new WritableSocketResponse(request.selectionKey(), res.getBytes(StandardCharsets.UTF_8)));
-        };
-
-        Callback callback = new Callback() {
-            @Override
-            public void doAfterRunning() {
-                System.out.println("Server is running, waiting for connecting.");
-            }
+            server.offer(new WritableSocketResponse(request.selectionKey(),
+                    res.getBytes(StandardCharsets.UTF_8)));
         };
 
         server.setHandler(handler);
-        server.setCallback(callback);
         Executable.start(server);       
     }
 }
