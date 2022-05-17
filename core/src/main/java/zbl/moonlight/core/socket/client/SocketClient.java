@@ -31,7 +31,6 @@ public class SocketClient extends Executor<SocketRequest> {
     private final static int DEFAULT_CAPACITY = 200;
     private final static int DEFAULT_CORE_POOL_SIZE = 5;
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
-    private final static long SELECT_TIMEOUT = 2;
 
     private final Object setLock = new Object();
 
@@ -40,7 +39,7 @@ public class SocketClient extends Executor<SocketRequest> {
     private final ThreadPoolExecutor executor;
     private final HashSet<ServerNode> connecting = new HashSet<>();
 
-    private boolean closed = false;
+    private boolean shutdown = false;
     @Setter
     private SocketClientHandler handler;
 
@@ -86,8 +85,8 @@ public class SocketClient extends Executor<SocketRequest> {
         return contexts.keySet();
     }
 
-    public void close() {
-        closed = true;
+    public void shutdown() {
+        shutdown = true;
     }
 
     @Override
@@ -98,8 +97,12 @@ public class SocketClient extends Executor<SocketRequest> {
 
         try {
             /* TODO:实现优雅关机 */
-            while (!closed) {
-                selector.select(SELECT_TIMEOUT);
+            while (!shutdown) {
+                selector.select();
+                /* 如果线程被中断，则将线程中断位复位 */
+                if(Thread.interrupted()) {
+                    logger.debug("Socket client has bean interrupted.");
+                }
 
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = keys.iterator();
@@ -134,11 +137,11 @@ public class SocketClient extends Executor<SocketRequest> {
                         logger.info("Broadcast request to nodes: {}", contexts.keySet());
                     }
                     /* 如果是单播，则发送给指定的服务器 */
-                    else if(request.serverNode() != null) {
-                        ServerNode node = request.serverNode();
-                        ConnectionContext context = contexts.get(node);
+                    else if(request.target() != null) {
+                        ServerNode target = request.target();
+                        ConnectionContext context = contexts.get(target);
                         if(context != null) {
-                            logger.info("Send request to node: {}", node);
+                            logger.debug("Send request to node: {}", target);
                             context.offerRequest(request);
                         }
                     }

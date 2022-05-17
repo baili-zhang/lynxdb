@@ -11,18 +11,17 @@ public abstract class Executor<E> implements Executable<E>, Interruptable {
     private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();
     private Thread currentThread;
 
-    public static <E> Executor<E> start(Executor<E> executor) {
+    public static <E> void start(Executor<E> executor) {
         String name = executor.getClass().getSimpleName();
-        return start(executor, name);
+        start(executor, name);
     }
 
-    public static <E> Executor<E> start(Executor<E> executor, String name) {
+    public static <E> void start(Executor<E> executor, String name) {
         Thread thread = new Thread(executor, name);
         executor.setThread(thread);
         thread.start();
 
         logger.info("Executor \"{}\" has started.", name);
-        return executor;
     }
 
     @Override

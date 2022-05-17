@@ -80,6 +80,11 @@ public class SocketServer extends Executor<SocketResponse> {
             /* TODO: 实现优雅关机 */
             while (!shutdown) {
                 selector.select();
+                /* 如果线程被中断，则将线程中断位复位 */
+                if(Thread.interrupted()) {
+                    logger.debug("Socket client has bean interrupted.");
+                }
+
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
                 CountDownSync latch = new CountDownSync(selectionKeys.size());

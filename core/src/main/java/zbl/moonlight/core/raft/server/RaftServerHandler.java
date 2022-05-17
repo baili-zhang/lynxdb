@@ -132,7 +132,7 @@ public class RaftServerHandler implements SocketServerHandler {
             raftState.setVoteFor(candidate);
             sendResult(selectionKey, data);
             /* 请求投票成功，当前节点的投票给了其他节点，当前节点不可能被选举成 Leader，所以需要重设选举计时器 */
-            raftState.resetElectionTime();
+            raftState.resetElectionTimeout();
         }
     }
 
@@ -147,6 +147,7 @@ public class RaftServerHandler implements SocketServerHandler {
         Entry[] entries = ByteBufferUtils.isOver(buffer)
                 ? new Entry[0] : getEntries(buffer);
 
+        ServerNode currentNode = raftState.currentNode();
         int currentTerm = raftState.currentTerm();
         Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
 
@@ -157,13 +158,14 @@ public class RaftServerHandler implements SocketServerHandler {
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
             raftState.setRaftRole(RaftRole.Follower);
-            raftState.setLeaderNode(leader);
         }
 
         /* 只有在 leader 的 term >= currentTerm 时，才重设选举计时器 */
-        raftState.resetElectionTime();
+        raftState.resetElectionTimeout();
+        /* 设置 leaderNode, 收到客户端请求，将请求重定向给 leader 时用 */
+        raftState.setLeaderNode(leader);
         logger.debug("[{}] Received [AppendEntries], reset election timeout.",
-                raftState.currentNode());
+                currentNode);
 
         if(leaderPrevEntry == null) {
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
@@ -201,10 +203,16 @@ public class RaftServerHandler implements SocketServerHandler {
         byte[] command = new byte[len];
         buffer.get(command);
 
+        ServerNode currentNode = raftState.currentNode();
+
         if(flag == RAFT_CLIENT_REQUEST_GET) {
+            logger.info("[{}] do client [RAFT_CLIENT_REQUEST_GET] request.", currentNode);
             stateMachine.exec(selectionKey, command);
             return;
         }
+
+        logger.info("[{}] do client [RAFT_CLIENT_REQUEST_SET] request, command is: {}",
+                currentNode, new String(command));
 
         /* 如果是 RAFT_CLIENT_REQUEST_SET，则执行以下逻辑 */
         switch (raftState.raftRole()) {
@@ -227,7 +235,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 }
 
                 /* 重设心跳计时器 */
-                raftState.resetHeartbeatTime();
+                raftState.resetHeartbeatTimeout();
 
                 /* 将 logIndex 缓存到 logIndexMap */
                 logIndexMap.offer(selectionKey, logIndex);
@@ -236,8 +244,11 @@ public class RaftServerHandler implements SocketServerHandler {
             /* follower 获取到客户端请求，需要将请求重定向给 leader */
             case Follower -> {
                 if(raftState.leaderNode() == null) {
-                    sendResult(selectionKey, null);
+                    logger.info("[{}] is [Follower], leaderNode is [null].", currentNode);
+                    sendResult(selectionKey, RaftResponse.clientRequestFailure());
                 } else {
+                    logger.info("[{}] is [Follower], leaderNode is [{}].", currentNode,
+                            raftState.leaderNode());
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(command, raftState.leaderNode());
                     socketClient.offer(request);
@@ -280,7 +291,6 @@ public class RaftServerHandler implements SocketServerHandler {
 
         return new Entry(term, command);
     }
-
 
     private void sendResult(SelectionKey selectionKey, byte[] data) {
         SocketResponse response = new SocketResponse(selectionKey, data, null);

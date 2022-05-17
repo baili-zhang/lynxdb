@@ -7,6 +7,7 @@ import zbl.moonlight.core.raft.log.RaftLog;
 import zbl.moonlight.core.raft.log.TermLog;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.timeout.Timeout;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -17,16 +18,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RaftState {
     private static final Logger logger = LogManager.getLogger("RaftState");
 
-    private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
-    private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
-    private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
-
-    private final int ELECTION_INTERVAL_MILLIS;
+    private final Timeout heartbeat;
+    private final Timeout election;
 
     public RaftState(StateMachine stateMachine, ServerNode current, List<ServerNode> nodes,
-                     String logFilenamePrefix)
+                     String logFilenamePrefix, Timeout heartbeat, Timeout election)
             throws IOException {
         this.stateMachine = stateMachine;
+        this.heartbeat = heartbeat;
+        this.election = election;
+
         currentNode = current;
         allNodes = nodes;
         otherNodes = allNodes.stream().filter((node) -> !node.equals(currentNode))
@@ -34,30 +35,6 @@ public class RaftState {
         raftLog = new RaftLog(logFilenamePrefix + "_index.log",
                 logFilenamePrefix + "_data.log");
         termLog = new TermLog(logFilenamePrefix + "_term.log");
-
-        /* 设置随机的选举超时时间 */
-        ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
-                (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
-                + ELECTION_MIN_INTERVAL_MILLIS;
-        logger.info("[{}] -- [ELECTION_INTERVAL_MILLIS] is {}, [currentTerm] is {}.",
-                currentNode, ELECTION_INTERVAL_MILLIS, termLog.currentTerm());
-    }
-
-    private volatile long heartbeatTimeMillis = System.currentTimeMillis();
-    private volatile long electionTimeMillis = System.currentTimeMillis();
-    public void resetHeartbeatTime() {
-        heartbeatTimeMillis = System.currentTimeMillis();
-    }
-    public void resetElectionTime() {
-        electionTimeMillis = System.currentTimeMillis();
-    }
-    public boolean isHeartbeatTimeout() {
-        return System.currentTimeMillis() - heartbeatTimeMillis
-                > HEARTBEAT_INTERVAL_MILLIS;
-    }
-    public boolean isElectionTimeout() {
-        return System.currentTimeMillis() - electionTimeMillis
-                > ELECTION_INTERVAL_MILLIS;
     }
 
     private final List<ServerNode> allNodes;
@@ -281,5 +258,13 @@ public class RaftState {
      */
     public void apply(Entry[] entries) {
         stateMachine.apply(entries);
+    }
+
+    public void resetElectionTimeout() {
+        election.reset();
+    }
+
+    public void resetHeartbeatTimeout() {
+        heartbeat.reset();
     }
 }

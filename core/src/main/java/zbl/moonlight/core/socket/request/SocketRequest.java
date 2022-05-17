@@ -5,7 +5,7 @@ import zbl.moonlight.core.socket.interfaces.SocketState;
 
 import java.nio.channels.SelectionKey;
 
-public record SocketRequest(boolean isBroadcast, byte status, byte[] data, ServerNode serverNode,
+public record SocketRequest(boolean isBroadcast, byte status, byte[] data, ServerNode target,
                             SelectionKey selectionKey, Object attachment) {
     public static SocketRequest newBroadcastRequest(byte[] data) {
         byte status = SocketState.STAY_CONNECTED_FLAG | SocketState.BROADCAST_FLAG;

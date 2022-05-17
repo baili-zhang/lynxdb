@@ -58,69 +58,17 @@ public record RaftClientHandler(RaftState raftState,
 
     @Override
     public void handleAfterLatchAwait() throws Exception {
-        /* 如果心跳超时，则需要发送心跳包 */
-        if (raftState.raftRole() == RaftRole.Leader && raftState.isHeartbeatTimeout()) {
-            for (ServerNode node : raftState.otherNodes()) {
-                int prevLogIndex = raftState.nextIndex().get(node) - 1;
-                int leaderCommit = raftState.commitIndex();
-
-                int prevLogTerm = prevLogIndex == 0 ? 0
-                        : raftState.getEntryTermByIndex(prevLogIndex);
-                Entry[] entries = raftState.getEntriesByRange(prevLogIndex,
-                        raftState.indexOfLastLogEntry());
-
-                AppendEntries appendEntries = new AppendEntries(
-                        raftState.currentNode(), raftState.currentTerm(),
-                        prevLogIndex, prevLogTerm, leaderCommit,entries);
-
-                if(socketClient.isConnected(node)) {
-                    socketClient.offer(SocketRequest.newUnicastRequest(
-                            appendEntries.toBytes(), node));
-                }
-
-                logger.debug("[{}] send {} to node: {}.", raftState.currentNode(),
-                        appendEntries, node);
-            }
-            /* 重置心跳计时器 */
-            raftState.resetHeartbeatTime();
-        }
-
-        /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
-        leaderElection:
-        if (raftState.raftRole() != RaftRole.Leader && raftState.isElectionTimeout()) {
-            int count = raftState.clusterNodeCount();
-            /* 如果自身节点加上连接上的节点小于或等于半数，则不转换为 Candidate */
-            if(socketClient.connectedNodes().size() + 1 <= (count >> 1)) {
-                raftState.resetElectionTime();
-                break leaderElection;
-            }
-
-            raftState.transformToCandidate();
-            logger.info("[{}] -- [{}] -- Election timeout, " +
-                            "Send RequestVote to other nodes.",
-                    raftState.currentNode(), raftState.raftRole());
-
-            Entry lastEntry = raftState.lastEntry();
-
-            int term = 0;
-            if (lastEntry != null) {
-                term = lastEntry.term();
-            }
-
-            byte[] data = new RequestVote(raftState.currentNode(),
-                        raftState.currentTerm(),
-                        raftState.indexOfLastLogEntry(),
-                        term).toBytes();
-
-            socketClient.offer(SocketRequest.newBroadcastRequest(data));
-            /* 重置选举计时器 */
-            raftState.resetElectionTime();
-        }
         /* 连接未连接的节点 */
+        boolean connect = false;
         for(ServerNode node : raftState.otherNodes()) {
             if(!socketClient.isConnecting(node) && !socketClient.isConnected(node)) {
                 socketClient.connect(node);
+                connect = true;
             }
+        }
+
+        if(connect) {
+            socketClient.interrupt();
         }
     }
 
