@@ -17,6 +17,7 @@ import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.utils.ByteBufferUtils;
+import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -234,22 +235,27 @@ public class RaftServerHandler implements SocketServerHandler {
         switch (raftState.raftRole()) {
             /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 socketClient */
             case Leader -> {
-                logger.info("[{}] -- [Leader] -- Received client request.", currentNode);
-
                 int logIndex = raftState.append(new Entry(raftState.currentTerm(), command));
+                logger.info("[{}] -- [Leader] -- Received client request, log max index is {}.",
+                        currentNode, logIndex);
+
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
                 for(ServerNode node : nextIndex.keySet()) {
-                    int index = nextIndex.get(node);
-                    Entry lastEntry = raftState.getEntryByIndex(index);
-                    Entry[] entries = raftState.getEntriesByRange(index, raftState.indexOfLastLogEntry());
+                    int prevLogIndex = logIndex - 1;
+                    int prevLogTerm = prevLogIndex == 0 ? 0
+                            : raftState.getEntryTermByIndex(prevLogIndex);
+                    Entry[] entries = raftState.getEntriesByRange(prevLogIndex,
+                            raftState.indexOfLastLogEntry());
                     /* 创建 AppendEntries 请求 */
                     AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
-                            raftState.currentTerm(), index, lastEntry.term(),
+                            raftState.currentTerm(), prevLogIndex, prevLogTerm,
                             raftState.commitIndex(), entries);
                     /* 将请求发送到其他节点 */
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(appendEntries.toBytes(), node);
                     socketClient.offer(request);
+
+                    logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries, node);
                 }
 
                 /* 重设心跳计时器 */
@@ -304,8 +310,8 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private Entry getEntry(ByteBuffer buffer) {
+        int len = buffer.getInt() - NumberUtils.INT_LENGTH;
         int term = buffer.getInt();
-        int len = buffer.limit() - buffer.position();
         byte[] command = new byte[len];
         buffer.get(command);
 
