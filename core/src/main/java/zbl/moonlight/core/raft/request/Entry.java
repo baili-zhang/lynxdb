@@ -23,4 +23,10 @@ public record Entry (
         ByteBuffer buffer = ByteBuffer.allocate(len);
         return buffer.putInt(term).put(command).array();
     }
+
+    @Override
+    public String toString() {
+        return String.format("{ term: %d, command: %s }",
+                term, new String(command));
+    }
 }

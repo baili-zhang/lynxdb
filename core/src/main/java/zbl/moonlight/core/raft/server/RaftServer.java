@@ -23,13 +23,14 @@ import java.util.List;
 
 public class RaftServer {
     private static final String DEFAULT_NAME = "RAFT_SERVER";
+    private static final Logger logger = LogManager.getLogger("RaftServer");
 
     private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
 
-    /* 设置随机的选举超时时间 */
-    private static final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
+    /* 设置随机选举超时时间 */
+    private final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
             (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
             + ELECTION_MIN_INTERVAL_MILLIS;;
 
@@ -55,6 +56,9 @@ public class RaftServer {
                 socketClient));
         socketServer.setHandler(new RaftServerHandler(socketServer, stateMachine,
                 socketClient, raftState));
+
+        logger.info("[{}] -- [ELECTION_INTERVAL_MILLIS] is {}",
+                currentNode, ELECTION_INTERVAL_MILLIS);
     }
 
     public void start(String name) {

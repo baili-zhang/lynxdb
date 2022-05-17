@@ -78,7 +78,8 @@ public class RaftState {
                     matchedIndex.put(node, 0);
                 }
 
-                logger.info("{} node get most vote and become [Leader].", currentNode);
+                logger.info("{} node get most vote and become [Leader], current term is {}",
+                        currentNode, currentTerm());
             }
         }
     }

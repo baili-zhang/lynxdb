@@ -45,11 +45,11 @@ public class EnhanceFile {
         output = outputStream.getChannel();
     }
 
-    public synchronized void read(ByteBuffer dst, long position) throws IOException {
+    public void read(ByteBuffer dst, long position) throws IOException {
         input.read(dst, position);
     }
 
-    public synchronized void write(ByteBuffer src, long position) throws IOException {
+    public void write(ByteBuffer src, long position) throws IOException {
         output.write(src, position);
     }
 

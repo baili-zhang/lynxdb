@@ -28,7 +28,7 @@ public class RaftCluster {
         @Override
         public void apply(Entry[] entries) {
             for (Entry entry : entries) {
-                System.out.println(new String(entry.command()));
+                System.out.println("StateMachine Apply: " + new String(entry.command()));
             }
         }
 

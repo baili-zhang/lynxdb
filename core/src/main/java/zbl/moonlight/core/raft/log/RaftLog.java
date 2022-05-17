@@ -31,12 +31,17 @@ import static zbl.moonlight.core.raft.log.EntryIndex.ENTRY_INDEX_LENGTH;
 public class RaftLog {
     private static final int MAX_INDEX_VALUE_POSITION = 0;
 
-    public static final String DEFAULT_RAFT_LOG_DIR = System.getProperty("user.dir") + "/logs";
-    public static final String DEFAULT_RAFT_INDEX_LOG_FILENAME = "raft_log.index";
-    public static final String DEFAULT_RAFT_DATA_LOG_FILENAME = "raft_log.data";
+    private static final String DEFAULT_RAFT_LOG_DIR = System.getProperty("user.dir") + "/logs";
+    private static final String DEFAULT_RAFT_INDEX_LOG_FILENAME = "raft_log.index";
+    private static final String DEFAULT_RAFT_DATA_LOG_FILENAME = "raft_log.data";
 
     private final EnhanceFile indexFile;
     private final EnhanceFile dataFile;
+
+    /**
+     * 当 index == 0 时，返回 BEGIN_ENTRY
+     */
+    public static final Entry BEGIN_ENTRY = new Entry(0, null);
 
     public RaftLog() throws IOException {
         this(DEFAULT_RAFT_INDEX_LOG_FILENAME,
@@ -111,7 +116,10 @@ public class RaftLog {
     }
 
     public synchronized Entry getEntryByIndex(int index) throws IOException {
-        assert index > 0;
+        if(index == 0) {
+            return BEGIN_ENTRY;
+        }
+
         if(index > getMaxIndexValue()) {
             return null;
         }
@@ -123,7 +131,6 @@ public class RaftLog {
     }
 
     private synchronized EntryIndex getEntryIndexByIndex(int index) throws IOException {
-        assert index > 0;
         ByteBuffer buffer = ByteBuffer.allocate(ENTRY_INDEX_LENGTH);
         indexFile.read(buffer, ((long) index) * (long) ENTRY_INDEX_LENGTH);
         return EntryIndex.fromBytes(buffer.array());

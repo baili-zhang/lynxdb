@@ -2,15 +2,10 @@ package zbl.moonlight.core.raft.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.request.AppendEntries;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.raft.request.RequestVote;
-import zbl.moonlight.core.raft.state.RaftRole;
 import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 
@@ -75,7 +70,9 @@ public record RaftClientHandler(RaftState raftState,
     private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {
         if(term > raftState.currentTerm()) {
             raftState.setCurrentTerm(term);
-            logger.info("[{}] set [currentTerm] to {}", raftState.currentNode(), term);
+            logger.info("[{}] set [currentTerm] to {}, raft request failure.",
+                    raftState.currentNode(), term);
+            return;
         }
 
         switch (status) {
@@ -91,6 +88,9 @@ public record RaftClientHandler(RaftState raftState,
             }
             case APPEND_ENTRIES_FAILURE -> {
                 int nextIndex = raftState.nextIndex().get(node);
+                if(nextIndex == 1) {
+                    // throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
+                }
                 raftState.nextIndex().put(node, nextIndex - 1);
             }
         }

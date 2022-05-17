@@ -2,6 +2,7 @@ package zbl.moonlight.core.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.raft.log.RaftLog;
 import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.request.RaftRequest;
@@ -20,13 +21,16 @@ import zbl.moonlight.core.utils.ByteBufferUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
+import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
-
-    public final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;
-    public final static byte RAFT_CLIENT_REQUEST_SET = (byte) 0x02;
 
     private final RaftState raftState;
     private final SocketServer socketServer;
@@ -151,6 +155,15 @@ public class RaftServerHandler implements SocketServerHandler {
         int currentTerm = raftState.currentTerm();
         Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
 
+        if(entries.length != 0) {
+            logger.info("[{}] -- [AppendEntries] -- leader={}, term={}, " +
+                            "prevLogIndex={}, prevLogTerm={}, leaderCommit={} -- {}",
+                    currentNode, leader, term, prevLogIndex, prevLogTerm, leaderCommit,
+                    Arrays.toString(entries));
+        }
+
+
+        /* Term 不匹配，AppendEntries 请求失败 */
         if(term < currentTerm) {
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
@@ -167,19 +180,22 @@ public class RaftServerHandler implements SocketServerHandler {
         logger.debug("[{}] Received [AppendEntries], reset election timeout.",
                 currentNode);
 
+        /* raft 日志不匹配，AppendEntries 请求失败 */
         if(leaderPrevEntry == null) {
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
             return;
         }
 
-        if(leaderPrevEntry.term() != prevLogTerm) {
+        /* raft 日志不匹配，AppendEntries 请求失败 */
+        if(leaderPrevEntry != RaftLog.BEGIN_ENTRY && leaderPrevEntry.term() != prevLogTerm) {
             raftState.setMaxIndex(prevLogIndex);
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
             return;
         }
 
+        raftState.setMaxIndex(prevLogIndex);
         raftState.append(entries);
         byte[] data = RaftResponse.appendEntriesSuccess(currentTerm, raftState.currentNode(),
                 raftState.indexOfLastLogEntry());
@@ -218,6 +234,8 @@ public class RaftServerHandler implements SocketServerHandler {
         switch (raftState.raftRole()) {
             /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 socketClient */
             case Leader -> {
+                logger.info("[{}] -- [Leader] -- Received client request.", currentNode);
+
                 int logIndex = raftState.append(new Entry(raftState.currentTerm(), command));
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
                 for(ServerNode node : nextIndex.keySet()) {
@@ -249,9 +267,12 @@ public class RaftServerHandler implements SocketServerHandler {
                 } else {
                     logger.info("[{}] is [Follower], leaderNode is [{}].", currentNode,
                             raftState.leaderNode());
+                    ByteBuffer data = ByteBuffer.allocate(command.length + 2);
+                    data.put(RaftRequest.CLIENT_REQUEST)
+                            .put(RAFT_CLIENT_REQUEST_SET).put(command);
                     SocketRequest request = SocketRequest
-                            .newUnicastRequest(command, raftState.leaderNode());
-                    socketClient.offer(request);
+                            .newUnicastRequest(data.array(), raftState.leaderNode());
+                    socketClient.offerInterruptibly(request);
                 }
             }
 
@@ -274,13 +295,12 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private Entry[] getEntries(ByteBuffer buffer) {
-        int size = buffer.getInt();
-        Entry[] entries = new Entry[size];
-        for (int i = 0; i < size; i++) {
-            entries[i] = getEntry(buffer);
+        List<Entry> entries = new ArrayList<>();
+        while (!ByteBufferUtils.isOver(buffer)) {
+            entries.add(getEntry(buffer));
         }
 
-        return entries;
+        return entries.toArray(Entry[]::new);
     }
 
     private Entry getEntry(ByteBuffer buffer) {

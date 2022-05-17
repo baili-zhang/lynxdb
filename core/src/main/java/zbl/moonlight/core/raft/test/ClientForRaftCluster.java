@@ -12,12 +12,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
-import static zbl.moonlight.core.raft.server.RaftServerHandler.RAFT_CLIENT_REQUEST_SET;
+import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class ClientForRaftCluster {
     public static void main(String[] args) throws IOException, InterruptedException {
         SocketClient client = new SocketClient();
-        ServerNode node = new ServerNode("127.0.0.1", 7820);
+        ServerNode node = new ServerNode("127.0.0.1", 7821);
         client.connect(node);
         byte[] command = "set a value".getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(command.length + 2);
