@@ -17,7 +17,7 @@ import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_
 public class ClientForRaftCluster {
     public static void main(String[] args) throws IOException, InterruptedException {
         SocketClient client = new SocketClient();
-        ServerNode node = new ServerNode("127.0.0.1", 7825);
+        ServerNode node = new ServerNode("127.0.0.1", 7822);
         client.connect(node);
         byte[] command = "set a value".getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(command.length + 2);

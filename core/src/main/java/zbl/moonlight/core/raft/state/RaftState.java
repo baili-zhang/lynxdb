@@ -237,16 +237,17 @@ public class RaftState {
      */
     public void checkCommitIndex() throws IOException {
         int n = (allNodes.size() >> 1) + 1;
-        int lastEntryIndex = indexOfLastLogEntry();
-        for(int i = commitIndex.get() + 1; i < lastEntryIndex; i ++) {
+        int maxIndex = indexOfLastLogEntry();
+        for(int i = commitIndex.get() + 1; i <= maxIndex; i ++) {
             int count  = 0;
             for(ServerNode node : matchedIndex.keySet()) {
-                if(matchedIndex.get(node) > i) {
+                if(matchedIndex.get(node) >= i) {
                     count ++;
                 }
             }
             if(count >= n) {
                 commitIndex.set(i);
+                logger.info("[{}] set commit index to {}.", currentNode, i);
             }
         }
     }
@@ -259,6 +260,7 @@ public class RaftState {
      */
     public void apply(Entry[] entries) {
         stateMachine.apply(entries);
+        lastApplied.set(commitIndex.get());
     }
 
     public void resetElectionTimeout() {

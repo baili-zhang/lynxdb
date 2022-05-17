@@ -66,9 +66,10 @@ public class RaftServerHandler implements SocketServerHandler {
 
     @Override
     public void handleAfterLatchAwait() {
-        int commitIndex = raftState.commitIndex();
+        final int commitIndex = raftState.commitIndex();
         for(SelectionKey key : logIndexMap.keySet()) {
-            while (logIndexMap.peek(key) <= commitIndex) {
+            final Integer logIndex = logIndexMap.peek(key);
+            while (logIndex != null && logIndex <= commitIndex) {
                 byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
                 SocketResponse response = new SocketResponse(key, data, null);
                 socketServer.offerInterruptibly(response);
