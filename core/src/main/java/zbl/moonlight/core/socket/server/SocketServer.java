@@ -124,6 +124,7 @@ public class SocketServer extends Executor<SocketResponse> {
                     }
 
                     SelectionKey selectionKey = response.selectionKey();
+                    /* TODO: context 可能为 null，需要排查原因 */
                     SocketContext context = contexts.get(selectionKey);
                     context.offerResponse(new WritableSocketResponse(response));
                 }

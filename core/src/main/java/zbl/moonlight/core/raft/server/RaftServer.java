@@ -29,11 +29,6 @@ public class RaftServer {
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
 
-    /* 设置随机选举超时时间 */
-    private final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
-            (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
-            + ELECTION_MIN_INTERVAL_MILLIS;;
-
     private final SocketServer socketServer;
     private final SocketClient socketClient;
 
@@ -46,6 +41,10 @@ public class RaftServer {
                       List<ServerNode> nodes, String logFilenamePrefix)
             throws IOException {
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
+        /* 设置随机选举超时时间 */
+        int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
+                (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
+                + ELECTION_MIN_INTERVAL_MILLIS;
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
 
         raftState = new RaftState(stateMachine, currentNode, nodes,
@@ -105,10 +104,10 @@ public class RaftServer {
                         if(socketClient.isConnected(node)) {
                             socketClient.offerInterruptibly(SocketRequest.newUnicastRequest(
                                     appendEntries.toBytes(), node));
-                        }
 
-                        logger.debug("[{}] send {} to node: {}.", raftState.currentNode(),
-                                appendEntries, node);
+                            logger.info("[{}] send {} to node: {}.", raftState.currentNode(),
+                                    appendEntries, node);
+                        }
                     }
                 }
 

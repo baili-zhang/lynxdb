@@ -68,12 +68,12 @@ public class RaftServerHandler implements SocketServerHandler {
     public void handleAfterLatchAwait() {
         final int commitIndex = raftState.commitIndex();
         for(SelectionKey key : logIndexMap.keySet()) {
-            final Integer logIndex = logIndexMap.peek(key);
+            Integer logIndex = logIndexMap.peek(key);
             while (logIndex != null && logIndex <= commitIndex) {
                 byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
                 SocketResponse response = new SocketResponse(key, data, null);
                 socketServer.offerInterruptibly(response);
-                logIndexMap.poll(key);
+                logIndex = logIndexMap.peekAfterPoll(key);
             }
         }
     }
@@ -179,7 +179,7 @@ public class RaftServerHandler implements SocketServerHandler {
         raftState.resetElectionTimeout();
         /* 设置 leaderNode, 收到客户端请求，将请求重定向给 leader 时用 */
         raftState.setLeaderNode(leader);
-        logger.debug("[{}] Received [AppendEntries], reset election timeout.",
+        logger.info("[{}] Received [AppendEntries], reset election timeout.",
                 currentNode);
 
         /* raft 日志不匹配，AppendEntries 请求失败 */
@@ -240,6 +240,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 logger.info("[{}] -- [Leader] -- Received client request, log max index is {}.",
                         currentNode, logIndex);
 
+                raftState.resetHeartbeatTimeout();
                 ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
                 for(ServerNode node : nextIndex.keySet()) {
                     int prevLogIndex = logIndex - 1;
@@ -254,7 +255,7 @@ public class RaftServerHandler implements SocketServerHandler {
                     /* 将请求发送到其他节点 */
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(appendEntries.toBytes(), node);
-                    socketClient.offer(request);
+                    socketClient.offerInterruptibly(request);
 
                     logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries, node);
                 }

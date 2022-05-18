@@ -22,9 +22,10 @@ public class LogIndexMap {
         return queue.peek();
     }
 
-    public Integer poll(SelectionKey key) {
+    public Integer peekAfterPoll(SelectionKey key) {
         ConcurrentLinkedQueue<Integer> queue = createQueueIfNotExist(key);
-        return queue.poll();
+        queue.poll();
+        return queue.peek();
     }
 
     public Set<SelectionKey> keySet() {
