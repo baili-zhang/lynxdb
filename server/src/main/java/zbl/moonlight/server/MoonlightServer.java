@@ -11,6 +11,7 @@ import zbl.moonlight.server.exception.ConfigurationException;
 import zbl.moonlight.server.mdtp.MdtpStateMachine;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
@@ -27,7 +28,7 @@ public class MoonlightServer {
 
         raftServer = new RaftServer(new MdtpStateMachine(), config.currentNode(),
                 config.getRaftNodes(), logFilenamePrefix);
-        storageEngine = new StorageEngine(raftServer.socketServer());
+        storageEngine = new StorageEngine(raftServer.socketServer(), new HashMap<>());
     }
 
     public void run() {

@@ -9,21 +9,23 @@ import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.server.mdtp.MdtpCommand;
 
+import java.util.Map;
+
 import static zbl.moonlight.server.mdtp.MdtpCommand.*;
 
 public class StorageEngine extends Executor<MdtpCommand> {
     private static final Logger logger = LogManager.getLogger("Engine");
 
-    private final SocketServer server;
-    private final LsmTree lsmTree;
+    private final SocketServer socketServer;
+    private final Map<String, byte[]> storage;
     /* TODO: Cache 以后再实现 */
 
     /* 是否关闭 */
     private boolean shutdown = false;
 
-    public StorageEngine(SocketServer socketServer) {
-        server = socketServer;
-        lsmTree = new LsmTree();
+    public StorageEngine(SocketServer socketServer, Map<String, byte[]> storage) {
+        this.socketServer = socketServer;
+        this.storage = storage;
     }
 
     public void shutdown () {
@@ -35,7 +37,7 @@ public class StorageEngine extends Executor<MdtpCommand> {
         while (!shutdown) {
             MdtpCommand command = blockPoll();
             SocketResponse response = exec(command);
-            server.offerInterruptibly(response);
+            socketServer.offerInterruptibly(response);
         }
     }
 
@@ -51,18 +53,18 @@ public class StorageEngine extends Executor<MdtpCommand> {
     }
 
     private SocketResponse doSet(MdtpCommand command) {
-        lsmTree.put(command.key(), command.value());
+        storage.put(command.key(), command.value());
         byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
         return new SocketResponse(command.selectionKey(), data, null);
     }
 
     private SocketResponse doGet(MdtpCommand command) {
-        byte[] value = lsmTree.get(command.key());
+        byte[] value = storage.get(command.key());
         return null;
     }
 
     private SocketResponse doDelete(MdtpCommand command) {
-        lsmTree.remove(command.key());
+        storage.remove(command.key());
         return null;
     }
 }
