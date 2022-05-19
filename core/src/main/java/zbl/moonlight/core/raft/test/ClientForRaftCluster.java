@@ -6,6 +6,7 @@ import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
+import zbl.moonlight.core.socket.response.SocketResponse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -19,7 +20,7 @@ public class ClientForRaftCluster {
         SocketClient client = new SocketClient();
         ServerNode node = new ServerNode("127.0.0.1", 7822);
         client.connect(node);
-        byte[] command = "set a value".getBytes(StandardCharsets.UTF_8);
+        byte[] command = "set bb hallo world!".getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(command.length + 2);
         buffer.put(RaftRequest.CLIENT_REQUEST).put(RAFT_CLIENT_REQUEST_SET).put(command);
 
@@ -27,6 +28,12 @@ public class ClientForRaftCluster {
         client.setHandler(new SocketClientHandler() {
             @Override
             public void handleConnected(ServerNode node) {
+            }
+
+            @Override
+            public void handleResponse(SocketResponse response) throws Exception {
+                System.out.println(response.data().length);
+                System.out.println(response.data()[0]);
             }
         });
         Executor.start(client);

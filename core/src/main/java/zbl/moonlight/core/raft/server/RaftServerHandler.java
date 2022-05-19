@@ -179,7 +179,7 @@ public class RaftServerHandler implements SocketServerHandler {
         raftState.resetElectionTimeout();
         /* 设置 leaderNode, 收到客户端请求，将请求重定向给 leader 时用 */
         raftState.setLeaderNode(leader);
-        logger.info("[{}] Received [AppendEntries], reset election timeout.",
+        logger.debug("[{}] Received [AppendEntries], reset election timeout.",
                 currentNode);
 
         /* raft 日志不匹配，AppendEntries 请求失败 */
@@ -279,7 +279,7 @@ public class RaftServerHandler implements SocketServerHandler {
                     data.put(RaftRequest.CLIENT_REQUEST)
                             .put(RAFT_CLIENT_REQUEST_SET).put(command);
                     SocketRequest request = SocketRequest
-                            .newUnicastRequest(data.array(), raftState.leaderNode());
+                            .newUnicastRequest(data.array(), raftState.leaderNode(), selectionKey);
                     socketClient.offerInterruptibly(request);
                 }
             }

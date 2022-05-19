@@ -41,13 +41,15 @@ public record RaftClientHandler(RaftState raftState,
                 handleRaftRpcResponse(status, term, node, buffer);
             }
 
-            case CLIENT_REQUEST_SUCCESS, CLIENT_REQUEST_FAILURE -> {
-                int len = buffer.limit() - buffer.position();
-                byte[] commandResult = new byte[len];
-                buffer.get(commandResult);
-                raftServer.offer(new SocketResponse((SelectionKey) response.attachment(),
-                        commandResult, null));
-            }
+            /* 客户端请求成功，则向客户端响应[CLIENT_REQUEST_SUCCESS] */
+            case CLIENT_REQUEST_SUCCESS ->
+                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
+                            new byte[]{CLIENT_REQUEST_SUCCESS}, null));
+
+            /* 客户端请求失败，则向客户端响应[CLIENT_REQUEST_FAILURE] */
+            case CLIENT_REQUEST_FAILURE ->
+                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
+                            new byte[]{CLIENT_REQUEST_FAILURE}, null));
         }
     }
 
@@ -89,7 +91,7 @@ public record RaftClientHandler(RaftState raftState,
             case APPEND_ENTRIES_FAILURE -> {
                 int nextIndex = raftState.nextIndex().get(node);
                 if(nextIndex == 1) {
-                    // throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
+                    throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
                 }
                 raftState.nextIndex().put(node, nextIndex - 1);
             }

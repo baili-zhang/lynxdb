@@ -105,7 +105,7 @@ public class RaftServer {
                             socketClient.offerInterruptibly(SocketRequest.newUnicastRequest(
                                     appendEntries.toBytes(), node));
 
-                            logger.info("[{}] send {} to node: {}.", raftState.currentNode(),
+                            logger.debug("[{}] send {} to node: {}.", raftState.currentNode(),
                                     appendEntries, node);
                         }
                     }

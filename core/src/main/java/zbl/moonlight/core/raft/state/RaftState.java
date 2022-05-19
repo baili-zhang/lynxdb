@@ -245,9 +245,10 @@ public class RaftState {
                     count ++;
                 }
             }
-            if(count >= n) {
+            if(count >= n && i > commitIndex.get()) {
+                int oldCommitIndex = commitIndex.get();
                 commitIndex.set(i);
-                logger.info("[{}] set commit index to {}.", currentNode, i);
+                logger.info("[{}] set commit index: from {} to {}", currentNode, oldCommitIndex, i);
             }
         }
     }

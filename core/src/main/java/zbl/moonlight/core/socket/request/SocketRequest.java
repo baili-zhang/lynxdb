@@ -13,8 +13,11 @@ public record SocketRequest(boolean isBroadcast, byte status, byte[] data, Serve
     }
 
     public static SocketRequest newUnicastRequest(byte[] data, ServerNode node) {
-        assert node != null;
+        return newUnicastRequest(data, node, null);
+    }
+
+    public static SocketRequest newUnicastRequest(byte[] data, ServerNode node, Object attachment) {
         byte status = SocketState.STAY_CONNECTED_FLAG;
-        return new SocketRequest(false, status, data, node, null, null);
+        return new SocketRequest(false, status, data, node, null, attachment);
     }
 }
