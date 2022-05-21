@@ -16,7 +16,7 @@ import java.util.Map;
 import static zbl.moonlight.server.mdtp.MdtpCommand.*;
 
 public class StorageEngine extends Executor<MdtpCommand> {
-    private static final Logger logger = LogManager.getLogger("Engine");
+    private static final Logger logger = LogManager.getLogger("StorageEngine");
 
     private final SocketServer socketServer;
     private final Map<String, byte[]> storage;
@@ -39,6 +39,9 @@ public class StorageEngine extends Executor<MdtpCommand> {
         while (!shutdown) {
             /* 阻塞 poll，需要被中断 */
             MdtpCommand command = blockPoll();
+            if(command == null) {
+                continue;
+            }
             SocketResponse response = exec(command);
             /* Raft 日志 apply 的 command 执行后返回的 response 为 null */
             if(response != null) {
@@ -70,8 +73,13 @@ public class StorageEngine extends Executor<MdtpCommand> {
             throw new RuntimeException("selectionKey can not be [null]");
         }
 
-        byte[] value = storage.get(command.key());
-        return successWithValue(selectionKey, value);
+        String key = command.key();
+        byte[] value = storage.get(key);
+        logger.info("GET [{}], value is [{}]", key, value == null ?
+                "null" : new String(value));
+
+        return value == null ? success(selectionKey)
+                : successWithValue(selectionKey, value);
     }
 
     private SocketResponse doDelete(MdtpCommand command) {
@@ -87,9 +95,9 @@ public class StorageEngine extends Executor<MdtpCommand> {
         return new SocketResponse(selectionKey, data, null);
     }
 
+    /* 定义这个方法主要是为了阅读时方便 */
     private SocketResponse successWithValue(SelectionKey selectionKey, byte[] value) {
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH + value.length);
-        byte[] data = buffer.putInt(value.length).put(value).array();
+        byte[] data = RaftResponse.clientRequestSuccess(value);
         return new SocketResponse(selectionKey, data, null);
     }
 }

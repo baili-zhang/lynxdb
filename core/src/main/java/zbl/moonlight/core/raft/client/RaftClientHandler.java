@@ -42,9 +42,11 @@ public record RaftClientHandler(RaftState raftState,
             }
 
             /* 客户端请求成功，则向客户端响应[CLIENT_REQUEST_SUCCESS] */
-            case CLIENT_REQUEST_SUCCESS ->
+            case CLIENT_REQUEST_SUCCESS -> {
+                    logger.info("[{}] Client request success.", raftState.currentNode());
                     raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
                             new byte[]{CLIENT_REQUEST_SUCCESS}, null));
+            }
 
             /* 客户端请求失败，则向客户端响应[CLIENT_REQUEST_FAILURE] */
             case CLIENT_REQUEST_FAILURE ->
@@ -55,18 +57,6 @@ public record RaftClientHandler(RaftState raftState,
 
     @Override
     public void handleAfterLatchAwait() throws Exception {
-        /* 连接未连接的节点 */
-        boolean connect = false;
-        for(ServerNode node : raftState.otherNodes()) {
-            if(!socketClient.isConnecting(node) && !socketClient.isConnected(node)) {
-                socketClient.connect(node);
-                connect = true;
-            }
-        }
-
-        if(connect) {
-            socketClient.interrupt();
-        }
     }
 
     private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {

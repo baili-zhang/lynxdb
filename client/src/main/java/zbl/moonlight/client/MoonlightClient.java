@@ -2,16 +2,24 @@ package zbl.moonlight.client;
 
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
+import zbl.moonlight.core.raft.request.ClientRequest;
+import zbl.moonlight.core.raft.request.RaftRequest;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.request.SocketRequest;
+import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.server.mdtp.MdtpMethod;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 import static zbl.moonlight.client.Command.*;
+import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
+import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class MoonlightClient extends Shutdown {
     private final SocketClient socketClient;
@@ -39,6 +47,7 @@ public class MoonlightClient extends Shutdown {
             Command command = Command.fromString(scanner.nextLine());
 
             switch (command.name()) {
+                /* 处理连接命令 */
                 case CONNECT_COMMAND -> {
                     current = new ServerNode(command.key(),
                             Integer.parseInt(command.value()));
@@ -49,7 +58,54 @@ public class MoonlightClient extends Shutdown {
                     barrier.await();
                 }
 
-                case GET_COMMAND, SET_COMMAND, DELETE_COMMAND -> {
+                /* 处理 GET 命令 */
+                case GET_COMMAND -> {
+                    byte method = MdtpMethod.GET;
+                    byte[] key = command.key().getBytes(StandardCharsets.UTF_8);
+                    int len = NumberUtils.BYTE_LENGTH * 3 + NumberUtils.INT_LENGTH * 2
+                            + key.length;
+
+                    ByteBuffer buffer = ByteBuffer.allocate(len);
+                    buffer.put(RaftRequest.CLIENT_REQUEST)
+                            .put(RAFT_CLIENT_REQUEST_GET)
+                            .put(method)
+                            .putInt(key.length)
+                            .put(key)
+                            .putInt(0);
+
+                    SocketRequest request = SocketRequest.newUnicastRequest(buffer.array(),
+                            current, command.name());
+                    socketClient.offerInterruptibly(request);
+
+                    barrier.await();
+                }
+
+                /* 处理 SET 命令 */
+                case SET_COMMAND -> {
+                    byte method = MdtpMethod.SET;
+                    byte[] key = command.key().getBytes(StandardCharsets.UTF_8);
+                    byte[] value = command.value().getBytes(StandardCharsets.UTF_8);
+                    int len = NumberUtils.BYTE_LENGTH * 3 + NumberUtils.INT_LENGTH * 2
+                            + key.length + value.length;
+
+                    ByteBuffer buffer = ByteBuffer.allocate(len);
+                    buffer.put(RaftRequest.CLIENT_REQUEST)
+                            .put(RAFT_CLIENT_REQUEST_SET)
+                            .put(method)
+                            .putInt(key.length)
+                            .put(key)
+                            .putInt(value.length)
+                            .put(value);
+
+                    SocketRequest request = SocketRequest.newUnicastRequest(buffer.array(),
+                            current, command.name());
+                    socketClient.offerInterruptibly(request);
+
+                    barrier.await();
+                }
+
+                case DELETE_COMMAND -> {
+
                 }
 
                 case CLUSTER_COMMAND -> {
@@ -60,6 +116,10 @@ public class MoonlightClient extends Shutdown {
                     String error = String.format("Invalid command [%s]", command.name());
                     Printer.printError(error);
                 }
+            }
+
+            if(barrier.isBroken()) {
+                barrier.reset();
             }
         }
     }

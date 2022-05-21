@@ -86,6 +86,12 @@ public class RaftServer {
         @Override
         public void run() {
             try {
+                /* 连接未连接的节点 */
+                for(ServerNode node : raftState.otherNodes()) {
+                    if(!socketClient.isConnecting(node) && !socketClient.isConnected(node)) {
+                        socketClient.connect(node);
+                    }
+                }
                 /* 如果心跳超时，则需要发送心跳包 */
                 if (raftState.raftRole() == RaftRole.Leader) {
                     for (ServerNode node : raftState.otherNodes()) {

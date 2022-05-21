@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketClient extends Executor<SocketRequest> {
@@ -222,7 +221,12 @@ public class SocketClient extends Executor<SocketRequest> {
 
                 logger.info("Has connected to socket node {}.", node);
             } catch (ConnectException e) {
-                logger.info("Connect to socket node {} failure.", node);
+                /* 连接失败，将 node 从 connecting 集合中删除 */
+                synchronized (connecting) {
+                    connecting.remove(node);
+                }
+
+                logger.debug("Connect to socket node {} failure.", node);
             } catch (Exception e) {
                 e.printStackTrace();
             }

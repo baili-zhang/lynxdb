@@ -239,7 +239,7 @@ public class RaftState {
         int n = (allNodes.size() >> 1) + 1;
         int maxIndex = indexOfLastLogEntry();
         for(int i = commitIndex.get() + 1; i <= maxIndex; i ++) {
-            int count  = 0;
+            int count  = 1;
             for(ServerNode node : matchedIndex.keySet()) {
                 if(matchedIndex.get(node) >= i) {
                     count ++;
@@ -250,6 +250,10 @@ public class RaftState {
                 commitIndex.set(i);
                 logger.info("[{}] set commit index: from {} to {}", currentNode, oldCommitIndex, i);
             }
+        }
+        /* 将提交的日志应用到状态机 */
+        if(commitIndex() > lastApplied()) {
+            apply(getEntriesByRange(lastApplied(), commitIndex()));
         }
     }
 

@@ -28,6 +28,7 @@ public class MdtpStateMachine implements StateMachine {
         }
         for(Entry entry : entries) {
             MdtpCommand command = new MdtpCommand(null, entry.command());
+            logger.info("Apply command {} to state machine.", command);
             storageEngine.offerInterruptibly(command);
         }
     }

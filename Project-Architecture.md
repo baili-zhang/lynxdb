@@ -262,9 +262,9 @@ get key
 
 *值存在*
 
-| value length | value                |
-|--------------|----------------------|
-| 4 bytes      | (value length) bytes |
+| value       |
+|-------------|
+| (any) bytes |
 
 *值不存在：无响应体*
 

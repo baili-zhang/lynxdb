@@ -20,4 +20,16 @@ public interface Printer {
         String info = String.format("INFO: Has connected to [%s]", node);
         System.out.println(info);
     }
+
+    static void printValueNotExist() {
+        System.out.println("null");
+    }
+
+    static void printValue(byte[] value) {
+        System.out.println(new String(value));
+    }
+
+    static void printOK() {
+        System.out.println("OK");
+    }
 }
