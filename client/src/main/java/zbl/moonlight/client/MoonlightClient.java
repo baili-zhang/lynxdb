@@ -1,118 +1,77 @@
 package zbl.moonlight.client;
 
-import zbl.moonlight.client.common.Command;
-import zbl.moonlight.client.exception.InvalidCommandException;
-import zbl.moonlight.client.exception.InvalidMethodException;
-import zbl.moonlight.core.protocol.Serializer;
-import zbl.moonlight.core.socket.interfaces.SocketState;
-import zbl.moonlight.core.utils.ByteArrayUtils;
-import zbl.moonlight.server.mdtp.MdtpMethod;
-import zbl.moonlight.server.mdtp.ResponseStatus;
+import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.core.executor.Shutdown;
+import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.core.socket.client.SocketClient;
+import zbl.moonlight.core.socket.request.SocketRequest;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
-public class MoonlightClient {
-    private final String host;
-    private final int port;
-    private DataInputStream inputStream;
-    private DataOutputStream outputStream;
-    private Scanner scanner;
-    private int serial;
-    private boolean connectionHold = true;
+import static zbl.moonlight.client.Command.*;
 
-    public MoonlightClient(String host, int port) {
-        this.host = host;
-        this.port = port;
-        serial = 0;
+public class MoonlightClient extends Shutdown {
+    private final SocketClient socketClient;
+    private final Scanner scanner;
+
+    private final CyclicBarrier barrier = new CyclicBarrier(2);
+
+    /**
+     * 终端当前连接的节点
+     */
+    private ServerNode current;
+
+
+    public MoonlightClient() throws IOException {
+        socketClient = new SocketClient();
+        socketClient.setHandler(new ClientHandler(barrier));
+        scanner = new Scanner(System.in);
     }
 
-    public void runInTerminal() throws IOException {
-        init();
+    public void start() throws BrokenBarrierException, InterruptedException, IOException {
+        Executor.start(socketClient);
 
-        while (connectionHold) {
-            try {
-                print();
-                Command command = readLine();
-                send(command);
-                if(command.getCode() == MdtpMethod.EXIT) {
-                    connectionHold = false;
-                } else {
-                    showResponse();
+        while (!isShutdown()) {
+            Printer.printPrompt(current);
+            Command command = Command.fromString(scanner.nextLine());
+
+            switch (command.name()) {
+                case CONNECT_COMMAND -> {
+                    current = new ServerNode(command.key(),
+                            Integer.parseInt(command.value()));
+                    socketClient.connect(current);
+                    socketClient.interrupt();
+
+                    /* 等待连接成功 */
+                    barrier.await();
                 }
-            } catch (InvalidMethodException e) {
-                printError("Method", e.getMessage());
-            } catch (InvalidCommandException e) {
-                printError("Command", e.getMessage());
+
+                case GET_COMMAND, SET_COMMAND, DELETE_COMMAND -> {
+                }
+
+                case CLUSTER_COMMAND -> {
+
+                }
+
+                default -> {
+                    String error = String.format("Invalid command [%s]", command.name());
+                    Printer.printError(error);
+                }
             }
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        MoonlightClient client = new MoonlightClient("127.0.0.1", 7820);
-        client.runInTerminal();
+    public static void main(String[] args) throws IOException,
+            BrokenBarrierException, InterruptedException {
+        MoonlightClient client = new MoonlightClient();
+        client.start();
     }
 
-    private void init() throws IOException {
-        Socket socket = new Socket(host, port);
-        inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-        outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-        scanner = new Scanner(System.in);
-    }
-
-    private Command readLine() throws InvalidMethodException, InvalidCommandException {
-        return new Command(scanner.nextLine());
-    }
-
-    private void print() {
-        System.out.print("Moonlight> ");
-    }
-
-    private void printError(String type, String message) {
-        System.out.println("Error: (Invalid " + type + ") " + message + "");
-    }
-
-    /* TODO:取消硬编码，使用MdtpRequestSchema和MdtpResponseSchema重构 */
-    private void send(Command command) throws IOException, InvalidCommandException {
-        byte method = command.getCode();
-        byte[] key = command.getKey().toString().getBytes(StandardCharsets.UTF_8);
-        byte[] value = command.getValue().toString().getBytes(StandardCharsets.UTF_8);
-
-        Serializer serializer = new Serializer(MdtpRequestSchema.class);
-        serializer.mapPut(SocketSchema.SOCKET_STATUS, new byte[]{SocketState.STAY_CONNECTED});
-        serializer.mapPut(MdtpRequestSchema.METHOD, new byte[]{method});
-        serializer.mapPut(MdtpRequestSchema.KEY, key);
-        serializer.mapPut(MdtpRequestSchema.VALUE, value);
-        serializer.mapPut(MdtpRequestSchema.SERIAL, ByteArrayUtils.fromInt(serial ++));
-
-        outputStream.write(serializer.getByteBuffer().array());
-        outputStream.flush();
-    }
-
-    private void showResponse() throws IOException {
-        inputStream.readInt();
-        byte socketState = inputStream.readByte();
-        byte responseCode = inputStream.readByte();
-        int identifier = inputStream.readInt();
-        int valueLength = inputStream.readInt();
-        String responseValue = "";
-        if(valueLength != 0) {
-            byte[] responseValueBytes = new byte[valueLength];
-            inputStream.read(responseValueBytes);
-            responseValue += new String(responseValueBytes);
-        }
-
-        System.out.println("------------------ RESPONSE ------------------");
-        System.out.println("Status: " + ResponseStatus.getCodeName(responseCode)
-                + "\nSerial number: " + identifier
-                + "\nValue length: " + valueLength
-                + "\nValue: " + responseValue);
-        System.out.println("---------------- RESPONSE END ----------------");
+    private void send(Command command) {
+        SocketRequest request = SocketRequest.newUnicastRequest(command.toBytes(), current);
+        socketClient.offerInterruptibly(request);
     }
 }

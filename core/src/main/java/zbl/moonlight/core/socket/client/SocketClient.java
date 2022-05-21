@@ -223,6 +223,8 @@ public class SocketClient extends Executor<SocketRequest> {
                 logger.info("Has connected to socket node {}.", node);
             } catch (ConnectException e) {
                 logger.info("Connect to socket node {} failure.", node);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 

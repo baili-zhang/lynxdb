@@ -48,10 +48,10 @@ public interface RaftResponse {
                 .putInt(node.port()).array();
     }
 
-    static byte[] clientRequestSuccess(byte[] result) {
-        int len = result.length + 1;
+    static byte[] clientRequestSuccess(byte[] commandResult) {
+        int len = commandResult.length + 1;
         ByteBuffer buffer = ByteBuffer.allocate(len);
-        return buffer.put(CLIENT_REQUEST_SUCCESS).put(result).array();
+        return buffer.put(CLIENT_REQUEST_SUCCESS).put(commandResult).array();
     }
 
     static byte[] clientRequestSuccessWithoutResult() {

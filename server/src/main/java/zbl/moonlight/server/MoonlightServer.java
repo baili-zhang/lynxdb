@@ -26,9 +26,11 @@ public class MoonlightServer {
         ServerNode current = config.currentNode();
         String logFilenamePrefix = "moonlight_" + current.host() + "_" + current.port() + "_raft_";
 
-        raftServer = new RaftServer(new MdtpStateMachine(), config.currentNode(),
+        MdtpStateMachine stateMachine = new MdtpStateMachine();
+        raftServer = new RaftServer(stateMachine, config.currentNode(),
                 config.getRaftNodes(), logFilenamePrefix);
         storageEngine = new StorageEngine(raftServer.socketServer(), new HashMap<>());
+        stateMachine.setStorageEngine(storageEngine);
     }
 
     public void run() {

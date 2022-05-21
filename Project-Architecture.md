@@ -220,7 +220,71 @@ Client request type:
 - Configuration 部分
 - StorageEngine 部分
 
-### 
+### Mdtp 通信模块
+
+- SET 请求
+- GET 请求
+- DELETE 请求
+
+#### SET 请求
+
+**文本格式**
+
+```shell
+set key value
+```
+
+**请求格式**
+
+| method | key length | key                | value length | value          |
+|--------|------------|--------------------|--------------|----------------|
+| 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value) length |
+
+**响应格式**
+
+无响应体
+
+#### GET 请求
+
+**文本格式**
+
+```shell
+get key
+```
+
+**请求格式**
+
+| method | key length | key                | value length        | value |
+|--------|------------|--------------------|---------------------|-------|
+| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
+
+**响应格式**
+
+*值存在*
+
+| value length | value                |
+|--------------|----------------------|
+| 4 bytes      | (value length) bytes |
+
+*值不存在：无响应体*
+
+#### DELETE 请求
+
+**文本格式**
+
+```shell
+delete key
+```
+
+**请求格式**
+
+| method | key length | key                | value length        | value |
+|--------|------------|--------------------|---------------------|-------|
+| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
+
+**响应格式**
+
+无响应体
 
 ## 客户端模块
 
