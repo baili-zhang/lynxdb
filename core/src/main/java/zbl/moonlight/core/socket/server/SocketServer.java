@@ -30,8 +30,6 @@ public class SocketServer extends Executor<SocketResponse> {
     @Setter
     private SocketServerHandler handler;
 
-    private volatile boolean shutdown = false;
-
     /* 响应的队列 */
     private final ConcurrentHashMap<SelectionKey, SocketContext> contexts
             = new ConcurrentHashMap<>();
@@ -59,8 +57,9 @@ public class SocketServer extends Executor<SocketResponse> {
         selector = Selector.open();
     }
 
-    public void shutdown() {
-        shutdown = true;
+    @Override
+    protected void doAfterShutdown() {
+
     }
 
     @Override
@@ -78,7 +77,7 @@ public class SocketServer extends Executor<SocketResponse> {
             handler.handleStartupCompleted();
 
             /* TODO: 实现优雅关机 */
-            while (!shutdown) {
+            while (isNotShutdown()) {
                 selector.select();
                 /* 如果线程被中断，则将线程中断位复位 */
                 if(Thread.interrupted()) {

@@ -22,6 +22,9 @@ public class ConnectionContext {
     @Getter
     private ReadableSocketResponse response;
 
+    /* TODO: exit 流程使用，lockRequestAdd 为 true 时，禁止向队列中添加请求 */
+    private volatile boolean lockRequestOffer = false;
+
     public ConnectionContext(SelectionKey key) {
         selectionKey = key;
     }
@@ -31,7 +34,14 @@ public class ConnectionContext {
         response = new ReadableSocketResponse(selectionKey, attachment == nullObject ? null : attachment);
     }
 
+    public void lockRequestOffer() {
+        lockRequestOffer = true;
+    }
+
     public void offerRequest(SocketRequest request) {
+        if(lockRequestOffer) {
+            throw new RuntimeException("Locked request offer, can not offer request.");
+        }
         requests.offer(new WritableSocketRequest(request, selectionKey));
         Object attachment = request.attachment();
         attachments.offer(attachment == null ? nullObject : attachment);
@@ -48,5 +58,9 @@ public class ConnectionContext {
         if(requests.isEmpty()) {
             selectionKey.interestOpsAnd(SelectionKey.OP_READ);
         }
+    }
+
+    public int sizeOfRequests() {
+        return requests.size();
     }
 }

@@ -1,6 +1,7 @@
 package zbl.moonlight.core.socket.interfaces;
 
 public interface SocketState {
+    byte EMPTY_FLAG = (byte) 0;
     /**
      * 保持连接标志位
      */

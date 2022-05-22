@@ -32,4 +32,13 @@ public interface Printer {
     static void printOK() {
         System.out.println("OK");
     }
+
+    static void printNotConnectServer() {
+        System.out.println("INFO: Use \"connect [host] [port]\" to connect server firstly");
+    }
+
+    static void printDisconnect(ServerNode node) {
+        String message = String.format("INFO: Disconnect from [%s]", node);
+        System.out.println(message);
+    }
 }

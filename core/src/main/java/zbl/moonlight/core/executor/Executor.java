@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public abstract class Executor<E> implements Executable<E>, Interruptable {
+public abstract class Executor<E> extends Shutdown implements Executable<E>, Interruptable {
     private static final Logger logger = LogManager.getLogger("Executor");
 
     private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();

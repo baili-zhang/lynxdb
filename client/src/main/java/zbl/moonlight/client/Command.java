@@ -10,9 +10,19 @@ public record Command(
         String value
 ) implements BytesConvertable {
     /**
+     * 退出客户端
+     */
+    public static final String EXIT_COMMEND = "exit";
+
+    /**
      * 客户端请求：连接服务器
      */
     public static final String CONNECT_COMMAND = "connect";
+
+    /**
+     * 断开连接
+     */
+    public static final String DISCONNECT_COMMAND = "disconnect";
 
     /**
      * 服务端请求：获取 key 的 value

@@ -49,6 +49,7 @@ public class IoEventHandler implements Runnable {
     /* 每次读一个请求 */
     private void doRead() throws Exception {
         ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
+        SocketAddress address = ((SocketChannel) selectionKey.channel()).getRemoteAddress();
 
         /* 从socket channel中读取数据 */
         try {
@@ -58,7 +59,6 @@ public class IoEventHandler implements Runnable {
             selectionKey.cancel();
             latch.countDown();
             /* 打印客户端断开连接的日志 */
-            SocketAddress address = ((SocketChannel) selectionKey.channel()).getRemoteAddress();
             logger.info("Client {} has disconnected from server.", address);
             return;
         }
@@ -67,7 +67,7 @@ public class IoEventHandler implements Runnable {
             /* 是否断开连接 */
             if (!request.isKeepConnection()) {
                 selectionKey.cancel();
-                logger.info("A client exit connection.");
+                logger.info("Client {} exit from server.", address);
                 return;
             }
             /* 处理Socket请求 */

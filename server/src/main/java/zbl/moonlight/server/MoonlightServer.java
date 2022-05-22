@@ -24,7 +24,7 @@ public class MoonlightServer {
         config = new Configuration();
 
         ServerNode current = config.currentNode();
-        String logFilenamePrefix = "moonlight_" + current.host() + "_" + current.port() + "_raft_";
+        String logFilenamePrefix = current.host() + "_" + current.port() + "_raft_";
 
         MdtpStateMachine stateMachine = new MdtpStateMachine();
         raftServer = new RaftServer(stateMachine, config.currentNode(),

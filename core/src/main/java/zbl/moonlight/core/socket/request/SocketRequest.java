@@ -20,4 +20,10 @@ public record SocketRequest(boolean isBroadcast, byte status, byte[] data, Serve
         byte status = SocketState.STAY_CONNECTED_FLAG;
         return new SocketRequest(false, status, data, node, null, attachment);
     }
+
+    public static SocketRequest newDisconnectRequest(ServerNode node) {
+        byte status = SocketState.EMPTY_FLAG;
+        byte[] data = new byte[0];
+        return new SocketRequest(false, status, data, node,null, null);
+    }
 }

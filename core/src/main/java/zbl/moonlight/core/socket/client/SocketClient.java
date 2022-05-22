@@ -36,9 +36,9 @@ public class SocketClient extends Executor<SocketRequest> {
     private final ConcurrentHashMap<ServerNode, ConnectionContext> contexts = new ConcurrentHashMap<>();
     private final Selector selector;
     private final ThreadPoolExecutor executor;
-    private final HashSet<ServerNode> connecting = new HashSet<>();
+    private final ConcurrentHashMap<ServerNode, SelectionKey> connecting = new ConcurrentHashMap<>();
+    private final HashSet<SelectionKey> exitKeys = new HashSet<>();
 
-    private boolean shutdown = false;
     @Setter
     private SocketClientHandler handler;
 
@@ -61,19 +61,36 @@ public class SocketClient extends Executor<SocketRequest> {
         socketChannel.configureBlocking(false);
         socketChannel.connect(address);
 
+        SelectionKey key;
         synchronized (setLock) {
-            socketChannel.register(selector,
+            key = socketChannel.register(selector,
                     SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE,
                     node);
         }
 
-        synchronized (connecting) {
-            connecting.add(node);
+        connecting.put(node, key);
+    }
+
+    public void disconnect(ServerNode node) {
+        if(connecting.containsKey(node)) {
+            String message = String.format("Node %s is connecting, disconnect error", node);
+            throw new RuntimeException(message);
+        }
+        if(contexts.containsKey(node)) {
+            ConnectionContext context = contexts.get(node);
+            SelectionKey key = context.getSelectionKey();
+            /* 将主动退出的 selectionKey 加入 exitKeys，等待请求 */
+            synchronized (exitKeys) {
+                exitKeys.add(key);
+            }
+            context.offerRequest(SocketRequest.newDisconnectRequest(node));
+            context.lockRequestOffer();
+            interrupt();
         }
     }
 
     public boolean isConnecting(ServerNode node) {
-        return connecting.contains(node);
+        return connecting.containsKey(node);
     }
 
     public boolean isConnected(ServerNode node) {
@@ -84,8 +101,9 @@ public class SocketClient extends Executor<SocketRequest> {
         return contexts.keySet();
     }
 
-    public void shutdown() {
-        shutdown = true;
+    @Override
+    protected void doAfterShutdown() {
+
     }
 
     @Override
@@ -96,7 +114,7 @@ public class SocketClient extends Executor<SocketRequest> {
 
         try {
             /* TODO:实现优雅关机 */
-            while (!shutdown) {
+            while (isNotShutdown()) {
                 selector.select();
                 /* 如果线程被中断，则将线程中断位复位 */
                 if(Thread.interrupted()) {
@@ -150,6 +168,9 @@ public class SocketClient extends Executor<SocketRequest> {
                     request = poll();
                 }
             }
+
+            /* shutdown 以后需要处理的逻辑 */
+            executor.shutdown();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -201,7 +222,7 @@ public class SocketClient extends Executor<SocketRequest> {
             }
         }
 
-        private void doConnect() throws IOException {
+        private void doConnect() {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
             ServerNode node = (ServerNode) selectionKey.attachment();
 
@@ -212,18 +233,20 @@ public class SocketClient extends Executor<SocketRequest> {
                 /* 处理连接成功 */
                 contexts.put(node, new ConnectionContext(selectionKey));
                 selectionKey.interestOpsAnd(SelectionKey.OP_READ);
-
-                synchronized (connecting) {
-                    connecting.remove(node);
-                }
+                /* 从连接中删除节点 */
+                connecting.remove(node);
 
                 handler.handleConnected(node);
 
                 logger.info("Has connected to socket node {}.", node);
             } catch (ConnectException e) {
                 /* 连接失败，将 node 从 connecting 集合中删除 */
-                synchronized (connecting) {
-                    connecting.remove(node);
+                connecting.remove(node);
+
+                try {
+                    handler.handleConnectFailure(node);
+                } catch (Exception exception) {
+                    exception.printStackTrace();
                 }
 
                 logger.debug("Connect to socket node {} failure.", node);
@@ -259,6 +282,13 @@ public class SocketClient extends Executor<SocketRequest> {
 
             if(request.isWriteCompleted()) {
                 context.pollRequest();
+                /* 处理主动退出的 selectionKey */
+                if(exitKeys.contains(selectionKey) && context.sizeOfRequests() == 0) {
+                    synchronized (exitKeys) {
+                        exitKeys.remove(selectionKey);
+                    }
+                    handleDisconnect();
+                }
             }
         }
 
@@ -269,7 +299,7 @@ public class SocketClient extends Executor<SocketRequest> {
             ServerNode node = (ServerNode) selectionKey.attachment();
             contexts.remove(node);
             selectionKey.cancel();
-            logger.info("Raft Node {} is disconnect.", node);
+            logger.info("Disconnect from node [{}].", node);
         }
     }
 }

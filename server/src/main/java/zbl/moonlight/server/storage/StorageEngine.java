@@ -6,10 +6,8 @@ import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.raft.response.RaftResponse;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
-import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.server.mdtp.MdtpCommand;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
 
@@ -22,21 +20,19 @@ public class StorageEngine extends Executor<MdtpCommand> {
     private final Map<String, byte[]> storage;
     /* TODO: Cache 以后再实现 */
 
-    /* 是否关闭 */
-    private boolean shutdown = false;
-
     public StorageEngine(SocketServer socketServer, Map<String, byte[]> storage) {
         this.socketServer = socketServer;
         this.storage = storage;
     }
 
-    public void shutdown () {
-        shutdown = true;
+    @Override
+    protected void doAfterShutdown() {
+
     }
 
     @Override
     public final void run() {
-        while (!shutdown) {
+        while (isNotShutdown()) {
             /* 阻塞 poll，需要被中断 */
             MdtpCommand command = blockPoll();
             if(command == null) {
