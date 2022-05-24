@@ -1,6 +1,7 @@
 package zbl.moonlight.core.socket.response;
 
 import lombok.Getter;
+import lombok.Setter;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.Readable;
 import zbl.moonlight.core.utils.ByteBufferUtils;
@@ -12,16 +13,16 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class ReadableSocketResponse implements Readable {
-    private final Object attachment;
-
     @Getter
     private final ServerNode serverNode;
     private final ByteBuffer length;
     private final SelectionKey selectionKey;
     private ByteBuffer data;
 
-    public ReadableSocketResponse(SelectionKey key, Object attachment) {
-        this.attachment = attachment;
+    @Setter
+    private Object attachment;
+
+    public ReadableSocketResponse(SelectionKey key) {
         serverNode = (ServerNode) key.attachment();
         selectionKey = key;
         length = ByteBuffer.allocate(NumberUtils.INT_LENGTH);

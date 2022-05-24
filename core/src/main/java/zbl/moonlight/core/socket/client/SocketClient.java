@@ -258,17 +258,16 @@ public class SocketClient extends Executor<SocketRequest> {
         private void doRead() throws Exception {
             ServerNode node = (ServerNode) selectionKey.attachment();
             ConnectionContext context = contexts.get(node);
-            ReadableSocketResponse response = context.getResponse();
 
             try {
-                response.read();
+                context.read();
             } catch (SocketException e) {
                 handleDisconnect();
                 e.printStackTrace();
             }
 
-            if(response.isReadCompleted()) {
-                handler.handleResponse(response.socketResponse());
+            if(context.isReadCompleted()) {
+                handler.handleResponse(context.socketResponse());
             }
         }
 
@@ -277,7 +276,6 @@ public class SocketClient extends Executor<SocketRequest> {
             ConnectionContext context = contexts.get(node);
             WritableSocketRequest request = context.peekRequest();
 
-            assert request != null;
             request.write();
 
             if(request.isWriteCompleted()) {
