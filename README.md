@@ -1,104 +1,86 @@
 # Moonlight
 
-一个分布式KV存储系统，使用Java语言编写，目标是支持超大数据量存储，向着成为业界知名的分布式KV存储系统前进。
+一个分布式 KV 存储系统，使用 Java 语言编写，目标是支持超大数据量存储，向着成为业界知名的分布式KV存储系统前进。
 
 ## 功能
 
-### 已实现
-
-- 服务端（MoonlightServer）和客户端（MoonlightClient）
-- 插入或更新数据（SET），获取数据（GET），删除数据（DELETE），客户端退出（EXIT）
-- 服务端和客户端的通信协议：[MDTP通信协议](MDTP.md)
-- YAML格式配置文件
-- 数据持久化（二进制日志BinaryLog）
-- 简单的LRU缓存更新策略
-
 ### 待实现
 
-- Metrics监控
-- 基于Raft算法的集群实现
+- Metrics 监控
 
 ### 待完善
 
-- 二进制日志压缩
+- Raft 日志压缩
 
 ## 运行
 
-Windows系统下的服务器启动脚本是start-server.bat，客户端启动脚本是start-client.bat。
+Windows 系统下的服务器启动脚本是 start-server.bat ，客户端启动脚本是 start-client.bat。
 
-Linux系统下的服务端启动脚本是start-server.sh，客户端启动脚本是start-client.sh。
+Linux 系统下的服务端启动脚本是 start-server.sh ，客户端启动脚本是 start-client.sh。
 
-启动脚本都是简单的一行命令，如需要修改JVM参数，直接修改启动脚本即可。
+Moonlight 服务器的**默认端口号为`7820`**，确保端口`7820`没有被其他进程占用。
 
-Moonlight服务器的**默认端口号为7820**，确保端口7820没有被其他进程占用。
+## 执行命令
 
-### 执行命令
+### CONNECT 命令
 
-命令格式：命令 键 值
+```shell
+Moonlight> connect 127.0.0.1 7820
+INFO: Has connected to [127.0.0.1:7820]
+```
 
-响应格式：[响应码][值的长度][序列标识][值]
+### DISCONNECT 命令
+
+```shell
+[127.0.0.1:7820] Moonlight> disconnect
+INFO: Disconnect from [127.0.0.1:7820]
+```
 
 #### SET命令
 
 ```shell
-Moonlight> set key1 value1
-[SUCCESS_NO_VALUE][0][1][]
+[127.0.0.1:7821] Moonlight> set key value
+OK
 ```
 
 #### GET命令
 
 ```shell
-Moonlight> get key1
-[VALUE_EXIST][6][2][value1]
+[127.0.0.1:7821] Moonlight> get key
+value
 ```
 
 #### DELETE命令
 
 ```shell
-Moonlight> delete key1
-[SUCCESS_NO_VALUE][0][3][]
+[127.0.0.1:7821] Moonlight> delete key
+OK
 ```
 
 ## 配置
 
 ### 配置文件
 
-路径：`System.getProperty("user.dir") + "/config/application.yml"`
+待自定义配置文件格式实现后撰写
 
 ### 配置项
 
-配置项中的`.`格式对应YAML中的关系如下，例如`server.host`:
-
-```yaml
-server:
-  host: "xxx.xxx.xxx.xxx"
-```
-
-| 配置项                                  | 说明                       |
-|--------------------------------------|--------------------------|
-| server.host                          | 主机                       |
-| server.port                          | 端口号                      |
-| server.backlog                       | 最大连接数                    |
-| server.io_thread_core_pool_size      | IO线程池的核心线程数              |
-| server.io_thread_max_pool_size       | IO线程池的最大线程数              |
-| server.io_thread_keep_alive_time     | IO线程池的非核心线程的存活时间         |
-| server.io_thread_blocking_queue_size | IO线程池的阻塞队列大小             |
-| sync_write_log                       | 是否同步写二进制日志               |
-| cache.capacity                       | cache的最大容量               |
-| mode                                 | 运行模式（"single"或"cluster"） |
-| cluster                              | 集群的相关配置（集群功能暂时未实现）       |
-| cluster.nodes                        | 集群的节点信息（集群功能暂时未实现）       |
+待自定义配置文件格式实现后撰写
 
 ## 版本
 
-### 1.2-SNAPSHOT（开发中）
+### 1.3-SNAPSHOT
 
 待实现的功能：
 
-- 实现PING命令
-- 心跳检测
-- 基于Raft一致性协议的集群实现
-- 日志复制
+- 去掉 yaml 格式的配置文件，自定义配置文件格式
+- 实现可动态增加和删除节点的 Raft 集群
+
+### 1.2-SNAPSHOT
+
+实现功能：
+
+- 基于Raft一致性协议的集群实现（需要配置）
 
 ### 1.1-SNAPSHOT
 
@@ -112,12 +94,3 @@ server:
 - LRU缓存更新策略
 
 下载地址：[moonlight-1.1-snapshot.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/moonlight/releases/download/1.1-SNAPSHOT/moonlight-1.1-snapshot.tar.gz)
-
-### 1.0-SNAPSHOT
-
-实现功能：
-
-- 客户端与服务端之间通信
-- SET，GET，DELETE，UPDATE，EXIT
-
-下载地址: [Moonlight-1.0-SNAPSHOT.tar.gz](https://github.com/ECUST-CST163-ZhangBaiLi/Moonlight/releases/download/1.0-SNAPSHOT/Moonlight-1.0-SNAPSHOT.tar.gz)

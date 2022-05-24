@@ -1,3 +1,3 @@
 @echo off
 title start-client.bat
-java -jar lib/client-1.2-SNAPSHOT.jar
+java -jar lib/client-1.3-SNAPSHOT.jar
