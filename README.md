@@ -62,4 +62,4 @@ port = 7820
 
 ## 维护人
 
-Baili Zhang<1456938262@qq.com>
+[维护人](./MAINTAINERS)
