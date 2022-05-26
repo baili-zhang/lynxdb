@@ -18,7 +18,6 @@
 
     <properties>
         <lombok.version>1.18.20</lombok.version>
-        <snakeyaml.version>1.29</snakeyaml.version>
         <log4j.version>2.16.0</log4j.version>
         <junit.version>5.8.2</junit.version>
         <maven.compiler.source>17</maven.compiler.source>
@@ -32,11 +31,6 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>${snakeyaml.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
