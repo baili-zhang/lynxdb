@@ -1,6 +1,6 @@
 # Moonlight
 
-一个分布式 KV 存储系统，使用 Java 语言编写，目标是支持超大数据量存储，向着成为业界知名的分布式KV存储系统前进。
+Moonlight 是一款基于 Raft 协议的、轻量级的分布式 KV 存储系统。支持 `GET`、`SET`、`DELETE` 的简单 KV 操作。
 
 ## 功能
 
@@ -36,21 +36,21 @@ INFO: Has connected to [127.0.0.1:7820]
 INFO: Disconnect from [127.0.0.1:7820]
 ```
 
-#### SET命令
+### SET命令
 
 ```shell
 [127.0.0.1:7821] Moonlight> set key value
 OK
 ```
 
-#### GET命令
+### GET命令
 
 ```shell
 [127.0.0.1:7821] Moonlight> get key
 value
 ```
 
-#### DELETE命令
+### DELETE命令
 
 ```shell
 [127.0.0.1:7821] Moonlight> delete key
