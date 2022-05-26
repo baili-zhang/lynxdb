@@ -1,6 +1,6 @@
 # Moonlight
 
-Moonlight 是一款基于 Raft 协议的、轻量级的分布式 KV 存储系统。支持 `GET`、`SET`、`DELETE` 的简单 KV 操作。
+Moonlight 是一款基于 Raft 协议的、轻量级的、使用 Java 语言实现的分布式 KV 存储系统。支持 `GET`、`SET`、`DELETE` 的简单 KV 操作。
 
 ## 功能
 
