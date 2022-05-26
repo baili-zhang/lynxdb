@@ -20,10 +20,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-        </dependency>
-        <dependency>
             <groupId>zbl.moonlight.server</groupId>
             <artifactId>server</artifactId>
             <version>1.3-SNAPSHOT</version>
