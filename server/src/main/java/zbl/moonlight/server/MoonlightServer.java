@@ -7,7 +7,6 @@ import zbl.moonlight.core.raft.server.RaftServer;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.server.config.Configuration;
 import zbl.moonlight.server.storage.StorageEngine;
-import zbl.moonlight.server.exception.ConfigurationException;
 import zbl.moonlight.server.mdtp.MdtpStateMachine;
 
 import java.io.IOException;
@@ -16,19 +15,18 @@ import java.util.HashMap;
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
-    private final Configuration config;
     private final RaftServer raftServer;
     private final StorageEngine storageEngine;
 
-    MoonlightServer() throws ConfigurationException, IOException {
-        config = new Configuration();
+    MoonlightServer() throws IOException {
+        Configuration config = new Configuration();
 
         ServerNode current = config.currentNode();
         String logFilenamePrefix = current.host() + "_" + current.port() + "_raft_";
 
         MdtpStateMachine stateMachine = new MdtpStateMachine();
-        raftServer = new RaftServer(stateMachine, config.currentNode(),
-                config.getRaftNodes(), logFilenamePrefix);
+        raftServer = new RaftServer(stateMachine, null,
+                null, logFilenamePrefix);
         storageEngine = new StorageEngine(raftServer.socketServer(), new HashMap<>());
         stateMachine.setStorageEngine(storageEngine);
     }
@@ -42,7 +40,7 @@ public class MoonlightServer {
         storageEngine.shutdown();
     }
 
-    public static void main(String[] args) throws IOException, ConfigurationException {
+    public static void main(String[] args) throws IOException {
         new MoonlightServer().run();
     }
 }
