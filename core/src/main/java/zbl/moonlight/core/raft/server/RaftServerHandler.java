@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
 import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
+import static zbl.moonlight.core.raft.response.RaftResponse.CLIENT_REQUEST_FAILURE;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
@@ -286,7 +287,9 @@ public class RaftServerHandler implements SocketServerHandler {
 
             /* candidate 获取到客户端请求，直接拒绝 */
             case Candidate -> {
-
+                logger.info("[{}] is [Candidate], client request failure.", currentNode);
+                byte[] data = ByteBuffer.allocate(1).put(CLIENT_REQUEST_FAILURE).array();
+                socketServer.offerInterruptibly(new SocketResponse(selectionKey, data, null));
             }
         }
     }
