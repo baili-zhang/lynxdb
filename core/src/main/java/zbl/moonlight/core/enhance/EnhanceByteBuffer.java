@@ -2,6 +2,8 @@ package zbl.moonlight.core.enhance;
 
 import java.nio.ByteBuffer;
 
+import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
+
 public class EnhanceByteBuffer {
     private final ByteBuffer buffer;
 
@@ -32,7 +34,26 @@ public class EnhanceByteBuffer {
         return bytes;
     }
 
+    public byte[] getRemaining() {
+        int len = buffer.limit() - buffer.position();
+        byte[] remaining = new byte[len];
+        buffer.get(remaining);
+        return remaining;
+    }
+
     public byte get() {
         return buffer.get();
+    }
+
+    /* 判断ByteBuffer是否读结束（或写结束） */
+    public static boolean isOver(ByteBuffer byteBuffer) {
+        if(byteBuffer == null) {
+            return false;
+        }
+        return byteBuffer.position() == byteBuffer.limit();
+    }
+
+    public static ByteBuffer intByteBuffer() {
+        return ByteBuffer.allocate(INT_LENGTH);
     }
 }

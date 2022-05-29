@@ -2,7 +2,6 @@ package zbl.moonlight.core.enhance;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.utils.ByteBufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.File;
@@ -23,9 +22,6 @@ public class EnhanceFile {
     private final FileChannel input;
     private final FileChannel output;
 
-    private final FileInputStream inputStream;
-    private final FileOutputStream outputStream;
-
     public EnhanceFile(String dirname, String filename) throws IOException {
         Path dirPath = Path.of(dirname);
         Files.createDirectories(dirPath);
@@ -38,15 +34,18 @@ public class EnhanceFile {
             logger.info("File existed: {}", filePath);
         }
 
-        inputStream = new FileInputStream(file);
-        outputStream = new FileOutputStream(file, true);
-
-        input = inputStream.getChannel();
-        output = outputStream.getChannel();
+        input = new FileInputStream(file).getChannel();
+        output = new FileOutputStream(file, true).getChannel();
     }
 
     public void read(ByteBuffer dst, long position) throws IOException {
         input.read(dst, position);
+    }
+
+    public ByteBuffer read(long position, int length) throws IOException {
+        ByteBuffer dst = ByteBuffer.allocate(length);
+        input.read(dst, position);
+        return dst;
     }
 
     public void write(ByteBuffer src, long position) throws IOException {
@@ -54,8 +53,7 @@ public class EnhanceFile {
     }
 
     public boolean delete() throws IOException {
-        inputStream.close();
-        outputStream.close();
+        close();
         return file.delete();
     }
 
@@ -64,7 +62,7 @@ public class EnhanceFile {
     }
 
     public int readInt(long position) throws IOException {
-        ByteBuffer buffer = ByteBufferUtils.intByteBuffer();
+        ByteBuffer buffer = EnhanceByteBuffer.intByteBuffer();
         read(buffer, position);
         return buffer.rewind().getInt();
     }
@@ -82,33 +80,35 @@ public class EnhanceFile {
      * @throws IOException IO异常
      */
     public String readString(long position) throws IOException {
-        ByteBuffer length = ByteBufferUtils.intByteBuffer();
+        return new String(readBytes(position));
+    }
+
+    public byte[] readBytes(long position) throws IOException {
+        ByteBuffer length = EnhanceByteBuffer.intByteBuffer();
         read(length, position);
         int len = length.rewind().getInt();
         ByteBuffer content = ByteBuffer.allocate(len);
         long contentPosition = position + NumberUtils.INT_LENGTH;
         read(content, contentPosition);
-        return new String(content.array());
+        return content.array();
     }
 
-    public long writeInt(int src, long position) throws IOException {
-        ByteBuffer buffer = ByteBufferUtils.intByteBuffer();
+    public void writeInt(int src, long position) throws IOException {
+        ByteBuffer buffer = EnhanceByteBuffer.intByteBuffer();
         buffer.putInt(src).rewind();
         write(buffer, position);
-        return position + NumberUtils.INT_LENGTH;
     }
 
-    public long writeByte(byte src, long position) throws IOException {
+    public void writeByte(byte src, long position) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.BYTE_LENGTH);
         buffer.put(src).rewind();
         write(buffer, position);
-        return position + NumberUtils.BYTE_LENGTH;
     }
 
     public long writeString(String src, long position) throws IOException {
         byte[] srcBytes = src.getBytes(StandardCharsets.UTF_8);
 
-        ByteBuffer length = ByteBufferUtils.intByteBuffer();
+        ByteBuffer length = EnhanceByteBuffer.intByteBuffer();
         length.putInt(srcBytes.length).rewind();
         write(length, position);
 
@@ -116,5 +116,20 @@ public class EnhanceFile {
         write(ByteBuffer.wrap(srcBytes), srcPosition);
 
         return position + NumberUtils.INT_LENGTH + srcBytes.length;
+    }
+
+    public void append(byte[] data) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        output.write(buffer, file.length());
+    }
+
+    public void close() throws IOException {
+        input.close();
+        output.close();
+    }
+
+    @Override
+    public String toString() {
+        return file.getPath();
     }
 }

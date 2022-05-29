@@ -2,6 +2,7 @@ package zbl.moonlight.core.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.raft.log.RaftLog;
 import zbl.moonlight.core.raft.request.AppendEntries;
 import zbl.moonlight.core.raft.request.Entry;
@@ -16,7 +17,6 @@ import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
-import zbl.moonlight.core.utils.ByteBufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -151,7 +151,7 @@ public class RaftServerHandler implements SocketServerHandler {
         int prevLogIndex = buffer.getInt();
         int prevLogTerm = buffer.getInt();
         int leaderCommit = buffer.getInt();
-        Entry[] entries = ByteBufferUtils.isOver(buffer)
+        Entry[] entries = EnhanceByteBuffer.isOver(buffer)
                 ? new Entry[0] : getEntries(buffer);
 
         ServerNode currentNode = raftState.currentNode();
@@ -307,7 +307,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
     private Entry[] getEntries(ByteBuffer buffer) {
         List<Entry> entries = new ArrayList<>();
-        while (!ByteBufferUtils.isOver(buffer)) {
+        while (!EnhanceByteBuffer.isOver(buffer)) {
             entries.add(getEntry(buffer));
         }
 
