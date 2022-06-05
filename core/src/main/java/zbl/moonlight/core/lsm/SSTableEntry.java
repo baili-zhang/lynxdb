@@ -4,7 +4,7 @@ import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
-public class DataSliceEntry {
+public class SSTableEntry {
     public static final byte SET_FLAG = (byte) 0x01;
     public static final byte DELETE_FLAG = (byte) 0x02;
 
@@ -13,7 +13,7 @@ public class DataSliceEntry {
     private final byte[] value;
     private final int totalLength;
 
-    DataSliceEntry(byte[] entry) {
+    SSTableEntry(byte[] entry) {
         EnhanceByteBuffer buffer= EnhanceByteBuffer.wrap(entry);
         status = buffer.get();
         key = buffer.getString();

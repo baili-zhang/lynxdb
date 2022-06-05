@@ -26,7 +26,7 @@ import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
  * |--------------|------|-------|-----|
  * |              |      |       |     |
  */
-public class DataSlice implements Map<String, byte[]> {
+public class SSTable implements Map<String, byte[]> {
     private static final String DEFAULT_DATE_LOG_DIR = System.getProperty("user.dir") + "/data";
     private static final String DATA_SLICE_NAME_TEMPLATE = "slice-%d-%d.data";
 
@@ -51,7 +51,7 @@ public class DataSlice implements Map<String, byte[]> {
 
     private int size;
 
-    public DataSlice(int level, int index) throws IOException {
+    public SSTable(int level, int index) throws IOException {
         /* level 必须大于 0 */
         if(level <= 0) {
             throw new RuntimeException("level can not less than \"0\" or equals \"0\".");
@@ -122,10 +122,10 @@ public class DataSlice implements Map<String, byte[]> {
         }
 
         long position = entryPosition;
-        DataSliceEntry finalEntry = null;
+        SSTableEntry finalEntry = null;
         for (int i = 0; i < size; i++) {
             try {
-                DataSliceEntry entry = new DataSliceEntry(file.readBytes(position));
+                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
                 if(entry.isKey(str)) {
                     finalEntry = entry;
                 }
@@ -141,7 +141,7 @@ public class DataSlice implements Map<String, byte[]> {
 
     @Override
     public byte[] put(String key, byte[] value) {
-        append(DataSliceEntry.SET_FLAG, key, value);
+        append(SSTableEntry.SET_FLAG, key, value);
         /* 因为不是原地更新，所以直接返回 null */
         return null;
     }
@@ -158,7 +158,7 @@ public class DataSlice implements Map<String, byte[]> {
     }
 
     private void appendDelete(String key) {
-        append(DataSliceEntry.DELETE_FLAG, key, null);
+        append(SSTableEntry.DELETE_FLAG, key, null);
     }
 
     private void append(byte status, String keyStr, byte[] value) {
@@ -207,7 +207,7 @@ public class DataSlice implements Map<String, byte[]> {
         long position = entryPosition;
         for (int i = 0; i < size; i++) {
             try {
-                DataSliceEntry entry = new DataSliceEntry(file.readBytes(position));
+                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
                 String key = entry.key();
 
                 if(entry.isDelete()) {
@@ -232,7 +232,7 @@ public class DataSlice implements Map<String, byte[]> {
         long position = entryPosition;
         for (int i = 0; i < size; i++) {
             try {
-                DataSliceEntry entry = new DataSliceEntry(file.readBytes(position));
+                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
                 String key = entry.key();
                 byte[] value = entry.value();
 
@@ -258,7 +258,7 @@ public class DataSlice implements Map<String, byte[]> {
         long position = entryPosition;
         for (int i = 0; i < size; i++) {
             try {
-                DataSliceEntry entry = new DataSliceEntry(file.readBytes(position));
+                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
                 String key = entry.key();
                 byte[] value = entry.value();
 

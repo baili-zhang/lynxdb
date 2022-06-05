@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-class DataSliceTest {
+class SSTableTest {
     private static final List<Entry<String, byte[]>> entries = new ArrayList<>();
-    private DataSlice dataSlice;
+    private SSTable SSTable;
 
     static {
         for (int i = 0; i < 1000; i++) {
@@ -24,54 +24,54 @@ class DataSliceTest {
 
     @BeforeEach
     void beforeEach() throws IOException {
-        dataSlice = new DataSlice(1, 1);
+        SSTable = new SSTable(1, 1);
     }
 
     @AfterEach
     void afterEach() {
-        dataSlice.clear();
+        SSTable.clear();
     }
 
     @Test
     void testMore() throws IOException {
-        assert dataSlice.isEmpty();
+        assert SSTable.isEmpty();
 
         for(Entry<String, byte[]> entry : entries) {
-            dataSlice.put(entry.getKey(), entry.getValue());
+            SSTable.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
-        assert dataSlice.size() == 1000;
-        assert dataSlice.isFull();
+        assert SSTable.size() == 1000;
+        assert SSTable.isFull();
     }
 
     @Test
     void containsKey() throws IOException {
         for(Entry<String, byte[]> entry : entries) {
-            dataSlice.put(entry.getKey(), entry.getValue());
+            SSTable.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
         for(Entry<String, byte[]> entry : entries) {
-            assert dataSlice.containsKey(entry.getKey());
+            assert SSTable.containsKey(entry.getKey());
         }
     }
 
     @Test
     void get() throws IOException {
         for(Entry<String, byte[]> entry : entries) {
-            dataSlice.put(entry.getKey(), entry.getValue());
+            SSTable.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
         for (int i = 0; i < 1000; i++) {
-            byte[] value = dataSlice.get("key" + i);
+            byte[] value = SSTable.get("key" + i);
             assert ("value" + i).equals(new String(value));
         }
     }
@@ -80,15 +80,15 @@ class DataSliceTest {
     void remove() throws IOException {
         for(int i = 0; i < 500; i ++) {
             var entry = entries.get(i);
-            dataSlice.put(entry.getKey(), entry.getValue());
+            SSTable.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.remove("key2");
+        SSTable.remove("key2");
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
-        assert dataSlice.get("key2") == null;
+        assert SSTable.get("key2") == null;
     }
 
     @Test
@@ -98,13 +98,13 @@ class DataSliceTest {
             map.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.putAll(map);
+        SSTable.putAll(map);
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
         for (int i = 0; i < 1000; i++) {
-            byte[] value = dataSlice.get("key" + i);
+            byte[] value = SSTable.get("key" + i);
             assert ("value" + i).equals(new String(value));
         }
     }
@@ -112,16 +112,16 @@ class DataSliceTest {
     @Test
     void clear() throws IOException {
         for(Entry<String, byte[]> entry : entries) {
-            dataSlice.put(entry.getKey(), entry.getValue());
+            SSTable.put(entry.getKey(), entry.getValue());
         }
 
-        dataSlice.clear();
+        SSTable.clear();
 
-        dataSlice.close();
-        dataSlice = new DataSlice(1, 1);
+        SSTable.close();
+        SSTable = new SSTable(1, 1);
 
         for (int i = 0; i < 1000; i++) {
-            assert dataSlice.get("key" + i) == null;
+            assert SSTable.get("key" + i) == null;
         }
     }
 
