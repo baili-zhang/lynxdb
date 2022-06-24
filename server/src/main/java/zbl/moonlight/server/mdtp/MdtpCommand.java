@@ -11,14 +11,14 @@ public class MdtpCommand {
 
     private final SelectionKey selectionKey;
     private final byte method;
-    private final String key;
+    private final byte[] key;
     private final byte[] value;
 
     public MdtpCommand(SelectionKey selectionKey, byte[] command) {
         this.selectionKey = selectionKey;
         EnhanceByteBuffer buffer = EnhanceByteBuffer.wrap(command);
         method = buffer.get();
-        key = buffer.getString();
+        key = buffer.getBytes();
         value = buffer.getBytes();
     }
 
@@ -30,7 +30,7 @@ public class MdtpCommand {
         return method;
     }
 
-    public String key() {
+    public byte[] key() {
         return key;
     }
 

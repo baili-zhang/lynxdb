@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.raft.request.Entry;
 import zbl.moonlight.core.raft.state.StateMachine;
-import zbl.moonlight.server.storage.StorageEngine;
+import zbl.moonlight.server.storage.EngineExecutor;
 
 import java.nio.channels.SelectionKey;
 
@@ -15,30 +15,30 @@ import java.nio.channels.SelectionKey;
 public class MdtpStateMachine implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
 
-    private StorageEngine storageEngine;
+    private EngineExecutor engineExecutor;
 
-    public void setStorageEngine(StorageEngine engine) {
-        storageEngine = engine;
+    public void setStorageEngine(EngineExecutor engine) {
+        engineExecutor = engine;
     }
 
     @Override
     public void apply(Entry[] entries) {
-        if(storageEngine == null) {
+        if(engineExecutor == null) {
             throw new RuntimeException("[storageEngine] is [null]");
         }
         for(Entry entry : entries) {
             MdtpCommand command = new MdtpCommand(null, entry.command());
             logger.info("Apply command {} to state machine.", command);
-            storageEngine.offerInterruptibly(command);
+            engineExecutor.offerInterruptibly(command);
         }
     }
 
     @Override
     public void exec(SelectionKey key, byte[] command) {
-        if(storageEngine == null) {
+        if(engineExecutor == null) {
             throw new RuntimeException("[storageEngine] is [null]");
         }
         MdtpCommand mdtpCommand = new MdtpCommand(key, command);
-        storageEngine.offerInterruptibly(mdtpCommand);
+        engineExecutor.offerInterruptibly(mdtpCommand);
     }
 }

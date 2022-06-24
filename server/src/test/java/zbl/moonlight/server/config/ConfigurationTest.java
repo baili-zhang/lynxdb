@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfigurationTest {
     @Test
     void testLoads() throws IOException {
-        Configuration config = new Configuration();
+        Configuration config = Configuration.getInstance();
 
         ServerNode node = config.currentNode();
         assert node.equals(new ServerNode("127.0.0.1", 7820));

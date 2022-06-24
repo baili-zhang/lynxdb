@@ -9,20 +9,19 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.server.mdtp.MdtpCommand;
 
 import java.nio.channels.SelectionKey;
-import java.util.Map;
 
 import static zbl.moonlight.server.mdtp.MdtpCommand.*;
 
-public class StorageEngine extends Executor<MdtpCommand> {
+public class EngineExecutor extends Executor<MdtpCommand> {
     private static final Logger logger = LogManager.getLogger("StorageEngine");
 
     private final SocketServer socketServer;
-    private final Map<String, byte[]> storage;
+    private final EngineInterface engine;
     /* TODO: Cache 以后再实现 */
 
-    public StorageEngine(SocketServer socketServer, Map<String, byte[]> storage) {
+    public EngineExecutor(SocketServer socketServer, EngineInterface engine) {
         this.socketServer = socketServer;
-        this.storage = storage;
+        this.engine = engine;
     }
 
     @Override
@@ -56,7 +55,7 @@ public class StorageEngine extends Executor<MdtpCommand> {
     }
 
     private SocketResponse doSet(MdtpCommand command) {
-        storage.put(command.key(), command.value());
+        engine.set(command.key(), command.value());
         if(command.selectionKey() == null) {
             return null;
         }
@@ -69,8 +68,8 @@ public class StorageEngine extends Executor<MdtpCommand> {
             throw new RuntimeException("selectionKey can not be [null]");
         }
 
-        String key = command.key();
-        byte[] value = storage.get(key);
+        byte[] key = command.key();
+        byte[] value = engine.get(key);
         logger.info("GET [{}], value is [{}]", key, value == null ?
                 "null" : new String(value));
 
@@ -79,7 +78,7 @@ public class StorageEngine extends Executor<MdtpCommand> {
     }
 
     private SocketResponse doDelete(MdtpCommand command) {
-        storage.remove(command.key());
+        engine.delete(command.key());
         if(command.selectionKey() == null) {
             return null;
         }
