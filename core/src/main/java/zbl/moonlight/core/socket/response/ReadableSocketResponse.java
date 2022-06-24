@@ -2,9 +2,9 @@ package zbl.moonlight.core.socket.response;
 
 import lombok.Getter;
 import lombok.Setter;
+import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.Readable;
-import zbl.moonlight.core.utils.ByteBufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -31,23 +31,23 @@ public class ReadableSocketResponse implements Readable {
     @Override
     public void read() throws IOException {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
-        if(!ByteBufferUtils.isOver(length)) {
+        if(!EnhanceByteBuffer.isOver(length)) {
             channel.read(length);
-            if(!ByteBufferUtils.isOver(length)) {
+            if(!EnhanceByteBuffer.isOver(length)) {
                 return;
             }
             int len = length.getInt(0);
             data = ByteBuffer.allocate(len);
         }
 
-        if(!ByteBufferUtils.isOver(data)) {
+        if(!EnhanceByteBuffer.isOver(data)) {
             channel.read(data);
         }
     }
 
     @Override
     public boolean isReadCompleted() {
-        return ByteBufferUtils.isOver(data);
+        return EnhanceByteBuffer.isOver(data);
     }
 
     public SocketResponse socketResponse() {

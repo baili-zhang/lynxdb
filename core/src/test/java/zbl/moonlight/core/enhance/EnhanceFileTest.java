@@ -1,10 +1,8 @@
-package zbl.moonlight.core.raft.log;
+package zbl.moonlight.core.enhance;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import zbl.moonlight.core.enhance.EnhanceFile;
-import zbl.moonlight.core.utils.ByteBufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,7 +33,7 @@ class EnhanceFileTest {
 
     @Test
     void length() throws IOException {
-        ByteBuffer intBuffer = ByteBufferUtils.intByteBuffer().putInt(30).rewind();
+        ByteBuffer intBuffer = EnhanceByteBuffer.intByteBuffer().putInt(30).rewind();
         assert file.length() == 0;
         file.write(intBuffer, 0);
         assert file.length() == 4;

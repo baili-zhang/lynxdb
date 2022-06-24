@@ -1,9 +1,9 @@
 package zbl.moonlight.core.socket.request;
 
 import lombok.Getter;
+import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.socket.interfaces.Readable;
 import zbl.moonlight.core.socket.interfaces.SocketState;
-import zbl.moonlight.core.utils.ByteBufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -31,30 +31,30 @@ public class ReadableSocketRequest implements Readable {
     public void read() throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
         /* 读取长度数据 */
-        if(!ByteBufferUtils.isOver(length)) {
+        if(!EnhanceByteBuffer.isOver(length)) {
             channel.read(length);
-            if(!ByteBufferUtils.isOver(length)) {
+            if(!EnhanceByteBuffer.isOver(length)) {
                 return;
             }
             data = ByteBuffer.allocate(length.getInt(0));
         }
         /* 读取状态数据 */
-        if(!ByteBufferUtils.isOver(status)) {
+        if(!EnhanceByteBuffer.isOver(status)) {
             channel.read(status);
-            if(!ByteBufferUtils.isOver(status)) {
+            if(!EnhanceByteBuffer.isOver(status)) {
                 return;
             }
             isKeepConnection = SocketState.isStayConnected(status.get(0));
         }
         /* 读取请求数据 */
-        if(!ByteBufferUtils.isOver(data)) {
+        if(!EnhanceByteBuffer.isOver(data)) {
             channel.read(data);
         }
     }
 
     @Override
     public boolean isReadCompleted() {
-        return ByteBufferUtils.isOver(data);
+        return EnhanceByteBuffer.isOver(data);
     }
 
     public boolean isKeepConnection() {
