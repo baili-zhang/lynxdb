@@ -9,6 +9,7 @@ import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.server.mdtp.MdtpCommand;
 
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 
 import static zbl.moonlight.server.mdtp.MdtpCommand.*;
 
@@ -16,10 +17,10 @@ public class EngineExecutor extends Executor<MdtpCommand> {
     private static final Logger logger = LogManager.getLogger("StorageEngine");
 
     private final SocketServer socketServer;
-    private final EngineInterface engine;
+    private final HashMap<byte[], byte[]> engine;
     /* TODO: Cache 以后再实现 */
 
-    public EngineExecutor(SocketServer socketServer, EngineInterface engine) {
+    public EngineExecutor(SocketServer socketServer, HashMap<byte[], byte[]> engine) {
         this.socketServer = socketServer;
         this.engine = engine;
     }
@@ -55,7 +56,7 @@ public class EngineExecutor extends Executor<MdtpCommand> {
     }
 
     private SocketResponse doSet(MdtpCommand command) {
-        engine.set(command.key(), command.value());
+        engine.put(command.key(), command.value());
         if(command.selectionKey() == null) {
             return null;
         }
@@ -78,7 +79,7 @@ public class EngineExecutor extends Executor<MdtpCommand> {
     }
 
     private SocketResponse doDelete(MdtpCommand command) {
-        engine.delete(command.key());
+        engine.remove(command.key());
         if(command.selectionKey() == null) {
             return null;
         }
