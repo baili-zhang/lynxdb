@@ -4,7 +4,6 @@ import zbl.moonlight.server.storage.core.KeyValueStorable;
 
 public record KvSetQuery(
         KeyValueStorable keyValueStorage,
-        String database,
         byte[] key,
         byte[] value
 ) implements Queryable {

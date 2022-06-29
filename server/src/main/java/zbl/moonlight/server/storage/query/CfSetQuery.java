@@ -4,7 +4,6 @@ import zbl.moonlight.server.storage.core.ColumnFamilyStorable;
 
 public record CfSetQuery(
         ColumnFamilyStorable columnFamilyStorage,
-        String database,
         byte[] columnFamily,
         byte[] key,
         byte[] value

@@ -5,7 +5,7 @@ import zbl.moonlight.server.storage.query.CfGetQuery;
 import zbl.moonlight.server.storage.query.CfSetQuery;
 import zbl.moonlight.server.storage.query.ResultSet;
 
-public interface ColumnFamilyStorable extends BaseStorable {
+public interface ColumnFamilyStorable {
     ResultSet cfGet(CfGetQuery query);
     ResultSet cfSet(CfSetQuery query);
     ResultSet cfDelete(CfDeleteQuery query);

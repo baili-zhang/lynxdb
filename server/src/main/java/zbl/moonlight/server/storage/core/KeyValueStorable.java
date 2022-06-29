@@ -5,7 +5,7 @@ import zbl.moonlight.server.storage.query.KvGetQuery;
 import zbl.moonlight.server.storage.query.KvSetQuery;
 import zbl.moonlight.server.storage.query.ResultSet;
 
-public interface KeyValueStorable extends BaseStorable {
+public interface KeyValueStorable {
     ResultSet kvGet(KvGetQuery query);
     ResultSet kvSet(KvSetQuery query);
     ResultSet kvDelete(KvDeleteQuery query);

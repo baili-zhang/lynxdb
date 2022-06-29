@@ -1,33 +1,22 @@
 package zbl.moonlight.server.storage.concrete;
 
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-import zbl.moonlight.server.config.Configuration;
+import org.rocksdb.*;
+import zbl.moonlight.server.storage.core.AbstractDatabase;
 import zbl.moonlight.server.storage.core.ColumnFamilyStorable;
 import zbl.moonlight.server.storage.query.CfDeleteQuery;
 import zbl.moonlight.server.storage.query.CfGetQuery;
 import zbl.moonlight.server.storage.query.CfSetQuery;
 import zbl.moonlight.server.storage.query.ResultSet;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * TODO: 哪些资源需要释放？
- */
-public class ColumnFamilySupportedEngine implements ColumnFamilyStorable {
-    private final String dataDir;
+public class CfDatabase extends AbstractDatabase implements ColumnFamilyStorable {
+    private final static String CF_DIR = "cf";
 
-    ColumnFamilySupportedEngine() {
-        Configuration config = Configuration.getInstance();
-        dataDir = config.dataDir();
-    }
-
-    @Override
-    public String dataDir() {
-        return dataDir;
+    CfDatabase(String name, String dataDir) {
+        super(name, Path.of(dataDir, CF_DIR).toString());
     }
 
     @Override
@@ -40,11 +29,13 @@ public class ColumnFamilySupportedEngine implements ColumnFamilyStorable {
 
         final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
-        try {
-            RocksDB db = RocksDB.open(path(query.database()), cfDescriptors, columnFamilyHandleList);
+        try(final DBOptions options = new DBOptions().setCreateIfMissing(true);
+            final RocksDB db = RocksDB.open(options, path(),
+                    cfDescriptors, columnFamilyHandleList)) {
             byte[] value = db.get(columnFamilyHandleList.get(0), query.key());
             return new ResultSet(value);
         } catch (RocksDBException e) {
+            System.out.println(e.getStatus().getSubCode().getValue());
             throw new RuntimeException(e);
         } finally {
             for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandleList) {
@@ -63,11 +54,13 @@ public class ColumnFamilySupportedEngine implements ColumnFamilyStorable {
 
         final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
-        try {
-            RocksDB db = RocksDB.open(path(query.database()), cfDescriptors, columnFamilyHandleList);
+        try(final DBOptions options = new DBOptions().setCreateIfMissing(true);
+            final RocksDB db = RocksDB.open(options, path(),
+                    cfDescriptors, columnFamilyHandleList)) {
             db.put(columnFamilyHandleList.get(0), query.key(), query.value());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            System.out.println(e.getStatus().getSubCode().getValue());
             throw new RuntimeException(e);
         } finally {
             for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandleList) {
@@ -86,11 +79,13 @@ public class ColumnFamilySupportedEngine implements ColumnFamilyStorable {
 
         final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
-        try {
-            RocksDB db = RocksDB.open(path(query.database()), cfDescriptors, columnFamilyHandleList);
+        try(final DBOptions options = new DBOptions().setCreateIfMissing(true);
+            final RocksDB db = RocksDB.open(options, path(),
+                    cfDescriptors, columnFamilyHandleList)) {
             db.delete(columnFamilyHandleList.get(0), query.key());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            System.out.println(e.getStatus().getCodeString());
             throw new RuntimeException(e);
         } finally {
             for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandleList) {

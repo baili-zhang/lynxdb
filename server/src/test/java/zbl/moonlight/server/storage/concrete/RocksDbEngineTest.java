@@ -10,11 +10,10 @@ class RocksDbEngineTest {
     private byte[] value = "value".getBytes(StandardCharsets.UTF_8);
 
 
-    private KeyValueEngine engine;
+    private KvDatabase engine;
 
     @BeforeEach
     void beforeEach() {
-        engine = new KeyValueEngine();
     }
 
     @Test
