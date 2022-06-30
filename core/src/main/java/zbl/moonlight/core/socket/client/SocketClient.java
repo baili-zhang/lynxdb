@@ -107,70 +107,60 @@ public class SocketClient extends Executor<SocketRequest> {
     }
 
     @Override
-    public void run() {
-        if(handler == null) {
-            throw new RuntimeException("Handler can not be null.");
-        }
-
+    public void execute() {
         try {
-            /* TODO:实现优雅关机 */
-            while (isNotShutdown()) {
-                selector.select();
-                /* 如果线程被中断，则将线程中断位复位 */
-                if(Thread.interrupted()) {
-                    logger.debug("Socket client has bean interrupted.");
-                }
+            selector.select();
+            /* 如果线程被中断，则将线程中断位复位 */
+            if(Thread.interrupted()) {
+                logger.debug("Socket client has bean interrupted.");
+            }
 
-                Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> iterator = keys.iterator();
-                CountDownSync sync = new CountDownSync(keys.size());
+            Set<SelectionKey> keys = selector.selectedKeys();
+            Iterator<SelectionKey> iterator = keys.iterator();
+            CountDownSync sync = new CountDownSync(keys.size());
 
-                /* 对Set进行迭代，不同步处理的话，可能会出问题 */
-                synchronized (setLock) {
-                    while (iterator.hasNext()) {
-                        SelectionKey key = iterator.next();
-                        try {
-                            executor.execute(new IoEventHandler(sync, key));
-                        } catch (RejectedExecutionException e) {
-                            sync.countDown();
-                            e.printStackTrace();
-                        }
-                        iterator.remove();
+            /* 对Set进行迭代，不同步处理的话，可能会出问题 */
+            synchronized (setLock) {
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    try {
+                        executor.execute(new IoEventHandler(sync, key));
+                    } catch (RejectedExecutionException e) {
+                        sync.countDown();
+                        e.printStackTrace();
                     }
-                }
-
-                sync.await();
-
-                /* sync.await() 后执行一些自定义的操作 */
-                handler.handleAfterLatchAwait();
-
-                SocketRequest request = poll();
-                while (request != null) {
-                    /* 如果是广播，则发送给所有已连接的服务器 */
-                    if(request.isBroadcast()) {
-                        for (ServerNode node : contexts.keySet()) {
-                            contexts.get(node).offerRequest(request);
-                        }
-                        logger.info("Broadcast request to nodes: {}", contexts.keySet());
-                    }
-                    /* 如果是单播，则发送给指定的服务器 */
-                    else if(request.target() != null) {
-                        ServerNode target = request.target();
-                        ConnectionContext context = contexts.get(target);
-                        if(context != null) {
-                            logger.debug("Send request to node: {}", target);
-                            context.offerRequest(request);
-                        }
-                    }
-                    else {
-                        throw new RuntimeException("Can not find sending strategy for request.");
-                    }
-                    request = poll();
+                    iterator.remove();
                 }
             }
 
-            /* shutdown 以后需要处理的逻辑 */
-            executor.shutdown();
+            sync.await();
+
+            /* sync.await() 后执行一些自定义的操作 */
+            handler.handleAfterLatchAwait();
+
+            SocketRequest request = poll();
+            while (request != null) {
+                /* 如果是广播，则发送给所有已连接的服务器 */
+                if(request.isBroadcast()) {
+                    for (ServerNode node : contexts.keySet()) {
+                        contexts.get(node).offerRequest(request);
+                    }
+                    logger.info("Broadcast request to nodes: {}", contexts.keySet());
+                }
+                /* 如果是单播，则发送给指定的服务器 */
+                else if(request.target() != null) {
+                    ServerNode target = request.target();
+                    ConnectionContext context = contexts.get(target);
+                    if(context != null) {
+                        logger.debug("Send request to node: {}", target);
+                        context.offerRequest(request);
+                    }
+                }
+                else {
+                    throw new RuntimeException("Can not find sending strategy for request.");
+                }
+                request = poll();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -35,6 +35,7 @@ public class CfDatabase extends AbstractDatabase implements ColumnFamilyStorable
             byte[] value = db.get(columnFamilyHandleList.get(0), query.key());
             return new ResultSet(value);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             System.out.println(e.getStatus().getSubCode().getValue());
             throw new RuntimeException(e);
         } finally {
@@ -60,6 +61,7 @@ public class CfDatabase extends AbstractDatabase implements ColumnFamilyStorable
             db.put(columnFamilyHandleList.get(0), query.key(), query.value());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             System.out.println(e.getStatus().getSubCode().getValue());
             throw new RuntimeException(e);
         } finally {
@@ -85,6 +87,7 @@ public class CfDatabase extends AbstractDatabase implements ColumnFamilyStorable
             db.delete(columnFamilyHandleList.get(0), query.key());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             System.out.println(e.getStatus().getCodeString());
             throw new RuntimeException(e);
         } finally {

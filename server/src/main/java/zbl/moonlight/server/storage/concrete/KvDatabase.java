@@ -24,6 +24,7 @@ public class KvDatabase extends AbstractDatabase implements KeyValueStorable {
             byte[] value = db.get(query.key());
             return new ResultSet(value);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -35,6 +36,7 @@ public class KvDatabase extends AbstractDatabase implements KeyValueStorable {
             db.put(query.key(), query.value());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -46,6 +48,7 @@ public class KvDatabase extends AbstractDatabase implements KeyValueStorable {
             db.delete(query.key());
             return new ResultSet(null);
         } catch (RocksDBException e) {
+            // TODO: 做好错误处理
             e.printStackTrace();
             throw new RuntimeException(e);
         }

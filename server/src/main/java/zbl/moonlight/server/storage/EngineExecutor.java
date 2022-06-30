@@ -31,18 +31,16 @@ public class EngineExecutor extends Executor<MdtpCommand> {
     }
 
     @Override
-    public final void run() {
-        while (isNotShutdown()) {
-            /* 阻塞 poll，需要被中断 */
-            MdtpCommand command = blockPoll();
-            if(command == null) {
-                continue;
-            }
-            SocketResponse response = exec(command);
-            /* Raft 日志 apply 的 command 执行后返回的 response 为 null */
-            if(response != null) {
-                socketServer.offerInterruptibly(response);
-            }
+    public void execute() {
+        /* 阻塞 poll，需要被中断 */
+        MdtpCommand command = blockPoll();
+        if(command == null) {
+            return;
+        }
+        SocketResponse response = exec(command);
+        /* Raft 日志 apply 的 command 执行后返回的 response 为 null */
+        if(response != null) {
+            socketServer.offerInterruptibly(response);
         }
     }
 

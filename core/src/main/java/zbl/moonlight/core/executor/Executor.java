@@ -61,7 +61,16 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
     }
 
     @Override
-    public void interrupt() {
+    public final void interrupt() {
         currentThread.interrupt();
     }
+
+    @Override
+    public final void run() {
+        while(isNotShutdown()) {
+            execute();
+        }
+    }
+
+    protected abstract void execute();
 }
