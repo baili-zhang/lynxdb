@@ -26,7 +26,7 @@ public record RaftClientHandler(RaftState raftState,
 
     @Override
     public void handleResponse(SocketResponse response) throws Exception {
-        ByteBuffer buffer = ByteBuffer.wrap(response.data());
+        ByteBuffer buffer = ByteBuffer.wrap(response.toBytes());
         byte status = buffer.get();
 
         switch (status) {
@@ -44,14 +44,14 @@ public record RaftClientHandler(RaftState raftState,
             /* 客户端请求成功，则向客户端响应[CLIENT_REQUEST_SUCCESS] */
             case CLIENT_REQUEST_SUCCESS -> {
                     logger.info("[{}] Client request success.", raftState.currentNode());
-                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
-                            new byte[]{CLIENT_REQUEST_SUCCESS}, null));
+//                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
+//                            new byte[]{CLIENT_REQUEST_SUCCESS}, null));
             }
 
             /* 客户端请求失败，则向客户端响应[CLIENT_REQUEST_FAILURE] */
-            case CLIENT_REQUEST_FAILURE ->
-                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
-                            new byte[]{CLIENT_REQUEST_FAILURE}, null));
+            case CLIENT_REQUEST_FAILURE -> {}
+//                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
+//                            new byte[]{CLIENT_REQUEST_FAILURE}, null));
         }
     }
 

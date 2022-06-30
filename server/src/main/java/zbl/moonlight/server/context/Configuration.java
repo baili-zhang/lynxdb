@@ -1,4 +1,4 @@
-package zbl.moonlight.server.config;
+package zbl.moonlight.server.context;
 
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;

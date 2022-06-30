@@ -1,6 +1,17 @@
 package zbl.moonlight.core.socket.response;
 
+import zbl.moonlight.core.raft.response.BytesConvertable;
+
 import java.nio.channels.SelectionKey;
 
-public record SocketResponse (SelectionKey selectionKey, byte[] data, Object attachment) {
+public abstract class SocketResponse implements BytesConvertable {
+    protected final SelectionKey selectionKey;
+
+    protected SocketResponse(SelectionKey selectionKey) {
+        this.selectionKey = selectionKey;
+    }
+
+    public SelectionKey selectionKey() {
+        return selectionKey;
+    }
 }

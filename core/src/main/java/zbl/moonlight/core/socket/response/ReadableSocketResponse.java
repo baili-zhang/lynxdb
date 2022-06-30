@@ -1,7 +1,6 @@
 package zbl.moonlight.core.socket.response;
 
 import lombok.Getter;
-import lombok.Setter;
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.Readable;
@@ -19,8 +18,6 @@ public class ReadableSocketResponse implements Readable {
     private final SelectionKey selectionKey;
     private ByteBuffer data;
 
-    @Setter
-    private Object attachment;
 
     public ReadableSocketResponse(SelectionKey key) {
         serverNode = (ServerNode) key.attachment();
@@ -48,12 +45,5 @@ public class ReadableSocketResponse implements Readable {
     @Override
     public boolean isReadCompleted() {
         return EnhanceByteBuffer.isOver(data);
-    }
-
-    public SocketResponse socketResponse() {
-        if(!isReadCompleted()) {
-            throw new RuntimeException("Can not get socket response when read is not completed.");
-        }
-        return new SocketResponse(selectionKey, data.array(), attachment);
     }
 }

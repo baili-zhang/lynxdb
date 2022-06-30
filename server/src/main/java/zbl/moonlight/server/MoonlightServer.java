@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.raft.server.RaftServer;
 import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.server.config.Configuration;
+import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.storage.EngineExecutor;
 import zbl.moonlight.server.mdtp.MdtpStateMachine;
 

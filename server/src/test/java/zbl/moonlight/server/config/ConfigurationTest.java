@@ -2,10 +2,9 @@ package zbl.moonlight.server.config;
 
 import org.junit.jupiter.api.Test;
 import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.server.context.Configuration;
 
 import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ConfigurationTest {
     @Test

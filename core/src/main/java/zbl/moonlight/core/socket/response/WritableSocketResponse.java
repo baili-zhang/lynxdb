@@ -21,11 +21,7 @@ public class WritableSocketResponse implements Writable {
     }
 
     public WritableSocketResponse(SocketResponse response) {
-        this(response.selectionKey(), response.data());
-    }
-
-    public SelectionKey selectionKey() {
-        return selectionKey;
+        this(response.selectionKey(), response.toBytes());
     }
 
     @Override

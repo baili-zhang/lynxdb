@@ -5,9 +5,10 @@ import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import java.nio.channels.SelectionKey;
 
 public class MdtpCommand {
-    public static final byte SET = (byte) 0x01;
-    public static final byte GET = (byte) 0x02;
-    public static final byte DELETE = (byte) 0x03;
+    public static final byte KV_SET = (byte) 0x01;
+    public static final byte KV_GET = (byte) 0x02;
+    public static final byte KV_DELETE = (byte) 0x03;
+    public static final byte CF_SET = (byte) 0x03;
 
     private final SelectionKey selectionKey;
     private final byte method;

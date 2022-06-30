@@ -70,7 +70,7 @@ public class SocketServer extends Executor<SocketResponse> {
     }
 
     @Override
-    public void execute() {
+    protected void execute() {
         try {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */

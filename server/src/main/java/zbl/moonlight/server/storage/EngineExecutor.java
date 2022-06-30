@@ -3,26 +3,81 @@ package zbl.moonlight.server.storage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.response.RaftResponse;
-import zbl.moonlight.core.socket.response.SocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
-import zbl.moonlight.server.mdtp.MdtpCommand;
+import zbl.moonlight.server.context.Configuration;
+import zbl.moonlight.server.mdtp.Method;
+import zbl.moonlight.server.mdtp.Params;
+import zbl.moonlight.server.storage.concrete.CfDatabase;
+import zbl.moonlight.server.storage.concrete.KvDatabase;
+import zbl.moonlight.server.storage.core.AbstractNioQuery;
+import zbl.moonlight.server.storage.core.Queryable;
+import zbl.moonlight.server.storage.core.ResultSet;
 
-import java.nio.channels.SelectionKey;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static zbl.moonlight.server.mdtp.MdtpCommand.*;
-
-public class EngineExecutor extends Executor<MdtpCommand> {
+public class EngineExecutor extends Executor<Map<String, Object>> {
     private static final Logger logger = LogManager.getLogger("StorageEngine");
 
     private final SocketServer socketServer;
-    private final HashMap<byte[], byte[]> engine;
+    private final HashMap<String, KvDatabase> kvDbs = new HashMap<>();
+    private final HashMap<String, CfDatabase> cfDbs = new HashMap<>();
+
+    private final HashMap<Byte, Class<?>> methodMap = new HashMap<>();
+
     /* TODO: Cache 以后再实现 */
 
-    public EngineExecutor(SocketServer socketServer, HashMap<byte[], byte[]> engine) {
+    public EngineExecutor(SocketServer socketServer) {
         this.socketServer = socketServer;
-        this.engine = engine;
+
+        String dataDir = Configuration.getInstance().dataDir();
+        Path KvPath = Path.of(dataDir, KvDatabase.KV_DIR);
+        Path CfPath = Path.of(dataDir, CfDatabase.CF_DIR);
+
+        File kvDbDir = KvPath.toFile();
+        File cfDbDir = CfPath.toFile();
+
+        if(kvDbDir.isDirectory()) {
+            String[] subs = kvDbDir.list();
+
+            if(subs == null) {
+                return;
+            }
+
+            for (String sub : subs) {
+                File subFile = Path.of(kvDbDir.getPath(), sub).toFile();
+                if(subFile.isDirectory()) {
+                    kvDbs.put(sub, new KvDatabase(sub, KvPath.toString()));
+                }
+            }
+        }
+
+        if(cfDbDir.isDirectory()) {
+            String[] subs = cfDbDir.list();
+
+            if(subs == null) {
+                return;
+            }
+
+            for (String sub : subs) {
+                File subFile = Path.of(cfDbDir.getPath(), sub).toFile();
+                if(subFile.isDirectory()) {
+                    cfDbs.put(sub, new CfDatabase(sub, CfPath.toString()));
+                }
+            }
+        }
+
+        Method[] methods = Method.values();
+        for(Method method : methods) {
+            methodMap.put(method.value(), method.type());
+        }
     }
 
     @Override
@@ -31,67 +86,55 @@ public class EngineExecutor extends Executor<MdtpCommand> {
     }
 
     @Override
-    public void execute() {
-        /* 阻塞 poll，需要被中断 */
-        MdtpCommand command = blockPoll();
-        if(command == null) {
+    protected void execute() {
+        Map<String, Object> map = blockPoll();
+        if(map == null) {
             return;
         }
-        SocketResponse response = exec(command);
-        /* Raft 日志 apply 的 command 执行后返回的 response 为 null */
-        if(response != null) {
-            socketServer.offerInterruptibly(response);
-        }
-    }
 
-    private SocketResponse exec(MdtpCommand command) {
-        switch (command.method()) {
-            case SET -> { return doSet(command); }
-            case GET -> { return doGet(command); }
-            case DELETE -> { return doDelete(command); }
-            default -> throw new RuntimeException("Unsupported method.");
-        }
-    }
+        Queryable query = null;
+        Byte methodByte = (Byte) map.get(Params.METHOD);
+        Class<?> type = methodMap.get(methodByte);
 
-    private SocketResponse doSet(MdtpCommand command) {
-        engine.put(command.key(), command.value());
-        if(command.selectionKey() == null) {
-            return null;
-        }
-        return success(command.selectionKey());
-    }
+        if(type != null) {
+            Constructor<?>[] constructors = type.getDeclaredConstructors();
 
-    private SocketResponse doGet(MdtpCommand command) {
-        SelectionKey selectionKey = command.selectionKey();
-        if(selectionKey == null) {
-            throw new RuntimeException("selectionKey can not be [null]");
+            if(constructors.length < 1) {
+                throw new RuntimeException(type.getName() + " has no constructor");
+            }
+            Constructor<?> constructor = constructors[0];
+
+            Type[] types = constructor.getGenericParameterTypes();
+            List<Object> args = new ArrayList<>();
+
+            for(Type t : types) {
+                args.add(map.get(t.getTypeName()));
+            }
+
+            try {
+                query = (Queryable) constructor.newInstance(args.toArray(Object[]::new));
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
         }
 
-        byte[] key = command.key();
-        byte[] value = engine.get(key);
-        logger.info("GET [{}], value is [{}]", key, value == null ?
-                "null" : new String(value));
-
-        return value == null ? success(selectionKey)
-                : successWithValue(selectionKey, value);
-    }
-
-    private SocketResponse doDelete(MdtpCommand command) {
-        engine.remove(command.key());
-        if(command.selectionKey() == null) {
-            return null;
+        if(query == null) {
+            return;
         }
-        return success(command.selectionKey());
-    }
 
-    private SocketResponse success(SelectionKey selectionKey) {
-        byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
-        return new SocketResponse(selectionKey, data, null);
-    }
+        String dbName = (String) map.get("db_name");
+        String dbType = (String) map.get("db_type");
 
-    /* 定义这个方法主要是为了阅读时方便 */
-    private SocketResponse successWithValue(SelectionKey selectionKey, byte[] value) {
-        byte[] data = RaftResponse.clientRequestSuccess(value);
-        return new SocketResponse(selectionKey, data, null);
+        ResultSet resultSet = null;
+
+        if("kv".equals(dbType)) {
+            KvDatabase db = kvDbs.get(dbName);
+            resultSet = db.doQuery((AbstractNioQuery) query);
+        } else {
+            KvDatabase db = kvDbs.get(dbName);
+            resultSet = db.doQuery((AbstractNioQuery) query);
+        }
+
+        socketServer.offerInterruptibly(resultSet);
     }
 }

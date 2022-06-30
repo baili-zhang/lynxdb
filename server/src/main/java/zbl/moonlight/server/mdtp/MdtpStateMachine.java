@@ -7,6 +7,7 @@ import zbl.moonlight.core.raft.state.StateMachine;
 import zbl.moonlight.server.storage.EngineExecutor;
 
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 
 /**
  * 异步的状态机
@@ -27,9 +28,8 @@ public class MdtpStateMachine implements StateMachine {
             throw new RuntimeException("[storageEngine] is [null]");
         }
         for(Entry entry : entries) {
-            MdtpCommand command = new MdtpCommand(null, entry.command());
-            logger.info("Apply command {} to state machine.", command);
-            engineExecutor.offerInterruptibly(command);
+            logger.info("Apply command {} to state machine.", entry.command());
+            engineExecutor.offerInterruptibly(new HashMap<>());
         }
     }
 
@@ -38,7 +38,7 @@ public class MdtpStateMachine implements StateMachine {
         if(engineExecutor == null) {
             throw new RuntimeException("[storageEngine] is [null]");
         }
-        MdtpCommand mdtpCommand = new MdtpCommand(key, command);
-        engineExecutor.offerInterruptibly(mdtpCommand);
+
+        engineExecutor.offerInterruptibly(new HashMap<>());
     }
 }
