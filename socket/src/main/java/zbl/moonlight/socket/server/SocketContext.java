@@ -1,7 +1,7 @@
-package zbl.moonlight.core.socket.server;
+package zbl.moonlight.socket.server;
 
-import zbl.moonlight.core.socket.request.ReadableSocketRequest;
-import zbl.moonlight.core.socket.response.WritableSocketResponse;
+import zbl.moonlight.socket.request.ReadableSocketRequest;
+import zbl.moonlight.socket.response.WritableSocketResponse;
 
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;

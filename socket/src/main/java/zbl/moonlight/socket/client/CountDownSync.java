@@ -1,4 +1,4 @@
-package zbl.moonlight.core.socket.client;
+package zbl.moonlight.socket.client;
 
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 

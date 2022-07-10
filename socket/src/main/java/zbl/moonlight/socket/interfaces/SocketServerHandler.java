@@ -1,6 +1,6 @@
-package zbl.moonlight.core.socket.interfaces;
+package zbl.moonlight.socket.interfaces;
 
-import zbl.moonlight.core.socket.request.SocketRequest;
+import zbl.moonlight.socket.request.SocketRequest;
 
 public interface SocketServerHandler {
     default void handleStartupCompleted() {}

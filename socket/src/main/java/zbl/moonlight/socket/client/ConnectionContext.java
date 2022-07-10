@@ -1,27 +1,23 @@
-package zbl.moonlight.core.socket.client;
+package zbl.moonlight.socket.client;
 
-import lombok.Getter;
-import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.request.WritableSocketRequest;
-import zbl.moonlight.core.socket.response.ReadableSocketResponse;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.socket.request.SocketRequest;
+import zbl.moonlight.socket.request.WritableSocketRequest;
+import zbl.moonlight.socket.response.ReadableSocketResponse;
+import zbl.moonlight.socket.response.AbstractSocketResponse;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConnectionContext {
-    @Getter
     private final SelectionKey selectionKey;
-    @Getter
     private final ConcurrentLinkedQueue<WritableSocketRequest> requests = new ConcurrentLinkedQueue<>();
-    @Getter
     private final ConcurrentLinkedQueue<Object> attachments = new ConcurrentLinkedQueue<>();
     private final Object nullObject = new Object();
 
     private ReadableSocketResponse response;
 
-    private SocketResponse socketResponse;
+    private AbstractSocketResponse abstractSocketResponse;
 
     /* TODO: exit 流程使用，lockRequestAdd 为 true 时，禁止向队列中添加请求 */
     private volatile boolean lockRequestOffer = false;
@@ -64,7 +60,7 @@ public class ConnectionContext {
         if(response.isReadCompleted()) {
             /* 读取完成之后才设置 attachments */
             response.setAttachment(attachments.poll());
-            socketResponse = response.socketResponse();
+            abstractSocketResponse = response.socketResponse();
             this.response = new ReadableSocketResponse(selectionKey);
             return true;
         }
@@ -75,7 +71,7 @@ public class ConnectionContext {
         response.read();
     }
 
-    public SocketResponse socketResponse() {
-        return socketResponse;
+    public AbstractSocketResponse socketResponse() {
+        return abstractSocketResponse;
     }
 }

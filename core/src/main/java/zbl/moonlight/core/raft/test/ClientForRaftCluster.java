@@ -6,7 +6,7 @@ import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,7 +31,7 @@ public class ClientForRaftCluster {
             }
 
             @Override
-            public void handleResponse(SocketResponse response) throws Exception {
+            public void handleResponse(AbstractSocketResponse response) throws Exception {
                 System.out.println(response.data().length);
                 System.out.println(response.data()[0]);
             }

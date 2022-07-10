@@ -1,6 +1,8 @@
 package zbl.moonlight.core.raft.response;
 
-public record ClientResult(byte[] data) implements BytesConvertable {
+import zbl.moonlight.core.common.BytesConvertible;
+
+public record ClientResult(byte[] data) implements BytesConvertible {
     @Override
     public byte[] toBytes() {
         return data;

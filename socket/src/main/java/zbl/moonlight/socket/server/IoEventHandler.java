@@ -1,11 +1,11 @@
-package zbl.moonlight.core.socket.server;
+package zbl.moonlight.socket.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.socket.client.CountDownSync;
-import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
-import zbl.moonlight.core.socket.request.ReadableSocketRequest;
-import zbl.moonlight.core.socket.response.WritableSocketResponse;
+import zbl.moonlight.socket.client.CountDownSync;
+import zbl.moonlight.socket.interfaces.SocketServerHandler;
+import zbl.moonlight.socket.request.ReadableSocketRequest;
+import zbl.moonlight.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -14,7 +14,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.CountDownLatch;
 
 public class IoEventHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger("IoEventHandler");

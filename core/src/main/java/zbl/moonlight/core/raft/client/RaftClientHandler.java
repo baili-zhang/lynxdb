@@ -6,12 +6,11 @@ import zbl.moonlight.core.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 
 import static zbl.moonlight.core.raft.response.RaftResponse.*;
 
@@ -25,7 +24,7 @@ public record RaftClientHandler(RaftState raftState,
     }
 
     @Override
-    public void handleResponse(SocketResponse response) throws Exception {
+    public void handleResponse(AbstractSocketResponse response) throws Exception {
         ByteBuffer buffer = ByteBuffer.wrap(response.toBytes());
         byte status = buffer.get();
 

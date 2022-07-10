@@ -15,7 +15,7 @@ import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.utils.NumberUtils;
 
@@ -72,7 +72,7 @@ public class RaftServerHandler implements SocketServerHandler {
             Integer logIndex = logIndexMap.peek(key);
             while (logIndex != null && logIndex <= commitIndex) {
                 byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
-                SocketResponse response = new SocketResponse(key, data, null);
+                AbstractSocketResponse response = new AbstractSocketResponse(key, data, null);
                 socketServer.offerInterruptibly(response);
                 logIndex = logIndexMap.peekAfterPoll(key);
             }
@@ -289,7 +289,7 @@ public class RaftServerHandler implements SocketServerHandler {
             case Candidate -> {
                 logger.info("[{}] is [Candidate], client request failure.", currentNode);
                 byte[] data = ByteBuffer.allocate(1).put(CLIENT_REQUEST_FAILURE).array();
-                socketServer.offerInterruptibly(new SocketResponse(selectionKey, data, null));
+                socketServer.offerInterruptibly(new AbstractSocketResponse(selectionKey, data, null));
             }
         }
     }
@@ -324,7 +324,7 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void sendResult(SelectionKey selectionKey, byte[] data) {
-        SocketResponse response = new SocketResponse(selectionKey, data, null);
+        AbstractSocketResponse response = new AbstractSocketResponse(selectionKey, data, null);
         socketServer.offer(response);
     }
 }

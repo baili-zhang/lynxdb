@@ -1,13 +1,12 @@
-package zbl.moonlight.core.socket.client;
+package zbl.moonlight.socket.client;
 
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.request.WritableSocketRequest;
-import zbl.moonlight.core.socket.response.ReadableSocketResponse;
+import zbl.moonlight.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.socket.request.SocketRequest;
+import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -83,7 +82,7 @@ public class SocketClient extends Executor<SocketRequest> {
             synchronized (exitKeys) {
                 exitKeys.add(key);
             }
-            context.offerRequest(SocketRequest.newDisconnectRequest(node));
+            context.addRequest(SocketRequest.newDisconnectRequest(node));
             context.lockRequestOffer();
             interrupt();
         }
@@ -143,7 +142,7 @@ public class SocketClient extends Executor<SocketRequest> {
                 /* 如果是广播，则发送给所有已连接的服务器 */
                 if(request.isBroadcast()) {
                     for (ServerNode node : contexts.keySet()) {
-                        contexts.get(node).offerRequest(request);
+                        contexts.get(node).addRequest(request);
                     }
                     logger.info("Broadcast request to nodes: {}", contexts.keySet());
                 }
@@ -153,7 +152,7 @@ public class SocketClient extends Executor<SocketRequest> {
                     ConnectionContext context = contexts.get(target);
                     if(context != null) {
                         logger.debug("Send request to node: {}", target);
-                        context.offerRequest(request);
+                        context.addRequest(request);
                     }
                 }
                 else {
@@ -264,12 +263,12 @@ public class SocketClient extends Executor<SocketRequest> {
         private void doWrite() throws IOException {
             ServerNode node = (ServerNode) selectionKey.attachment();
             ConnectionContext context = contexts.get(node);
-            WritableSocketRequest request = context.peekRequest();
+            WritableSocketRequest request = context.currentRequest();
 
             request.write();
 
             if(request.isWriteCompleted()) {
-                context.pollRequest();
+                context.removeRequest();
                 /* 处理主动退出的 selectionKey */
                 if(exitKeys.contains(selectionKey) && context.sizeOfRequests() == 0) {
                     synchronized (exitKeys) {

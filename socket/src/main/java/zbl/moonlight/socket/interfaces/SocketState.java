@@ -1,4 +1,4 @@
-package zbl.moonlight.core.socket.interfaces;
+package zbl.moonlight.socket.interfaces;
 
 public interface SocketState {
     byte EMPTY_FLAG = (byte) 0;

@@ -1,10 +1,10 @@
 package zbl.moonlight.server.storage.core;
 
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 
 import java.nio.channels.SelectionKey;
 
-public class ResultSet extends SocketResponse {
+public class ResultSet extends AbstractSocketResponse {
     public static final byte SUCCESS = (byte) 0x01;
     public static final byte FAILURE = (byte) 0x02;
 

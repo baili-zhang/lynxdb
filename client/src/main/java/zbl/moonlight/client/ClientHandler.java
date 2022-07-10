@@ -1,10 +1,9 @@
 package zbl.moonlight.client;
 
 import lombok.Setter;
-import zbl.moonlight.core.raft.response.RaftResponse;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.BrokenBarrierException;
@@ -27,7 +26,7 @@ public class ClientHandler implements SocketClientHandler {
         barrier.await();
     }
 
-    public void handleResponse(SocketResponse response) throws BrokenBarrierException, InterruptedException {
+    public void handleResponse(AbstractSocketResponse response) throws BrokenBarrierException, InterruptedException {
         byte[] data = response.data();
 
         if(data == null || data.length < 1) {

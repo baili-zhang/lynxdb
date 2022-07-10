@@ -1,4 +1,4 @@
-package zbl.moonlight.core.socket.server;
+package zbl.moonlight.socket.server;
 
 public class SocketServerConfig {
     private static final int DEFAULT_CORE_SIZE = 10;

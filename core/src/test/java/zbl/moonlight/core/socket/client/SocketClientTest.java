@@ -5,7 +5,7 @@ import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.socket.server.SocketServerConfig;
 
@@ -53,7 +53,7 @@ class SocketClientTest {
                     byte[] data = request.data();
                     assert new String(data).equals(requestBody);
                     byte[] res = (responsePrefix + node).getBytes(StandardCharsets.UTF_8);
-                    server.offer(new SocketResponse(request.selectionKey(), res, null));
+                    server.offer(new AbstractSocketResponse(request.selectionKey(), res, null));
                 }
             });
             Executor.start(server);
@@ -69,7 +69,7 @@ class SocketClientTest {
             }
 
             @Override
-            public void handleResponse(SocketResponse response) {
+            public void handleResponse(AbstractSocketResponse response) {
                 /* TODO: 使用 Assert 判断 */
                 System.out.println(new String(response.data()));
             }

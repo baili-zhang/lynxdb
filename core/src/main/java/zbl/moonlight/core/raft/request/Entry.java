@@ -1,6 +1,6 @@
 package zbl.moonlight.core.raft.request;
 
-import zbl.moonlight.core.raft.response.BytesConvertable;
+import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.nio.ByteBuffer;
@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 public record Entry (
         int term,
         byte[] command
-) implements BytesConvertable {
+) implements BytesConvertible {
     public static Entry fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         int term = buffer.getInt();

@@ -66,15 +66,15 @@ public abstract class Executor<E> implements Executable<E> {
 
 #### SocketRequest 格式
 
-| status | data length | data                  |
-|--------|-------------|-----------------------|
-| 1 byte | 4 bytes     | = (data length) bytes |
+| status | serial number | data length | data                  |
+|--------|---------------|-------------|-----------------------|
+| 1 byte | 8 bytes       | 4 bytes     | = (data length) bytes |
 
 #### SocketResponse 格式
 
-| data length | data                  |
-|-------------|-----------------------|
-| 4 bytes     | = (data length) bytes |
+| serial number | data length | data                  |
+|---------------|-------------|-----------------------|
+| 8 bytes       | 4 bytes     | = (data length) bytes |
 
 
 #### SocketServer 相关

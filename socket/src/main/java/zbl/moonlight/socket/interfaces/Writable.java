@@ -1,4 +1,4 @@
-package zbl.moonlight.core.socket.interfaces;
+package zbl.moonlight.socket.interfaces;
 
 import java.io.IOException;
 

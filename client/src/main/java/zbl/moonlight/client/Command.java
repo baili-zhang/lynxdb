@@ -1,14 +1,12 @@
 package zbl.moonlight.client;
 
-import zbl.moonlight.core.raft.response.BytesConvertable;
-
-import java.nio.charset.StandardCharsets;
+import zbl.moonlight.core.common.BytesConvertible;
 
 public record Command(
         String name,
         String key,
         String value
-) implements BytesConvertable {
+) implements BytesConvertible {
     /**
      * 退出客户端
      */

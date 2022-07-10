@@ -5,7 +5,7 @@ import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.core.socket.interfaces.SocketState;
 import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -41,7 +41,7 @@ class SocketServerTest {
             public void handleRequest(SocketRequest request) {
                 byte[] data = request.data();
                 assert new String(data).equals(req);
-                server.offer(new SocketResponse(request.selectionKey(),
+                server.offer(new AbstractSocketResponse(request.selectionKey(),
                         res.getBytes(StandardCharsets.UTF_8), null));
             }
         });
