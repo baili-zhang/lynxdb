@@ -1,10 +1,6 @@
-package zbl.moonlight.server.storage.core;
+package zbl.moonlight.storage.core;
 
-import zbl.moonlight.socket.response.SocketResponse;
-
-import java.nio.channels.SelectionKey;
-
-public class ResultSet extends SocketResponse {
+public class ResultSet {
     public static final byte SUCCESS = (byte) 0x01;
     public static final byte FAILURE = (byte) 0x02;
 
@@ -14,10 +10,6 @@ public class ResultSet extends SocketResponse {
     private byte[] value = EMPTY_VALUE;
     private byte code = SUCCESS;
     private String message = EMPTY_MESSAGE;
-
-    public ResultSet(SelectionKey selectionKey) {
-        super(selectionKey);
-    }
 
     public void setValue(byte[] value) {
         this.value = value;
@@ -29,10 +21,5 @@ public class ResultSet extends SocketResponse {
 
     public void setMessage(String msg) {
         message = msg;
-    }
-
-    @Override
-    public byte[] toBytes() {
-        return value;
     }
 }

@@ -1,17 +1,17 @@
-package zbl.moonlight.server.storage;
+package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.socket.server.SocketServer;
+import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.mdtp.Method;
 import zbl.moonlight.server.mdtp.Params;
-import zbl.moonlight.server.storage.concrete.CfDatabase;
-import zbl.moonlight.server.storage.concrete.KvDatabase;
-import zbl.moonlight.server.storage.core.AbstractNioQuery;
-import zbl.moonlight.server.storage.core.Queryable;
-import zbl.moonlight.server.storage.core.ResultSet;
+import zbl.moonlight.storage.concrete.CfDatabase;
+import zbl.moonlight.storage.concrete.KvDatabase;
+import zbl.moonlight.storage.core.AbstractNioQuery;
+import zbl.moonlight.storage.core.Queryable;
+import zbl.moonlight.storage.core.ResultSet;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -135,6 +135,6 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             resultSet = db.doQuery((AbstractNioQuery) query);
         }
 
-        socketServer.offerInterruptibly(resultSet);
+        socketServer.offerInterruptibly(null);
     }
 }

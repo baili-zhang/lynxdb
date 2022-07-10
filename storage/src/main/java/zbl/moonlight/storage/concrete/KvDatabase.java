@@ -1,10 +1,10 @@
-package zbl.moonlight.server.storage.concrete;
+package zbl.moonlight.storage.concrete;
 
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import zbl.moonlight.server.storage.core.AbstractDatabase;
-import zbl.moonlight.server.storage.core.AbstractNioQuery;
-import zbl.moonlight.server.storage.core.ResultSet;
+import zbl.moonlight.storage.core.AbstractDatabase;
+import zbl.moonlight.storage.core.AbstractNioQuery;
+import zbl.moonlight.storage.core.ResultSet;
 
 import java.nio.file.Path;
 
@@ -17,7 +17,7 @@ public class KvDatabase extends AbstractDatabase {
 
     @Override
     public synchronized ResultSet doQuery(AbstractNioQuery query) {
-        ResultSet resultSet = new ResultSet(query.selectionKey());
+        ResultSet resultSet = new ResultSet();
 
         try(final RocksDB db = RocksDB.open(path())) {
             query.doQuery(db, resultSet);

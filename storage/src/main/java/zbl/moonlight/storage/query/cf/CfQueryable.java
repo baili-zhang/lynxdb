@@ -1,6 +1,6 @@
-package zbl.moonlight.server.storage.query.cf;
+package zbl.moonlight.storage.query.cf;
 
-import zbl.moonlight.server.storage.core.Queryable;
+import zbl.moonlight.storage.core.Queryable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

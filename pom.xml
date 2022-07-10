@@ -16,6 +16,7 @@
         <module>core</module>
         <module>socket</module>
         <module>raft</module>
+        <module>storage</module>
     </modules>
 
     <properties>

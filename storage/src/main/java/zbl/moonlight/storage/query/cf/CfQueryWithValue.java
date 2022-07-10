@@ -1,6 +1,4 @@
-package zbl.moonlight.server.storage.query.cf;
-
-import zbl.moonlight.server.storage.query.cf.CfQuery;
+package zbl.moonlight.storage.query.cf;
 
 import java.nio.channels.SelectionKey;
 

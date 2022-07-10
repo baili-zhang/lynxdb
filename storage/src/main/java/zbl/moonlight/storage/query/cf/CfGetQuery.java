@@ -1,7 +1,7 @@
-package zbl.moonlight.server.storage.query.cf;
+package zbl.moonlight.storage.query.cf;
 
 import org.rocksdb.RocksDB;
-import zbl.moonlight.server.storage.core.ResultSet;
+import zbl.moonlight.storage.core.ResultSet;
 
 import java.nio.channels.SelectionKey;
 

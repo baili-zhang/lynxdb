@@ -1,6 +1,6 @@
-package zbl.moonlight.server.storage.query.kv;
+package zbl.moonlight.storage.query.kv;
 
-import zbl.moonlight.server.storage.core.AbstractNioQuery;
+import zbl.moonlight.storage.core.AbstractNioQuery;
 
 import java.nio.channels.SelectionKey;
 

@@ -1,10 +1,9 @@
-package zbl.moonlight.server.storage.concrete;
+package zbl.moonlight.storage.concrete;
 
 import org.rocksdb.*;
-import zbl.moonlight.server.storage.core.AbstractDatabase;
-import zbl.moonlight.server.storage.core.AbstractNioQuery;
-import zbl.moonlight.server.storage.query.cf.CfQuery;
-import zbl.moonlight.server.storage.core.ResultSet;
+import zbl.moonlight.storage.core.AbstractDatabase;
+import zbl.moonlight.storage.core.AbstractNioQuery;
+import zbl.moonlight.storage.core.ResultSet;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,7 +23,7 @@ public class CfDatabase extends AbstractDatabase {
         );
 
         final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
-        ResultSet resultSet = new ResultSet(query.selectionKey());
+        ResultSet resultSet = new ResultSet();
 
         try(final DBOptions options = new DBOptions().setCreateIfMissing(true);
             final RocksDB db = RocksDB.open(options, path(),

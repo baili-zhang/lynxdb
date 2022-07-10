@@ -1,4 +1,4 @@
-package zbl.moonlight.server.storage.core;
+package zbl.moonlight.storage.core;
 
 import org.rocksdb.RocksDB;
 
