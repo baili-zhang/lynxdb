@@ -10,13 +10,12 @@ import zbl.moonlight.raft.request.RequestVote;
 import zbl.moonlight.raft.state.RaftRole;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.raft.state.RaftState;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.client.SocketClient;
-import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.server.SocketServer;
-import zbl.moonlight.core.socket.server.SocketServerConfig;
 import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.core.timeout.TimeoutTask;
+import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.client.SocketClient;
+import zbl.moonlight.socket.server.SocketServer;
+import zbl.moonlight.socket.server.SocketServerConfig;
 
 import java.io.IOException;
 import java.util.List;

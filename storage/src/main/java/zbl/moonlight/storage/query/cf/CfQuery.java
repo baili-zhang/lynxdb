@@ -1,25 +1,31 @@
 package zbl.moonlight.storage.query.cf;
 
-import zbl.moonlight.storage.core.AbstractNioQuery;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import zbl.moonlight.storage.core.ColumnFamily;
+import zbl.moonlight.storage.core.ColumnFamilyTuple;
 
-import java.nio.channels.SelectionKey;
+import java.util.List;
 
-public abstract class CfQuery extends AbstractNioQuery implements CfQueryable {
-    protected final byte[] columnFamily;
-    protected final byte[] key;
+public abstract class CfQuery implements CfQueryable {
+    protected final List<ColumnFamilyTuple> tuples;
 
-    protected CfQuery(SelectionKey selectionKey, byte[] columnFamily, byte[] key) {
-        super(selectionKey);
-        this.columnFamily = columnFamily;
-        this.key = key;
+    protected List<ColumnFamilyHandle> columnFamilyHandles;
+    protected List<ColumnFamilyDescriptor> columnFamilyDescriptors;
+
+    protected CfQuery(List<ColumnFamilyTuple> tuples) {
+        this.tuples = tuples;
     }
 
-    public byte[] columnFamily() {
-        return columnFamily;
+    public List<byte[]> columnFamilies() {
+        return tuples.stream().map(ColumnFamilyTuple::columnFamily).map(ColumnFamily::value).toList();
     }
 
-    public byte[] key() {
-        return key;
+    public void setColumnFamilyHandle(List<ColumnFamilyHandle> handles) {
+        columnFamilyHandles = handles;
     }
 
+    public void setColumnFamilyDescriptors(List<ColumnFamilyDescriptor> descriptors) {
+        columnFamilyDescriptors = descriptors;
+    }
 }

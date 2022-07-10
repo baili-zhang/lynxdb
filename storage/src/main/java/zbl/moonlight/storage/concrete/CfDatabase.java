@@ -2,11 +2,13 @@ package zbl.moonlight.storage.concrete;
 
 import org.rocksdb.*;
 import zbl.moonlight.storage.core.AbstractDatabase;
-import zbl.moonlight.storage.core.AbstractNioQuery;
+import zbl.moonlight.storage.core.Queryable;
 import zbl.moonlight.storage.core.ResultSet;
+import zbl.moonlight.storage.query.cf.CfQuery;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CfDatabase extends AbstractDatabase {
@@ -17,30 +19,44 @@ public class CfDatabase extends AbstractDatabase {
     }
 
     @Override
-    public synchronized ResultSet doQuery(AbstractNioQuery query) {
-        final List<ColumnFamilyDescriptor> cfDescriptors = List.of(
-                new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY)
-        );
-
-        final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
+    public synchronized ResultSet doQuery(Queryable query) {
         ResultSet resultSet = new ResultSet();
 
-        try(final DBOptions options = new DBOptions().setCreateIfMissing(true);
-            final RocksDB db = RocksDB.open(options, path(),
-                    cfDescriptors, columnFamilyHandleList)) {
+        if(query instanceof CfQuery cfQuery) {
+            final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+            cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY));
+            cfDescriptors.addAll(cfQuery.columnFamilies().stream()
+                    .filter(cf -> !Arrays.equals(cf, RocksDB.DEFAULT_COLUMN_FAMILY))
+                    .map(ColumnFamilyDescriptor::new).toList());
 
-            query.doQuery(db, resultSet);
+            final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
-        } catch (RocksDBException e) {
+            try(final DBOptions options = new DBOptions()
+                    .setCreateMissingColumnFamilies(true)
+                    .setCreateIfMissing(true);
+                final RocksDB db = RocksDB.open(options, path(),
+                        cfDescriptors, columnFamilyHandleList)) {
+
+                cfQuery.setColumnFamilyDescriptors(cfDescriptors);
+                cfQuery.setColumnFamilyHandle(columnFamilyHandleList);
+                cfQuery.doQuery(db, resultSet);
+
+            } catch (RocksDBException e) {
+
+                resultSet.setCode(ResultSet.FAILURE);
+                resultSet.setMessage(e.getMessage());
+
+            } finally {
+
+                for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandleList) {
+                    columnFamilyHandle.close();
+                }
+
+            }
+        } else {
 
             resultSet.setCode(ResultSet.FAILURE);
-            resultSet.setMessage(e.getMessage());
-
-        } finally {
-
-            for (ColumnFamilyHandle columnFamilyHandle : columnFamilyHandleList) {
-                columnFamilyHandle.close();
-            }
+            resultSet.setMessage("Query is not an instance of CfQuery");
 
         }
 

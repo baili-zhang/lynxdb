@@ -21,5 +21,5 @@ public abstract class AbstractDatabase {
         return Path.of(dataDir, name).toString();
     }
 
-    public abstract ResultSet doQuery(AbstractNioQuery query);
+    public abstract ResultSet doQuery(Queryable query);
 }

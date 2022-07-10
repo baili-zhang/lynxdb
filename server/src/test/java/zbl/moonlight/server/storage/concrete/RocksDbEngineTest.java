@@ -9,9 +9,6 @@ class RocksDbEngineTest {
     private byte[] key = "key".getBytes(StandardCharsets.UTF_8);
     private byte[] value = "value".getBytes(StandardCharsets.UTF_8);
 
-
-    private KvDatabase engine;
-
     @BeforeEach
     void beforeEach() {
     }

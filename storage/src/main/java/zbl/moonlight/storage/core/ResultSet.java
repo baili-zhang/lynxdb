@@ -1,19 +1,17 @@
 package zbl.moonlight.storage.core;
 
+import java.util.List;
+
 public class ResultSet {
     public static final byte SUCCESS = (byte) 0x01;
     public static final byte FAILURE = (byte) 0x02;
 
-    private static final byte[] EMPTY_VALUE = new byte[0];
-    private static final String EMPTY_MESSAGE = "";
+    public static final String EMPTY_MESSAGE = "";
 
-    private byte[] value = EMPTY_VALUE;
     private byte code = SUCCESS;
     private String message = EMPTY_MESSAGE;
 
-    public void setValue(byte[] value) {
-        this.value = value;
-    }
+    private List<ColumnFamilyTuple> result;
 
     public void setCode(byte code) {
         this.code = code;
@@ -21,5 +19,21 @@ public class ResultSet {
 
     public void setMessage(String msg) {
         message = msg;
+    }
+
+    public void setResult(List<ColumnFamilyTuple> result) {
+        this.result = result;
+    }
+
+    public byte code() {
+        return code;
+    }
+
+    public String message() {
+        return message;
+    }
+
+    public List<ColumnFamilyTuple> result() {
+        return result;
     }
 }
