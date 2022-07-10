@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.server;
+package zbl.moonlight.raft.server;
 
 import java.nio.channels.SelectionKey;
 import java.util.Set;

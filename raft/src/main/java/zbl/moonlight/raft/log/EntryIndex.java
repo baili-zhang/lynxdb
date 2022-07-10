@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.log;
+package zbl.moonlight.raft.log;
 
 import java.nio.ByteBuffer;
 

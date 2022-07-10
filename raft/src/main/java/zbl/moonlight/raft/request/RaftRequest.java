@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.request;
+package zbl.moonlight.raft.request;
 
 import zbl.moonlight.core.common.BytesConvertible;
 

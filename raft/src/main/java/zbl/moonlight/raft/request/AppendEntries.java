@@ -1,15 +1,13 @@
-package zbl.moonlight.core.raft.request;
+package zbl.moonlight.raft.request;
 
-import lombok.ToString;
-import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-@ToString
 public class AppendEntries extends RaftRequest {
     private final ServerNode leader;
     private final int term;

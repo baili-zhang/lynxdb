@@ -1,13 +1,12 @@
-package zbl.moonlight.core.raft.state;
+package zbl.moonlight.raft.state;
 
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.log.RaftLog;
-import zbl.moonlight.core.raft.log.TermLog;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.raft.log.RaftLog;
+import zbl.moonlight.raft.log.TermLog;
+import zbl.moonlight.raft.request.Entry;
 import zbl.moonlight.core.timeout.Timeout;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
 import java.util.HashSet;

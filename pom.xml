@@ -15,6 +15,7 @@
         <module>test</module>
         <module>core</module>
         <module>socket</module>
+        <module>raft</module>
     </modules>
 
     <properties>

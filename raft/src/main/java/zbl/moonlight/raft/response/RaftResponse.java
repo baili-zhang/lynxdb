@@ -1,7 +1,7 @@
-package zbl.moonlight.core.raft.response;
+package zbl.moonlight.raft.response;
 
-import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

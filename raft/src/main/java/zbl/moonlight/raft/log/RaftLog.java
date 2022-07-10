@@ -1,13 +1,11 @@
-package zbl.moonlight.core.raft.log;
+package zbl.moonlight.raft.log;
 
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.enhance.EnhanceFile;
-import zbl.moonlight.core.raft.request.Entry;
+import zbl.moonlight.raft.request.Entry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import static zbl.moonlight.core.raft.log.EntryIndex.ENTRY_INDEX_LENGTH;
 
 
 /**
@@ -95,7 +93,7 @@ public class RaftLog {
         /* 将 entry 的索引数据写入索引文件 */
         EntryIndex index = new EntryIndex(entry.term(), dataOffset, length);
         indexFile.write(ByteBuffer.wrap(index.toBytes()),
-                ((long) (++ maxIndexValue)) * ENTRY_INDEX_LENGTH);
+                ((long) (++ maxIndexValue)) * EntryIndex.ENTRY_INDEX_LENGTH);
 
         setMaxIndexValue(maxIndexValue);
         return maxIndexValue;
@@ -131,8 +129,8 @@ public class RaftLog {
     }
 
     private synchronized EntryIndex getEntryIndexByIndex(int index) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(ENTRY_INDEX_LENGTH);
-        indexFile.read(buffer, ((long) index) * (long) ENTRY_INDEX_LENGTH);
+        ByteBuffer buffer = ByteBuffer.allocate(EntryIndex.ENTRY_INDEX_LENGTH);
+        indexFile.read(buffer, ((long) index) * (long) EntryIndex.ENTRY_INDEX_LENGTH);
         return EntryIndex.fromBytes(buffer.array());
     }
 

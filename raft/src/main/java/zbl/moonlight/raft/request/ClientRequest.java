@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.request;
+package zbl.moonlight.raft.request;
 
 public class ClientRequest extends RaftRequest {
     public final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;

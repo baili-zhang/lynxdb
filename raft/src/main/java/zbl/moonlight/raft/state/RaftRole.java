@@ -1,4 +1,4 @@
-package zbl.moonlight.core.raft.state;
+package zbl.moonlight.raft.state;
 
 public enum RaftRole {
     Follower,

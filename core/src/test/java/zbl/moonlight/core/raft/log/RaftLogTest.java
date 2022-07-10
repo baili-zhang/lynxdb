@@ -8,8 +8,6 @@ import zbl.moonlight.core.raft.request.Entry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class RaftLogTest {
     private final static int SIZE = 20;
     private RaftLog raftLog;

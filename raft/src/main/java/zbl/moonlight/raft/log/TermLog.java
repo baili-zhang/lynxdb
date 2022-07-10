@@ -1,8 +1,8 @@
-package zbl.moonlight.core.raft.log;
+package zbl.moonlight.raft.log;
 
 import zbl.moonlight.core.enhance.EnhanceFile;
-import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
 

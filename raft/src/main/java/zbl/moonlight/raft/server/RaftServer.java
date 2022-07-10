@@ -1,15 +1,15 @@
-package zbl.moonlight.core.raft.server;
+package zbl.moonlight.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.client.RaftClientHandler;
-import zbl.moonlight.core.raft.request.AppendEntries;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.raft.request.RequestVote;
-import zbl.moonlight.core.raft.state.RaftRole;
-import zbl.moonlight.core.raft.state.StateMachine;
-import zbl.moonlight.core.raft.state.RaftState;
+import zbl.moonlight.raft.client.RaftClientHandler;
+import zbl.moonlight.raft.request.AppendEntries;
+import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.request.RequestVote;
+import zbl.moonlight.raft.state.RaftRole;
+import zbl.moonlight.raft.state.StateMachine;
+import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.request.SocketRequest;

@@ -1,11 +1,11 @@
-package zbl.moonlight.core.raft.test;
+package zbl.moonlight.raft.test;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.raft.server.RaftServer;
-import zbl.moonlight.core.raft.state.StateMachine;
-import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.server.RaftServer;
+import zbl.moonlight.raft.state.StateMachine;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;

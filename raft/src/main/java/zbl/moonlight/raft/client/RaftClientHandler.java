@@ -1,18 +1,17 @@
-package zbl.moonlight.core.raft.client;
+package zbl.moonlight.raft.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.state.RaftState;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.client.SocketClient;
-import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.response.AbstractSocketResponse;
-import zbl.moonlight.core.socket.server.SocketServer;
+import zbl.moonlight.raft.state.RaftState;
+import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.client.SocketClient;
+import zbl.moonlight.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.socket.server.SocketServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static zbl.moonlight.core.raft.response.RaftResponse.*;
+import static zbl.moonlight.raft.response.RaftResponse.*;
 
 public record RaftClientHandler(RaftState raftState,
                                 SocketServer raftServer,

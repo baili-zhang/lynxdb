@@ -1,16 +1,16 @@
-package zbl.moonlight.core.raft.server;
+package zbl.moonlight.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
-import zbl.moonlight.core.raft.log.RaftLog;
-import zbl.moonlight.core.raft.request.AppendEntries;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.raft.request.RaftRequest;
-import zbl.moonlight.core.raft.response.RaftResponse;
-import zbl.moonlight.core.raft.state.StateMachine;
-import zbl.moonlight.core.raft.state.RaftRole;
-import zbl.moonlight.core.raft.state.RaftState;
+import zbl.moonlight.raft.log.RaftLog;
+import zbl.moonlight.raft.request.AppendEntries;
+import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.request.RaftRequest;
+import zbl.moonlight.raft.response.RaftResponse;
+import zbl.moonlight.raft.state.StateMachine;
+import zbl.moonlight.raft.state.RaftRole;
+import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.core.socket.client.SocketClient;
 import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
@@ -18,6 +18,7 @@ import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.socket.response.AbstractSocketResponse;
 import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.raft.request.ClientRequest;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,9 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
-import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
-import static zbl.moonlight.core.raft.response.RaftResponse.CLIENT_REQUEST_FAILURE;
+import static zbl.moonlight.raft.response.RaftResponse.CLIENT_REQUEST_FAILURE;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
@@ -224,7 +223,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
         ServerNode currentNode = raftState.currentNode();
 
-        if(flag == RAFT_CLIENT_REQUEST_GET) {
+        if(flag == ClientRequest.RAFT_CLIENT_REQUEST_GET) {
             logger.info("[{}] do client [RAFT_CLIENT_REQUEST_GET] request.", currentNode);
             stateMachine.exec(selectionKey, command);
             return;
@@ -278,7 +277,7 @@ public class RaftServerHandler implements SocketServerHandler {
                             raftState.leaderNode());
                     ByteBuffer data = ByteBuffer.allocate(command.length + 2);
                     data.put(RaftRequest.CLIENT_REQUEST)
-                            .put(RAFT_CLIENT_REQUEST_SET).put(command);
+                            .put(ClientRequest.RAFT_CLIENT_REQUEST_SET).put(command);
                     SocketRequest request = SocketRequest
                             .newUnicastRequest(data.array(), raftState.leaderNode(), selectionKey);
                     socketClient.offerInterruptibly(request);

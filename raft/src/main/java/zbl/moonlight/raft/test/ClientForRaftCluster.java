@@ -1,19 +1,15 @@
-package zbl.moonlight.core.raft.test;
+package zbl.moonlight.raft.test;
 
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.request.RaftRequest;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.client.SocketClient;
-import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.AbstractSocketResponse;
+import zbl.moonlight.raft.request.RaftRequest;
+import zbl.moonlight.raft.request.ClientRequest;
+import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.client.SocketClient;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
-
-import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class ClientForRaftCluster {
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -22,7 +18,7 @@ public class ClientForRaftCluster {
         client.connect(node);
         byte[] command = "set bb hallo world!".getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(command.length + 2);
-        buffer.put(RaftRequest.CLIENT_REQUEST).put(RAFT_CLIENT_REQUEST_SET).put(command);
+        buffer.put(RaftRequest.CLIENT_REQUEST).put(ClientRequest.RAFT_CLIENT_REQUEST_SET).put(command);
 
         client.offer(SocketRequest.newUnicastRequest(buffer.array(), node));
         client.setHandler(new SocketClientHandler() {
