@@ -1,6 +1,5 @@
 package zbl.moonlight.socket.client;
 
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
@@ -22,7 +21,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SocketClient extends Executor<SocketRequest> {
+public class SocketClient extends Executor<WritableSocketRequest> {
     private final static Logger logger = LogManager.getLogger("SocketClient");
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
@@ -38,7 +37,6 @@ public class SocketClient extends Executor<SocketRequest> {
     private final ConcurrentHashMap<ServerNode, SelectionKey> connecting = new ConcurrentHashMap<>();
     private final HashSet<SelectionKey> exitKeys = new HashSet<>();
 
-    @Setter
     private SocketClientHandler handler;
 
     public SocketClient() throws IOException {
@@ -77,12 +75,12 @@ public class SocketClient extends Executor<SocketRequest> {
         }
         if(contexts.containsKey(node)) {
             ConnectionContext context = contexts.get(node);
-            SelectionKey key = context.getSelectionKey();
+            SelectionKey key = context.selectionKey();
             /* 将主动退出的 selectionKey 加入 exitKeys，等待请求 */
             synchronized (exitKeys) {
                 exitKeys.add(key);
             }
-            context.addRequest(SocketRequest.newDisconnectRequest(node));
+            // TODO: 忘了这里需要处理什么了
             context.lockRequestOffer();
             interrupt();
         }
@@ -142,21 +140,13 @@ public class SocketClient extends Executor<SocketRequest> {
                 /* 如果是广播，则发送给所有已连接的服务器 */
                 if(request.isBroadcast()) {
                     for (ServerNode node : contexts.keySet()) {
-                        contexts.get(node).addRequest(request);
+                        // TODO：忘了做什么了
                     }
                     logger.info("Broadcast request to nodes: {}", contexts.keySet());
                 }
                 /* 如果是单播，则发送给指定的服务器 */
-                else if(request.target() != null) {
-                    ServerNode target = request.target();
-                    ConnectionContext context = contexts.get(target);
-                    if(context != null) {
-                        logger.debug("Send request to node: {}", target);
-                        context.addRequest(request);
-                    }
-                }
                 else {
-                    throw new RuntimeException("Can not find sending strategy for request.");
+                    // TODO：忘了做什么了
                 }
                 request = poll();
             }
@@ -256,19 +246,19 @@ public class SocketClient extends Executor<SocketRequest> {
             }
 
             if(context.isReadCompleted()) {
-                handler.handleResponse(context.socketResponse());
+                handler.handleResponse(context.fetchResponse());
             }
         }
 
         private void doWrite() throws IOException {
             ServerNode node = (ServerNode) selectionKey.attachment();
             ConnectionContext context = contexts.get(node);
-            WritableSocketRequest request = context.currentRequest();
+            WritableSocketRequest request = context.peekRequest();
 
             request.write();
 
             if(request.isWriteCompleted()) {
-                context.removeRequest();
+                context.pollRequest();
                 /* 处理主动退出的 selectionKey */
                 if(exitKeys.contains(selectionKey) && context.sizeOfRequests() == 0) {
                     synchronized (exitKeys) {

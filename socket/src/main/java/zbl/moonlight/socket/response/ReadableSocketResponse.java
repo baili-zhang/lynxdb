@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-public class ReadableSocketResponse extends AbstractSocketResponse implements Readable {
+public class ReadableSocketResponse extends SocketResponse implements Readable {
     private final ByteBuffer lengthBuffer;
     private ByteBuffer bytes;
 

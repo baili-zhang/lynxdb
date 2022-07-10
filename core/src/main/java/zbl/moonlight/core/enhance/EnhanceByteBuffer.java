@@ -45,6 +45,10 @@ public class EnhanceByteBuffer {
         return buffer.get();
     }
 
+    public long getLong() {
+        return buffer.getLong();
+    }
+
     /* 判断ByteBuffer是否读结束（或写结束） */
     public static boolean isOver(ByteBuffer byteBuffer) {
         if(byteBuffer == null) {

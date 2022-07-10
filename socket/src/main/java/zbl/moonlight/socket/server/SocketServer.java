@@ -1,12 +1,10 @@
 package zbl.moonlight.socket.server;
 
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.socket.client.CountDownSync;
 import zbl.moonlight.socket.interfaces.SocketServerHandler;
-import zbl.moonlight.socket.response.AbstractSocketResponse;
 import zbl.moonlight.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
@@ -20,14 +18,13 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SocketServer extends Executor<AbstractSocketResponse> {
+public class SocketServer extends Executor<WritableSocketResponse> {
     private static final Logger logger = LogManager.getLogger("SocketServer");
 
     private final SocketServerConfig config;
     private final ThreadPoolExecutor executor;
     private final Selector selector;
 
-    @Setter
     private SocketServerHandler handler;
 
     /* 响应的队列 */
@@ -111,7 +108,7 @@ public class SocketServer extends Executor<AbstractSocketResponse> {
 
             /* 从队列中拿出 SocketResponse */
             while (true) {
-                AbstractSocketResponse response = poll();
+                WritableSocketResponse response = poll();
                 if(response == null) {
                     break;
                 }
@@ -119,7 +116,7 @@ public class SocketServer extends Executor<AbstractSocketResponse> {
                 SelectionKey selectionKey = response.selectionKey();
                 /* TODO: context 可能为 null，需要排查原因 */
                 SocketContext context = contexts.get(selectionKey);
-                context.offerResponse(new WritableSocketResponse(response));
+                context.offerResponse(response);
             }
 
             latch.await();

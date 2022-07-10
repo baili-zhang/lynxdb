@@ -70,7 +70,7 @@ public class IoEventHandler implements Runnable {
                 return;
             }
             /* 处理Socket请求 */
-            handler.handleRequest(request.socketRequest());
+            handler.handleRequest(request);
             /* 未写回完成的请求数量加一 */
             context.increaseRequestCount();
             logger.debug("Request read completed.");

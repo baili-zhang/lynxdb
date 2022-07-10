@@ -1,6 +1,5 @@
 package zbl.moonlight.socket.request;
 
-import lombok.Getter;
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.socket.interfaces.Readable;
 import zbl.moonlight.core.utils.NumberUtils;
@@ -14,7 +13,6 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
     private final ByteBuffer lengthBuffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH);
     private final ByteBuffer statusBuffer = ByteBuffer.allocate(NumberUtils.BYTE_LENGTH);
     private final ByteBuffer serialBuffer = ByteBuffer.allocate(NumberUtils.LONG_LENGTH);
-    @Getter
     private ByteBuffer bytes;
 
     public ReadableSocketRequest(SelectionKey selectionKey) {
