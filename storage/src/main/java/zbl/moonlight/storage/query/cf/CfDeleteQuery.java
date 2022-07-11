@@ -12,7 +12,7 @@ import java.util.List;
 
 public class CfDeleteQuery extends CfQuery {
 
-    protected CfDeleteQuery(List<ColumnFamilyTuple> tuples) {
+    public CfDeleteQuery(List<ColumnFamilyTuple> tuples) {
         super(tuples);
     }
 

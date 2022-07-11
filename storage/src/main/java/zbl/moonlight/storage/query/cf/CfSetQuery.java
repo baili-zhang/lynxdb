@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class CfSetQuery extends CfQuery {
-    protected CfSetQuery(List<ColumnFamilyTuple> tuples) {
+    public CfSetQuery(List<ColumnFamilyTuple> tuples) {
         super(tuples);
     }
 
