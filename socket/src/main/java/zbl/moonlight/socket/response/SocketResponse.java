@@ -23,10 +23,18 @@ public class SocketResponse implements SocketBytesConvertible {
         return selectionKey;
     }
 
+    public long serial() {
+        return serial;
+    }
+
+    public byte[] data() {
+        return data;
+    }
+
     @Override
     public byte[] toContentBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(LONG_LENGTH + INT_LENGTH + data.length);
-        return buffer.putLong(serial).putInt(data.length).put(data).array();
+        ByteBuffer buffer = ByteBuffer.allocate(LONG_LENGTH + data.length);
+        return buffer.putLong(serial).put(data).array();
     }
 
     @Override

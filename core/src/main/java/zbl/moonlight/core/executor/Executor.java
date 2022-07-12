@@ -67,9 +67,17 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
 
     @Override
     public final void run() {
+        doBeforeExecute();
         while(isNotShutdown()) {
             execute();
         }
+    }
+
+    protected final void doAfterShutdown() {
+        interrupt();
+    }
+
+    protected void doBeforeExecute() {
     }
 
     protected abstract void execute();

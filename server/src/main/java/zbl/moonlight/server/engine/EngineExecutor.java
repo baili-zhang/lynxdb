@@ -79,11 +79,6 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
     }
 
     @Override
-    protected void doAfterShutdown() {
-
-    }
-
-    @Override
     protected void execute() {
         Map<String, Object> map = blockPoll();
         if(map == null) {

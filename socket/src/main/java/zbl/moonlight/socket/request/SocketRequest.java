@@ -22,11 +22,23 @@ public abstract class SocketRequest implements SocketBytesConvertible {
         return selectionKey;
     }
 
+    public byte status() {
+        return status;
+    }
+
+    public long serial() {
+        return serial;
+    }
+
+    public byte[] data() {
+        return data;
+    }
+
     @Override
     public final byte[] toContentBytes() {
-        int length = NumberUtils.BYTE_LENGTH + NumberUtils.LONG_LENGTH + NumberUtils.INT_LENGTH + data.length;
+        int length = NumberUtils.BYTE_LENGTH + NumberUtils.LONG_LENGTH + data.length;
         ByteBuffer buffer = ByteBuffer.allocate(length);
-        return buffer.put(status).putLong(serial).putInt(data.length).put(data).array();
+        return buffer.put(status).putLong(serial).put(data).array();
     }
 
     @Override
@@ -34,14 +46,14 @@ public abstract class SocketRequest implements SocketBytesConvertible {
         EnhanceByteBuffer buffer = EnhanceByteBuffer.wrap(bytes);
         status = buffer.get();
         serial = buffer.getLong();
-        data = buffer.getBytes();
+        data = buffer.getRemaining();
     }
 
     public boolean isKeepConnection() {
-        return false;
+        return true;
     }
 
     public boolean isBroadcast() {
-        return false;
+        return selectionKey == null;
     }
 }

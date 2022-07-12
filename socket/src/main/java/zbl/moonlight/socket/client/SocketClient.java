@@ -31,10 +31,10 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     private final Object setLock = new Object();
 
-    private final ConcurrentHashMap<ServerNode, ConnectionContext> contexts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
+            = new ConcurrentHashMap<>();
     private final Selector selector;
     private final ThreadPoolExecutor executor;
-    private final ConcurrentHashMap<ServerNode, SelectionKey> connecting = new ConcurrentHashMap<>();
     private final HashSet<SelectionKey> exitKeys = new HashSet<>();
 
     private SocketClientHandler handler;
@@ -58,21 +58,14 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         socketChannel.configureBlocking(false);
         socketChannel.connect(address);
 
-        SelectionKey key;
         synchronized (setLock) {
-            key = socketChannel.register(selector,
-                    SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE,
-                    node);
+            socketChannel.register(selector,
+                    SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE);
         }
 
-        connecting.put(node, key);
     }
 
     public void disconnect(ServerNode node) {
-        if(connecting.containsKey(node)) {
-            String message = String.format("Node %s is connecting, disconnect error", node);
-            throw new RuntimeException(message);
-        }
         if(contexts.containsKey(node)) {
             ConnectionContext context = contexts.get(node);
             SelectionKey key = context.selectionKey();
@@ -86,21 +79,8 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         }
     }
 
-    public boolean isConnecting(ServerNode node) {
-        return connecting.containsKey(node);
-    }
-
-    public boolean isConnected(ServerNode node) {
-        return contexts.containsKey(node);
-    }
-
-    public Set<ServerNode> connectedNodes() {
-        return contexts.keySet();
-    }
-
-    @Override
-    protected void doAfterShutdown() {
-
+    public void setHandler(SocketClientHandler handler) {
+        this.handler = handler;
     }
 
     @Override
@@ -135,18 +115,20 @@ public class SocketClient extends Executor<WritableSocketRequest> {
             /* sync.await() 后执行一些自定义的操作 */
             handler.handleAfterLatchAwait();
 
-            SocketRequest request = poll();
+            WritableSocketRequest request = poll();
             while (request != null) {
                 /* 如果是广播，则发送给所有已连接的服务器 */
                 if(request.isBroadcast()) {
-                    for (ServerNode node : contexts.keySet()) {
-                        // TODO：忘了做什么了
+                    for (SelectionKey selectionKey : contexts.keySet()) {
+                        ConnectionContext context = contexts.get(selectionKey);
+                        context.offerRequest(request);
                     }
                     logger.info("Broadcast request to nodes: {}", contexts.keySet());
                 }
                 /* 如果是单播，则发送给指定的服务器 */
                 else {
-                    // TODO：忘了做什么了
+                    ConnectionContext context = contexts.get(request.selectionKey());
+                    context.offerRequest(request);
                 }
                 request = poll();
             }
@@ -203,40 +185,32 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
         private void doConnect() {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-            ServerNode node = (ServerNode) selectionKey.attachment();
 
             try {
                 while (!socketChannel.finishConnect()) {
                 }
 
                 /* 处理连接成功 */
-                contexts.put(node, new ConnectionContext(selectionKey));
+                contexts.put(selectionKey, new ConnectionContext(selectionKey));
                 selectionKey.interestOpsAnd(SelectionKey.OP_READ);
-                /* 从连接中删除节点 */
-                connecting.remove(node);
 
-                handler.handleConnected(node);
+                handler.handleConnected(selectionKey);
 
-                logger.info("Has connected to socket node {}.", node);
+                logger.info("Has connected to socket node {}.", socketChannel.getRemoteAddress());
             } catch (ConnectException e) {
-                /* 连接失败，将 node 从 connecting 集合中删除 */
-                connecting.remove(node);
-
                 try {
-                    handler.handleConnectFailure(node);
+                    handler.handleConnectFailure(selectionKey);
+                    logger.debug("Connect to socket node {} failure.", socketChannel.getRemoteAddress());
                 } catch (Exception exception) {
                     exception.printStackTrace();
                 }
-
-                logger.debug("Connect to socket node {} failure.", node);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
         private void doRead() throws Exception {
-            ServerNode node = (ServerNode) selectionKey.attachment();
-            ConnectionContext context = contexts.get(node);
+            ConnectionContext context = contexts.get(selectionKey);
 
             try {
                 context.read();
@@ -251,8 +225,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         }
 
         private void doWrite() throws IOException {
-            ServerNode node = (ServerNode) selectionKey.attachment();
-            ConnectionContext context = contexts.get(node);
+            ConnectionContext context = contexts.get(selectionKey);
             WritableSocketRequest request = context.peekRequest();
 
             request.write();

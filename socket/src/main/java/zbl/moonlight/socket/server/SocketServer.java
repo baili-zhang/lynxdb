@@ -31,6 +31,10 @@ public class SocketServer extends Executor<WritableSocketResponse> {
     private final ConcurrentHashMap<SelectionKey, SocketContext> contexts
             = new ConcurrentHashMap<>();
 
+    public void setHandler(SocketServerHandler handler) {
+        this.handler = handler;
+    }
+
     /* IO线程的线程工厂 */
     private class IoThreadFactory implements ThreadFactory {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
@@ -57,13 +61,11 @@ public class SocketServer extends Executor<WritableSocketResponse> {
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.bind(new InetSocketAddress(config.port()), config.backlog());
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
-        handler.handleStartupCompleted();
     }
 
     @Override
-    protected void doAfterShutdown() {
-
+    protected void doBeforeExecute() {
+        handler.handleStartupCompleted();
     }
 
     @Override
