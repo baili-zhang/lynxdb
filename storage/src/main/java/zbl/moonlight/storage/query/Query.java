@@ -1,24 +1,23 @@
-package zbl.moonlight.storage.query.cf;
+package zbl.moonlight.storage.query;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import zbl.moonlight.storage.core.ColumnFamily;
-import zbl.moonlight.storage.core.ColumnFamilyTuple;
 
 import java.util.List;
 
-public abstract class CfQuery implements CfQueryable {
-    protected final List<ColumnFamilyTuple> tuples;
+public abstract class Query implements Queryable {
+    protected final List<QueryTuple> tuples;
 
     protected List<ColumnFamilyHandle> columnFamilyHandles;
     protected List<ColumnFamilyDescriptor> columnFamilyDescriptors;
 
-    protected CfQuery(List<ColumnFamilyTuple> tuples) {
+    protected Query(List<QueryTuple> tuples) {
         this.tuples = tuples;
     }
 
     public List<byte[]> columnFamilies() {
-        return tuples.stream().map(ColumnFamilyTuple::columnFamily).map(ColumnFamily::value).toList();
+        return tuples.stream().map(QueryTuple::columnFamily).map(ColumnFamily::value).toList();
     }
 
     public void setColumnFamilyHandle(List<ColumnFamilyHandle> handles) {

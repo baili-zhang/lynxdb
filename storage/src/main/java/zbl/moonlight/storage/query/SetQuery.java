@@ -1,27 +1,26 @@
-package zbl.moonlight.storage.query.cf;
+package zbl.moonlight.storage.query;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.ColumnFamily;
-import zbl.moonlight.storage.core.ColumnFamilyTuple;
 import zbl.moonlight.storage.core.ResultSet;
 
 import java.util.HashMap;
 import java.util.List;
 
-public class CfSetQuery extends CfQuery {
-    public CfSetQuery(List<ColumnFamilyTuple> tuples) {
+public class SetQuery extends Query {
+    public SetQuery(List<QueryTuple> tuples) {
         super(tuples);
     }
 
     @Override
     public void doQuery(RocksDB db, ResultSet resultSet) throws RocksDBException {
-        HashMap<ColumnFamily, ColumnFamilyTuple> map = new HashMap<>();
+        HashMap<ColumnFamily, QueryTuple> map = new HashMap<>();
         tuples.forEach(tuple -> map.put(tuple.columnFamily(), tuple));
 
         for(ColumnFamilyHandle handle : columnFamilyHandles) {
-            ColumnFamilyTuple tuple = map.get(new ColumnFamily(handle.getName()));
+            QueryTuple tuple = map.get(new ColumnFamily(handle.getName()));
             if(tuple == null) {
                 continue;
             }

@@ -1,8 +1,12 @@
-package zbl.moonlight.storage.core;
+package zbl.moonlight.storage.query;
+
+import zbl.moonlight.storage.core.ColumnFamily;
+import zbl.moonlight.storage.core.Key;
+import zbl.moonlight.storage.core.Value;
 
 import java.util.Objects;
 
-public record ColumnFamilyTuple(ColumnFamily columnFamily, Key key, Value value) {
+public record QueryTuple(ColumnFamily columnFamily, Key key, Value value) {
     public byte[] keyBytes() {
         return key.value();
     }
@@ -15,7 +19,7 @@ public record ColumnFamilyTuple(ColumnFamily columnFamily, Key key, Value value)
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ColumnFamilyTuple tuple = (ColumnFamilyTuple) o;
+        QueryTuple tuple = (QueryTuple) o;
         return Objects.equals(columnFamily, tuple.columnFamily) && Objects.equals(key, tuple.key) && Objects.equals(value, tuple.value);
     }
 

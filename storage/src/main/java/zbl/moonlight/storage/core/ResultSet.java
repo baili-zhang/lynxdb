@@ -1,5 +1,7 @@
 package zbl.moonlight.storage.core;
 
+import zbl.moonlight.storage.query.QueryTuple;
+
 import java.util.List;
 
 public class ResultSet {
@@ -11,7 +13,7 @@ public class ResultSet {
     private byte code = SUCCESS;
     private String message = EMPTY_MESSAGE;
 
-    private List<ColumnFamilyTuple> result;
+    private List<QueryTuple> result;
 
     public void setCode(byte code) {
         this.code = code;
@@ -21,7 +23,7 @@ public class ResultSet {
         message = msg;
     }
 
-    public void setResult(List<ColumnFamilyTuple> result) {
+    public void setResult(List<QueryTuple> result) {
         this.result = result;
     }
 
@@ -33,7 +35,7 @@ public class ResultSet {
         return message;
     }
 
-    public List<ColumnFamilyTuple> result() {
+    public List<QueryTuple> result() {
         return result;
     }
 }

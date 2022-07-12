@@ -1,23 +1,16 @@
-package zbl.moonlight.storage.concrete;
+package zbl.moonlight.storage.core;
 
 import org.rocksdb.*;
-import zbl.moonlight.storage.core.AbstractDatabase;
-import zbl.moonlight.storage.core.ColumnFamily;
-import zbl.moonlight.storage.core.Queryable;
-import zbl.moonlight.storage.core.ResultSet;
-import zbl.moonlight.storage.query.cf.CfQuery;
+import zbl.moonlight.storage.query.Queryable;
+import zbl.moonlight.storage.query.Query;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-public class CfDatabase extends AbstractDatabase {
-    public final static String CF_DIR = "cf";
-
-    public CfDatabase(String name, String dataDir) {
-        super(name, Path.of(dataDir, CF_DIR).toString());
+public class Database extends AbstractDatabase {
+    public Database(String name, String dataDir) {
+        super(name, dataDir);
     }
 
     @Override
@@ -26,7 +19,7 @@ public class CfDatabase extends AbstractDatabase {
 
         try (Options options = new Options()) {
 
-            if(query instanceof CfQuery cfQuery) {
+            if(query instanceof Query cfQuery) {
                 List<byte[]> queryCfs = cfQuery.columnFamilies();
                 List<byte[]> cfs = RocksDB.listColumnFamilies(options, path());
 

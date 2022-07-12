@@ -7,10 +7,8 @@ import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.mdtp.Method;
 import zbl.moonlight.server.mdtp.Params;
-import zbl.moonlight.storage.concrete.CfDatabase;
-import zbl.moonlight.storage.concrete.KvDatabase;
-import zbl.moonlight.storage.core.AbstractNioQuery;
-import zbl.moonlight.storage.core.Queryable;
+import zbl.moonlight.storage.core.Database;
+import zbl.moonlight.storage.query.Queryable;
 import zbl.moonlight.storage.core.ResultSet;
 
 import java.io.File;
@@ -28,7 +26,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
 
     private final SocketServer socketServer;
     private final HashMap<String, KvDatabase> kvDbs = new HashMap<>();
-    private final HashMap<String, CfDatabase> cfDbs = new HashMap<>();
+    private final HashMap<String, Database> cfDbs = new HashMap<>();
 
     private final HashMap<Byte, Class<?>> methodMap = new HashMap<>();
 
@@ -39,7 +37,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
 
         String dataDir = Configuration.getInstance().dataDir();
         Path KvPath = Path.of(dataDir, KvDatabase.KV_DIR);
-        Path CfPath = Path.of(dataDir, CfDatabase.CF_DIR);
+        Path CfPath = Path.of(dataDir, Database.CF_DIR);
 
         File kvDbDir = KvPath.toFile();
         File cfDbDir = CfPath.toFile();
@@ -69,7 +67,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             for (String sub : subs) {
                 File subFile = Path.of(cfDbDir.getPath(), sub).toFile();
                 if(subFile.isDirectory()) {
-                    cfDbs.put(sub, new CfDatabase(sub, CfPath.toString()));
+                    cfDbs.put(sub, new Database(sub, CfPath.toString()));
                 }
             }
         }
@@ -129,10 +127,10 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
 
         if("kv".equals(dbType)) {
             KvDatabase db = kvDbs.get(dbName);
-            resultSet = db.doQuery((AbstractNioQuery) query);
+            resultSet = db.doQuery(query);
         } else {
             KvDatabase db = kvDbs.get(dbName);
-            resultSet = db.doQuery((AbstractNioQuery) query);
+            resultSet = db.doQuery(query);
         }
 
         socketServer.offerInterruptibly(null);

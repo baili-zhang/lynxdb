@@ -5,7 +5,7 @@ import zbl.moonlight.server.storage.query.*;
 
 import java.nio.charset.StandardCharsets;
 
-class CfDatabaseTest {
+class DatabaseTest {
     private static final byte[] defaultColumnFamily = "default".getBytes(StandardCharsets.UTF_8);
     private static final byte[] columnFamily = "cf_test".getBytes(StandardCharsets.UTF_8);
     private static final byte[] key = "key_test".getBytes(StandardCharsets.UTF_8);
