@@ -2,13 +2,14 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.mdtp.Method;
 import zbl.moonlight.server.mdtp.Params;
-import zbl.moonlight.storage.core.Database;
-import zbl.moonlight.storage.query.Queryable;
+import zbl.moonlight.storage.core.RocksDatabase;
+import zbl.moonlight.storage.query.Query;
 import zbl.moonlight.storage.core.ResultSet;
 
 import java.io.File;
@@ -25,8 +26,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
     private static final Logger logger = LogManager.getLogger("StorageEngine");
 
     private final SocketServer socketServer;
-    private final HashMap<String, KvDatabase> kvDbs = new HashMap<>();
-    private final HashMap<String, Database> cfDbs = new HashMap<>();
+    private final HashMap<String, RocksDatabase> dbMap = new HashMap<>();
 
     private final HashMap<Byte, Class<?>> methodMap = new HashMap<>();
 
@@ -36,26 +36,10 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
         this.socketServer = socketServer;
 
         String dataDir = Configuration.getInstance().dataDir();
-        Path KvPath = Path.of(dataDir, KvDatabase.KV_DIR);
-        Path CfPath = Path.of(dataDir, Database.CF_DIR);
+        Path CfPath = Path.of(dataDir);
 
-        File kvDbDir = KvPath.toFile();
         File cfDbDir = CfPath.toFile();
 
-        if(kvDbDir.isDirectory()) {
-            String[] subs = kvDbDir.list();
-
-            if(subs == null) {
-                return;
-            }
-
-            for (String sub : subs) {
-                File subFile = Path.of(kvDbDir.getPath(), sub).toFile();
-                if(subFile.isDirectory()) {
-                    kvDbs.put(sub, new KvDatabase(sub, KvPath.toString()));
-                }
-            }
-        }
 
         if(cfDbDir.isDirectory()) {
             String[] subs = cfDbDir.list();
@@ -67,7 +51,11 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             for (String sub : subs) {
                 File subFile = Path.of(cfDbDir.getPath(), sub).toFile();
                 if(subFile.isDirectory()) {
-                    cfDbs.put(sub, new Database(sub, CfPath.toString()));
+                    try {
+                        dbMap.put(sub, RocksDatabase.open(sub, CfPath.toString()));
+                    } catch (RocksDBException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
@@ -85,7 +73,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             return;
         }
 
-        Queryable query = null;
+        Query query = null;
         Byte methodByte = (Byte) map.get(Params.METHOD);
         Class<?> type = methodMap.get(methodByte);
 
@@ -105,7 +93,7 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             }
 
             try {
-                query = (Queryable) constructor.newInstance(args.toArray(Object[]::new));
+                query = (Query) constructor.newInstance(args.toArray(Object[]::new));
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 e.printStackTrace();
             }
@@ -120,14 +108,14 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
 
         ResultSet resultSet = null;
 
-        if("kv".equals(dbType)) {
-            KvDatabase db = kvDbs.get(dbName);
+        RocksDatabase db = dbMap.get(dbName);
+        try {
             resultSet = db.doQuery(query);
-        } else {
-            KvDatabase db = kvDbs.get(dbName);
-            resultSet = db.doQuery(query);
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
         }
 
+        // 将响应发送给 raftServer
         socketServer.offerInterruptibly(null);
     }
 }

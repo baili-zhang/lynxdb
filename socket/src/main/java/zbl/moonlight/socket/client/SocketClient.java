@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.socket.request.SocketRequest;
 import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
@@ -245,11 +244,10 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         /**
          * 处理节点断开连接的情况
          */
-        private void handleDisconnect() {
-            ServerNode node = (ServerNode) selectionKey.attachment();
-            contexts.remove(node);
+        private void handleDisconnect() throws IOException {
+            contexts.remove(selectionKey);
             selectionKey.cancel();
-            logger.info("Disconnect from node [{}].", node);
+            logger.info("Disconnect from node [{}].", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
         }
     }
 }

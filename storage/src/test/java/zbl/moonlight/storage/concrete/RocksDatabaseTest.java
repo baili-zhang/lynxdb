@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-class DatabaseTest {
+class RocksDatabaseTest {
     private static final byte[] columnFamily = "columnFamily".getBytes(StandardCharsets.UTF_8);
     private static final byte[] key1 = "key1".getBytes(StandardCharsets.UTF_8);
     private static final byte[] value1 = "value1".getBytes(StandardCharsets.UTF_8);
@@ -18,8 +18,8 @@ class DatabaseTest {
     private static final byte[] value2 = "value2".getBytes(StandardCharsets.UTF_8);
 
     @Test
-    void doQuery() {
-        Database cfDb = new Database("cf_db_test", System.getProperty("user.dir") + "/data");
+    void doQuery() throws Exception {
+        RocksDatabase cfDb = RocksDatabase.open("cf_db_test", System.getProperty("user.dir") + "/data");
 
         QueryTuple one = new QueryTuple(new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), new Key(key1), null);
         QueryTuple two = new QueryTuple(new ColumnFamily(columnFamily), new Key(key2), null);
@@ -76,6 +76,8 @@ class DatabaseTest {
         for(QueryTuple tuple : lastGetResult.result()) {
             assert Arrays.equals(tuple.valueBytes(), null);
         }
+
+        cfDb.close();
     }
 
     @Test
@@ -84,15 +86,16 @@ class DatabaseTest {
 
         try (final Options options = new Options()) {
             List<byte[]> cfs = RocksDB.listColumnFamilies(options, path);
-            final List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream().map(ColumnFamilyDescriptor::new).toList();
+            List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream().map(ColumnFamilyDescriptor::new).toList();
 
             final List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
-            try(final DBOptions dbOptions = new DBOptions()
-                    .setCreateMissingColumnFamilies(true)
-                    .setCreateIfMissing(true);
+            try(final DBOptions dbOptions = new DBOptions();
                 final RocksDB db = RocksDB.open(dbOptions, path,
                         cfDescriptors, columnFamilyHandleList)) {
+                cfs = RocksDB.listColumnFamilies(options, path);
+                cfs.forEach(bytes -> System.out.println(new String(bytes)));
+                System.out.println(new String(columnFamilyHandleList.get(4).getName()));
                 db.put(columnFamilyHandleList.get(0), key1, value1);
                 db.delete(columnFamilyHandleList.get(0), key1);
 

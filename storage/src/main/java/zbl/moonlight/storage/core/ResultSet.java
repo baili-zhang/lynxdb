@@ -13,6 +13,8 @@ public class ResultSet {
     private byte code = SUCCESS;
     private String message = EMPTY_MESSAGE;
 
+    private long lastSequenceNumber;
+
     private List<QueryTuple> result;
 
     public void setCode(byte code) {
