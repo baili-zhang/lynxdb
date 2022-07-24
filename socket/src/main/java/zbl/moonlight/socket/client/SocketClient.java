@@ -109,6 +109,10 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         interrupt();
     }
 
+    public Set<SelectionKey> connectedNodes() {
+        return contexts.keySet();
+    }
+
     public void setHandler(SocketClientHandler handler) {
         this.handler = handler;
     }
