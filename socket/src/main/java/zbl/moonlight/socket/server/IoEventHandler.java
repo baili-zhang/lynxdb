@@ -39,7 +39,7 @@ public class IoEventHandler implements Runnable {
 
         synchronized (selector) {
             SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
-            key.attach(new ReadableSocketRequest(key));
+            key.attach(new ReadableSocketRequest());
         }
 
         logger.info("Client {} has connected to server.", channel.getRemoteAddress());

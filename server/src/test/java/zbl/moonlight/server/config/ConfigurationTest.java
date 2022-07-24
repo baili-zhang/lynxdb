@@ -1,8 +1,8 @@
 package zbl.moonlight.server.config;
 
 import org.junit.jupiter.api.Test;
-import zbl.moonlight.core.socket.client.ServerNode;
 import zbl.moonlight.server.context.Configuration;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
 

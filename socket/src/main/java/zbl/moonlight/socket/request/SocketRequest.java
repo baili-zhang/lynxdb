@@ -8,15 +8,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
 public abstract class SocketRequest implements SocketBytesConvertible {
-    protected final SelectionKey selectionKey;
-
+    protected SelectionKey selectionKey;
     protected byte status;
     protected long serial;
     protected byte[] data;
 
-    SocketRequest(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-    }
+    protected SocketRequest() {}
 
     public SelectionKey selectionKey() {
         return selectionKey;

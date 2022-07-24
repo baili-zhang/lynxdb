@@ -7,7 +7,7 @@ import zbl.moonlight.raft.client.RaftClient;
 import zbl.moonlight.raft.log.RaftLog;
 import zbl.moonlight.raft.log.TermLog;
 import zbl.moonlight.raft.request.AppendEntries;
-import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.raft.request.RequestVote;
 import zbl.moonlight.socket.client.ServerNode;
@@ -28,8 +28,8 @@ public class RaftState {
     private static final RaftState RAFT_STATE;
 
     private static final String LOG_FILENAME_PREFIX = "raft_";
-    private static final String HEARTBEAT_TIMEOUT_NAME = "Raft_HeartBeat_Timeout";
-    private static final String ELECTION_TIMEOUT_NAME = "Raft_Election_Timeout";
+    private static final String HEARTBEAT_TIMEOUT_NAME = "HeartBeat_Timeout";
+    private static final String ELECTION_TIMEOUT_NAME = "Election_Timeout";
 
     private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
@@ -86,9 +86,9 @@ public class RaftState {
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
 
         allNodes = new ArrayList<>();
-        raftLog = new RaftLog(logFilenamePrefix + "_index.log",
-                logFilenamePrefix + "_data.log");
-        termLog = new TermLog(logFilenamePrefix + "_term.log");
+        raftLog = new RaftLog(logFilenamePrefix + "index.log",
+                logFilenamePrefix + "data.log");
+        termLog = new TermLog(logFilenamePrefix + "term.log");
     }
 
     public void startTimeout() {
@@ -115,9 +115,7 @@ public class RaftState {
                         Entry[] entries = getEntriesByRange(prevLogIndex,
                                 indexOfLastLogEntry());
 
-                        AppendEntries appendEntries = new AppendEntries(
-                                currentNode(), currentTerm(),
-                                prevLogIndex, prevLogTerm, leaderCommit,entries);
+                        AppendEntries appendEntries = new AppendEntries();
 
                         if(raftClient.isConnected(selectionKey)) {
                             raftClient.sendMessage(selectionKey, appendEntries);
@@ -159,11 +157,7 @@ public class RaftState {
                         term = lastEntry.term();
                     }
 
-                    RequestVote requestVote = new RequestVote(currentNode(),
-                            currentTerm(),
-                            indexOfLastLogEntry(),
-                            term);
-
+                    RequestVote requestVote = new RequestVote();
                     raftClient.broadcastMessage(requestVote);
                 }
             } catch (IOException e) {

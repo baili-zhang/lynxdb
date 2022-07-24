@@ -3,23 +3,21 @@ package zbl.moonlight.raft.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.raft.client.RaftClient;
 import zbl.moonlight.raft.log.RaftLog;
 import zbl.moonlight.raft.request.AppendEntries;
-import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.request.RaftRequest;
 import zbl.moonlight.raft.response.RaftResponse;
-import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.raft.state.RaftRole;
 import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.socket.client.ServerNode;
-import zbl.moonlight.socket.client.SocketClient;
 import zbl.moonlight.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.socket.request.SocketRequest;
 import zbl.moonlight.socket.request.WritableSocketRequest;
 import zbl.moonlight.socket.response.WritableSocketResponse;
-import zbl.moonlight.socket.server.SocketServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,16 +34,13 @@ public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
 
     private final RaftState raftState;
-    private final SocketServer raftServer;
-    private final SocketClient raftClient;
+    private final RaftServer raftServer;
+    private final RaftClient raftClient;
     private final LogIndexMap logIndexMap;
-    private final StateMachine stateMachine;
 
-    public RaftServerHandler(SocketServer server, StateMachine machine,
-                             SocketClient client, RaftState state) {
+    public RaftServerHandler(RaftServer server, RaftClient client) {
         raftServer = server;
-        stateMachine = machine;
-        raftState = state;
+        raftState = RaftState.getInstance();
         raftClient = client;
         logIndexMap = new LogIndexMap();
     }
@@ -227,7 +222,6 @@ public class RaftServerHandler implements SocketServerHandler {
 
         if(flag == ClientRequest.RAFT_CLIENT_REQUEST_GET) {
             logger.info("[{}] do client [RAFT_CLIENT_REQUEST_GET] request.", currentNode);
-            stateMachine.exec(selectionKey, command);
             return;
         }
 
@@ -251,9 +245,7 @@ public class RaftServerHandler implements SocketServerHandler {
                     Entry[] entries = raftState.getEntriesByRange(prevLogIndex,
                             raftState.indexOfLastLogEntry());
                     /* 创建 AppendEntries 请求 */
-                    AppendEntries appendEntries = new AppendEntries(raftState.currentNode(),
-                            raftState.currentTerm(), prevLogIndex, prevLogTerm,
-                            raftState.commitIndex(), entries);
+                    AppendEntries appendEntries = new AppendEntries();
                     /* 将请求发送到其他节点 */
                     WritableSocketRequest request = new WritableSocketRequest(key, (byte) 0x00,
                             0L, appendEntries.toBytes());

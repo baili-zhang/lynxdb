@@ -44,7 +44,7 @@ public class SocketContext {
             /* 设置新的request对象 */
             selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
         }
-        selectionKey.attach(new ReadableSocketRequest(selectionKey));
+        selectionKey.attach(new ReadableSocketRequest());
         requestCount.getAndIncrement();
     }
 

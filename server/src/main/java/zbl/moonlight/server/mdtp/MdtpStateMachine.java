@@ -2,7 +2,7 @@ package zbl.moonlight.server.mdtp;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.server.engine.EngineExecutor;
 

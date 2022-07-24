@@ -17,8 +17,7 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
     private final ByteBuffer serialBuffer = ByteBuffer.allocate(LONG_LENGTH);
     private ByteBuffer dataBuffer;
 
-    public ReadableSocketRequest(SelectionKey selectionKey) {
-        super(selectionKey);
+    public ReadableSocketRequest() {
     }
 
     @Override

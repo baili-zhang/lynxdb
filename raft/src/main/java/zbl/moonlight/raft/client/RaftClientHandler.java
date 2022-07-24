@@ -2,6 +2,7 @@ package zbl.moonlight.raft.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.raft.server.RaftServer;
 import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
@@ -17,10 +18,18 @@ import java.nio.channels.SocketChannel;
 
 import static zbl.moonlight.raft.response.RaftResponse.*;
 
-public record RaftClientHandler(RaftState raftState,
-                                SocketServer raftServer,
-                                SocketClient socketClient) implements SocketClientHandler {
+public class RaftClientHandler implements SocketClientHandler {
     private final static Logger logger = LogManager.getLogger("RaftClientHandler");
+
+    private final RaftServer raftServer;
+    private final RaftClient raftClient;
+    private final RaftState raftState;
+
+    public RaftClientHandler(RaftServer raftServer, RaftClient raftClient) {
+        this.raftServer = raftServer;
+        this.raftClient = raftClient;
+        raftState = RaftState.getInstance();
+    }
 
     @Override
     public void handleConnected(SelectionKey selectionKey) throws IOException {

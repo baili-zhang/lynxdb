@@ -1,6 +1,6 @@
 package zbl.moonlight.raft.state;
 
-import zbl.moonlight.raft.request.Entry;
+import zbl.moonlight.raft.log.Entry;
 
 import java.nio.channels.SelectionKey;
 

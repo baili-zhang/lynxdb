@@ -2,7 +2,6 @@ package zbl.moonlight.raft.log;
 
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.enhance.EnhanceFile;
-import zbl.moonlight.raft.request.Entry;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
