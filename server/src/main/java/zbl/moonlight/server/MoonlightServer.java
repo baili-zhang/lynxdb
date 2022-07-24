@@ -3,14 +3,16 @@ package zbl.moonlight.server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.server.RaftServer;
-import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.raft.client.RaftClient;
+import zbl.moonlight.raft.client.RaftClientHandler;
+import zbl.moonlight.raft.server.RaftServer;
+import zbl.moonlight.raft.server.RaftServerHandler;
 import zbl.moonlight.server.context.Configuration;
-import zbl.moonlight.server.storage.EngineExecutor;
+import zbl.moonlight.server.engine.EngineExecutor;
 import zbl.moonlight.server.mdtp.MdtpStateMachine;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
@@ -26,14 +28,15 @@ public class MoonlightServer {
         String logFilenamePrefix = current.host() + "_" + current.port() + "_raft_";
 
         MdtpStateMachine stateMachine = new MdtpStateMachine();
-        raftServer = new RaftServer(stateMachine, current,
-                config.clusterNodes(), logFilenamePrefix);
-        engineExecutor = new EngineExecutor(raftServer.socketServer(), new HashMap<>());
+        RaftClient raftClient = new RaftClient();
+        raftServer = new RaftServer(stateMachine, current, raftClient, logFilenamePrefix);
+        raftServer.setHandler(new RaftServerHandler(raftServer, stateMachine, raftClient, raftServer.raftState()));
+        raftServer.setClientHandler(new RaftClientHandler(raftServer.raftState(), raftServer, raftClient));
+        engineExecutor = new EngineExecutor(raftServer);
         stateMachine.setStorageEngine(engineExecutor);
     }
 
     public void run() {
-        raftServer.start();
         Executor.start(engineExecutor);
     }
 

@@ -9,18 +9,23 @@ import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * RaftState：单例，需要保证线程安全
+ */
 public class RaftState {
     private static final Logger logger = LogManager.getLogger("RaftState");
 
     private final Timeout heartbeat;
     private final Timeout election;
 
-    public RaftState(StateMachine stateMachine, ServerNode current, List<ServerNode> nodes,
+    public RaftState(StateMachine stateMachine, ServerNode current,
                      String logFilenamePrefix, Timeout heartbeat, Timeout election)
             throws IOException {
         this.stateMachine = stateMachine;
@@ -28,7 +33,7 @@ public class RaftState {
         this.election = election;
 
         currentNode = current;
-        allNodes = nodes;
+        allNodes = new ArrayList<>();
         otherNodes = allNodes.stream().filter((node) -> !node.equals(currentNode))
                 .toList();
         raftLog = new RaftLog(logFilenamePrefix + "_index.log",
@@ -36,7 +41,11 @@ public class RaftState {
         termLog = new TermLog(logFilenamePrefix + "_term.log");
     }
 
-    private final List<ServerNode> allNodes;
+    private final List<SelectionKey> allNodes;
+
+    public void addNode(SelectionKey selectionKey) {
+        allNodes.add(selectionKey);
+    }
 
     /**
      * @return 集群的节点数
@@ -47,13 +56,13 @@ public class RaftState {
     /**
      * Raft 集群中的其他节点
      */
-    private final List<ServerNode> otherNodes;
+    private final List<SelectionKey> otherNodes;
 
     /**
      * 返回 Raft 集群中的其他节点
      * @return 集群中的其他节点
      */
-    public List<ServerNode> otherNodes() {
+    public List<SelectionKey> otherNodes() {
         return otherNodes;
     }
     private final HashSet<ServerNode> votedNodes = new HashSet<>();
@@ -66,15 +75,15 @@ public class RaftState {
             if(votedNodes.size() > (allNodes.size() >> 1)) {
                 raftRole = RaftRole.Leader;
                 /* 获取所有的 follower 节点 */
-                List<ServerNode> followers =  allNodes.stream()
+                List<SelectionKey> followers =  allNodes.stream()
                         .filter((node) -> !node.equals(currentNode)).toList();
                 nextIndex.clear();
                 matchedIndex.clear();
                 /* 初始化 leader 的相关属性 */
                 int lastEntryIndex = indexOfLastLogEntry();
-                for (ServerNode node : followers) {
-                    nextIndex.put(node, lastEntryIndex + 1);
-                    matchedIndex.put(node, 0);
+                for (SelectionKey selectionKey : followers) {
+                    nextIndex.put(selectionKey, lastEntryIndex + 1);
+                    matchedIndex.put(selectionKey, 0);
                 }
 
                 logger.info("{} node get most vote and become [Leader], current term is {}",
@@ -88,13 +97,19 @@ public class RaftState {
         return currentNode;
     }
 
-    @Setter
     private volatile ServerNode leaderNode;
     public ServerNode leaderNode() {
         return leaderNode;
     }
 
-    @Setter
+    public void setLeaderNode(ServerNode leaderNode) {
+        this.leaderNode = leaderNode;
+    }
+
+    public void setRaftRole(RaftRole raftRole) {
+        this.raftRole = raftRole;
+    }
+
     private volatile RaftRole raftRole = RaftRole.Follower;
     public RaftRole raftRole() {
         return raftRole;
@@ -220,14 +235,14 @@ public class RaftState {
         return lastApplied.get();
     }
 
-    private final ConcurrentHashMap<ServerNode, Integer> nextIndex
+    private final ConcurrentHashMap<SelectionKey, Integer> nextIndex
             = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<ServerNode, Integer> matchedIndex
+    private final ConcurrentHashMap<SelectionKey, Integer> matchedIndex
             = new ConcurrentHashMap<>();
-    public ConcurrentHashMap<ServerNode, Integer> nextIndex() {
+    public ConcurrentHashMap<SelectionKey, Integer> nextIndex() {
         return nextIndex;
     }
-    public ConcurrentHashMap<ServerNode, Integer> matchedIndex() {
+    public ConcurrentHashMap<SelectionKey, Integer> matchedIndex() {
         return matchedIndex;
     }
 
@@ -239,8 +254,8 @@ public class RaftState {
         int maxIndex = indexOfLastLogEntry();
         for(int i = commitIndex.get() + 1; i <= maxIndex; i ++) {
             int count  = 1;
-            for(ServerNode node : matchedIndex.keySet()) {
-                if(matchedIndex.get(node) >= i) {
+            for(SelectionKey selectionKey : matchedIndex.keySet()) {
+                if(matchedIndex.get(selectionKey) >= i) {
                     count ++;
                 }
             }

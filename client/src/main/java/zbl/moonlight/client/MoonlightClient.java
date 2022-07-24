@@ -3,12 +3,12 @@ package zbl.moonlight.client;
 import lombok.Setter;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
-import zbl.moonlight.core.raft.request.RaftRequest;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.client.SocketClient;
-import zbl.moonlight.core.socket.request.SocketRequest;
 import zbl.moonlight.core.utils.NumberUtils;
-import zbl.moonlight.server.mdtp.MdtpMethod;
+import zbl.moonlight.raft.request.RaftRequest;
+import zbl.moonlight.server.annotations.MdtpMethod;
+import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.client.SocketClient;
+import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,8 +18,8 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 import static zbl.moonlight.client.Command.*;
-import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
-import static zbl.moonlight.core.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
+import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
+import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class MoonlightClient extends Shutdown {
     private final SocketClient socketClient;
@@ -82,19 +82,16 @@ public class MoonlightClient extends Shutdown {
 
                 /* 处理 GET 命令 */
                 case GET_COMMAND -> {
-                    send(MdtpMethod.GET, command);
                     barrier.await();
                 }
 
                 /* 处理 SET 命令 */
                 case SET_COMMAND -> {
-                    send(MdtpMethod.SET, command);
                     barrier.await();
                 }
 
                 /* 处理 DELETE 命令 */
                 case DELETE_COMMAND -> {
-                    send(MdtpMethod.DELETE, command);
                     barrier.await();
                 }
 
@@ -134,9 +131,8 @@ public class MoonlightClient extends Shutdown {
             buffer.put(value);
         }
 
-        SocketRequest request = SocketRequest.newUnicastRequest(buffer.array(),
-                current, command.name());
-        socketClient.offerInterruptibly(request);
+//        WritableSocketRequest request = new WritableSocketRequest();
+//        socketClient.offerInterruptibly(request);
     }
 
     private boolean isServerCommand(String commandName) {
@@ -147,7 +143,6 @@ public class MoonlightClient extends Shutdown {
     }
 
     private void disconnect() {
-        socketClient.disconnect(current);
         Printer.printDisconnect(current);
         current = null;
     }

@@ -2,6 +2,7 @@ package zbl.moonlight.socket.client;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.socket.request.WritableSocketRequest;
@@ -19,6 +20,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SocketClient extends Executor<WritableSocketRequest> {
     private final static Logger logger = LogManager.getLogger("SocketClient");
@@ -29,6 +31,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
 
     private final Object setLock = new Object();
+    private final AtomicLong serial = new AtomicLong(0);
 
     private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
             = new ConcurrentHashMap<>();
@@ -51,22 +54,26 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
-    public void connect(ServerNode node) throws IOException {
+    public SelectionKey connect(ServerNode node) throws IOException {
         SocketAddress address = new InetSocketAddress(node.host(), node.port());
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
         socketChannel.connect(address);
 
+        SelectionKey selectionKey;
+
         synchronized (setLock) {
-            socketChannel.register(selector,
+            selectionKey = socketChannel.register(selector,
                     SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE);
         }
 
+        contexts.put(selectionKey, new ConnectionContext(selectionKey));
+        return selectionKey;
     }
 
-    public void disconnect(ServerNode node) {
-        if(contexts.containsKey(node)) {
-            ConnectionContext context = contexts.get(node);
+    public void disconnect(SelectionKey selectionKey) {
+        if(contexts.containsKey(selectionKey)) {
+            ConnectionContext context = contexts.get(selectionKey);
             SelectionKey key = context.selectionKey();
             /* 将主动退出的 selectionKey 加入 exitKeys，等待请求 */
             synchronized (exitKeys) {
@@ -76,6 +83,30 @@ public class SocketClient extends Executor<WritableSocketRequest> {
             context.lockRequestOffer();
             interrupt();
         }
+    }
+
+    public boolean isConnected(SelectionKey selectionKey) {
+        return contexts.containsKey(selectionKey);
+    }
+
+    public void sendMessage(SelectionKey selectionKey, BytesConvertible message) {
+        byte[] data = message.toBytes();
+        ConnectionContext context = contexts.get(selectionKey);
+        byte status = (byte) 0x00;
+        context.offerRequest(new WritableSocketRequest(selectionKey, status, serial.getAndIncrement(), data));
+        interrupt();
+    }
+
+    public void broadcastMessage(BytesConvertible message) {
+        byte[] data = message.toBytes();
+
+        for(SelectionKey selectionKey : contexts.keySet()) {
+            ConnectionContext context = contexts.get(selectionKey);
+            byte status = (byte) 0x00;
+            context.offerRequest(new WritableSocketRequest(selectionKey, status, serial.getAndIncrement(), data));
+        }
+
+        interrupt();
     }
 
     public void setHandler(SocketClientHandler handler) {
@@ -113,24 +144,6 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
             /* sync.await() 后执行一些自定义的操作 */
             handler.handleAfterLatchAwait();
-
-            WritableSocketRequest request = poll();
-            while (request != null) {
-                /* 如果是广播，则发送给所有已连接的服务器 */
-                if(request.isBroadcast()) {
-                    for (SelectionKey selectionKey : contexts.keySet()) {
-                        ConnectionContext context = contexts.get(selectionKey);
-                        context.offerRequest(request);
-                    }
-                    logger.info("Broadcast request to nodes: {}", contexts.keySet());
-                }
-                /* 如果是单播，则发送给指定的服务器 */
-                else {
-                    ConnectionContext context = contexts.get(request.selectionKey());
-                    context.offerRequest(request);
-                }
-                request = poll();
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -190,7 +203,6 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 }
 
                 /* 处理连接成功 */
-                contexts.put(selectionKey, new ConnectionContext(selectionKey));
                 selectionKey.interestOpsAnd(SelectionKey.OP_READ);
 
                 handler.handleConnected(selectionKey);

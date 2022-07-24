@@ -1,6 +1,9 @@
 package zbl.moonlight.client;
 
-import zbl.moonlight.core.socket.client.ServerNode;
+
+import zbl.moonlight.socket.client.ServerNode;
+
+import java.net.SocketAddress;
 
 public interface Printer {
     static void printPrompt(ServerNode current) {
@@ -16,8 +19,8 @@ public interface Printer {
         System.out.println("Error: " + message);
     }
 
-    static void printConnected(ServerNode node) {
-        String info = String.format("INFO: Has connected to [%s]", node);
+    static void printConnected(SocketAddress address) {
+        String info = String.format("INFO: Has connected to [%s]", address);
         System.out.println(info);
     }
 

@@ -11,25 +11,24 @@ import zbl.moonlight.raft.response.RaftResponse;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.raft.state.RaftRole;
 import zbl.moonlight.raft.state.RaftState;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.client.SocketClient;
-import zbl.moonlight.core.socket.interfaces.SocketServerHandler;
-import zbl.moonlight.core.socket.request.SocketRequest;
-import zbl.moonlight.core.socket.response.AbstractSocketResponse;
-import zbl.moonlight.core.socket.server.SocketServer;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.request.ClientRequest;
+import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
 import zbl.moonlight.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.socket.request.SocketRequest;
+import zbl.moonlight.socket.request.WritableSocketRequest;
+import zbl.moonlight.socket.response.WritableSocketResponse;
 import zbl.moonlight.socket.server.SocketServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static zbl.moonlight.raft.response.RaftResponse.CLIENT_REQUEST_FAILURE;
 
@@ -37,17 +36,17 @@ public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
 
     private final RaftState raftState;
-    private final SocketServer socketServer;
-    private final SocketClient socketClient;
+    private final SocketServer raftServer;
+    private final SocketClient raftClient;
     private final LogIndexMap logIndexMap;
     private final StateMachine stateMachine;
 
     public RaftServerHandler(SocketServer server, StateMachine machine,
                              SocketClient client, RaftState state) {
-        socketServer = server;
+        raftServer = server;
         stateMachine = machine;
         raftState = state;
-        socketClient = client;
+        raftClient = client;
         logIndexMap = new LogIndexMap();
     }
 
@@ -74,8 +73,8 @@ public class RaftServerHandler implements SocketServerHandler {
             Integer logIndex = logIndexMap.peek(key);
             while (logIndex != null && logIndex <= commitIndex) {
                 byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
-                AbstractSocketResponse response = new AbstractSocketResponse(key, data, null);
-                socketServer.offerInterruptibly(response);
+                WritableSocketResponse response = new WritableSocketResponse(key, 0L, data);
+                raftServer.offerInterruptibly(response);
                 logIndex = logIndexMap.peekAfterPoll(key);
             }
         }
@@ -244,8 +243,8 @@ public class RaftServerHandler implements SocketServerHandler {
                         currentNode, logIndex);
 
                 raftState.resetHeartbeatTimeout();
-                ConcurrentHashMap<ServerNode, Integer> nextIndex = raftState.nextIndex();
-                for(ServerNode node : nextIndex.keySet()) {
+                ConcurrentHashMap<SelectionKey, Integer> nextIndex = raftState.nextIndex();
+                for(SelectionKey key : nextIndex.keySet()) {
                     int prevLogIndex = logIndex - 1;
                     int prevLogTerm = prevLogIndex == 0 ? 0
                             : raftState.getEntryTermByIndex(prevLogIndex);
@@ -256,11 +255,12 @@ public class RaftServerHandler implements SocketServerHandler {
                             raftState.currentTerm(), prevLogIndex, prevLogTerm,
                             raftState.commitIndex(), entries);
                     /* 将请求发送到其他节点 */
-                    SocketRequest request = SocketRequest
-                            .newUnicastRequest(appendEntries.toBytes(), node);
-                    socketClient.offerInterruptibly(request);
+                    WritableSocketRequest request = new WritableSocketRequest(key, (byte) 0x00,
+                            0L, appendEntries.toBytes());
+                    raftClient.offerInterruptibly(request);
 
-                    logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries, node);
+                    logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries,
+                            ((SocketChannel)key.channel()).getRemoteAddress());
                 }
 
                 /* 重设心跳计时器 */
@@ -270,28 +270,15 @@ public class RaftServerHandler implements SocketServerHandler {
                 logIndexMap.offer(selectionKey, logIndex);
             }
 
-            /* follower 获取到客户端请求，需要将请求重定向给 leader */
             case Follower -> {
-                if(raftState.leaderNode() == null) {
-                    logger.info("[{}] is [Follower], leaderNode is [null].", currentNode);
-                    sendResult(selectionKey, RaftResponse.clientRequestFailure());
-                } else {
-                    logger.info("[{}] is [Follower], leaderNode is [{}].", currentNode,
-                            raftState.leaderNode());
-                    ByteBuffer data = ByteBuffer.allocate(command.length + 2);
-                    data.put(RaftRequest.CLIENT_REQUEST)
-                            .put(ClientRequest.RAFT_CLIENT_REQUEST_SET).put(command);
-                    SocketRequest request = SocketRequest
-                            .newUnicastRequest(data.array(), raftState.leaderNode(), selectionKey);
-                    socketClient.offerInterruptibly(request);
-                }
+                /* follower 获取到客户端请求，需要将请求重定向给 leader */
             }
 
             /* candidate 获取到客户端请求，直接拒绝 */
             case Candidate -> {
                 logger.info("[{}] is [Candidate], client request failure.", currentNode);
                 byte[] data = ByteBuffer.allocate(1).put(CLIENT_REQUEST_FAILURE).array();
-                socketServer.offerInterruptibly(new AbstractSocketResponse(selectionKey, data, null));
+                raftServer.offerInterruptibly(new WritableSocketResponse(selectionKey, 0L, data));
             }
         }
     }
@@ -326,7 +313,7 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void sendResult(SelectionKey selectionKey, byte[] data) {
-        AbstractSocketResponse response = new AbstractSocketResponse(selectionKey, data, null);
-        socketServer.offer(response);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, 0L, data);
+        raftServer.offer(response);
     }
 }

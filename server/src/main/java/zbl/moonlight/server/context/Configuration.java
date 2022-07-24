@@ -3,7 +3,7 @@ package zbl.moonlight.server.context;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.socket.client.ServerNode;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.BufferedReader;
 import java.io.File;

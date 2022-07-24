@@ -2,7 +2,6 @@ package zbl.moonlight.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.raft.client.RaftClient;
 import zbl.moonlight.raft.client.RaftClientHandler;
 import zbl.moonlight.raft.request.AppendEntries;
@@ -14,11 +13,12 @@ import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.core.timeout.TimeoutTask;
 import zbl.moonlight.socket.client.ServerNode;
-import zbl.moonlight.socket.client.SocketClient;
 import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.socket.server.SocketServerConfig;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.List;
 
 public class RaftServer extends SocketServer {
@@ -34,8 +34,8 @@ public class RaftServer extends SocketServer {
     private final Timeout heartbeat;
     private final Timeout election;
 
-    public RaftServer(StateMachine stateMachine, ServerNode currentNode, RaftClient client,
-                      List<ServerNode> nodes, String logFilenamePrefix)
+    public RaftServer(StateMachine stateMachine, ServerNode currentNode,
+                      RaftClient client, String logFilenamePrefix)
             throws IOException {
         super(new SocketServerConfig(currentNode.port()));
 
@@ -48,7 +48,7 @@ public class RaftServer extends SocketServer {
                 + ELECTION_MIN_INTERVAL_MILLIS;
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
 
-        raftState = new RaftState(stateMachine, currentNode, nodes,
+        raftState = new RaftState(stateMachine, currentNode,
                 logFilenamePrefix, heartbeat, election);
 
         logger.info("[{}] -- [ELECTION_INTERVAL_MILLIS] is {}",
@@ -61,22 +61,24 @@ public class RaftServer extends SocketServer {
         Timeout.start(election);
     }
 
+    public RaftState raftState() {
+        return raftState;
+    }
+
+    public void setClientHandler(RaftClientHandler raftClientHandler) {
+        raftClient.setHandler(raftClientHandler);
+    }
+
     private class HeartbeatTask implements TimeoutTask {
         private static final Logger logger = LogManager.getLogger("HeartbeatTask");
 
         @Override
         public void run() {
             try {
-                /* 连接未连接的节点 */
-                for(ServerNode node : raftState.otherNodes()) {
-                    if(!raftClient.isConnecting(node) && !raftClient.isConnected(node)) {
-                        raftClient.connect(node);
-                    }
-                }
                 /* 如果心跳超时，则需要发送心跳包 */
                 if (raftState.raftRole() == RaftRole.Leader) {
-                    for (ServerNode node : raftState.otherNodes()) {
-                        int prevLogIndex = raftState.nextIndex().get(node) - 1;
+                    for (SelectionKey selectionKey : raftState.otherNodes()) {
+                        int prevLogIndex = raftState.nextIndex().get(selectionKey) - 1;
                         int leaderCommit = raftState.commitIndex();
 
                         int prevLogTerm = prevLogIndex == 0 ? 0
@@ -88,12 +90,11 @@ public class RaftServer extends SocketServer {
                                 raftState.currentNode(), raftState.currentTerm(),
                                 prevLogIndex, prevLogTerm, leaderCommit,entries);
 
-                        if(raftClient.isConnected(node)) {
-                            raftClient.offerInterruptibly(SocketRequest.newUnicastRequest(
-                                    appendEntries.toBytes(), node));
+                        if(raftClient.isConnected(selectionKey)) {
+                            raftClient.sendMessage(selectionKey, appendEntries);
 
                             logger.debug("[{}] send {} to node: {}.", raftState.currentNode(),
-                                    appendEntries, node);
+                                    appendEntries, ((SocketChannel)selectionKey.channel()).getRemoteAddress());
                         }
                     }
                 }
@@ -115,10 +116,6 @@ public class RaftServer extends SocketServer {
                 /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
                 if (raftState.raftRole() != RaftRole.Leader) {
                     int count = raftState.clusterNodeCount();
-                    /* 如果自身节点加上连接上的节点小于或等于半数，则不转换为 Candidate */
-                    if(raftClient.connectedNodes().size() + 1 <= (count >> 1)) {
-                        return;
-                    }
 
                     /* 转换为 Candidate 角色 */
                     raftState.transformToCandidate();
@@ -133,12 +130,12 @@ public class RaftServer extends SocketServer {
                         term = lastEntry.term();
                     }
 
-                    byte[] data = new RequestVote(raftState.currentNode(),
+                    RequestVote requestVote = new RequestVote(raftState.currentNode(),
                             raftState.currentTerm(),
                             raftState.indexOfLastLogEntry(),
-                            term).toBytes();
+                            term);
 
-                    raftClient.offerInterruptibly(SocketRequest.newBroadcastRequest(data));
+                    raftClient.broadcastMessage(requestVote);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

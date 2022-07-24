@@ -6,10 +6,14 @@ import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.socket.response.ReadableSocketResponse;
+import zbl.moonlight.socket.response.SocketResponse;
 import zbl.moonlight.socket.server.SocketServer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 
 import static zbl.moonlight.raft.response.RaftResponse.*;
 
@@ -19,11 +23,12 @@ public record RaftClientHandler(RaftState raftState,
     private final static Logger logger = LogManager.getLogger("RaftClientHandler");
 
     @Override
-    public void handleConnected(ServerNode node) {
+    public void handleConnected(SelectionKey selectionKey) throws IOException {
+        logger.info("Has connected to {}.", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
     }
 
     @Override
-    public void handleResponse(AbstractSocketResponse response) throws Exception {
+    public void handleResponse(SocketResponse response) throws Exception {
         ByteBuffer buffer = ByteBuffer.wrap(response.toBytes());
         byte status = buffer.get();
 
@@ -71,17 +76,17 @@ public record RaftClientHandler(RaftState raftState,
                 logger.info("[{}] -- Get Vote from node: {}", raftState.currentNode(), node);
             }
             case APPEND_ENTRIES_SUCCESS -> {
-                int matchedIndex = buffer.getInt();
-                raftState.nextIndex().put(node, matchedIndex + 1);
-                raftState.matchedIndex().put(node, matchedIndex);
-                raftState.checkCommitIndex();
+//                int matchedIndex = buffer.getInt();
+//                raftState.nextIndex().put(node, matchedIndex + 1);
+//                raftState.matchedIndex().put(node, matchedIndex);
+//                raftState.checkCommitIndex();
             }
             case APPEND_ENTRIES_FAILURE -> {
-                int nextIndex = raftState.nextIndex().get(node);
-                if(nextIndex == 1) {
-                    throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
-                }
-                raftState.nextIndex().put(node, nextIndex - 1);
+//                int nextIndex = raftState.nextIndex().get(node);
+//                if(nextIndex == 1) {
+//                    throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
+//                }
+//                raftState.nextIndex().put(node, nextIndex - 1);
             }
         }
     }
