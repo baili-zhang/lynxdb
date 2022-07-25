@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 定时器的实现
- * TODO: 为什么要自己实现定期器？
+ * TODO: 为什么要自己实现定时器？
  */
 public class Timeout implements Runnable {
     private static final String DEFAULT_NAME = "Timeout";

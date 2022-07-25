@@ -45,8 +45,17 @@ public class RaftState {
             throw new RuntimeException("Can not find StateMachine.");
         }
 
+        // 通过 SPI 获取 RaftConfiguration 的实例
+        ServiceLoader<RaftConfiguration> raftConfigurations = ServiceLoader.load(RaftConfiguration.class);
+
+        Optional<RaftConfiguration> raftConfiguration = raftConfigurations.findFirst();
+
+        if(raftConfiguration.isEmpty()) {
+            throw new RuntimeException("Can not find RaftConfiguration.");
+        }
+
         try {
-            RAFT_STATE = new RaftState(stateMachine.get(), LOG_FILENAME_PREFIX);
+            RAFT_STATE = new RaftState(stateMachine.get(), raftConfiguration.get(), LOG_FILENAME_PREFIX);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -74,9 +83,14 @@ public class RaftState {
         return RAFT_STATE;
     }
 
-    private RaftState(StateMachine stateMachine, String logFilenamePrefix)
+    private final ServerNode currentNode;
+
+    private RaftState(StateMachine stateMachine, RaftConfiguration raftConfiguration, String logFilenamePrefix)
             throws IOException {
         this.stateMachine = stateMachine;
+        this.raftConfiguration = raftConfiguration;
+
+        currentNode = stateMachine.currentNode();
 
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
         /* 设置随机选举超时时间 */
@@ -85,17 +99,26 @@ public class RaftState {
                 + ELECTION_MIN_INTERVAL_MILLIS;
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
 
-        allNodes = new ArrayList<>();
         raftLog = new RaftLog(logFilenamePrefix + "index.log",
                 logFilenamePrefix + "data.log");
         termLog = new TermLog(logFilenamePrefix + "term.log");
     }
 
+    private final RaftConfiguration raftConfiguration;
+
     public void startTimeout() {
+        // 如果 leaderMode 为 follower，不需要启动超时计时器
+        if(raftConfiguration.leaderMode() == RaftConfiguration.FOLLOWER) {
+            return;
+        }
         // 启动心跳超时计时器
         new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME).start();
         // 启动选举超时计时器
         new Thread(election, ELECTION_TIMEOUT_NAME).start();
+    }
+
+    public ServerNode currentNode() {
+        return currentNode;
     }
 
     private class HeartbeatTask implements TimeoutTask {
@@ -120,7 +143,7 @@ public class RaftState {
                         if(raftClient.isConnected(selectionKey)) {
                             raftClient.sendMessage(selectionKey, appendEntries);
 
-                            logger.debug("[{}] send {} to node: {}.", currentNode(),
+                            logger.debug("[{}] send {} to node: {}.", currentNode,
                                     appendEntries, ((SocketChannel)selectionKey.channel()).getRemoteAddress());
                         }
                     }
@@ -142,22 +165,34 @@ public class RaftState {
             try {
                 /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
                 if (raftRole() != RaftRole.Leader) {
-                    int count = clusterNodeCount();
-
-                    /* 转换为 Candidate 角色 */
-                    transformToCandidate();
-                    logger.info("[{}] -- [{}] -- Election timeout, " +
-                                    "Send RequestVote to other nodes.",
-                            currentNode(), raftRole());
-
-                    Entry lastEntry = lastEntry();
-
-                    int term = 0;
-                    if (lastEntry != null) {
-                        term = lastEntry.term();
+                    if(raftConfiguration.leaderMode() == RaftConfiguration.CANDIDATE) {
+                        // 配置中的总节点数
+                        int count = stateMachine.clusterNodes().size();
+                        // 连接上的节点数
+                        int connect = nextIndex.size();
+                        // 如果连接上的节点数超过配置中的总节点数的半数
+                        if(connect > (count >> 1)) {
+                            // 转换为 Candidate 角色
+                            transformToCandidate();
+                        }
+                    } else if(raftConfiguration.leaderMode() == RaftConfiguration.LEADER) {
+                        // 转换为 Candidate 角色
+                        transformToCandidate();
                     }
 
+                    logger.info("[{}] -- [{}] -- Election timeout, " +
+                                    "Send RequestVote to other nodes.",
+                            currentNode, raftRole());
+
+                    Entry lastEntry = lastEntry();
+                    int term = lastEntry == null ? 0 : lastEntry.term();
+
                     RequestVote requestVote = new RequestVote();
+                    requestVote.term(currentTerm());
+                    requestVote.candidate(currentNode);
+                    requestVote.lastLogIndex(indexOfLastLogEntry());
+                    requestVote.lastLogTerm(term);
+
                     raftClient.broadcastMessage(requestVote);
                 }
             } catch (IOException e) {
@@ -166,42 +201,18 @@ public class RaftState {
         }
     }
 
-    private final List<SelectionKey> allNodes;
-
-    public void addNode(SelectionKey selectionKey) {
-        allNodes.add(selectionKey);
-    }
-
-    private ServerNode currentNode;
-
-    public void currentNode(ServerNode node) {
-        if(currentNode != null) {
-            currentNode = node;
-        }
-    }
-
-    public ServerNode currentNode() {
-        return currentNode;
-    }
-
-    /**
-     * @return 集群的节点数
-     */
-    public int clusterNodeCount() {
-        return allNodes.size();
-    }
-
-    private final HashSet<ServerNode> votedNodes = new HashSet<>();
-    public void setVotedNodeAndCheck(ServerNode serverNode) throws IOException {
+    private final HashSet<SelectionKey> votedNodes = new HashSet<>();
+    public void setVotedNodeAndCheck(SelectionKey selectionKey) throws IOException {
         if(raftRole == RaftRole.Leader) {
             return;
         }
         synchronized (this) {
-            votedNodes.add(serverNode);
-            if(votedNodes.size() > (allNodes.size() >> 1)) {
+            votedNodes.add(selectionKey);
+//            List<ServerNode> allNodes = stateMachine.clusterNodes();
+//            if(votedNodes.size() > (allNodes.size() >> 1)) {
 //                raftRole = RaftRole.Leader;
 //                /* 获取所有的 follower 节点 */
-//                List<SelectionKey> followers =  allNodes.stream()
+//                List<SelectionKey> followers = allNodes.stream()
 //                        .filter((node) -> !node.equals(currentNode)).toList();
 //                nextIndex.clear();
 //                matchedIndex.clear();
@@ -211,7 +222,7 @@ public class RaftState {
 //                    nextIndex.put(selectionKey, lastEntryIndex + 1);
 //                    matchedIndex.put(selectionKey, 0);
 //                }
-            }
+//            }
         }
     }
 
@@ -368,7 +379,8 @@ public class RaftState {
      * 检查 commitIndex，如果可以增加，则增加 commitIndex
      */
     public void checkCommitIndex() throws IOException {
-        int n = (allNodes.size() >> 1) + 1;
+
+        int n = (stateMachine.clusterNodes().size() >> 1) + 1;
         int maxIndex = indexOfLastLogEntry();
         for(int i = commitIndex.get() + 1; i <= maxIndex; i ++) {
             int count  = 1;

@@ -25,6 +25,7 @@ public class RaftServer extends SocketServer {
 
     @Override
     final protected void doBeforeExecute() {
+        // 启动心跳超时计时器和选举超时计时器
         RaftState.getInstance().startTimeout();
     }
 

@@ -5,9 +5,11 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.server.engine.EngineExecutor;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * 异步的状态机
@@ -20,6 +22,16 @@ public class MdtpStateMachine implements StateMachine {
 
     public void setStorageEngine(EngineExecutor engine) {
         engineExecutor = engine;
+    }
+
+    @Override
+    public List<ServerNode> clusterNodes() {
+        return null;
+    }
+
+    @Override
+    public ServerNode currentNode() {
+        return null;
     }
 
     @Override

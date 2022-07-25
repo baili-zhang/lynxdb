@@ -1,6 +1,7 @@
 package zbl.moonlight.socket.request;
 
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.exceptions.NullFieldException;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.socket.interfaces.SocketBytesConvertible;
 
@@ -9,25 +10,61 @@ import java.nio.channels.SelectionKey;
 
 public abstract class SocketRequest implements SocketBytesConvertible {
     protected SelectionKey selectionKey;
-    protected byte status;
-    protected long serial;
+    protected Byte status;
+    protected Long serial;
     protected byte[] data;
 
     protected SocketRequest() {}
 
+    public void selectionKey(SelectionKey val) {
+        if(selectionKey == null) {
+            selectionKey = val;
+        }
+    }
+
     public SelectionKey selectionKey() {
+        if(selectionKey == null) {
+            throw new NullFieldException("selectionKey");
+        }
         return selectionKey;
     }
 
+    public void status(byte val) {
+        if(status == null) {
+            status = val;
+        }
+    }
+
     public byte status() {
+        if(status == null) {
+            throw new NullFieldException("status");
+        }
         return status;
     }
 
+    public void serial(long val) {
+        if(serial == null) {
+            serial = val;
+        }
+    }
+
     public long serial() {
+        if(serial == null) {
+            throw new NullFieldException("serial");
+        }
         return serial;
     }
 
+    public void data(byte[] val) {
+        if(data == null) {
+            data = val;
+        }
+    }
+
     public byte[] data() {
+        if(data == null) {
+            throw new NullFieldException("data");
+        }
         return data;
     }
 

@@ -55,7 +55,7 @@ public class RaftClientHandler implements SocketClientHandler {
 
             /* 客户端请求成功，则向客户端响应[CLIENT_REQUEST_SUCCESS] */
             case CLIENT_REQUEST_SUCCESS -> {
-                    logger.info("[{}] Client request success.", raftState.currentNode());
+//                    logger.info("[{}] Client request success.", raftState.currentNode());
 //                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
 //                            new byte[]{CLIENT_REQUEST_SUCCESS}, null));
             }
@@ -73,16 +73,16 @@ public class RaftClientHandler implements SocketClientHandler {
 
     private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {
         if(term > raftState.currentTerm()) {
-            raftState.setCurrentTerm(term);
-            logger.info("[{}] set [currentTerm] to {}, raft request failure.",
-                    raftState.currentNode(), term);
+//            raftState.setCurrentTerm(term);
+//            logger.info("[{}] set [currentTerm] to {}, raft request failure.",
+//                    raftState.currentNode(), term);
             return;
         }
 
         switch (status) {
             case REQUEST_VOTE_SUCCESS -> {
-                raftState.setVotedNodeAndCheck(node);
-                logger.info("[{}] -- Get Vote from node: {}", raftState.currentNode(), node);
+//                raftState.setVotedNodeAndCheck(node);
+//                logger.info("[{}] -- Get Vote from node: {}", raftState.currentNode(), node);
             }
             case APPEND_ENTRIES_SUCCESS -> {
 //                int matchedIndex = buffer.getInt();
