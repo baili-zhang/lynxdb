@@ -1,5 +1,7 @@
 package zbl.moonlight.raft.state;
 
+import zbl.moonlight.socket.client.ServerNode;
+
 public interface RaftConfiguration {
     /**
      * 需要得到 leader 确认才能启动选举计时器
@@ -14,5 +16,7 @@ public interface RaftConfiguration {
      */
     byte LEADER = (byte) 0x03;
 
-    byte leaderMode();
+    byte leaderNode();
+
+    ServerNode currentNode();
 }

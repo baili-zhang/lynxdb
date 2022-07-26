@@ -18,9 +18,14 @@ public class RocksDatabase extends Database {
     private RocksDatabase(String name, String dataDir) throws RocksDBException {
         super(name, dataDir);
         options = new Options();
-        dbOptions = new DBOptions();
+        dbOptions = new DBOptions().setCreateIfMissing(true);
 
-        final List<ColumnFamilyDescriptor> cfDescriptors = RocksDB.listColumnFamilies(options, path()).stream()
+        List<byte[]> cfs = RocksDB.listColumnFamilies(options, path());
+        if(cfs.isEmpty()) {
+            cfs.add(RocksDB.DEFAULT_COLUMN_FAMILY);
+        }
+
+        final List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream()
                 .map(ColumnFamilyDescriptor::new).toList();
         rocksDB = RocksDB.open(dbOptions, path(), cfDescriptors, columnFamilyHandles);
     }

@@ -25,7 +25,7 @@ public class GetQuery extends Query {
                 continue;
             }
             byte[] value = db.get(handle, tuple.keyBytes());
-            result.add(new QueryTuple(tuple.columnFamily(), tuple.key(), new Value(value)));
+            result.add(new QueryTuple(tuple.key(), tuple.columnFamily(), new Value(value)));
         }
 
         resultSet.setResult(result);

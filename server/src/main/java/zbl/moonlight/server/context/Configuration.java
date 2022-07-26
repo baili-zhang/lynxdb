@@ -10,8 +10,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 @ToString
 public class Configuration {
@@ -26,7 +24,6 @@ public class Configuration {
     private static final String HOST = "host";
     private static final String PORT = "port";
     private static final String DATA_DIR = "data_dir";
-    private static final String CLUSTER_NODES = "cluster_nodes";
 
     private final ServerNode currentNode;
 
@@ -34,10 +31,9 @@ public class Configuration {
     private int port;
 
     private String dataDir;
-    private List<ServerNode> clusterNodes = new ArrayList<>();
 
     private static class Holder {
-        private static Configuration instance;
+        private static final Configuration instance;
 
         static {
             try {
@@ -84,13 +80,6 @@ public class Configuration {
                             ? value.replace(BASE_DIR, System.getProperty("user.dir"))
                             : value;
                 }
-                case CLUSTER_NODES -> {
-                    String[] nodes = value.split(",");
-                    for (String node : nodes) {
-                        String[] info = node.split(":");
-                        clusterNodes.add(new ServerNode(info[0].trim(), Integer.parseInt(info[1].trim())));
-                    }
-                }
             }
         }
 
@@ -103,9 +92,5 @@ public class Configuration {
 
     public String dataDir() {
         return dataDir;
-    }
-
-    public List<ServerNode> clusterNodes() {
-        return clusterNodes;
     }
 }

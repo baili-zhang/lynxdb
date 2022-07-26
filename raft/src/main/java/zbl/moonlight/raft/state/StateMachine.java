@@ -12,16 +12,21 @@ import java.util.List;
 public interface StateMachine {
 
     /**
-     * 获取集群的所有节点
-     * @return 集群的所有节点
+     * 获取当前集群的所有节点
+     * @return 当前集群的所有节点
      */
     List<ServerNode> clusterNodes();
 
     /**
-     * 获取当前节点
-     * @return 当前节点
+     * 获取新集群的所有节点
+     * @return 新集群的所有节点
      */
-    ServerNode currentNode();
+    List<ServerNode> newClusterNodes();
+
+    /**
+     * 将集群的旧配置更新为新配置
+     */
+    void changeClusterNodes();
 
     /**
      * 应用日志条目

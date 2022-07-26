@@ -6,7 +6,7 @@ import zbl.moonlight.storage.core.Value;
 
 import java.util.Objects;
 
-public record QueryTuple(ColumnFamily columnFamily, Key key, Value value) {
+public record QueryTuple(Key key, ColumnFamily columnFamily, Value value) {
     public byte[] keyBytes() {
         return key.value();
     }

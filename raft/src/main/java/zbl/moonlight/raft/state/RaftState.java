@@ -90,7 +90,7 @@ public class RaftState {
         this.stateMachine = stateMachine;
         this.raftConfiguration = raftConfiguration;
 
-        currentNode = stateMachine.currentNode();
+        currentNode = raftConfiguration.currentNode();
 
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
         /* 设置随机选举超时时间 */
@@ -108,7 +108,7 @@ public class RaftState {
 
     public void startTimeout() {
         // 如果 leaderMode 为 follower，不需要启动超时计时器
-        if(raftConfiguration.leaderMode() == RaftConfiguration.FOLLOWER) {
+        if(raftConfiguration.leaderNode() == RaftConfiguration.FOLLOWER) {
             return;
         }
         // 启动心跳超时计时器
@@ -165,7 +165,7 @@ public class RaftState {
             try {
                 /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
                 if (raftRole() != RaftRole.Leader) {
-                    if(raftConfiguration.leaderMode() == RaftConfiguration.CANDIDATE) {
+                    if(raftConfiguration.leaderNode() == RaftConfiguration.CANDIDATE) {
                         // 配置中的总节点数
                         int count = stateMachine.clusterNodes().size();
                         // 连接上的节点数
@@ -175,14 +175,10 @@ public class RaftState {
                             // 转换为 Candidate 角色
                             transformToCandidate();
                         }
-                    } else if(raftConfiguration.leaderMode() == RaftConfiguration.LEADER) {
+                    } else if(raftConfiguration.leaderNode() == RaftConfiguration.LEADER) {
                         // 转换为 Candidate 角色
                         transformToCandidate();
                     }
-
-                    logger.info("[{}] -- [{}] -- Election timeout, " +
-                                    "Send RequestVote to other nodes.",
-                            currentNode, raftRole());
 
                     Entry lastEntry = lastEntry();
                     int term = lastEntry == null ? 0 : lastEntry.term();
@@ -192,6 +188,10 @@ public class RaftState {
                     requestVote.candidate(currentNode);
                     requestVote.lastLogIndex(indexOfLastLogEntry());
                     requestVote.lastLogTerm(term);
+
+                    logger.info("[{}] -- [{}] -- Election timeout, " +
+                                    "Send RequestVote [{}] to other nodes.",
+                            currentNode, raftRole(), requestVote);
 
                     raftClient.broadcastMessage(requestVote);
                 }

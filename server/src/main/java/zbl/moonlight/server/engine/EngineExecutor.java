@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.server.mdtp.MdtpStateMachine;
 import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.mdtp.Method;
@@ -49,6 +50,9 @@ public class EngineExecutor extends Executor<Map<String, Object>> {
             }
 
             for (String sub : subs) {
+                if(MdtpStateMachine.META_DB_NAME.equals(sub)) {
+                    continue;
+                }
                 File subFile = Path.of(cfDbDir.getPath(), sub).toFile();
                 if(subFile.isDirectory()) {
                     try {

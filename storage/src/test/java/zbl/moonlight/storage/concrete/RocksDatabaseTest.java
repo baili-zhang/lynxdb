@@ -21,8 +21,8 @@ class RocksDatabaseTest {
     void doQuery() throws Exception {
         RocksDatabase cfDb = RocksDatabase.open("cf_db_test", System.getProperty("user.dir") + "/data");
 
-        QueryTuple one = new QueryTuple(new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), new Key(key1), null);
-        QueryTuple two = new QueryTuple(new ColumnFamily(columnFamily), new Key(key2), null);
+        QueryTuple one = new QueryTuple(new Key(key1), new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), null);
+        QueryTuple two = new QueryTuple(new Key(key2), new ColumnFamily(columnFamily), null);
 
         // 查询 key
         List<QueryTuple> getPairs = new ArrayList<>();
@@ -39,8 +39,8 @@ class RocksDatabaseTest {
 
         // 设置 key
         List<QueryTuple> setPairs = new ArrayList<>();
-        setPairs.add(new QueryTuple(new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), new Key(key1), new Value(value1)));
-        setPairs.add(new QueryTuple(new ColumnFamily(columnFamily), new Key(key2), new Value(value2)));
+        setPairs.add(new QueryTuple(new Key(key1), new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), new Value(value1)));
+        setPairs.add(new QueryTuple(new Key(key2), new ColumnFamily(columnFamily), new Value(value2)));
 
         Query setQuery = new SetQuery(setPairs);
         ResultSet setResult = cfDb.doQuery(setQuery);
