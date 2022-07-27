@@ -9,8 +9,8 @@ import zbl.moonlight.socket.server.SocketServer;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.mdtp.Method;
 import zbl.moonlight.server.mdtp.Params;
-import zbl.moonlight.storage.core.RocksDatabase;
-import zbl.moonlight.storage.query.Query;
+import zbl.moonlight.storage.rocks.RocksDatabase;
+import zbl.moonlight.storage.rocks.query.Query;
 import zbl.moonlight.storage.core.ResultSet;
 
 import java.io.File;

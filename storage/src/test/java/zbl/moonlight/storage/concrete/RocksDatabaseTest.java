@@ -2,12 +2,9 @@ package zbl.moonlight.storage.concrete;
 
 import org.junit.jupiter.api.Test;
 import org.rocksdb.*;
-import zbl.moonlight.storage.core.*;
-import zbl.moonlight.storage.query.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 class RocksDatabaseTest {
@@ -19,65 +16,7 @@ class RocksDatabaseTest {
 
     @Test
     void doQuery() throws Exception {
-        RocksDatabase cfDb = RocksDatabase.open("cf_db_test", System.getProperty("user.dir") + "/data");
 
-        QueryTuple one = new QueryTuple(new Key(key1), new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), null);
-        QueryTuple two = new QueryTuple(new Key(key2), new ColumnFamily(columnFamily), null);
-
-        // 查询 key
-        List<QueryTuple> getPairs = new ArrayList<>();
-        getPairs.add(one);
-        getPairs.add(two);
-
-        Query firstGet = new GetQuery(getPairs);
-        ResultSet firstGetResult = cfDb.doQuery(firstGet);
-        assert firstGetResult.code() == ResultSet.SUCCESS;
-
-        for(QueryTuple tuple : firstGetResult.result()) {
-            assert Arrays.equals(tuple.valueBytes(), null);
-        }
-
-        // 设置 key
-        List<QueryTuple> setPairs = new ArrayList<>();
-        setPairs.add(new QueryTuple(new Key(key1), new ColumnFamily(RocksDB.DEFAULT_COLUMN_FAMILY), new Value(value1)));
-        setPairs.add(new QueryTuple(new Key(key2), new ColumnFamily(columnFamily), new Value(value2)));
-
-        Query setQuery = new SetQuery(setPairs);
-        ResultSet setResult = cfDb.doQuery(setQuery);
-        assert setResult.code() == ResultSet.SUCCESS;
-
-        // 查询 key
-        List<QueryTuple> secondGetPairs = new ArrayList<>();
-        secondGetPairs.add(one);
-        secondGetPairs.add(two);
-
-        Query secondGet = new GetQuery(secondGetPairs);
-        ResultSet secondGetResult = cfDb.doQuery(secondGet);
-        assert secondGetResult.code() == ResultSet.SUCCESS;
-
-        List<QueryTuple> sft = secondGetResult.result();
-        assert Arrays.equals(sft.get(0).valueBytes(), value1);
-        assert Arrays.equals(sft.get(1).valueBytes(), value2);
-
-        // 删除 key
-        List<QueryTuple> deletePairs = new ArrayList<>();
-        deletePairs.add(one);
-        deletePairs.add(two);
-
-        Query deleteQuery = new DeleteQuery(deletePairs);
-        ResultSet deleteResult = cfDb.doQuery(deleteQuery);
-        assert deleteResult.code() == ResultSet.SUCCESS;
-
-        // 再查一遍
-        Query lastGet = new GetQuery(getPairs);
-        ResultSet lastGetResult = cfDb.doQuery(lastGet);
-        assert lastGetResult.code() == ResultSet.SUCCESS;
-
-        for(QueryTuple tuple : lastGetResult.result()) {
-            assert Arrays.equals(tuple.valueBytes(), null);
-        }
-
-        cfDb.close();
     }
 
     @Test

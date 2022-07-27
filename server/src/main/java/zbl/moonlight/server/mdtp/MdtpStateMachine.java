@@ -8,12 +8,9 @@ import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.engine.EngineExecutor;
 import zbl.moonlight.socket.client.ServerNode;
-import zbl.moonlight.storage.core.ColumnFamily;
-import zbl.moonlight.storage.core.Key;
 import zbl.moonlight.storage.core.ResultSet;
-import zbl.moonlight.storage.core.RocksDatabase;
-import zbl.moonlight.storage.query.GetQuery;
-import zbl.moonlight.storage.query.QueryTuple;
+import zbl.moonlight.storage.rocks.RocksDatabase;
+import zbl.moonlight.storage.rocks.query.kv.KvBatchGetQuery;
 
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
@@ -28,15 +25,8 @@ public class MdtpStateMachine implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
 
     public static final String META_DB_NAME = "raft_meta";
-    private static final Key CLUSTER_NODES_KEY = new Key(
-            "cluster_nodes_key".getBytes(StandardCharsets.UTF_8)
-    );
-    private static final ColumnFamily CLUSTER_NODES_COLUMN_FAMILY = new ColumnFamily(
-            "cluster_nodes_column_family".getBytes(StandardCharsets.UTF_8)
-    );
-    private static final ColumnFamily CLUSTER_NODES_COLUMN_FAMILY_NEW = new ColumnFamily(
-            "cluster_nodes_column_family_new".getBytes(StandardCharsets.UTF_8)
-    );
+    private static final byte[] CLUSTER_NODES = "cluster_nodes".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] NEW_CLUSTER_NODES = "new_cluster_nodes".getBytes(StandardCharsets.UTF_8);
 
     private EngineExecutor engineExecutor;
     private final RocksDatabase metaDb;
@@ -56,13 +46,13 @@ public class MdtpStateMachine implements StateMachine {
 
     @Override
     public List<ServerNode> clusterNodes() {
-        byte[] value = metaDbGet(CLUSTER_NODES_COLUMN_FAMILY);
+        byte[] value = metaDbGet(CLUSTER_NODES);
         return parseClusterNodes(value);
     }
 
     @Override
     public List<ServerNode> newClusterNodes() {
-        byte[] value = metaDbGet(CLUSTER_NODES_COLUMN_FAMILY_NEW);
+        byte[] value = metaDbGet(NEW_CLUSTER_NODES);
         return parseClusterNodes(value);
     }
 
@@ -70,19 +60,8 @@ public class MdtpStateMachine implements StateMachine {
         return null;
     }
 
-    private byte[] metaDbGet(ColumnFamily columnFamily) {
-        try {
-            QueryTuple queryTuple = new QueryTuple(MdtpStateMachine.CLUSTER_NODES_KEY,
-                    columnFamily, null);
-            ResultSet resultSet = metaDb.doQuery(new GetQuery(List.of(queryTuple)));
-            if(resultSet.code() != ResultSet.SUCCESS) {
-                throw new RuntimeException("Get clusterNodes failed.");
-            }
-            List<QueryTuple> result = resultSet.result();
-            return result.get(0).valueBytes();
-        } catch (RocksDBException e) {
-            throw new RuntimeException(e);
-        }
+    private byte[] metaDbGet(byte[] key) {
+        return null;
     }
 
     @Override

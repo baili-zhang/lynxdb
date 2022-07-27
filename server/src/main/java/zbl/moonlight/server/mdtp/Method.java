@@ -1,14 +1,14 @@
 package zbl.moonlight.server.mdtp;
 
 
-import zbl.moonlight.storage.query.DeleteQuery;
-import zbl.moonlight.storage.query.GetQuery;
-import zbl.moonlight.storage.query.SetQuery;
+import zbl.moonlight.storage.rocks.query.kv.KvBatchDeleteQuery;
+import zbl.moonlight.storage.rocks.query.kv.KvBatchGetQuery;
+import zbl.moonlight.storage.rocks.query.kv.KvBatchSetQuery;
 
 public enum Method {
-    KV_GET((byte) 0x01, GetQuery.class),
-    KV_SET((byte) 0x02, SetQuery.class),
-    KV_DELETE((byte) 0x03, DeleteQuery.class);
+    KV_GET((byte) 0x01, KvBatchGetQuery.class),
+    KV_SET((byte) 0x02, KvBatchSetQuery.class),
+    KV_DELETE((byte) 0x03, KvBatchDeleteQuery.class);
 
     private byte value;
     private Class<?> type;

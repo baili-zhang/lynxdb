@@ -1,9 +1,9 @@
-package zbl.moonlight.storage.query;
+package zbl.moonlight.storage.rocks.query;
 
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.ResultSet;
 
 public interface Queryable {
-    void doQuery(RocksDB db, ResultSet resultSet) throws RocksDBException;
+    void doQuery(RocksDB db) throws RocksDBException;
 }

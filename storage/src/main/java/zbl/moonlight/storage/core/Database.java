@@ -1,7 +1,7 @@
 package zbl.moonlight.storage.core;
 
 import org.rocksdb.RocksDB;
-import zbl.moonlight.storage.query.Query;
+import zbl.moonlight.storage.rocks.query.Query;
 
 import java.nio.file.Path;
 
@@ -22,5 +22,5 @@ public abstract class Database implements AutoCloseable {
         return Path.of(dataDir, name).toString();
     }
 
-    public abstract ResultSet doQuery(Query query) throws Exception;
+    public abstract ResultSet<?> doQuery(Query<?, ?> query) throws Exception;
 }
