@@ -23,6 +23,8 @@ public interface StateMachine {
      */
     List<ServerNode> newClusterNodes();
 
+    void newClusterNodes(List<ServerNode> clusterNodes);
+
     /**
      * 将集群的旧配置更新为新配置
      */

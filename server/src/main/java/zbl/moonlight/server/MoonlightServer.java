@@ -10,6 +10,7 @@ import zbl.moonlight.raft.server.RaftServerHandler;
 import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.server.engine.EngineExecutor;
+import zbl.moonlight.server.mdtp.MdtpEngineExecutor;
 import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ public class MoonlightServer {
         raftServer = new RaftServer(current, raftClient);
         raftServer.setHandler(new RaftServerHandler(raftServer, raftClient));
         raftServer.setClientHandler(new RaftClientHandler(raftServer, raftClient));
-        engineExecutor = new EngineExecutor(raftServer);
+        engineExecutor = new MdtpEngineExecutor(raftServer);
     }
 
     public void run() {

@@ -9,10 +9,6 @@ public abstract class Database implements AutoCloseable {
     protected final String name;
     protected final String dataDir;
 
-    static {
-        RocksDB.loadLibrary();
-    }
-
     protected Database(String name, String dataDir) {
         this.name = name;
         this.dataDir = dataDir;

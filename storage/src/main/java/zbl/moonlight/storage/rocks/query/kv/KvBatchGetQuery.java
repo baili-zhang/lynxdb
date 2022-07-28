@@ -8,8 +8,8 @@ import zbl.moonlight.storage.rocks.query.Query;
 import java.util.*;
 
 public class KvBatchGetQuery extends Query<List<byte[]>, List<byte[]>> {
-    public KvBatchGetQuery(List<byte[]> queryData) {
-        super(queryData);
+    public KvBatchGetQuery(List<byte[]> queryData, ResultSet<List<byte[]>> resultSet) {
+        super(queryData, resultSet);
     }
 
     @Override

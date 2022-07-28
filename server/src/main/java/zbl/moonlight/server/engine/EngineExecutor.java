@@ -2,124 +2,100 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDBException;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.server.mdtp.MdtpStateMachine;
-import zbl.moonlight.socket.server.SocketServer;
+import zbl.moonlight.raft.server.RaftServer;
+import zbl.moonlight.server.annotations.MdtpMethod;
+import zbl.moonlight.server.mdtp.MdtpCommand;
 import zbl.moonlight.server.context.Configuration;
-import zbl.moonlight.server.mdtp.Method;
-import zbl.moonlight.server.mdtp.Params;
-import zbl.moonlight.storage.rocks.RocksDatabase;
+import zbl.moonlight.socket.response.WritableSocketResponse;
+import zbl.moonlight.storage.core.KvAdapter;
+import zbl.moonlight.storage.core.TableAdapter;
+import zbl.moonlight.storage.rocks.RocksKvAdapter;
 import zbl.moonlight.storage.rocks.query.Query;
-import zbl.moonlight.storage.core.ResultSet;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Type;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-public class EngineExecutor extends Executor<Map<String, Object>> {
+public class EngineExecutor extends Executor<MdtpCommand> {
     private static final Logger logger = LogManager.getLogger("StorageEngine");
 
-    private final SocketServer socketServer;
-    private final HashMap<String, RocksDatabase> dbMap = new HashMap<>();
+    private static final String KV = "kv";
+    private static final String TABLE = "table";
 
-    private final HashMap<Byte, Class<?>> methodMap = new HashMap<>();
+    private final RaftServer raftServer;
+    private final HashMap<Byte, Method> methodMap = new HashMap<>();
+
+    protected final HashMap<String, KvAdapter> kvDbMap = new HashMap<>();
+    protected final HashMap<String, TableAdapter> tableMap = new HashMap<>();
 
     /* TODO: Cache 以后再实现 */
 
-    public EngineExecutor(SocketServer socketServer) {
-        this.socketServer = socketServer;
+    public EngineExecutor(RaftServer server, Class<? extends EngineExecutor> clazz) {
+        raftServer = server;
 
+        initKvDb();
+        initTable();
+        initMethod(clazz);
+    }
+
+    private void initKvDb() {
         String dataDir = Configuration.getInstance().dataDir();
-        Path CfPath = Path.of(dataDir);
+        Path kvPath = Path.of(dataDir, KV);
 
-        File cfDbDir = CfPath.toFile();
+        File kvDir = kvPath.toFile();
 
 
-        if(cfDbDir.isDirectory()) {
-            String[] subs = cfDbDir.list();
+        if(kvDir.isDirectory()) {
+            String[] kvDbNames = kvDir.list();
 
-            if(subs == null) {
+            if(kvDbNames == null) {
                 return;
             }
 
-            for (String sub : subs) {
-                if(MdtpStateMachine.META_DB_NAME.equals(sub)) {
-                    continue;
-                }
-                File subFile = Path.of(cfDbDir.getPath(), sub).toFile();
+            for (String kvDbName : kvDbNames) {
+                File subFile = Path.of(kvDir.getPath(), kvDbName).toFile();
                 if(subFile.isDirectory()) {
-                    try {
-                        dbMap.put(sub, RocksDatabase.open(sub, CfPath.toString()));
-                    } catch (RocksDBException e) {
-                        throw new RuntimeException(e);
-                    }
+                    kvDbMap.put(kvDbName, new RocksKvAdapter(kvDbName, kvDir.getPath()));
                 }
             }
         }
+    }
 
-        Method[] methods = Method.values();
-        for(Method method : methods) {
-            methodMap.put(method.value(), method.type());
-        }
+    private void initTable() {
+    }
+
+    private void initMethod(Class<? extends EngineExecutor> clazz) {
+        Method[] methods = clazz.getDeclaredMethods();
+        Arrays.stream(methods).forEach(method -> {
+            MdtpMethod mdtpMethod = method.getAnnotation(MdtpMethod.class);
+            methodMap.put(mdtpMethod.value(), method);
+        });
     }
 
     @Override
     protected void execute() {
-        Map<String, Object> map = blockPoll();
-        if(map == null) {
+        MdtpCommand mdtpCommand = blockPoll();
+        if(mdtpCommand == null) {
             return;
         }
 
-        Query query = null;
-        Byte methodByte = (Byte) map.get(Params.METHOD);
-        Class<?> type = methodMap.get(methodByte);
-
-        if(type != null) {
-            Constructor<?>[] constructors = type.getDeclaredConstructors();
-
-            if(constructors.length < 1) {
-                throw new RuntimeException(type.getName() + " has no constructor");
-            }
-            Constructor<?> constructor = constructors[0];
-
-            Type[] types = constructor.getGenericParameterTypes();
-            List<Object> args = new ArrayList<>();
-
-            for(Type t : types) {
-                args.add(map.get(t.getTypeName()));
-            }
-
-            try {
-                query = (Query) constructor.newInstance(args.toArray(Object[]::new));
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if(query == null) {
+        Method method = methodMap.get(mdtpCommand.method());
+        if(method == null) {
+            // TODO: 处理不支持的方法类型
             return;
         }
 
-        String dbName = (String) map.get("db_name");
-        String dbType = (String) map.get("db_type");
-
-        ResultSet resultSet = null;
-
-        RocksDatabase db = dbMap.get(dbName);
         try {
-            resultSet = db.doQuery(query);
-        } catch (RocksDBException e) {
+            WritableSocketResponse response = (WritableSocketResponse) method
+                    .invoke(this, mdtpCommand);
+            // 将响应发送给 raftServer
+            raftServer.offerInterruptibly(response);
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
-
-        // 将响应发送给 raftServer
-        socketServer.offerInterruptibly(null);
     }
 }

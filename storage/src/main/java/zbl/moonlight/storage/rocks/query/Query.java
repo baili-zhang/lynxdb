@@ -13,9 +13,9 @@ public abstract class Query<QD, R> implements Queryable {
 
     protected ColumnFamilyHandle defaultHandle;
 
-    protected Query(QD queryData) {
+    protected Query(QD queryData, ResultSet<R> resultSet) {
         this.queryData = queryData;
-        this.resultSet = new ResultSet<>();
+        this.resultSet = resultSet;
     }
 
     public void setColumnFamilyHandles(List<ColumnFamilyHandle> handles) {

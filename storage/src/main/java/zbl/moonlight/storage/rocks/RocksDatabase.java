@@ -19,6 +19,10 @@ public class RocksDatabase extends Database {
     private final List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
     private final ColumnFamilyHandle defaultHandle;
 
+    static {
+        RocksDB.loadLibrary();
+    }
+
     private RocksDatabase(String name, String dataDir) throws RocksDBException {
         super(name, dataDir);
         options = new Options();
@@ -26,7 +30,7 @@ public class RocksDatabase extends Database {
 
         List<byte[]> cfs = RocksDB.listColumnFamilies(options, path());
         if(cfs.isEmpty()) {
-            cfs.add(RocksDB.DEFAULT_COLUMN_FAMILY);
+            cfs = List.of(RocksDB.DEFAULT_COLUMN_FAMILY);
         }
 
         final List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream()
