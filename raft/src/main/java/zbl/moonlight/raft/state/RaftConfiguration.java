@@ -6,17 +6,18 @@ public interface RaftConfiguration {
     /**
      * 需要得到 leader 确认才能启动选举计时器
      */
-    byte FOLLOWER = (byte) 0x01;
+    String FOLLOWER = "follower";
     /**
      * 需要连接一半以上的节点后才能转换成 candidate
      */
-    byte CANDIDATE = (byte) 0x02;
+    String CANDIDATE = "candidate";
     /**
      * 选举计时器超时即可转换成 candidate
      */
-    byte LEADER = (byte) 0x03;
+    String LEADER = "leader";
 
-    byte leaderNode();
+
+    String electionMode();
 
     ServerNode currentNode();
 }

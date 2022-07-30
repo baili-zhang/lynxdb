@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
@@ -94,13 +95,24 @@ public class RaftState {
 
         currentNode = raftConfiguration.currentNode();
 
+        // 初始化集群节点配置
+        List<ServerNode> clusterNodes = stateMachine.clusterNodes();
+        if(clusterNodes == null) {
+            // 第一次启动服务
+            leaderNode = currentNode;
+        }
+
+
+        // 超时计时器
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
-        /* 设置随机选举超时时间 */
+        // 设置随机选举超时时间
         final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
 
+
+        // 日志
         raftLog = new RaftLog(logFilenamePrefix + "index.log",
                 logFilenamePrefix + "data.log");
         termLog = new TermLog(logFilenamePrefix + "term.log");
@@ -109,14 +121,20 @@ public class RaftState {
     private final RaftConfiguration raftConfiguration;
 
     public void startTimeout() {
+        String electionMode = raftConfiguration.electionMode();
+
         // 如果 leaderMode 为 follower，不需要启动超时计时器
-        if(raftConfiguration.leaderNode() == RaftConfiguration.FOLLOWER) {
-            return;
+        if(RaftConfiguration.FOLLOWER.equals(electionMode)) {
+            logger.info("Election Mode is [{}], Do not start Timeout.", electionMode);
+        } else if (RaftConfiguration.LEADER.equals(electionMode)
+                || RaftConfiguration.CANDIDATE.equals(electionMode)) {
+            logger.info("Election Mode is [{}].", electionMode);
+
+            // 启动心跳超时计时器
+            new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME).start();
+            // 启动选举超时计时器
+            new Thread(election, ELECTION_TIMEOUT_NAME).start();
         }
-        // 启动心跳超时计时器
-        new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME).start();
-        // 启动选举超时计时器
-        new Thread(election, ELECTION_TIMEOUT_NAME).start();
     }
 
     public ServerNode currentNode() {
@@ -167,7 +185,9 @@ public class RaftState {
             try {
                 /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
                 if (raftRole() != RaftRole.Leader) {
-                    if(raftConfiguration.leaderNode() == RaftConfiguration.CANDIDATE) {
+                    String electionMode = raftConfiguration.electionMode();
+
+                    if(RaftConfiguration.CANDIDATE.equals(electionMode)) {
                         // 配置中的总节点数
                         int count = stateMachine.clusterNodes().size();
                         // 连接上的节点数
@@ -177,7 +197,7 @@ public class RaftState {
                             // 转换为 Candidate 角色
                             transformToCandidate();
                         }
-                    } else if(raftConfiguration.leaderNode() == RaftConfiguration.LEADER) {
+                    } else if(RaftConfiguration.LEADER.equals(raftConfiguration.electionMode())) {
                         // 转换为 Candidate 角色
                         transformToCandidate();
                     }

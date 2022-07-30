@@ -9,7 +9,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AppendEntries extends RaftRequest {
+    private final static byte DATA_CHANGE = (byte) 0x01;
+    private final static byte CLUSTER_MEMBERSHIP_CHANGE = (byte) 0x02;
+
+    private final boolean isClusterMembershipChange;
+
     public AppendEntries() {
+        this(false);
+    }
+
+    public AppendEntries(boolean isClusterMembershipChange) {
+        this.isClusterMembershipChange = isClusterMembershipChange;
     }
 
     @Override
@@ -28,7 +38,8 @@ public class AppendEntries extends RaftRequest {
         buffer.put(RaftRequest.APPEND_ENTRIES).putInt(host.length)
                 .put(host).putInt(leader().port())
                 .putInt(term()).putInt(prevLogIndex()).putInt(prevLogTerm())
-                .putInt(leaderCommit());
+                .putInt(leaderCommit())
+                .put(isClusterMembershipChange ? CLUSTER_MEMBERSHIP_CHANGE : DATA_CHANGE);
 
         for(byte[] bytes : entryBytes) {
             buffer.putInt(bytes.length).put(bytes);

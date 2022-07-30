@@ -5,8 +5,8 @@ import zbl.moonlight.socket.client.ServerNode;
 
 public class MoonlightRaftConfiguration implements RaftConfiguration {
     @Override
-    public byte leaderNode() {
-        return LEADER;
+    public String electionMode() {
+        return Configuration.getInstance().electionMode();
     }
 
     @Override

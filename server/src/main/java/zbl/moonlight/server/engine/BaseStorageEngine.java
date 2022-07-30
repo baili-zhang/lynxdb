@@ -26,7 +26,7 @@ public abstract class BaseStorageEngine {
 
     private static final String KV_DIR = "kv";
     private static final String TABLE_DIR = "table";
-    private static final String META_DIR = "meta";
+    private static final String META_DIR = "meta_info";
 
     public static final String META_DB_NAME = "raft_meta";
 
@@ -42,7 +42,7 @@ public abstract class BaseStorageEngine {
         String dataDir = Configuration.getInstance().dataDir();
         String metaDbDir = Path.of(dataDir, META_DIR).toString();
 
-        metaDb = new RocksKvAdapter(metaDbDir, META_DB_NAME);
+        metaDb = new RocksKvAdapter(META_DB_NAME, metaDbDir);
 
         initKvDb();
         initTable();
@@ -54,7 +54,6 @@ public abstract class BaseStorageEngine {
         Path kvPath = Path.of(dataDir, KV_DIR);
 
         File kvDir = kvPath.toFile();
-
 
         if(kvDir.isDirectory()) {
             String[] kvDbNames = kvDir.list();
@@ -99,6 +98,11 @@ public abstract class BaseStorageEngine {
         Method[] methods = clazz.getDeclaredMethods();
         Arrays.stream(methods).forEach(method -> {
             MdtpMethod mdtpMethod = method.getAnnotation(MdtpMethod.class);
+
+            if(mdtpMethod == null) {
+                return;
+            }
+
             methodMap.put(mdtpMethod.value(), method);
         });
     }

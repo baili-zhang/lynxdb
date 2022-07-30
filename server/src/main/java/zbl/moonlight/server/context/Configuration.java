@@ -24,6 +24,7 @@ public class Configuration {
     private static final String HOST = "host";
     private static final String PORT = "port";
     private static final String DATA_DIR = "data_dir";
+    private static final String ELECTION_MODE = "election_mode";
 
     private final ServerNode currentNode;
 
@@ -31,6 +32,8 @@ public class Configuration {
     private int port;
 
     private String dataDir;
+
+    private String electionMode;
 
     private static class Holder {
         private static final Configuration instance;
@@ -75,11 +78,10 @@ public class Configuration {
             switch (key.toLowerCase()) {
                 case HOST -> host = value;
                 case PORT -> port = Integer.parseInt(value);
-                case DATA_DIR -> {
-                    dataDir = value.startsWith(BASE_DIR)
-                            ? value.replace(BASE_DIR, System.getProperty("user.dir"))
-                            : value;
-                }
+                case DATA_DIR -> dataDir = value.startsWith(BASE_DIR)
+                        ? value.replace(BASE_DIR, System.getProperty("user.dir"))
+                        : value;
+                case ELECTION_MODE -> electionMode = value;
             }
         }
 
@@ -92,5 +94,9 @@ public class Configuration {
 
     public String dataDir() {
         return dataDir;
+    }
+
+    public String electionMode() {
+        return electionMode;
     }
 }
