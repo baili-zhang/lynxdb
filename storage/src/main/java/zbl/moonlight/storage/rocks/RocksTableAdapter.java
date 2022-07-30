@@ -1,10 +1,21 @@
 package zbl.moonlight.storage.rocks;
 
+import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.*;
 
 import java.util.List;
 
 public class RocksTableAdapter implements TableAdapter {
+
+    private final RocksDatabase db;
+
+    public RocksTableAdapter(String name, String dataDir) {
+        try {
+            db = RocksDatabase.open(name, dataDir);
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public SingleTableRow get(SingleTableKey key) {

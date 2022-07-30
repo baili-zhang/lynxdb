@@ -2,20 +2,22 @@ package zbl.moonlight.raft.state;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.core.timeout.TimeoutTask;
 import zbl.moonlight.raft.client.RaftClient;
+import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.log.RaftLog;
 import zbl.moonlight.raft.log.TermLog;
 import zbl.moonlight.raft.request.AppendEntries;
-import zbl.moonlight.raft.log.Entry;
-import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.raft.request.RequestVote;
 import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 

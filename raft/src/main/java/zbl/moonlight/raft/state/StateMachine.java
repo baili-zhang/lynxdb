@@ -3,7 +3,6 @@ package zbl.moonlight.raft.state;
 import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.socket.client.ServerNode;
 
-import java.nio.channels.SelectionKey;
 import java.util.List;
 
 /**
@@ -12,33 +11,17 @@ import java.util.List;
 public interface StateMachine {
 
     /**
-     * 获取当前集群的所有节点
+     * 获取当前集群的所有节点：
+     *  如果有 C_OLD_NEW，则返回 C_OLD_NEW
+     *  如果没有 C_OLD_NEW，则返回 C
+     *
      * @return 当前集群的所有节点
      */
     List<ServerNode> clusterNodes();
-
-    /**
-     * 获取新集群的所有节点
-     * @return 新集群的所有节点
-     */
-    List<ServerNode> newClusterNodes();
-
-    void newClusterNodes(List<ServerNode> clusterNodes);
-
-    /**
-     * 将集群的旧配置更新为新配置
-     */
-    void changeClusterNodes();
 
     /**
      * 应用日志条目
      * @param entries 日志条目
      */
     void apply(Entry[] entries);
-
-    /**
-     * 执行客户端命令请求
-     * @param command 命令
-     */
-    void exec(SelectionKey key, byte[] command);
 }

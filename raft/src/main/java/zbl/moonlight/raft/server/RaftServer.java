@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.raft.client.RaftClient;
 import zbl.moonlight.raft.client.RaftClientHandler;
-import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.server.SocketServer;

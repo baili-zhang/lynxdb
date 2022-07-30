@@ -1,6 +1,5 @@
 package zbl.moonlight.storage.core;
 
-import org.rocksdb.RocksDB;
 import zbl.moonlight.storage.rocks.query.Query;
 
 import java.nio.file.Path;

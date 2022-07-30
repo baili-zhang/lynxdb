@@ -1,10 +1,8 @@
 package zbl.moonlight.raft.request;
 
 import zbl.moonlight.core.utils.NumberUtils;
-import zbl.moonlight.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 
 public class RequestVote extends RaftRequest {

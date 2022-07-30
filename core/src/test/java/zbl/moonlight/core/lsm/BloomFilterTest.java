@@ -8,8 +8,6 @@ import zbl.moonlight.core.enhance.EnhanceFile;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class BloomFilterTest {
     private BloomFilter bloomFilter;
     private EnhanceFile file;

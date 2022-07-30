@@ -10,8 +10,6 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
-import static zbl.moonlight.client.Command.*;
-
 public class ClientHandler implements SocketClientHandler {
     private final CyclicBarrier barrier;
     @Setter

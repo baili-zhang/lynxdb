@@ -1,7 +1,6 @@
 package zbl.moonlight.socket.interfaces;
 
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
 
 public interface Readable {
     /** 读数据 */

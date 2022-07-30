@@ -5,7 +5,6 @@ import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.request.SocketRequest;
 
-import java.nio.channels.SelectionKey;
 import java.util.List;
 
 public abstract class RaftRequest extends SocketRequest {
