@@ -4,6 +4,9 @@ import java.nio.ByteBuffer;
 
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
+/**
+ * TODO: 改成静态工具类
+ */
 public class EnhanceByteBuffer {
     private final ByteBuffer buffer;
 
@@ -47,6 +50,10 @@ public class EnhanceByteBuffer {
 
     public long getLong() {
         return buffer.getLong();
+    }
+
+    public Integer getInt() {
+        return buffer.getInt();
     }
 
     /* 判断ByteBuffer是否读结束（或写结束） */

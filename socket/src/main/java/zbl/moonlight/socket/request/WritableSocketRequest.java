@@ -11,7 +11,7 @@ import java.nio.channels.SocketChannel;
 public class WritableSocketRequest extends SocketRequest implements Writable {
     private final ByteBuffer buffer;
 
-    public WritableSocketRequest(SelectionKey selectionKey, byte status, long serial, byte[] data) {
+    public WritableSocketRequest(SelectionKey selectionKey, byte status, int serial, byte[] data) {
         this.status = status;
         this.serial = serial;
         this.data = data;

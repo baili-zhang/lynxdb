@@ -10,6 +10,7 @@ import zbl.moonlight.storage.rocks.RocksKvAdapter;
 import zbl.moonlight.storage.rocks.RocksTableAdapter;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -48,6 +49,27 @@ public abstract class BaseStorageEngine {
         initTable();
         initMethod(clazz);
     }
+
+    public byte[] doQuery(byte[] command) {
+        if(command == null) {
+            throw new RuntimeException("Command is null.");
+        }
+
+        byte method = findMethod(command);
+
+        Method doQueryMethod = methodMap.get(method);
+        if(doQueryMethod == null) {
+            throw new RuntimeException("Not Supported mdtp method.");
+        }
+
+        try {
+            return (byte[]) doQueryMethod.invoke(this, command);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected abstract byte findMethod(byte[] command);
 
     private void initKvDb() {
         String dataDir = Configuration.getInstance().dataDir();

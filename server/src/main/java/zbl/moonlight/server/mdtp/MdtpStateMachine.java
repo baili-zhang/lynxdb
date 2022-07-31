@@ -3,16 +3,19 @@ package zbl.moonlight.server.mdtp;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.raft.log.Entry;
+import zbl.moonlight.raft.log.RaftLogEntry;
+import zbl.moonlight.raft.server.RaftServer;
 import zbl.moonlight.raft.state.RaftCommand;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.server.engine.MdtpStorageEngine;
 import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.response.WritableSocketResponse;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static zbl.moonlight.raft.state.RaftState.CLUSTER_MEMBERSHIP_CHANGE;
+import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
+import static zbl.moonlight.server.engine.MdtpStorageEngine.C;
 
 /**
  * TODO: 异步执行会不会存在数据丢失的问题？
@@ -27,45 +30,52 @@ public class MdtpStateMachine extends Executor<RaftCommand> implements StateMach
      */
     private static final MdtpStorageEngine storageEngine = new MdtpStorageEngine();
 
-    public MdtpStateMachine() {
+    private final RaftServer raftServer;
 
+    public MdtpStateMachine(RaftServer server) {
+        raftServer = server;
     }
 
     @Override
     public List<ServerNode> clusterNodes() {
-        byte[] cOldNew = storageEngine.metaGet(MdtpStorageEngine.C_OLD_NEW);
+        byte[] cOldNew = storageEngine.metaGet(C);
 
         if(cOldNew == null) {
-            byte[] c = storageEngine.metaGet(MdtpStorageEngine.C);
-            return parseClusterNodes(c);
+            byte[] c = storageEngine.metaGet(C);
+            return ServerNode.parseNodeList(c);
         }
 
-        return parseClusterNodes(cOldNew);
+        return ServerNode.parseNodeList(cOldNew);
     }
 
     @Override
-    public void apply(Entry[] entries) {
+    public void apply(RaftLogEntry[] entries) {
+        for (RaftLogEntry entry : entries) {
+            switch (entry.type()) {
+                // 处理数据改变
+                case DATA_CHANGE -> {
+                    // 执行查询操作
+                    byte[] data = storageEngine.doQuery(entry.command());
+                    // 构建 Socket 响应对象
+                    WritableSocketResponse response = new WritableSocketResponse(
+                            entry.selectionKey(),
+                            entry.serial(),
+                            data
+                    );
+                    // 发送响应
+                    raftServer.offerInterruptibly(response);
+                }
 
+                // 处理集群成员改变
+                case CLUSTER_MEMBERSHIP_CHANGE -> {
+                    storageEngine.metaSet(C, entry.command());
+                }
+            }
+        }
     }
 
     @Override
     protected void execute() {
 
-    }
-
-    private byte[] clusterNodesToBytes(List<ServerNode> currentNodes) {
-        String total = currentNodes.stream().map(ServerNode::toString)
-                .collect(Collectors.joining(" "));
-        return total.getBytes(StandardCharsets.UTF_8);
-    }
-
-    private List<ServerNode> parseClusterNodes(byte[] value) {
-        if(value == null) {
-            return null;
-        }
-
-        String total = new String(value);
-        String[] nodes = total.trim().split("\\s+");
-        return Arrays.stream(nodes).map(ServerNode::parse).toList();
     }
 }

@@ -1,6 +1,6 @@
 package zbl.moonlight.raft.state;
 
-import zbl.moonlight.raft.log.Entry;
+import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.socket.client.ServerNode;
 
 import java.util.List;
@@ -23,5 +23,5 @@ public interface StateMachine {
      * 应用日志条目
      * @param entries 日志条目
      */
-    void apply(Entry[] entries);
+    void apply(RaftLogEntry[] entries);
 }

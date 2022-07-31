@@ -2,16 +2,14 @@ package zbl.moonlight.server.engine;
 
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.storage.core.KvAdapter;
+import zbl.moonlight.storage.core.Pair;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 
 import static zbl.moonlight.server.annotations.MdtpMethod.KV_SINGLE_GET;
 
 public class MdtpStorageEngine extends BaseStorageEngine {
     public static final String C = "c";
-    public static final String C_OLD_NEW = "c_old_new";
 
     private static final byte KV_ADAPTER = (byte) 0x01;
     private static final byte TABLE_ADAPTER = (byte) 0x02;
@@ -21,27 +19,22 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         super(MdtpStorageEngine.class);
     }
 
-    public byte[] doQuery(byte[] command) {
-        if(command == null) {
-            throw new RuntimeException("Command is null.");
-        }
-
-        byte method = findMethod(command);
-
-        Method doQueryMethod = methodMap.get(method);
-        if(doQueryMethod == null) {
-            throw new RuntimeException("Not Supported mdtp method.");
-        }
-
-        try {
-            return (byte[]) doQueryMethod.invoke(this, command);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public byte[] metaGet(String key) {
         return metaDb.get(key.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 为什么不用注解的方式？
+     *  因为不是 Socket 通信的命令
+     *  需要生成 byte[] 的 command
+     *  再解析 command
+     *  处理流程绕了一大圈
+     *
+     * @param key key
+     * @param value value
+     */
+    public void metaSet(String key, byte[] value) {
+        metaDb.set(new Pair<>(key.getBytes(StandardCharsets.UTF_8), value));
     }
 
     @MdtpMethod(KV_SINGLE_GET)
@@ -56,7 +49,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
          return kvDb.get(findKey(command));
     }
 
-    private byte findMethod(final byte[] command) {
+    protected byte findMethod(final byte[] command) {
         return (byte) 0x01;
     }
 

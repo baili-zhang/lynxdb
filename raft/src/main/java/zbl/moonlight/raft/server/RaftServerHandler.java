@@ -4,11 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.enhance.EnhanceByteBuffer;
 import zbl.moonlight.core.utils.NumberUtils;
-import zbl.moonlight.raft.client.RaftClient;
-import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.log.RaftLog;
-import zbl.moonlight.raft.request.AppendEntries;
-import zbl.moonlight.raft.request.ClientRequest;
+import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.raft.request.RaftRequest;
 import zbl.moonlight.raft.response.RaftResponse;
 import zbl.moonlight.raft.state.RaftRole;
@@ -16,48 +13,47 @@ import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.interfaces.SocketServerHandler;
 import zbl.moonlight.socket.request.SocketRequest;
-import zbl.moonlight.socket.request.WritableSocketRequest;
 import zbl.moonlight.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
-import static zbl.moonlight.raft.response.RaftResponse.CLIENT_REQUEST_FAILURE;
+import static zbl.moonlight.raft.response.RaftResponse.CLIENT_REQUEST_REDIRECT;
+import static zbl.moonlight.raft.response.RaftResponse.LEADER_NOT_FOUND;
+import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");
 
     private final RaftState raftState;
     private final RaftServer raftServer;
-    private final RaftClient raftClient;
     private final LogIndexMap logIndexMap;
 
-    public RaftServerHandler(RaftServer server, RaftClient client) {
+    public RaftServerHandler(RaftServer server) {
         raftServer = server;
         raftState = RaftState.getInstance();
-        raftClient = client;
         logIndexMap = new LogIndexMap();
     }
 
     @Override
     public void handleRequest(SocketRequest request) throws Exception {
+        int serial = request.serial();
         byte[] data = request.data();
         ByteBuffer buffer = ByteBuffer.wrap(data);
         byte method = buffer.get();
 
         switch (method) {
             case RaftRequest.REQUEST_VOTE ->
-                    handleRequestVoteRpc(request.selectionKey(), buffer);
+                    handleRequestVoteRpc(request.selectionKey(), serial, buffer);
             case RaftRequest.APPEND_ENTRIES ->
-                    handleAppendEntriesRpc(request.selectionKey(), buffer);
+                    handleAppendEntriesRpc(request.selectionKey(), serial, buffer);
             case RaftRequest.CLIENT_REQUEST ->
-                    handleClientRequest(request.selectionKey(), buffer);
+                    handleClientRequest(request.selectionKey(), serial, buffer);
         }
     }
 
@@ -75,7 +71,7 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handleRequestVoteRpc(SelectionKey selectionKey, ByteBuffer buffer)
+    private void handleRequestVoteRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer)
             throws IOException {
         String host = getString(buffer);
         int port = buffer.getInt();
@@ -85,7 +81,7 @@ public class RaftServerHandler implements SocketServerHandler {
         int lastLogTerm = buffer.getInt();
 
         int currentTerm = raftState.currentTerm();
-        Entry lastEntry = raftState.lastEntry();
+        RaftLogEntry lastRaftLogEntry = raftState.lastEntry();
 
         logger.debug("Handle [RequestVote] RPC request: { candidate: {}, term: {}, " +
                 "lastLogIndex: {}, lastLogTerm: {} }", candidate, term, lastLogIndex, lastLogTerm);
@@ -100,7 +96,7 @@ public class RaftServerHandler implements SocketServerHandler {
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
-            raftState.setRaftRole(RaftRole.Follower);
+            raftState.raftRole(RaftRole.FOLLOWER);
         }
 
         /* 获取 voteFor 的节点，需要在 setCurrentTerm 操作之后 */
@@ -109,10 +105,10 @@ public class RaftServerHandler implements SocketServerHandler {
                 raftState.currentNode(), voteFor);
 
         if (voteFor == null || voteFor.equals(candidate)) {
-            if(lastLogTerm > lastEntry.term()) {
+            if(lastLogTerm > lastRaftLogEntry.term()) {
                 requestVoteSuccess(currentTerm, candidate, selectionKey);
                 return;
-            } else if (lastLogTerm == lastEntry.term()) {
+            } else if (lastLogTerm == lastRaftLogEntry.term()) {
                 if(lastLogIndex >= raftState.indexOfLastLogEntry()) {
                     requestVoteSuccess(currentTerm, candidate, selectionKey);
                     return;
@@ -139,7 +135,7 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handleAppendEntriesRpc(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
+    private void handleAppendEntriesRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) throws IOException {
         String host = getString(buffer);
         int port = buffer.getInt();
         ServerNode leader = new ServerNode(host, port);
@@ -147,12 +143,12 @@ public class RaftServerHandler implements SocketServerHandler {
         int prevLogIndex = buffer.getInt();
         int prevLogTerm = buffer.getInt();
         int leaderCommit = buffer.getInt();
-        Entry[] entries = EnhanceByteBuffer.isOver(buffer)
-                ? new Entry[0] : getEntries(buffer);
+        RaftLogEntry[] entries = EnhanceByteBuffer.isOver(buffer)
+                ? new RaftLogEntry[0] : getEntries(buffer);
 
         ServerNode currentNode = raftState.currentNode();
         int currentTerm = raftState.currentTerm();
-        Entry leaderPrevEntry = raftState.getEntryByIndex(prevLogIndex);
+        RaftLogEntry leaderPrevRaftLogEntry = raftState.getEntryByIndex(prevLogIndex);
 
         if(entries.length != 0) {
             logger.info("[{}] -- [AppendEntries] -- leader={}, term={}, " +
@@ -169,25 +165,25 @@ public class RaftServerHandler implements SocketServerHandler {
             return;
         } else if(term > currentTerm) {
             raftState.setCurrentTerm(term);
-            raftState.setRaftRole(RaftRole.Follower);
+            raftState.raftRole(RaftRole.FOLLOWER);
         }
 
         /* 只有在 leader 的 term >= currentTerm 时，才重设选举计时器 */
         raftState.resetElectionTimeout();
         /* 设置 leaderNode, 收到客户端请求，将请求重定向给 leader 时用 */
-        raftState.setLeaderNode(leader);
+        raftState.leaderNode(leader);
         logger.debug("[{}] Received [AppendEntries], reset election timeout.",
                 currentNode);
 
         /* raft 日志不匹配，AppendEntries 请求失败 */
-        if(leaderPrevEntry == null) {
+        if(leaderPrevRaftLogEntry == null) {
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
             return;
         }
 
         /* raft 日志不匹配，AppendEntries 请求失败 */
-        if(leaderPrevEntry != RaftLog.BEGIN_ENTRY && leaderPrevEntry.term() != prevLogTerm) {
+        if(leaderPrevRaftLogEntry != RaftLog.BEGIN_RAFT_LOG_ENTRY && leaderPrevRaftLogEntry.term() != prevLogTerm) {
             raftState.setMaxIndex(prevLogIndex);
             byte[] data = RaftResponse.appendEntriesFailure(currentTerm, raftState.currentNode());
             sendResult(selectionKey, data);
@@ -195,7 +191,7 @@ public class RaftServerHandler implements SocketServerHandler {
         }
 
         raftState.setMaxIndex(prevLogIndex);
-        raftState.append(entries);
+        raftState.logAppend(entries);
         byte[] data = RaftResponse.appendEntriesSuccess(currentTerm, raftState.currentNode(),
                 raftState.indexOfLastLogEntry());
         sendResult(selectionKey, data);
@@ -210,67 +206,65 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handleClientRequest(SelectionKey selectionKey, ByteBuffer buffer) throws IOException {
-        /* 将客户端请求的标志拿出来， */
-        byte flag = buffer.get();
-        /* 把 buffer 中没读到的字节数全部拿出来 */
+    private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) throws IOException {
+        // 把 buffer 中没读到的字节数全部拿出来
         int len = buffer.limit() - buffer.position();
         byte[] command = new byte[len];
         buffer.get(command);
 
         ServerNode currentNode = raftState.currentNode();
 
-        if(flag == ClientRequest.RAFT_CLIENT_REQUEST_GET) {
-            logger.info("[{}] do client [RAFT_CLIENT_REQUEST_GET] request.", currentNode);
-            return;
-        }
-
-        logger.info("[{}] do client [RAFT_CLIENT_REQUEST_SET] request, command is: {}",
-                currentNode, new String(command));
-
-        /* 如果是 RAFT_CLIENT_REQUEST_SET，则执行以下逻辑 */
         switch (raftState.raftRole()) {
-            /* leader 获取到客户端请求，需要将请求重新封装成 AppendEntries 请求发送给 socketClient */
-            case Leader -> {
-                int logIndex = raftState.append(new Entry(raftState.currentTerm(), command));
-                logger.info("[{}] -- [Leader] -- Received client request, log max index is {}.",
-                        currentNode, logIndex);
 
+            // Leader 状态：
+            //  请求 -> 写文件 -> 双向队列 -> 发 AppendEntries 请求给 follower
+            case LEADER -> {
+                // 封装请求
+                RaftLogEntry entry = new RaftLogEntry(
+                        selectionKey,
+                        serial,
+                        raftState.currentTerm(),
+                        DATA_CHANGE,
+                        command
+                );
+                // 尾部追加日志条目
+                raftState.appendEntry(entry);
+                // 重置心跳计时器
                 raftState.resetHeartbeatTimeout();
-                ConcurrentHashMap<SelectionKey, Integer> nextIndex = raftState.nextIndex();
-                for(SelectionKey key : nextIndex.keySet()) {
-                    int prevLogIndex = logIndex - 1;
-                    int prevLogTerm = prevLogIndex == 0 ? 0
-                            : raftState.getEntryTermByIndex(prevLogIndex);
-                    Entry[] entries = raftState.getEntriesByRange(prevLogIndex,
-                            raftState.indexOfLastLogEntry());
-                    /* 创建 AppendEntries 请求 */
-                    AppendEntries appendEntries = new AppendEntries();
-                    /* 将请求发送到其他节点 */
-                    WritableSocketRequest request = new WritableSocketRequest(key, (byte) 0x00,
-                            0L, appendEntries.toBytes());
-                    raftClient.offerInterruptibly(request);
+                // 发送 AppendEntries 请求
+                raftState.sendAppendEntries();
+            }
 
-                    logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries,
-                            ((SocketChannel)key.channel()).getRemoteAddress());
+            // Follower 状态：
+            //  将请求重定向给 leader
+            case FOLLOWER -> {
+                ServerNode leaderNode = raftState.leaderNode();
+
+                if(leaderNode == null) {
+                    logger.info("[{}] is [Follower], leader is [null].", currentNode);
+
+                    byte[] data = ByteBuffer.allocate(1).put(LEADER_NOT_FOUND).array();
+                    raftServer.offerInterruptibly(new WritableSocketResponse(selectionKey, serial, data));
+
+                    return;
                 }
 
-                /* 重设心跳计时器 */
-                raftState.resetHeartbeatTimeout();
+                byte[] leader = leaderNode.toString().getBytes(StandardCharsets.UTF_8);
+                byte[] data = ByteBuffer.allocate(leader.length + 1)
+                        .put(CLIENT_REQUEST_REDIRECT)
+                        .put(leader).array();
 
-                /* 将 logIndex 缓存到 logIndexMap */
-                logIndexMap.offer(selectionKey, logIndex);
+                raftServer.offerInterruptibly(new WritableSocketResponse(selectionKey, serial, data));
             }
 
-            case Follower -> {
-                /* follower 获取到客户端请求，需要将请求重定向给 leader */
-            }
-
-            /* candidate 获取到客户端请求，直接拒绝 */
-            case Candidate -> {
+            // Candidate 状态：
+            //  不能重定向请求
+            //  不能处理请求
+            case CANDIDATE -> {
                 logger.info("[{}] is [Candidate], client request failure.", currentNode);
-                byte[] data = ByteBuffer.allocate(1).put(CLIENT_REQUEST_FAILURE).array();
-                raftServer.offerInterruptibly(new WritableSocketResponse(selectionKey, 0L, data));
+
+                byte[] data = ByteBuffer.allocate(1).put(LEADER_NOT_FOUND).array();
+                raftServer.offerInterruptibly(new WritableSocketResponse(selectionKey, serial, data));
             }
         }
     }
@@ -286,22 +280,22 @@ public class RaftServerHandler implements SocketServerHandler {
         return new String(getBytes(buffer));
     }
 
-    private Entry[] getEntries(ByteBuffer buffer) {
-        List<Entry> entries = new ArrayList<>();
+    private RaftLogEntry[] getEntries(ByteBuffer buffer) {
+        List<RaftLogEntry> entries = new ArrayList<>();
         while (!EnhanceByteBuffer.isOver(buffer)) {
             entries.add(getEntry(buffer));
         }
 
-        return entries.toArray(Entry[]::new);
+        return entries.toArray(RaftLogEntry[]::new);
     }
 
-    private Entry getEntry(ByteBuffer buffer) {
+    private RaftLogEntry getEntry(ByteBuffer buffer) {
         int len = buffer.getInt() - NumberUtils.INT_LENGTH;
         int term = buffer.getInt();
         byte[] command = new byte[len];
         buffer.get(command);
 
-        return new Entry(term, command);
+        return new RaftLogEntry(null, 0, term, DATA_CHANGE, command);
     }
 
     private void sendResult(SelectionKey selectionKey, byte[] data) {

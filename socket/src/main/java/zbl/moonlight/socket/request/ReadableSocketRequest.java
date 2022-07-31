@@ -43,7 +43,7 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
             if(!EnhanceByteBuffer.isOver(serialBuffer)) {
                 return;
             }
-            serial = serialBuffer.getLong(0);
+            serial = serialBuffer.getInt(0);
         }
         /* 读取请求数据 */
         if(!EnhanceByteBuffer.isOver(dataBuffer)) {

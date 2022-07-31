@@ -16,6 +16,16 @@ public interface RaftResponse {
     /* 解析错误，则客户端请求失败 */
     byte CLIENT_REQUEST_FAILURE = (byte) 0x06;
 
+    // 请求重定向到 leader
+    byte CLIENT_REQUEST_REDIRECT = (byte) 0x07;
+
+    /**
+     * leader 不存在
+     *  选举阶段
+     *  当前节点未加入集群
+     */
+    byte LEADER_NOT_FOUND = (byte) 0x08;
+
     static byte[] requestVoteSuccess(int term, ServerNode currentNode) {
         byte[] hostBytes = currentNode.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
@@ -56,9 +66,5 @@ public interface RaftResponse {
 
     static byte[] clientRequestSuccessWithoutResult() {
         return clientRequestSuccess(new byte[0]);
-    }
-
-    static byte[] clientRequestFailure() {
-        return new byte[]{CLIENT_REQUEST_FAILURE};
     }
 }

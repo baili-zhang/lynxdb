@@ -5,21 +5,24 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.timeout.Timeout;
 import zbl.moonlight.core.timeout.TimeoutTask;
 import zbl.moonlight.raft.client.RaftClient;
-import zbl.moonlight.raft.log.Entry;
 import zbl.moonlight.raft.log.RaftLog;
+import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.raft.log.TermLog;
 import zbl.moonlight.raft.request.AppendEntries;
 import zbl.moonlight.raft.request.RequestVote;
 import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,6 +30,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RaftState {
     private static final Logger logger = LogManager.getLogger("RaftState");
+
+    public final static byte DATA_CHANGE = (byte) 0x01;
+    public final static byte CLUSTER_MEMBERSHIP_CHANGE = (byte) 0x02;
 
     private static final RaftState RAFT_STATE;
 
@@ -37,6 +43,48 @@ public class RaftState {
     private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
+
+    private final ConcurrentLinkedDeque<RaftLogEntry> raftLogEntryDeque = new ConcurrentLinkedDeque<>();
+    private final RaftConfiguration raftConfiguration;
+    private final HashSet<SelectionKey> votedNodes = new HashSet<>();
+
+    private final StateMachine stateMachine;
+
+    private final Timeout heartbeat;
+    private final Timeout election;
+
+    private final ServerNode currentNode;
+
+    /**
+     * 已提交的日志索引
+     */
+    private final AtomicInteger commitIndex = new AtomicInteger(0);
+
+    /**
+     * 应用到状态机的日志索引
+     */
+    private final AtomicInteger lastApplied = new AtomicInteger(0);
+
+    private final ConcurrentHashMap<SelectionKey, Integer> nextIndex
+            = new ConcurrentHashMap<>();
+
+    private final ConcurrentHashMap<SelectionKey, Integer> matchedIndex
+            = new ConcurrentHashMap<>();
+
+    /**
+     * Raft 日志
+     */
+    private final RaftLog raftLog;
+
+    /**
+     * 用来记录当前任期和投票给的节点
+     */
+    private final TermLog termLog;
+
+    private volatile ServerNode leaderNode;
+    private volatile RaftRole raftRole = RaftRole.FOLLOWER;
+
+    private RaftClient raftClient;
 
     static {
         // 通过 SPI 获取 StateMachine 的实例
@@ -64,18 +112,6 @@ public class RaftState {
         }
     }
 
-    private final Timeout heartbeat;
-    private final Timeout election;
-
-    private RaftClient raftClient;
-
-    public RaftClient raftClient() {
-        if(raftClient == null) {
-            throw new RuntimeException("[raftClient] is null.");
-        }
-        return raftClient;
-    }
-
     public void raftClient(RaftClient client) {
         if(raftClient == null) {
             raftClient = client;
@@ -86,8 +122,6 @@ public class RaftState {
         return RAFT_STATE;
     }
 
-    private final ServerNode currentNode;
-
     private RaftState(StateMachine stateMachine, RaftConfiguration raftConfiguration, String logFilenamePrefix)
             throws IOException {
         this.stateMachine = stateMachine;
@@ -95,13 +129,21 @@ public class RaftState {
 
         currentNode = raftConfiguration.currentNode();
 
+        // 日志
+        raftLog = new RaftLog(logFilenamePrefix + "index.log",
+                logFilenamePrefix + "data.log");
+        termLog = new TermLog(logFilenamePrefix + "term.log");
+
         // 初始化集群节点配置
         List<ServerNode> clusterNodes = stateMachine.clusterNodes();
         if(clusterNodes == null) {
             // 第一次启动服务
             leaderNode = currentNode;
+            byte[] command =  currentNode.toString().getBytes(StandardCharsets.UTF_8);
+            RaftLogEntry raftLogEntry = new RaftLogEntry(null, 0, 1, CLUSTER_MEMBERSHIP_CHANGE, command);
+            appendEntry(raftLogEntry);
+            stateMachine.apply(new RaftLogEntry[]{raftLogEntry});
         }
-
 
         // 超时计时器
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
@@ -110,15 +152,7 @@ public class RaftState {
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
-
-
-        // 日志
-        raftLog = new RaftLog(logFilenamePrefix + "index.log",
-                logFilenamePrefix + "data.log");
-        termLog = new TermLog(logFilenamePrefix + "term.log");
     }
-
-    private final RaftConfiguration raftConfiguration;
 
     public void startTimeout() {
         String electionMode = raftConfiguration.electionMode();
@@ -141,6 +175,46 @@ public class RaftState {
         return currentNode;
     }
 
+    public void appendEntry(RaftLogEntry entry) {
+        // 写入日志文件
+        raftLog.append(entry);
+        // 加入双向队列
+        raftLogEntryDeque.addFirst(entry);
+    }
+
+    public void sendAppendEntries() {
+        try {
+            for(SelectionKey key : nextIndex.keySet()) {
+                int logIndex = matchedIndex.get(key);
+
+                int prevLogIndex = logIndex - 1;
+                int prevLogTerm = prevLogIndex == 0 ? 0
+                        : getEntryTermByIndex(prevLogIndex);
+                RaftLogEntry[] entries = getEntriesByRange(prevLogIndex,
+                        indexOfLastLogEntry());
+
+                /* 创建 AppendEntries 请求 */
+                AppendEntries appendEntries = new AppendEntries();
+                appendEntries.term(currentTerm());
+                appendEntries.leader(currentNode);
+                appendEntries.prevLogIndex(prevLogIndex);
+                appendEntries.prevLogTerm(prevLogTerm);
+                appendEntries.entries(entries);
+                appendEntries.leaderCommit(commitIndex());
+
+                /* 将请求发送到其他节点 */
+                WritableSocketRequest request = new WritableSocketRequest(key, (byte) 0x00,
+                        0, appendEntries.toBytes());
+                raftClient.offerInterruptibly(request);
+
+                logger.info("[{}] -- Send [{}] to {}", currentNode, appendEntries,
+                        ((SocketChannel)key.channel()).getRemoteAddress());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private class HeartbeatTask implements TimeoutTask {
         private static final Logger logger = LogManager.getLogger("HeartbeatTask");
 
@@ -148,14 +222,14 @@ public class RaftState {
         public void run() {
             try {
                 /* 如果心跳超时，则需要发送心跳包 */
-                if (raftRole() == RaftRole.Leader) {
+                if (raftRole() == RaftRole.LEADER) {
                     for (SelectionKey selectionKey : raftClient.connectedNodes()) {
-                        int prevLogIndex = nextIndex().get(selectionKey) - 1;
+                        int prevLogIndex = nextIndex.get(selectionKey) - 1;
                         int leaderCommit = commitIndex();
 
                         int prevLogTerm = prevLogIndex == 0 ? 0
                                 : getEntryTermByIndex(prevLogIndex);
-                        Entry[] entries = getEntriesByRange(prevLogIndex,
+                        RaftLogEntry[] entries = getEntriesByRange(prevLogIndex,
                                 indexOfLastLogEntry());
 
                         AppendEntries appendEntries = new AppendEntries();
@@ -184,7 +258,7 @@ public class RaftState {
         public void run() {
             try {
                 /* 如果选举超时，需要转换为 Candidate，则向其他节点发送 RequestVote 请求 */
-                if (raftRole() != RaftRole.Leader) {
+                if (raftRole() != RaftRole.LEADER) {
                     String electionMode = raftConfiguration.electionMode();
 
                     if(RaftConfiguration.CANDIDATE.equals(electionMode)) {
@@ -193,7 +267,7 @@ public class RaftState {
                         // 连接上的节点数
                         int connect = nextIndex.size();
                         // 如果连接上的节点数超过配置中的总节点数的半数
-                        if(connect > (count >> 1)) {
+                        if(connect + 1 > (count >> 1)) {
                             // 转换为 Candidate 角色
                             transformToCandidate();
                         }
@@ -202,8 +276,8 @@ public class RaftState {
                         transformToCandidate();
                     }
 
-                    Entry lastEntry = lastEntry();
-                    int term = lastEntry == null ? 0 : lastEntry.term();
+                    RaftLogEntry lastRaftLogEntry = lastEntry();
+                    int term = lastRaftLogEntry == null ? 0 : lastRaftLogEntry.term();
 
                     RequestVote requestVote = new RequestVote();
                     requestVote.term(currentTerm());
@@ -223,9 +297,8 @@ public class RaftState {
         }
     }
 
-    private final HashSet<SelectionKey> votedNodes = new HashSet<>();
     public void setVotedNodeAndCheck(SelectionKey selectionKey) throws IOException {
-        if(raftRole == RaftRole.Leader) {
+        if(raftRole == RaftRole.LEADER) {
             return;
         }
         synchronized (this) {
@@ -248,41 +321,37 @@ public class RaftState {
         }
     }
 
-    private volatile ServerNode leaderNode;
     public ServerNode leaderNode() {
         return leaderNode;
     }
 
-    public void setLeaderNode(ServerNode leaderNode) {
+    public void leaderNode(ServerNode leaderNode) {
         this.leaderNode = leaderNode;
     }
 
-    public void setRaftRole(RaftRole raftRole) {
-        this.raftRole = raftRole;
+    public void raftRole(RaftRole role) {
+        RaftRole oldRaftRole = raftRole;
+        raftRole = role;
+
+        logger.info("Transform raftRole from [{}] to [{}]",
+                oldRaftRole, raftRole);
     }
 
-    private volatile RaftRole raftRole = RaftRole.Follower;
     public RaftRole raftRole() {
         return raftRole;
     }
     public synchronized void transformToCandidate() throws IOException {
-        setRaftRole(RaftRole.Candidate);
+        raftRole(RaftRole.CANDIDATE);
         setCurrentTerm(currentTerm() + 1);
-//        setVoteFor(currentNode);
-//        votedNodes.add(currentNode);
+        setVoteFor(currentNode);
     }
-
-    /**
-     * Raft 日志
-     */
-    private final RaftLog raftLog;
 
     /**
      * 返回 raft 日志的最后一个条目
      * @return 最后一个条目
      * @throws IOException IO异常
      */
-    public Entry lastEntry() throws IOException {
+    public RaftLogEntry lastEntry() throws IOException {
         return raftLog.lastEntry();
     }
 
@@ -292,7 +361,7 @@ public class RaftState {
      * @return 日志条目
      * @throws IOException IO异常
      */
-    public Entry getEntryByIndex(int index) throws IOException {
+    public RaftLogEntry getEntryByIndex(int index) throws IOException {
         return raftLog.getEntryByIndex(index);
     }
 
@@ -311,16 +380,16 @@ public class RaftState {
 
     /**
      * 将日志条目添加到日志的尾部
-     * @param entry 日志条目
+     * @param raftLogEntry 日志条目
      * @throws IOException IO异常
      */
-    public int append(Entry entry) throws IOException {
-        return raftLog.append(entry);
+    public int logAppend(RaftLogEntry raftLogEntry) throws IOException {
+        return raftLog.append(raftLogEntry);
     }
-    public void append(Entry[] entries) throws IOException {
+    public void logAppend(RaftLogEntry[] entries) throws IOException {
         raftLog.append(entries);
     }
-    public Entry[] getEntriesByRange(int begin, int end) throws IOException {
+    public RaftLogEntry[] getEntriesByRange(int begin, int end) throws IOException {
         return raftLog.getEntriesByRange(begin, end);
     }
 
@@ -331,11 +400,6 @@ public class RaftState {
     public int indexOfLastLogEntry() throws IOException {
         return raftLog.indexOfLastLogEntry();
     }
-
-    /**
-     * 用来记录当前任期和投票给的节点
-     */
-    private final TermLog termLog;
 
     /**
      * 返回当前的任期号
@@ -366,16 +430,6 @@ public class RaftState {
         termLog.setVoteFor(node);
     }
 
-    /**
-     * 已提交的日志索引
-     */
-    private final AtomicInteger commitIndex = new AtomicInteger(0);
-
-    /**
-     * 应用到状态机的日志索引
-     */
-    private final AtomicInteger lastApplied = new AtomicInteger(0);
-
     public int commitIndex() {
         return commitIndex.get();
     }
@@ -384,17 +438,6 @@ public class RaftState {
     }
     public int lastApplied() {
         return lastApplied.get();
-    }
-
-    private final ConcurrentHashMap<SelectionKey, Integer> nextIndex
-            = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<SelectionKey, Integer> matchedIndex
-            = new ConcurrentHashMap<>();
-    public ConcurrentHashMap<SelectionKey, Integer> nextIndex() {
-        return nextIndex;
-    }
-    public ConcurrentHashMap<SelectionKey, Integer> matchedIndex() {
-        return matchedIndex;
     }
 
     /**
@@ -422,13 +465,11 @@ public class RaftState {
         }
     }
 
-    private final StateMachine stateMachine;
-
     /**
      * 将日志条目应用到状态机
      * @param entries 日志条目
      */
-    public void apply(Entry[] entries) {
+    public void apply(RaftLogEntry[] entries) {
         stateMachine.apply(entries);
         lastApplied.set(commitIndex.get());
     }

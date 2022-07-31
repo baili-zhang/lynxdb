@@ -4,18 +4,22 @@ import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 
-public record Entry (
+public record RaftLogEntry (
+        SelectionKey selectionKey,
+        int serial,
         int term,
+        byte type,
         byte[] command
 ) implements BytesConvertible {
-    public static Entry fromBytes(byte[] bytes) {
+    public static RaftLogEntry fromBytes(SelectionKey selectionKey, byte[] bytes, byte type) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         int term = buffer.getInt();
         int len = buffer.limit() - buffer.position();
         byte[] command = new byte[len];
         buffer.get(command);
-        return new Entry(term, command);
+        return new RaftLogEntry(selectionKey, 0, term, type, command);
     }
 
     public byte[] toBytes() {

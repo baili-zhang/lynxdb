@@ -6,6 +6,8 @@ import zbl.moonlight.core.enhance.EnhanceFile;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
+
 
 /**
  * Raft Log
@@ -38,7 +40,8 @@ public class RaftLog {
     /**
      * 当 index == 0 时，返回 BEGIN_ENTRY
      */
-    public static final Entry BEGIN_ENTRY = new Entry(0, null);
+    public static final RaftLogEntry BEGIN_RAFT_LOG_ENTRY = new RaftLogEntry(
+            null, 0, 0, DATA_CHANGE, new byte[0]);
 
     public RaftLog() throws IOException {
         this(DEFAULT_RAFT_INDEX_LOG_FILENAME,
@@ -73,38 +76,41 @@ public class RaftLog {
 
     /**
      * 同步方法，写入索引和写入数据应该是原子操作
-     * @param entry 尾部添加的的日志条目
-     * @throws IOException IO异常
+     * @param raftLogEntry 尾部添加的的日志条目
      */
-    public synchronized int append(Entry entry) throws IOException {
-        /* 找上一个日志 entry，并得到数据文件写入的 offset */
-        int maxIndexValue = getMaxIndexValue(), dataOffset = 0;
-        if(maxIndexValue != 0) {
-            EntryIndex entryIndex = getEntryIndexByIndex(maxIndexValue);
-            dataOffset = entryIndex.offset() + entryIndex.length();
-        }
+    public synchronized int append(RaftLogEntry raftLogEntry) {
+        try {
+            /* 找上一个日志 entry，并得到数据文件写入的 offset */
+            int maxIndexValue = getMaxIndexValue(), dataOffset = 0;
+            if(maxIndexValue != 0) {
+                EntryIndex entryIndex = getEntryIndexByIndex(maxIndexValue);
+                dataOffset = entryIndex.offset() + entryIndex.length();
+            }
 
-        /* 将 command 写入数据文件 */
-        byte[] command = entry.command();
-        int length = command.length;
-        dataFile.write(ByteBuffer.wrap(command), dataOffset);
+            /* 将 command 写入数据文件 */
+            byte[] command = raftLogEntry.command();
+            int length = command.length;
+            dataFile.write(ByteBuffer.wrap(command), dataOffset);
 
-        /* 将 entry 的索引数据写入索引文件 */
-        EntryIndex index = new EntryIndex(entry.term(), dataOffset, length);
-        indexFile.write(ByteBuffer.wrap(index.toBytes()),
-                ((long) (++ maxIndexValue)) * EntryIndex.ENTRY_INDEX_LENGTH);
+            /* 将 entry 的索引数据写入索引文件 */
+            EntryIndex index = new EntryIndex(raftLogEntry.term(), dataOffset, length);
+            indexFile.write(ByteBuffer.wrap(index.toBytes()),
+                    ((long) (++ maxIndexValue)) * EntryIndex.ENTRY_INDEX_LENGTH);
 
-        setMaxIndexValue(maxIndexValue);
-        return maxIndexValue;
-    }
-
-    public void append(Entry[] entries) throws IOException {
-        for(Entry entry : entries) {
-            append(entry);
+            setMaxIndexValue(maxIndexValue);
+            return maxIndexValue;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public Entry lastEntry() throws IOException {
+    public void append(RaftLogEntry[] entries) throws IOException {
+        for(RaftLogEntry raftLogEntry : entries) {
+            append(raftLogEntry);
+        }
+    }
+
+    public RaftLogEntry lastEntry() throws IOException {
         return getEntryByIndex(getMaxIndexValue());
     }
 
@@ -112,9 +118,9 @@ public class RaftLog {
         return getMaxIndexValue();
     }
 
-    public synchronized Entry getEntryByIndex(int index) throws IOException {
+    public synchronized RaftLogEntry getEntryByIndex(int index) throws IOException {
         if(index == 0) {
-            return BEGIN_ENTRY;
+            return BEGIN_RAFT_LOG_ENTRY;
         }
 
         if(index > getMaxIndexValue()) {
@@ -124,7 +130,7 @@ public class RaftLog {
         EntryIndex entryIndex = getEntryIndexByIndex(index);
         ByteBuffer command = ByteBuffer.allocate(entryIndex.length());
         dataFile.read(command, entryIndex.offset());
-        return new Entry(entryIndex.term(), command.array());
+        return new RaftLogEntry(null, 0, entryIndex.term(), DATA_CHANGE, command.array());
     }
 
     private synchronized EntryIndex getEntryIndexByIndex(int index) throws IOException {
@@ -145,9 +151,9 @@ public class RaftLog {
      * @return 区间中的所有日志条目
      * @throws IOException IO异常
      */
-    public synchronized Entry[] getEntriesByRange(int begin, int end) throws IOException {
+    public synchronized RaftLogEntry[] getEntriesByRange(int begin, int end) throws IOException {
         assert end > begin && begin > 0;
-        Entry[] entries = new Entry[end - begin];
+        RaftLogEntry[] entries = new RaftLogEntry[end - begin];
 
         for (int i = 0; i < entries.length; i++) {
             entries[i] = getEntryByIndex(begin + i + 1);

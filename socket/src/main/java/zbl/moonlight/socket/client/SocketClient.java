@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class SocketClient extends Executor<WritableSocketRequest> {
     private final static Logger logger = LogManager.getLogger("SocketClient");
@@ -31,7 +30,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
 
     private final Object setLock = new Object();
-    private final AtomicLong serial = new AtomicLong(0);
+    private final AtomicInteger serial = new AtomicInteger(0);
 
     private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
             = new ConcurrentHashMap<>();

@@ -1,17 +1,17 @@
 package zbl.moonlight.raft.request;
 
 import zbl.moonlight.core.utils.NumberUtils;
-import zbl.moonlight.raft.log.Entry;
+import zbl.moonlight.raft.log.RaftLogEntry;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AppendEntries extends RaftRequest {
-    private final static byte DATA_CHANGE = (byte) 0x01;
-    private final static byte CLUSTER_MEMBERSHIP_CHANGE = (byte) 0x02;
+import static zbl.moonlight.raft.state.RaftState.CLUSTER_MEMBERSHIP_CHANGE;
+import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
 
+public class AppendEntries extends RaftRequest {
     private final boolean isClusterMembershipChange;
 
     public AppendEntries() {
@@ -28,8 +28,8 @@ public class AppendEntries extends RaftRequest {
         int len = NumberUtils.INT_LENGTH * 6 + host.length + 1;
         List<byte[]> entryBytes = new ArrayList<>();
 
-        for(Entry entry : entries()) {
-            byte[] bytes = entry.toBytes();
+        for(RaftLogEntry raftLogEntry : entries()) {
+            byte[] bytes = raftLogEntry.toBytes();
             entryBytes.add(bytes);
             len += NumberUtils.INT_LENGTH + bytes.length;
         }

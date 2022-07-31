@@ -1,11 +1,9 @@
 package zbl.moonlight.raft.request;
 
 import zbl.moonlight.core.exceptions.NullFieldException;
-import zbl.moonlight.raft.log.Entry;
+import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.request.SocketRequest;
-
-import java.util.List;
 
 public abstract class RaftRequest extends SocketRequest {
     public final static byte REQUEST_VOTE = (byte) 0x01;
@@ -16,7 +14,7 @@ public abstract class RaftRequest extends SocketRequest {
     private ServerNode leader;
     private Integer prevLogIndex;
     private Integer prevLogTerm;
-    private List<Entry> entries;
+    private RaftLogEntry[] entries;
     private Integer leaderCommit;
 
     private ServerNode candidate;
@@ -75,14 +73,14 @@ public abstract class RaftRequest extends SocketRequest {
             prevLogTerm = val;
         }
     }
-    public List<Entry> entries() {
+    public RaftLogEntry[] entries() {
         if(entries == null) {
             throw new NullFieldException("entries");
         }
         return entries;
     }
 
-    public void entries(List<Entry> val) {
+    public void entries(RaftLogEntry[] val) {
         if(entries == null) {
             entries = val;
         }

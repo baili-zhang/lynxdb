@@ -28,11 +28,14 @@ public class MoonlightServer {
         ServerNode current = config.currentNode();
 
         raftClient = new RaftClient();
-        RaftState.getInstance().raftClient(raftClient);
         raftServer = new RaftServer(current, raftClient);
-        raftServer.setHandler(new RaftServerHandler(raftServer, raftClient));
+
+        RaftState raftState = RaftState.getInstance();
+        raftState.raftClient(raftClient);
+
+        raftServer.setHandler(new RaftServerHandler(raftServer));
         raftServer.setClientHandler(new RaftClientHandler(raftServer, raftClient));
-        mdtpStateMachine = new MdtpStateMachine();
+        mdtpStateMachine = new MdtpStateMachine(raftServer);
     }
 
     public void run() {

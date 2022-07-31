@@ -24,7 +24,7 @@ class SocketServerTest {
 
     private final byte requestStatus = (byte) 0x03;
 
-    private final long requestSerial = 15L;
+    private final int requestSerial = 15;
     private final long responseSerial = 20L;
 
     @Test

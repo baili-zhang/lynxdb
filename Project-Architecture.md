@@ -159,11 +159,11 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 **请求格式**
 
-| host length | host                | port    | term    | prev log index | prev log term | leader commit | type   | entry length | entry               | ... |
+| host length | host                | port    | term    | prev log index | prev log term | leader commit | type   | raftLogEntry length | raftLogEntry               | ... |
 |-------------|---------------------|---------|---------|----------------|---------------|---------------|--------|--------------|---------------------|-----|
-| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 1 byte | 4 bytes      | (entry length size) | ... |
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 1 byte | 4 bytes      | (raftLogEntry length size) | ... |
 
-*entry 格式*
+*raftLogEntry 格式*
 
 | term    | command   |
 |---------|-----------|
@@ -199,6 +199,12 @@ Client request type:
 
 **响应格式**
 
+当前节点所处的状态：
+
+*Leader*：处理客户端请求，处理客户端请求前需要确认自己是否还是 leader
+*Candidate*：不处理客户端请求，直接响应 “leader 不存在”
+*Follower*：将请求重定向给 leader
+
 | response status | command result |
 |-----------------|----------------|
 | 1 byte          | (any) bytes    |
@@ -222,9 +228,24 @@ Client request type:
 
 ### Mdtp 通信模块
 
-- SET 请求
-- GET 请求
-- DELETE 请求
+- kv_single_set
+- kv_single_get
+- kv_single_delete
+- kv_batch_set
+- kv_batch_get
+- kv_batch_delete
+- kv_create_db
+- kv_delete_db
+- table_single_set
+- table_single_get
+- table_single_delete
+- table_batch_set
+- table_batch_get
+- table_batch_delete
+- create_table
+- delete_table
+- create_table_column
+- delete_table_column
 
 #### SET 请求
 

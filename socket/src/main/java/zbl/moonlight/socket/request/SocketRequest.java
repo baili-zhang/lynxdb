@@ -11,7 +11,7 @@ import java.nio.channels.SelectionKey;
 public abstract class SocketRequest implements SocketBytesConvertible {
     protected SelectionKey selectionKey;
     protected Byte status;
-    protected Long serial;
+    protected Integer serial;
     protected byte[] data;
 
     protected SocketRequest() {}
@@ -42,13 +42,13 @@ public abstract class SocketRequest implements SocketBytesConvertible {
         return status;
     }
 
-    public void serial(long val) {
+    public void serial(int val) {
         if(serial == null) {
             serial = val;
         }
     }
 
-    public long serial() {
+    public int serial() {
         if(serial == null) {
             throw new NullFieldException("serial");
         }
@@ -79,7 +79,7 @@ public abstract class SocketRequest implements SocketBytesConvertible {
     public void fromBytes(byte[] bytes) {
         EnhanceByteBuffer buffer = EnhanceByteBuffer.wrap(bytes);
         status = buffer.get();
-        serial = buffer.getLong();
+        serial = buffer.getInt();
         data = buffer.getRemaining();
     }
 
