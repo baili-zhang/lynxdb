@@ -10,6 +10,7 @@ import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.raft.log.TermLog;
 import zbl.moonlight.raft.request.AppendEntries;
 import zbl.moonlight.raft.request.RequestVote;
+import zbl.moonlight.raft.server.RaftServer;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.request.WritableSocketRequest;
 
@@ -85,6 +86,7 @@ public class RaftState {
     private volatile RaftRole raftRole = RaftRole.FOLLOWER;
 
     private RaftClient raftClient;
+    private RaftServer raftServer;
 
     static {
         // 通过 SPI 获取 StateMachine 的实例
@@ -115,6 +117,12 @@ public class RaftState {
     public void raftClient(RaftClient client) {
         if(raftClient == null) {
             raftClient = client;
+        }
+    }
+
+    public void raftServer(RaftServer server) {
+        if(raftServer == null) {
+            raftServer = server;
         }
     }
 

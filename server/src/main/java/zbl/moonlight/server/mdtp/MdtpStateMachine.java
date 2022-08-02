@@ -30,9 +30,12 @@ public class MdtpStateMachine extends Executor<RaftCommand> implements StateMach
      */
     private static final MdtpStorageEngine storageEngine = new MdtpStorageEngine();
 
-    private final RaftServer raftServer;
+    private RaftServer raftServer;
 
-    public MdtpStateMachine(RaftServer server) {
+    public MdtpStateMachine() {
+    }
+
+    public void raftServer(RaftServer server) {
         raftServer = server;
     }
 

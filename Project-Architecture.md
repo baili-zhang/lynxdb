@@ -228,9 +228,9 @@ Client request type:
 
 ### Mdtp 通信模块
 
-- kv_single_set
-- kv_single_get
-- kv_single_delete
+- KV_SINGLE_SET
+- KV_SINGLE_GET
+- KV_SINGLE_DELETE
 - kv_batch_set
 - kv_batch_get
 - kv_batch_delete
@@ -247,7 +247,7 @@ Client request type:
 - create_table_column
 - delete_table_column
 
-#### SET 请求
+#### KV_SINGLE_SET 请求
 
 **文本格式**
 
@@ -265,7 +265,7 @@ set key value
 
 无响应体
 
-#### GET 请求
+#### KV_SINGLE_GET 请求
 
 **文本格式**
 
@@ -289,7 +289,7 @@ get key
 
 *值不存在：无响应体*
 
-#### DELETE 请求
+#### KV_SINGLE_DELETE 请求
 
 **文本格式**
 

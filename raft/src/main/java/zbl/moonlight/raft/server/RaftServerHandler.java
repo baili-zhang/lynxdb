@@ -207,6 +207,8 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) throws IOException {
+        logger.info("Handle client request.");
+
         // 把 buffer 中没读到的字节数全部拿出来
         int len = buffer.limit() - buffer.position();
         byte[] command = new byte[len];

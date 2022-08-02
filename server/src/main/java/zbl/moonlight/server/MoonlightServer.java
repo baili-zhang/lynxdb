@@ -9,7 +9,6 @@ import zbl.moonlight.raft.server.RaftServer;
 import zbl.moonlight.raft.server.RaftServerHandler;
 import zbl.moonlight.raft.state.RaftState;
 import zbl.moonlight.server.context.Configuration;
-import zbl.moonlight.server.mdtp.MdtpStateMachine;
 import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
@@ -19,7 +18,6 @@ public class MoonlightServer {
 
     private final RaftServer raftServer;
     private final RaftClient raftClient;
-    private final MdtpStateMachine mdtpStateMachine;
 
     MoonlightServer() throws IOException {
         Configuration config = Configuration.getInstance();
@@ -32,16 +30,15 @@ public class MoonlightServer {
 
         RaftState raftState = RaftState.getInstance();
         raftState.raftClient(raftClient);
+        raftState.raftServer(raftServer);
 
         raftServer.setHandler(new RaftServerHandler(raftServer));
         raftServer.setClientHandler(new RaftClientHandler(raftServer, raftClient));
-        mdtpStateMachine = new MdtpStateMachine(raftServer);
     }
 
     public void run() {
         Executor.start(raftServer);
         Executor.start(raftClient);
-        Executor.start(mdtpStateMachine);
     }
 
     public static void main(String[] args) throws IOException {

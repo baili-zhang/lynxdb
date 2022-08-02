@@ -230,7 +230,6 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 context.read();
             } catch (SocketException e) {
                 handleDisconnect();
-                e.printStackTrace();
             }
 
             if(context.isReadCompleted()) {

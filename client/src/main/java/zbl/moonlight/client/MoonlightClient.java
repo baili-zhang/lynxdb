@@ -7,13 +7,16 @@ import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.request.RaftRequest;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
+import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.client.Command.*;
 import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
@@ -26,12 +29,13 @@ public class MoonlightClient extends Shutdown {
     private final CyclicBarrier barrier = new CyclicBarrier(2);
     private final ClientHandler clientHandler = new ClientHandler(barrier);
 
+    private final AtomicInteger serial = new AtomicInteger(0);
+
     /**
      * 终端当前连接的节点
      */
     @Setter
-    private volatile ServerNode current;
-
+    private volatile SelectionKey current;
 
     public MoonlightClient() throws IOException {
         socketClient = new SocketClient();
@@ -68,8 +72,8 @@ public class MoonlightClient extends Shutdown {
                         continue;
                     }
 
-                    current = new ServerNode(command.key(), port);
-                    socketClient.connect(current);
+                    ServerNode node = new ServerNode(command.key(), port);
+                    current = socketClient.connect(node);
                     socketClient.interrupt();
 
                     /* 等待连接成功 */
@@ -85,6 +89,14 @@ public class MoonlightClient extends Shutdown {
 
                 /* 处理 SET 命令 */
                 case SET_COMMAND -> {
+                    WritableSocketRequest request = new WritableSocketRequest(
+                            current,
+                            (byte) 0x00,
+                            serial.getAndIncrement(),
+                            new byte[0]
+                    );
+
+                    socketClient.offerInterruptibly(request);
                     barrier.await();
                 }
 
