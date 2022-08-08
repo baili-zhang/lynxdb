@@ -5,6 +5,7 @@ import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.ResultSet;
 import zbl.moonlight.storage.rocks.query.Query;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class KvBatchGetQuery extends Query<List<byte[]>, List<byte[]>> {
@@ -14,6 +15,12 @@ public class KvBatchGetQuery extends Query<List<byte[]>, List<byte[]>> {
 
     @Override
     public void doQuery(RocksDB db) throws RocksDBException {
+        List<byte[]> result = new ArrayList<>();
 
+        for(byte[] key : queryData) {
+            result.add(db.get(key));
+        }
+
+        resultSet.setResult(result);
     }
 }

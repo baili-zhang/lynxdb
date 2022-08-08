@@ -2,7 +2,9 @@ package zbl.moonlight.storage.rocks;
 
 import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.*;
+import zbl.moonlight.storage.rocks.query.table.*;
 
+import java.util.HashSet;
 import java.util.List;
 
 public class RocksTableAdapter implements TableAdapter {
@@ -19,56 +21,114 @@ public class RocksTableAdapter implements TableAdapter {
 
     @Override
     public SingleTableRow get(SingleTableKey key) {
-        return null;
+        try {
+            ResultSet<SingleTableRow> resultSet = new ResultSet<>();
+            db.doQuery(new TableSingleGetQuery(key, resultSet));
+            return resultSet.result();
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public MultiTableRows get(MultiTableKeys keys) {
-        return null;
+        try {
+            ResultSet<MultiTableRows> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchGetQuery(keys, resultSet));
+            return resultSet.result();
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void set(SingleTableKey key) {
-
+    public void set(SingleTableRow key) {
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableSingleSetQuery(key, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void set(MultiTableKeys keys) {
-
+    public void set(MultiTableRows keys) {
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchSetQuery(keys, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void delete(byte[] key) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableSingleDeleteQuery(key, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void delete(List<byte[]> keys) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchDeleteQuery(keys, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void createColumn(byte[] column) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableSingleCreateColumnQuery(column, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void createColumns(List<byte[]> columns) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchCreateColumnQuery(columns, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void deleteColumn(byte[] column) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableSingleDeleteColumnQuery(column, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void deleteColumns(List<byte[]> column) {
-
+    public void deleteColumns(HashSet<Column> columns) {
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchDropColumnQuery(columns, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<byte[]> columns() {
-        return null;
+        try {
+            ResultSet<List<byte[]>> resultSet = new ResultSet<>();
+            db.doQuery(new TableBatchGetColumnQuery(resultSet));
+            return resultSet.result();
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

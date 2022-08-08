@@ -4,9 +4,7 @@ import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.KvAdapter;
 import zbl.moonlight.storage.core.Pair;
 import zbl.moonlight.storage.core.ResultSet;
-import zbl.moonlight.storage.rocks.query.kv.KvSingleDeleteQuery;
-import zbl.moonlight.storage.rocks.query.kv.KvSingleGetQuery;
-import zbl.moonlight.storage.rocks.query.kv.KvSingleSetQuery;
+import zbl.moonlight.storage.rocks.query.kv.*;
 
 import java.util.List;
 
@@ -34,7 +32,13 @@ public class RocksKvAdapter implements KvAdapter {
 
     @Override
     public List<byte[]> get(List<byte[]> keys) {
-        return null;
+        try {
+            ResultSet<List<byte[]>> resultSet = new ResultSet<>();
+            db.doQuery(new KvBatchGetQuery(keys, resultSet));
+            return resultSet.result();
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -49,7 +53,12 @@ public class RocksKvAdapter implements KvAdapter {
 
     @Override
     public void set(List<Pair<byte[], byte[]>> kvPairs) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new KvBatchSetQuery(kvPairs, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -64,6 +73,11 @@ public class RocksKvAdapter implements KvAdapter {
 
     @Override
     public void delete(List<byte[]> keys) {
-
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new KvBatchDeleteQuery(keys, resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -1,9 +1,13 @@
 package zbl.moonlight.storage.core;
 
-import java.util.List;
+import java.util.Set;
 
-public class SingleTableKey extends Pair<byte[], List<byte[]>>{
-    public SingleTableKey(byte[] left, List<byte[]> right) {
+public class SingleTableKey extends Pair<byte[], Set<Column>>{
+    /**
+     * @param left key
+     * @param right columns
+     */
+    public SingleTableKey(byte[] left, Set<Column> right) {
         super(left, right);
     }
 }
