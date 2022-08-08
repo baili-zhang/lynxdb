@@ -160,8 +160,8 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 **请求格式**
 
 | host length | host                | port    | term    | prev log index | prev log term | leader commit | type   | raftLogEntry length | raftLogEntry               | ... |
-|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------|--------------|---------------------|-----|
-| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 1 byte | 4 bytes      | (raftLogEntry length size) | ... |
+|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------|---------------------|----------------------------|-----|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 1 byte | 4 bytes             | (raftLogEntry length size) | ... |
 
 *raftLogEntry 格式*
 
@@ -226,86 +226,148 @@ Client request type:
 - Configuration 部分
 - StorageEngine 部分
 
-### Mdtp 通信模块
+### Mdtp 通信部分
 
-- KV_SINGLE_SET
-- KV_SINGLE_GET
-- KV_SINGLE_DELETE
-- kv_batch_set
-- kv_batch_get
-- kv_batch_delete
-- kv_create_db
-- kv_delete_db
-- table_single_set
-- table_single_get
-- table_single_delete
-- table_batch_set
-- table_batch_get
-- table_batch_delete
-- create_table
-- delete_table
-- create_table_column
-- delete_table_column
+#### CREATE KV STORE 请求
 
-#### KV_SINGLE_SET 请求
+**命令**
 
-**文本格式**
+```
+create kvstore `kv_store_name`;
+```
 
-```shell
-set key value
+#### DROP KV STORE 请求
+
+**命令**
+
+```
+drop kvstore `kv_store_name`;
+```
+
+#### KV GET 请求
+
+**命令**
+
+单个 Key:
+
+```
+select `key` from kvstore `kv_store_name`;
+```
+
+多个 Key:
+
+```
+select `key1`,`key2`,`key3` from kvstore `kv_store_name`;
 ```
 
 **请求格式**
 
-| method | key length | key                | value length | value          |
-|--------|------------|--------------------|--------------|----------------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value) length |
-
 **响应格式**
 
-无响应体
 
-#### KV_SINGLE_GET 请求
+#### KV SET 请求
 
-**文本格式**
+**命令**
 
-```shell
-get key
+单个 Key:
+
+```
+insert into kvstore `kv_store_name` value `key`,`value`;
+```
+
+多个 Key:
+
+```
+insert into kvstore `kv_store_name` values (`key`,`value`),(`key`,`value`),(`key`,`value`);
 ```
 
 **请求格式**
 
-| method | key length | key                | value length        | value |
-|--------|------------|--------------------|---------------------|-------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
 
 **响应格式**
 
-*值存在*
 
-| value       |
-|-------------|
-| (any) bytes |
+#### KV DELETE 请求
 
-*值不存在：无响应体*
+**命令**
 
-#### KV_SINGLE_DELETE 请求
+单个 Key:
 
-**文本格式**
+```
+delete `key` from kvstore `kv_store_name`;
+```
 
-```shell
-delete key
+多个 Key:
+
+```
+delete `key1`,`key2`,`key3` from kvstore `kv_store_name`;
 ```
 
 **请求格式**
 
-| method | key length | key                | value length        | value |
-|--------|------------|--------------------|---------------------|-------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
 
 **响应格式**
 
-无响应体
+
+#### CREATE TABLE 请求
+
+**命令**
+
+```
+create table `table_name`;
+```
+
+#### DROP TABLE 请求
+
+**命令**
+
+```
+drop table `table_name`;
+```
+
+#### CREATE TABLE COLUMN 请求
+
+**命令**
+
+```
+create column `column_name` in table `table_name`;
+```
+
+```
+create columns `column_name1`, `column_name2` in table `table_name`;
+```
+
+#### DROP TABLE COLUMN 请求
+
+```
+drop column `column_name` in table `table_name`;
+```
+
+```
+drop column `column_name1`, `column_name2` in table `table_name`;
+```
+
+#### TABLE GET 请求
+
+```
+select `column` from table `table_name` where key is `key`;
+```
+
+```
+select `column` from table `table_name` where key in `key1`, `key2`, `key3`;
+```
+
+```
+select `column1`, `column2`, `column3` from table `table_name` where key is `key`;
+```
+
+```
+select `column1`, `column2`, `column3` from table `table_name` where key in `key1`, `key2`, `key3`;
+```
+
+#### TABLE SET 请求
+
+#### TABLE DELETE 请求
 
 ## 客户端模块
 
