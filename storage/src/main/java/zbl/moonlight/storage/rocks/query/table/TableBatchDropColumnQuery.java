@@ -1,6 +1,5 @@
 package zbl.moonlight.storage.rocks.query.table;
 
-import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;

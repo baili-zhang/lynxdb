@@ -3,10 +3,7 @@ package zbl.moonlight.storage.rocks.query.table;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import zbl.moonlight.storage.core.Column;
-import zbl.moonlight.storage.core.MultiTableKeys;
-import zbl.moonlight.storage.core.MultiTableRows;
-import zbl.moonlight.storage.core.ResultSet;
+import zbl.moonlight.storage.core.*;
 import zbl.moonlight.storage.rocks.query.Query;
 
 import java.util.HashSet;
@@ -37,7 +34,9 @@ public class TableBatchGetQuery extends Query<MultiTableKeys, MultiTableRows> {
                 }
             }
 
-            result.put(key, row);
+            result.put(new Key(key), row);
         }
+
+        resultSet.setResult(result);
     }
 }

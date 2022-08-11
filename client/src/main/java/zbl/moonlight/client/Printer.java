@@ -1,8 +1,6 @@
 package zbl.moonlight.client;
 
 
-import zbl.moonlight.socket.client.ServerNode;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;

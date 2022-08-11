@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class RocksDatabase extends Database {
+    public static final String COLUMN_FAMILY_ALREADY_EXISTS = "Column family already exists";
+
     private final Options options;
 
     private final DBOptions dbOptions;
@@ -35,6 +37,7 @@ public class RocksDatabase extends Database {
 
         final List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream()
                 .map(ColumnFamilyDescriptor::new).toList();
+
         rocksDB = RocksDB.open(dbOptions, path(), cfDescriptors, columnFamilyHandles);
 
         ColumnFamilyHandle defaultHandle = null;

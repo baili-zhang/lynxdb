@@ -31,9 +31,9 @@ public class RocksKvAdapter implements KvAdapter {
     }
 
     @Override
-    public List<byte[]> get(List<byte[]> keys) {
+    public List<Pair<byte[], byte[]>> get(List<byte[]> keys) {
         try {
-            ResultSet<List<byte[]>> resultSet = new ResultSet<>();
+            ResultSet<List<Pair<byte[], byte[]>>> resultSet = new ResultSet<>();
             db.doQuery(new KvBatchGetQuery(keys, resultSet));
             return resultSet.result();
         } catch (RocksDBException e) {
@@ -79,5 +79,10 @@ public class RocksKvAdapter implements KvAdapter {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void close() throws Exception {
+        db.close();
     }
 }

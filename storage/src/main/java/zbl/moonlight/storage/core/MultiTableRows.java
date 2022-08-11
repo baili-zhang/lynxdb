@@ -5,8 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
-    private final Map<byte[], Map<Column, byte[]>> rows = new LinkedHashMap<>();
+public class MultiTableRows implements Map<Key, Map<Column, byte[]>> {
+    private final Map<Key, Map<Column, byte[]>> rows = new LinkedHashMap<>();
 
     public MultiTableRows() {
     }
@@ -27,8 +27,8 @@ public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
     }
 
     @Override
-    public boolean containsValue(Object value) {
-        return rows.containsValue(value);
+    public boolean containsValue(Object row) {
+        return rows.containsValue(row);
     }
 
     @Override
@@ -37,8 +37,8 @@ public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
     }
 
     @Override
-    public Map<Column, byte[]> put(byte[] key, Map<Column, byte[]> value) {
-        return rows.put(key, value);
+    public Map<Column, byte[]> put(Key key, Map<Column, byte[]> row) {
+        return rows.put(key, row);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
     }
 
     @Override
-    public void putAll(Map<? extends byte[], ? extends Map<Column, byte[]>> m) {
+    public void putAll(Map<? extends Key, ? extends Map<Column, byte[]>> m) {
         rows.putAll(m);
     }
 
@@ -57,7 +57,7 @@ public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
     }
 
     @Override
-    public Set<byte[]> keySet() {
+    public Set<Key> keySet() {
         return rows.keySet();
     }
 
@@ -67,7 +67,7 @@ public class MultiTableRows implements Map<byte[], Map<Column, byte[]>> {
     }
 
     @Override
-    public Set<Entry<byte[], Map<Column, byte[]>>> entrySet() {
+    public Set<Entry<Key, Map<Column, byte[]>>> entrySet() {
         return rows.entrySet();
     }
 }

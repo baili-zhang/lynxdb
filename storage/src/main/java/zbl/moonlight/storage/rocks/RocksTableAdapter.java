@@ -4,6 +4,7 @@ import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.*;
 import zbl.moonlight.storage.rocks.query.table.*;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
@@ -42,20 +43,20 @@ public class RocksTableAdapter implements TableAdapter {
     }
 
     @Override
-    public void set(SingleTableRow key) {
+    public void set(SingleTableRow row) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
-            db.doQuery(new TableSingleSetQuery(key, resultSet));
+            db.doQuery(new TableSingleSetQuery(row, resultSet));
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void set(MultiTableRows keys) {
+    public void set(MultiTableRows rows) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
-            db.doQuery(new TableBatchSetQuery(keys, resultSet));
+            db.doQuery(new TableBatchSetQuery(rows, resultSet));
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
@@ -92,7 +93,7 @@ public class RocksTableAdapter implements TableAdapter {
     }
 
     @Override
-    public void createColumns(List<byte[]> columns) {
+    public void createColumns(Collection<byte[]> columns) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
             db.doQuery(new TableBatchCreateColumnQuery(columns, resultSet));
@@ -102,7 +103,7 @@ public class RocksTableAdapter implements TableAdapter {
     }
 
     @Override
-    public void deleteColumn(byte[] column) {
+    public void dropColumn(byte[] column) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
             db.doQuery(new TableSingleDeleteColumnQuery(column, resultSet));
@@ -112,7 +113,7 @@ public class RocksTableAdapter implements TableAdapter {
     }
 
     @Override
-    public void deleteColumns(HashSet<Column> columns) {
+    public void dropColumns(HashSet<Column> columns) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
             db.doQuery(new TableBatchDropColumnQuery(columns, resultSet));
@@ -130,5 +131,10 @@ public class RocksTableAdapter implements TableAdapter {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void close() throws Exception {
+        db.close();
     }
 }

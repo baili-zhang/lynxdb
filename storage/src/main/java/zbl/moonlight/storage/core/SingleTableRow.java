@@ -28,8 +28,8 @@ public class SingleTableRow implements Map<Column, byte[]> {
     }
 
     @Override
-    public boolean containsKey(Object key) {
-        return row.containsKey(key);
+    public boolean containsKey(Object column) {
+        return row.containsKey(column);
     }
 
     @Override
@@ -38,18 +38,18 @@ public class SingleTableRow implements Map<Column, byte[]> {
     }
 
     @Override
-    public byte[] get(Object key) {
-        return row.get(key);
+    public byte[] get(Object column) {
+        return row.get(column);
     }
 
     @Override
-    public byte[] put(Column key, byte[] value) {
-        return row.put(key, value);
+    public byte[] put(Column column, byte[] value) {
+        return row.put(column, value);
     }
 
     @Override
-    public byte[] remove(Object key) {
-        return row.remove(key);
+    public byte[] remove(Object column) {
+        return row.remove(column);
     }
 
     @Override
