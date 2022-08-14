@@ -1,6 +1,6 @@
 package zbl.moonlight.socket.response;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.socket.interfaces.Readable;
 
 import java.io.IOException;
@@ -26,26 +26,26 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
     @Override
     public void read() throws IOException {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
-        if(!EnhanceByteBuffer.isOver(lengthBuffer)) {
+        if(!BufferUtils.isOver(lengthBuffer)) {
             channel.read(lengthBuffer);
-            if(!EnhanceByteBuffer.isOver(lengthBuffer)) {
+            if(!BufferUtils.isOver(lengthBuffer)) {
                 return;
             }
             int len = lengthBuffer.getInt(0);
             dataBuffer = ByteBuffer.allocate(len - LONG_LENGTH);
         }
 
-        if(!EnhanceByteBuffer.isOver(serialBuffer)) {
+        if(!BufferUtils.isOver(serialBuffer)) {
             channel.read(serialBuffer);
-            if(!EnhanceByteBuffer.isOver(serialBuffer)) {
+            if(!BufferUtils.isOver(serialBuffer)) {
                 return;
             }
             serial = serialBuffer.getLong(0);
         }
 
-        if(!EnhanceByteBuffer.isOver(dataBuffer)) {
+        if(!BufferUtils.isOver(dataBuffer)) {
             channel.read(dataBuffer);
-            if(EnhanceByteBuffer.isOver(dataBuffer)) {
+            if(BufferUtils.isOver(dataBuffer)) {
                 data = dataBuffer.array();
             }
         }
@@ -53,6 +53,6 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
 
     @Override
     public boolean isReadCompleted() {
-        return EnhanceByteBuffer.isOver(dataBuffer);
+        return BufferUtils.isOver(dataBuffer);
     }
 }

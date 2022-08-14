@@ -8,7 +8,7 @@ import java.nio.channels.SelectionKey;
 
 public record RaftLogEntry (
         SelectionKey selectionKey,
-        int serial,
+        long serial,
         int term,
         byte type,
         byte[] command

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RocksDatabase extends Database {
+public class RocksDatabase implements Database {
     public static final String COLUMN_FAMILY_ALREADY_EXISTS = "Column family already exists";
 
     private final Options options;
@@ -25,12 +25,11 @@ public class RocksDatabase extends Database {
         RocksDB.loadLibrary();
     }
 
-    private RocksDatabase(String name, String dataDir) throws RocksDBException {
-        super(name, dataDir);
+    private RocksDatabase(String path) throws RocksDBException {
         options = new Options();
         dbOptions = new DBOptions().setCreateIfMissing(true);
 
-        List<byte[]> cfs = RocksDB.listColumnFamilies(options, path());
+        List<byte[]> cfs = RocksDB.listColumnFamilies(options, path);
         if(cfs.isEmpty()) {
             cfs = List.of(RocksDB.DEFAULT_COLUMN_FAMILY);
         }
@@ -38,7 +37,7 @@ public class RocksDatabase extends Database {
         final List<ColumnFamilyDescriptor> cfDescriptors = cfs.stream()
                 .map(ColumnFamilyDescriptor::new).toList();
 
-        rocksDB = RocksDB.open(dbOptions, path(), cfDescriptors, columnFamilyHandles);
+        rocksDB = RocksDB.open(dbOptions, path, cfDescriptors, columnFamilyHandles);
 
         ColumnFamilyHandle defaultHandle = null;
         for(ColumnFamilyHandle handle : columnFamilyHandles) {
@@ -65,8 +64,8 @@ public class RocksDatabase extends Database {
         options.close();
     }
 
-    public static RocksDatabase open(String name, String dataDir) throws RocksDBException {
-        return new RocksDatabase(name, dataDir);
+    public static RocksDatabase open(String path) throws RocksDBException {
+        return new RocksDatabase(path);
     }
 
     @Override

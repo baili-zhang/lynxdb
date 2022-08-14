@@ -2,6 +2,7 @@ package zbl.moonlight.core.enhance;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.io.File;
@@ -62,7 +63,7 @@ public class EnhanceFile {
     }
 
     public int readInt(long position) throws IOException {
-        ByteBuffer buffer = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer buffer = BufferUtils.intByteBuffer();
         read(buffer, position);
         return buffer.rewind().getInt();
     }
@@ -84,7 +85,7 @@ public class EnhanceFile {
     }
 
     public byte[] readBytes(long position) throws IOException {
-        ByteBuffer length = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer length = BufferUtils.intByteBuffer();
         read(length, position);
         int len = length.rewind().getInt();
         ByteBuffer content = ByteBuffer.allocate(len);
@@ -94,7 +95,7 @@ public class EnhanceFile {
     }
 
     public void writeInt(int src, long position) throws IOException {
-        ByteBuffer buffer = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer buffer = BufferUtils.intByteBuffer();
         buffer.putInt(src).rewind();
         write(buffer, position);
     }
@@ -108,7 +109,7 @@ public class EnhanceFile {
     public long writeString(String src, long position) throws IOException {
         byte[] srcBytes = src.getBytes(StandardCharsets.UTF_8);
 
-        ByteBuffer length = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer length = BufferUtils.intByteBuffer();
         length.putInt(srcBytes.length).rewind();
         write(length, position);
 

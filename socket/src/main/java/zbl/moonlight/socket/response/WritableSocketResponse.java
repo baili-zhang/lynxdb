@@ -1,6 +1,6 @@
 package zbl.moonlight.socket.response;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.socket.interfaces.Writable;
 
 import java.io.IOException;
@@ -29,6 +29,6 @@ public class WritableSocketResponse extends SocketResponse implements Writable {
 
     @Override
     public boolean isWriteCompleted() {
-        return EnhanceByteBuffer.isOver(buffer);
+        return BufferUtils.isOver(buffer);
     }
 }

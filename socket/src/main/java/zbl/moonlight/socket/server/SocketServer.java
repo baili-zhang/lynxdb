@@ -117,6 +117,12 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                 }
 
                 SelectionKey selectionKey = response.selectionKey();
+
+                if(selectionKey == null) {
+                    logger.warn("SelectionKey is null, response: {}", response);
+                    continue;
+                }
+
                 /* TODO: context 可能为 null，需要排查原因 */
                 SocketContext context = contexts.get(selectionKey);
                 context.offerResponse(response);

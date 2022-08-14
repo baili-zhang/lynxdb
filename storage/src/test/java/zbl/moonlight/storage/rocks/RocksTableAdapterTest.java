@@ -3,7 +3,6 @@ package zbl.moonlight.storage.rocks;
 import org.junit.jupiter.api.*;
 import zbl.moonlight.storage.core.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
@@ -49,7 +48,7 @@ class RocksTableAdapterTest {
         for(byte[] key : Constant.KEYS) {
             Map<Column, byte[]> row = new HashMap<>();
             for(Column column : Constant.COLUMNS) {
-                String value = String.format(Constant.VALUE_TEMP, new String(key), new String(column.val()));
+                String value = String.format(Constant.VALUE_TEMP, new String(key), new String(column.value()));
                 row.put(column, value.getBytes());
             }
             Constant.MULTI_ROWS.put(new Key(key), row);
@@ -94,7 +93,7 @@ class RocksTableAdapterTest {
     }
 
     void createColumn() {
-        db.createColumns(Constant.COLUMNS.stream().map(Column::val).toList());
+        db.createColumns(Constant.COLUMNS.stream().map(Column::value).toList());
     }
 
     @Test

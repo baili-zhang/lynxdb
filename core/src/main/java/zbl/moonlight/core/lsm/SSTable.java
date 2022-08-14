@@ -1,6 +1,6 @@
 package zbl.moonlight.core.lsm;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.core.enhance.EnhanceFile;
 import zbl.moonlight.core.utils.NumberUtils;
 
@@ -73,7 +73,7 @@ public class SSTable implements Map<String, byte[]> {
         int len = (int)sizePosition - BLOOM_FILTER_POSITION;
         ByteBuffer buffer = file.read(BLOOM_FILTER_POSITION, len);
         /* 如果布隆过滤器没有创建 */
-        if(!EnhanceByteBuffer.isOver(buffer)) {
+        if(!BufferUtils.isOver(buffer)) {
             if(buffer.position() == 0) {
                 file.write(ByteBuffer.allocate(len), BLOOM_FILTER_POSITION);
                 file.writeInt(INIT_SIZE, sizePosition);

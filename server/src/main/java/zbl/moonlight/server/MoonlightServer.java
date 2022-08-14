@@ -2,6 +2,8 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.common.Converter;
+import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.raft.client.RaftClient;
 import zbl.moonlight.raft.client.RaftClientHandler;
@@ -22,6 +24,8 @@ public class MoonlightServer {
     MoonlightServer() throws IOException {
         Configuration config = Configuration.getInstance();
         logger.info("Configuration: [{}]", config);
+
+        G.I.converter(new Converter(config.charset()));
 
         ServerNode current = config.currentNode();
 

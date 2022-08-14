@@ -1,6 +1,6 @@
 package zbl.moonlight.socket.request;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.core.exceptions.NullFieldException;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.socket.interfaces.SocketBytesConvertible;
@@ -77,10 +77,10 @@ public abstract class SocketRequest implements SocketBytesConvertible {
 
     @Override
     public void fromBytes(byte[] bytes) {
-        EnhanceByteBuffer buffer = EnhanceByteBuffer.wrap(bytes);
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
         status = buffer.get();
         serial = buffer.getInt();
-        data = buffer.getRemaining();
+        data = BufferUtils.getRemaining(buffer);
     }
 
     public boolean isKeepConnection() {

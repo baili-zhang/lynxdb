@@ -8,6 +8,7 @@ import zbl.moonlight.raft.server.RaftServer;
 import zbl.moonlight.raft.state.RaftCommand;
 import zbl.moonlight.raft.state.StateMachine;
 import zbl.moonlight.server.engine.MdtpStorageEngine;
+import zbl.moonlight.server.engine.QueryParams;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.response.WritableSocketResponse;
 
@@ -15,7 +16,6 @@ import java.util.List;
 
 import static zbl.moonlight.raft.state.RaftState.CLUSTER_MEMBERSHIP_CHANGE;
 import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
-import static zbl.moonlight.server.engine.MdtpStorageEngine.C;
 
 /**
  * TODO: 异步执行会不会存在数据丢失的问题？
@@ -24,6 +24,8 @@ import static zbl.moonlight.server.engine.MdtpStorageEngine.C;
  */
 public class MdtpStateMachine extends Executor<RaftCommand> implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
+
+    public static final String C_OLD_NEW = "c_old_new";
 
     /**
      * 定义成 static final 类型，无论实例化多少个 MdtpStateMachine，都只有一个 MdtpStorageEngine 实例
@@ -41,10 +43,10 @@ public class MdtpStateMachine extends Executor<RaftCommand> implements StateMach
 
     @Override
     public List<ServerNode> clusterNodes() {
-        byte[] cOldNew = storageEngine.metaGet(C);
+        byte[] cOldNew = storageEngine.metaGet(C_OLD_NEW);
 
         if(cOldNew == null) {
-            byte[] c = storageEngine.metaGet(C);
+            byte[] c = storageEngine.metaGet(C_OLD_NEW);
             return ServerNode.parseNodeList(c);
         }
 
@@ -55,23 +57,22 @@ public class MdtpStateMachine extends Executor<RaftCommand> implements StateMach
     public void apply(RaftLogEntry[] entries) {
         for (RaftLogEntry entry : entries) {
             switch (entry.type()) {
-                // 处理数据改变
                 case DATA_CHANGE -> {
-                    // 执行查询操作
-                    byte[] data = storageEngine.doQuery(entry.command());
-                    // 构建 Socket 响应对象
+                    byte[] command = entry.command();
+                    QueryParams params = QueryParams.parse(command);
+                    byte[] data = storageEngine.doQuery(params);
+
                     WritableSocketResponse response = new WritableSocketResponse(
                             entry.selectionKey(),
                             entry.serial(),
                             data
                     );
-                    // 发送响应
+
                     raftServer.offerInterruptibly(response);
                 }
 
-                // 处理集群成员改变
                 case CLUSTER_MEMBERSHIP_CHANGE -> {
-                    storageEngine.metaSet(C, entry.command());
+                    storageEngine.metaSet(C_OLD_NEW, entry.command());
                 }
             }
         }

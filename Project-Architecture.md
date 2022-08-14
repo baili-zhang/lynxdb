@@ -317,17 +317,29 @@ delete `key1`,`key2`,`key3` from kvstore `kv_store_name`;
 create table `table_name`;
 ```
 
+**格式**
+
+| method | table name |
+|--------|------------|
+| 1 byte | remaining  |
+
 #### DROP TABLE 请求
 
-**命令**
+*命令*
 
 ```
 drop table `table_name`;
 ```
 
+*格式*
+
+| method | table name |
+|--------|------------|
+| 1 byte | remaining  |
+
 #### CREATE TABLE COLUMN 请求
 
-**命令**
+*命令*
 
 ```
 create column `column_name` in table `table_name`;
@@ -336,6 +348,12 @@ create column `column_name` in table `table_name`;
 ```
 create columns `column_name1`, `column_name2` in table `table_name`;
 ```
+
+*格式*
+
+| method | column1 name | column2 name | ... |
+|--------|--------------|--------------|-----|
+| 1 byte | string       | string       | ... |
 
 #### DROP TABLE COLUMN 请求
 
@@ -346,6 +364,12 @@ drop column `column_name` in table `table_name`;
 ```
 drop column `column_name1`, `column_name2` in table `table_name`;
 ```
+
+*格式*
+
+| method | column1 name | column2 name | ... |
+|--------|--------------|--------------|-----|
+| 1 byte | string       | string       | ... |
 
 #### TABLE GET 请求
 
@@ -367,7 +391,15 @@ select `column1`, `column2`, `column3` from table `table_name` where key in `key
 
 #### TABLE SET 请求
 
+```
+insert into table `table_name` values (`column1`, `value1`), (`column2`, `value2`) where key is `key`; 
+```
+
 #### TABLE DELETE 请求
+
+```
+delete key `key` from table `table_name`;
+```
 
 ## 客户端模块
 

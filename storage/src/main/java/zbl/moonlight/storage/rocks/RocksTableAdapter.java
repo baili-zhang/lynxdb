@@ -4,6 +4,7 @@ import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.*;
 import zbl.moonlight.storage.rocks.query.table.*;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +15,8 @@ public class RocksTableAdapter implements TableAdapter {
 
     public RocksTableAdapter(String name, String dataDir) {
         try {
-            db = RocksDatabase.open(name, dataDir);
+            String path = Path.of(dataDir, name).toString();
+            db = RocksDatabase.open(path);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
@@ -123,9 +125,9 @@ public class RocksTableAdapter implements TableAdapter {
     }
 
     @Override
-    public List<byte[]> columns() {
+    public HashSet<Column> columns() {
         try {
-            ResultSet<List<byte[]>> resultSet = new ResultSet<>();
+            ResultSet<HashSet<Column>> resultSet = new ResultSet<>();
             db.doQuery(new TableBatchGetColumnQuery(resultSet));
             return resultSet.result();
         } catch (RocksDBException e) {

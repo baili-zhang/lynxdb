@@ -6,6 +6,7 @@ import zbl.moonlight.storage.core.Pair;
 import zbl.moonlight.storage.core.ResultSet;
 import zbl.moonlight.storage.rocks.query.kv.*;
 
+import java.nio.file.Path;
 import java.util.List;
 
 public class RocksKvAdapter implements KvAdapter {
@@ -13,7 +14,8 @@ public class RocksKvAdapter implements KvAdapter {
 
     public RocksKvAdapter(String name, String dataDir) {
         try {
-            db = RocksDatabase.open(name, dataDir);
+            String path = Path.of(dataDir, name).toString();
+            db = RocksDatabase.open(path);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }

@@ -1,6 +1,6 @@
 package zbl.moonlight.socket.response;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.socket.interfaces.SocketBytesConvertible;
 
 import java.nio.ByteBuffer;
@@ -38,8 +38,8 @@ public class SocketResponse implements SocketBytesConvertible {
 
     @Override
     public void fromBytes(byte[] bytes) {
-        EnhanceByteBuffer buffer = EnhanceByteBuffer.wrap(bytes);
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
         serial = buffer.getLong();
-        data = buffer.getBytes();
+        data = BufferUtils.getBytes(buffer);
     }
 }

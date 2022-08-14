@@ -1,6 +1,8 @@
 package zbl.moonlight.core.lsm;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
+
+import java.nio.ByteBuffer;
 
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
@@ -14,10 +16,10 @@ public class SSTableEntry {
     private final int totalLength;
 
     SSTableEntry(byte[] entry) {
-        EnhanceByteBuffer buffer= EnhanceByteBuffer.wrap(entry);
+        ByteBuffer buffer= ByteBuffer.wrap(entry);
         status = buffer.get();
-        key = buffer.getString();
-        value = buffer.getRemaining();
+        key = BufferUtils.getString(buffer);
+        value = BufferUtils.getRemaining(buffer);
 
         /* entry 前面还有一个整型表示 entry 长度 */
         totalLength = entry.length + INT_LENGTH;

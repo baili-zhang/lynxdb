@@ -9,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 @ToString
@@ -34,6 +36,8 @@ public class Configuration {
     private String dataDir;
 
     private String electionMode;
+
+    private Charset charset = StandardCharsets.UTF_8;
 
     private static class Holder {
         private static final Configuration instance;
@@ -98,5 +102,9 @@ public class Configuration {
 
     public String electionMode() {
         return electionMode;
+    }
+
+    public Charset charset() {
+        return charset;
     }
 }

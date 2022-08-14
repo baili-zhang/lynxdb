@@ -1,6 +1,6 @@
 package zbl.moonlight.socket.request;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.socket.interfaces.Readable;
 
 import java.io.IOException;
@@ -22,33 +22,33 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
     public void read() throws IOException {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
         /* 读取长度数据 */
-        if(!EnhanceByteBuffer.isOver(lengthBuffer)) {
+        if(!BufferUtils.isOver(lengthBuffer)) {
             channel.read(lengthBuffer);
-            if(!EnhanceByteBuffer.isOver(lengthBuffer)) {
+            if(!BufferUtils.isOver(lengthBuffer)) {
                 return;
             }
             dataBuffer = ByteBuffer.allocate(lengthBuffer.getInt(0) - BYTE_LENGTH - LONG_LENGTH);
         }
         /* 读取状态数据 */
-        if(!EnhanceByteBuffer.isOver(statusBuffer)) {
+        if(!BufferUtils.isOver(statusBuffer)) {
             channel.read(statusBuffer);
-            if(!EnhanceByteBuffer.isOver(statusBuffer)) {
+            if(!BufferUtils.isOver(statusBuffer)) {
                 return;
             }
             status = statusBuffer.get(0);
         }
         /* 读取序列号 */
-        if(!EnhanceByteBuffer.isOver(serialBuffer)) {
+        if(!BufferUtils.isOver(serialBuffer)) {
             channel.read(serialBuffer);
-            if(!EnhanceByteBuffer.isOver(serialBuffer)) {
+            if(!BufferUtils.isOver(serialBuffer)) {
                 return;
             }
             serial = serialBuffer.getInt(0);
         }
         /* 读取请求数据 */
-        if(!EnhanceByteBuffer.isOver(dataBuffer)) {
+        if(!BufferUtils.isOver(dataBuffer)) {
             channel.read(dataBuffer);
-            if(EnhanceByteBuffer.isOver(dataBuffer)) {
+            if(BufferUtils.isOver(dataBuffer)) {
                 data = dataBuffer.array();
             }
         }
@@ -56,6 +56,6 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
 
     @Override
     public boolean isReadCompleted() {
-        return EnhanceByteBuffer.isOver(dataBuffer);
+        return BufferUtils.isOver(dataBuffer);
     }
 }

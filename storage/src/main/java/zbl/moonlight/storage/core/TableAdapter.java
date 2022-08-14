@@ -15,5 +15,5 @@ public interface TableAdapter extends AutoCloseable {
     void createColumns(Collection<byte[]> columns);
     void dropColumn(byte[] column);
     void dropColumns(HashSet<Column> column);
-    List<byte[]> columns();
+    HashSet<Column> columns();
 }

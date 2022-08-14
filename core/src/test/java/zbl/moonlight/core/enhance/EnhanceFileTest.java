@@ -3,6 +3,7 @@ package zbl.moonlight.core.enhance;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import zbl.moonlight.core.utils.BufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,7 +34,7 @@ class EnhanceFileTest {
 
     @Test
     void length() throws IOException {
-        ByteBuffer intBuffer = EnhanceByteBuffer.intByteBuffer().putInt(30).rewind();
+        ByteBuffer intBuffer = BufferUtils.intByteBuffer().putInt(30).rewind();
         assert file.length() == 0;
         file.write(intBuffer, 0);
         assert file.length() == 4;

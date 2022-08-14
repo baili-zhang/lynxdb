@@ -1,6 +1,6 @@
 package zbl.moonlight.raft.log;
 
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.core.enhance.EnhanceFile;
 
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class RaftLog {
     }
 
     private void setMaxIndexValue(int value) throws IOException {
-        ByteBuffer indexBuffer = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer indexBuffer = BufferUtils.intByteBuffer();
         indexBuffer.putInt(value).rewind();
         indexFile.write(indexBuffer, MAX_INDEX_VALUE_POSITION);
     }
@@ -69,7 +69,7 @@ public class RaftLog {
     }
 
     private int getMaxIndexValue() throws IOException {
-        ByteBuffer indexBuffer = EnhanceByteBuffer.intByteBuffer();
+        ByteBuffer indexBuffer = BufferUtils.intByteBuffer();
         indexFile.read(indexBuffer, MAX_INDEX_VALUE_POSITION);
         return indexBuffer.rewind().getInt();
     }

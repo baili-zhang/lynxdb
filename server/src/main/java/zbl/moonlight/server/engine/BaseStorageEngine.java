@@ -10,8 +10,10 @@ import zbl.moonlight.storage.rocks.RocksKvAdapter;
 import zbl.moonlight.storage.rocks.RocksTableAdapter;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,26 +52,18 @@ public abstract class BaseStorageEngine {
         initMethod(clazz);
     }
 
-    public byte[] doQuery(byte[] command) {
-        if(command == null) {
-            throw new RuntimeException("Command is null.");
-        }
-
-        byte method = findMethod(command);
-
-        Method doQueryMethod = methodMap.get(method);
+    public byte[] doQuery(QueryParams params) {
+        Method doQueryMethod = methodMap.get(params.method());
         if(doQueryMethod == null) {
             throw new RuntimeException("Not Supported mdtp method.");
         }
 
         try {
-            return (byte[]) doQueryMethod.invoke(this, command);
+            return (byte[]) doQueryMethod.invoke(this, params);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
-
-    protected abstract byte findMethod(byte[] command);
 
     private void initKvDb() {
         String dataDir = Configuration.getInstance().dataDir();
@@ -77,18 +71,20 @@ public abstract class BaseStorageEngine {
 
         File kvDir = kvPath.toFile();
 
-        if(kvDir.isDirectory()) {
-            String[] kvDbNames = kvDir.list();
+        if(!kvDir.isDirectory() && !kvDir.mkdir()) {
+            throw new RuntimeException("Kv dir create failed");
+        }
 
-            if(kvDbNames == null) {
-                return;
-            }
+        String[] kvDbNames = kvDir.list();
 
-            for (String kvDbName : kvDbNames) {
-                File subFile = Path.of(kvDir.getPath(), kvDbName).toFile();
-                if(subFile.isDirectory()) {
-                    kvDbMap.put(kvDbName, new RocksKvAdapter(kvDbName, kvDir.getPath()));
-                }
+        if(kvDbNames == null) {
+            return;
+        }
+
+        for (String kvDbName : kvDbNames) {
+            File subFile = Path.of(kvDir.getPath(), kvDbName).toFile();
+            if(subFile.isDirectory()) {
+                kvDbMap.put(kvDbName, new RocksKvAdapter(kvDbName, kvDir.getPath()));
             }
         }
     }
@@ -127,5 +123,63 @@ public abstract class BaseStorageEngine {
 
             methodMap.put(mdtpMethod.value(), method);
         });
+    }
+
+    protected void createKvDb(String name) {
+        String dataDir = Configuration.getInstance().dataDir();
+        Path path = Path.of(dataDir, KV_DIR, name);
+
+        File dir = path.toFile();
+
+        if(!dir.exists() || !dir.isDirectory()) {
+            if(dir.mkdir()) {
+                throw new RuntimeException("Kv dir [" + name + "] create failed");
+            }
+        }
+
+        kvDbMap.put(name, new RocksKvAdapter(name, dir.getPath()));
+    }
+
+    protected void dropKvDb(String name) {
+        String dataDir = Configuration.getInstance().dataDir();
+        Path path = Path.of(dataDir, KV_DIR, name);
+
+        try {
+            kvDbMap.get(name).close();
+            Files.delete(path);
+        } catch (Exception e) {
+            throw new RuntimeException("Drop kvstore [" + name + "] fail");
+        }
+
+        kvDbMap.remove(name);
+    }
+
+    protected void createTableDb(String name) {
+        String dataDir = Configuration.getInstance().dataDir();
+        Path path = Path.of(dataDir, KV_DIR, name);
+
+        File dir = path.toFile();
+
+        if(!dir.exists() || !dir.isDirectory()) {
+            if(dir.mkdir()) {
+                throw new RuntimeException("Kv dir [" + name + "] create failed");
+            }
+        }
+
+        tableMap.put(name, new RocksTableAdapter(name, dir.getPath()));
+    }
+
+    protected void dropTableDb(String name) {
+        String dataDir = Configuration.getInstance().dataDir();
+        Path path = Path.of(dataDir, KV_DIR, name);
+
+        try {
+            kvDbMap.get(name).close();
+            Files.delete(path);
+        } catch (Exception e) {
+            throw new RuntimeException("Drop kvstore [" + name + "] fail");
+        }
+
+        tableMap.remove(name);
     }
 }

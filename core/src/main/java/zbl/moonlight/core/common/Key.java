@@ -2,6 +2,9 @@ package zbl.moonlight.core.common;
 
 import java.util.Arrays;
 
+/**
+ * 给 lsm tree 用的 key
+ */
 public record Key(byte[] value, boolean flag) implements Comparable<Key> {
     public static final boolean SET = true;
     public static final boolean DELETE = false;

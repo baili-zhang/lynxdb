@@ -2,7 +2,7 @@ package zbl.moonlight.raft.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.enhance.EnhanceByteBuffer;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.log.RaftLog;
 import zbl.moonlight.raft.log.RaftLogEntry;
@@ -143,7 +143,7 @@ public class RaftServerHandler implements SocketServerHandler {
         int prevLogIndex = buffer.getInt();
         int prevLogTerm = buffer.getInt();
         int leaderCommit = buffer.getInt();
-        RaftLogEntry[] entries = EnhanceByteBuffer.isOver(buffer)
+        RaftLogEntry[] entries = BufferUtils.isOver(buffer)
                 ? new RaftLogEntry[0] : getEntries(buffer);
 
         ServerNode currentNode = raftState.currentNode();
@@ -284,7 +284,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
     private RaftLogEntry[] getEntries(ByteBuffer buffer) {
         List<RaftLogEntry> entries = new ArrayList<>();
-        while (!EnhanceByteBuffer.isOver(buffer)) {
+        while (!BufferUtils.isOver(buffer)) {
             entries.add(getEntry(buffer));
         }
 
