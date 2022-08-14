@@ -1,13 +1,12 @@
 package zbl.moonlight.client;
 
 import lombok.Setter;
+import zbl.moonlight.client.mql.MQL;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.request.RaftRequest;
-import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
-import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,7 +17,6 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static zbl.moonlight.client.Command.*;
 import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
 import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
@@ -43,73 +41,12 @@ public class MoonlightClient extends Shutdown {
         scanner = new Scanner(System.in);
     }
 
-    public void start() throws BrokenBarrierException, InterruptedException, IOException {
+    public void start() {
         Executor.start(socketClient);
         clientHandler.setClient(this);
 
         while (isNotShutdown()) {
             Printer.printPrompt(current);
-            Command command = Command.fromString(scanner.nextLine());
-            String commandName = command.name();
-
-            if(current == null && isServerCommand(commandName)) {
-                Printer.printNotConnectServer();
-                continue;
-            }
-
-            switch (commandName) {
-                /* 处理退出客户端命令 */
-                case EXIT_COMMEND -> shutdown();
-
-                /* 处理连接命令 */
-                case CONNECT_COMMAND -> {
-                    int port;
-
-                    try {
-                        port = Integer.parseInt(command.value());
-                    } catch (NumberFormatException e) {
-                        Printer.printError("Invalid [port]");
-                        continue;
-                    }
-
-                    ServerNode node = new ServerNode(command.key(), port);
-                    current = socketClient.connect(node);
-                    socketClient.interrupt();
-
-                    /* 等待连接成功 */
-                    barrier.await();
-                }
-
-                case DISCONNECT_COMMAND -> disconnect();
-
-                /* 处理 GET 命令 */
-                case GET_COMMAND -> {
-                    barrier.await();
-                }
-
-                /* 处理 SET 命令 */
-                case SET_COMMAND -> {
-                    WritableSocketRequest request = new WritableSocketRequest(
-                            current,
-                            (byte) 0x00,
-                            serial.getAndIncrement(),
-                            new byte[0]
-                    );
-
-                    socketClient.offerInterruptibly(request);
-                    barrier.await();
-                }
-
-                /* 处理 DELETE 命令 */
-                case DELETE_COMMAND -> {
-                    barrier.await();
-                }
-
-                default -> {
-                    String error = String.format("Invalid command [%s]", command.name());
-                    Printer.printError(error);
-                }
-            }
 
             if(barrier.isBroken()) {
                 barrier.reset();
@@ -117,39 +54,8 @@ public class MoonlightClient extends Shutdown {
         }
     }
 
-    private void send(byte method, Command command) {
-        byte[] key = command.key().getBytes(StandardCharsets.UTF_8);
-        byte[] value = command.value().getBytes(StandardCharsets.UTF_8);
-        int len = NumberUtils.BYTE_LENGTH * 3 + NumberUtils.INT_LENGTH * 2
-                + key.length + value.length;
+    private void send(byte method, MQL MQL) {
 
-        ByteBuffer buffer = ByteBuffer.allocate(len);
-        buffer.put(RaftRequest.CLIENT_REQUEST);
-
-        if(SET_COMMAND.equals(command.name()) || DELETE_COMMAND.equals(command.name())) {
-            buffer.put(RAFT_CLIENT_REQUEST_SET);
-        } else {
-            buffer.put(RAFT_CLIENT_REQUEST_GET);
-        }
-
-        buffer.put(method)
-                .putInt(key.length)
-                .put(key)
-                .putInt(value.length);
-
-        if(value.length != 0) {
-            buffer.put(value);
-        }
-
-//        WritableSocketRequest request = new WritableSocketRequest();
-//        socketClient.offerInterruptibly(request);
-    }
-
-    private boolean isServerCommand(String commandName) {
-        return GET_COMMAND.equals(commandName)
-                || SET_COMMAND.equals(commandName)
-                || DELETE_COMMAND.equals(commandName)
-                || DISCONNECT_COMMAND.equals(commandName);
     }
 
     private void disconnect() {
