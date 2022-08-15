@@ -5,6 +5,7 @@ import zbl.moonlight.socket.interfaces.Readable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import static zbl.moonlight.core.utils.NumberUtils.*;
@@ -15,7 +16,8 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
     private final ByteBuffer serialBuffer = ByteBuffer.allocate(LONG_LENGTH);
     private ByteBuffer dataBuffer;
 
-    public ReadableSocketRequest() {
+    public ReadableSocketRequest(SelectionKey selectionKey) {
+        super(selectionKey);
     }
 
     @Override

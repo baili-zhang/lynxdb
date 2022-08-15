@@ -34,7 +34,7 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         }
     }
 
-    public final void offerInterruptibly(E e) {
+    public void offerInterruptibly(E e) {
         offer(e);
         interrupt();
     }

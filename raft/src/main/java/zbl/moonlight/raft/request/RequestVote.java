@@ -3,10 +3,12 @@ package zbl.moonlight.raft.request;
 import zbl.moonlight.core.utils.NumberUtils;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 
 public class RequestVote extends RaftRequest {
-    public RequestVote() {
+    public RequestVote(SelectionKey selectionKey) {
+        super(selectionKey);
     }
 
     @Override

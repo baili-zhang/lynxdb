@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* 保存还未写回客户端的响应，用一个队列来维护 */
+// TODO: 可读可写逻辑
 public class SocketContext {
     private final SelectionKey selectionKey;
     /* 响应队列 */
@@ -40,11 +41,7 @@ public class SocketContext {
     }
 
     public void increaseRequestCount() {
-        if(requestCount.get() == 0) {
-            /* 设置新的request对象 */
-            selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
-        }
-        selectionKey.attach(new ReadableSocketRequest());
+        selectionKey.attach(new ReadableSocketRequest(selectionKey));
         requestCount.getAndIncrement();
     }
 

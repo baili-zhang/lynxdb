@@ -38,21 +38,6 @@ public class ClientHandler implements SocketClientHandler {
         byte[] body = new byte[data.length - 1];
         buffer.get(body);
 
-//        switch (commandName) {
-//            case GET_COMMAND -> {
-//                if(body.length == 0) {
-//                    Printer.printValueNotExist();
-//                } else {
-//                    Printer.printValue(body);
-//                }
-//            }
-//
-//            case SET_COMMAND, DELETE_COMMAND -> {
-//                if(status == CLIENT_REQUEST_SUCCESS) {
-//                    Printer.printOK();
-//                }
-//            }
-//        }
         barrier.await();
     }
 

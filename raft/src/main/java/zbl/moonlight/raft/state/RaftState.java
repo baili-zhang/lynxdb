@@ -202,7 +202,7 @@ public class RaftState {
                         indexOfLastLogEntry());
 
                 /* 创建 AppendEntries 请求 */
-                AppendEntries appendEntries = new AppendEntries();
+                AppendEntries appendEntries = new AppendEntries(null);
                 appendEntries.term(currentTerm());
                 appendEntries.leader(currentNode);
                 appendEntries.prevLogIndex(prevLogIndex);
@@ -240,7 +240,7 @@ public class RaftState {
                         RaftLogEntry[] entries = getEntriesByRange(prevLogIndex,
                                 indexOfLastLogEntry());
 
-                        AppendEntries appendEntries = new AppendEntries();
+                        AppendEntries appendEntries = new AppendEntries(null);
 
                         if(raftClient.isConnected(selectionKey)) {
                             raftClient.sendMessage(selectionKey, appendEntries);
@@ -287,7 +287,7 @@ public class RaftState {
                     RaftLogEntry lastRaftLogEntry = lastEntry();
                     int term = lastRaftLogEntry == null ? 0 : lastRaftLogEntry.term();
 
-                    RequestVote requestVote = new RequestVote();
+                    RequestVote requestVote = new RequestVote(null);
                     requestVote.term(currentTerm());
                     requestVote.candidate(currentNode);
                     requestVote.lastLogIndex(indexOfLastLogEntry());

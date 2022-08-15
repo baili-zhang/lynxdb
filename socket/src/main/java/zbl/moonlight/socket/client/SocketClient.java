@@ -67,6 +67,8 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         }
 
         contexts.put(selectionKey, new ConnectionContext(selectionKey));
+
+        interrupt();
         return selectionKey;
     }
 
@@ -84,16 +86,29 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         }
     }
 
+    @Override
+    public void offerInterruptibly(WritableSocketRequest request) {
+        ConnectionContext context = contexts.get(request.selectionKey());
+        context.offerRequest(request);
+        interrupt();
+    }
+
     public boolean isConnected(SelectionKey selectionKey) {
         return contexts.containsKey(selectionKey);
     }
 
     public void sendMessage(SelectionKey selectionKey, BytesConvertible message) {
         byte[] data = message.toBytes();
-        ConnectionContext context = contexts.get(selectionKey);
         byte status = (byte) 0x00;
-        context.offerRequest(new WritableSocketRequest(selectionKey, status, serial.getAndIncrement(), data));
-        interrupt();
+
+        WritableSocketRequest request = new WritableSocketRequest(
+                selectionKey,
+                status,
+                serial.getAndIncrement(),
+                data
+        );
+
+        offerInterruptibly(request);
     }
 
     public void broadcastMessage(BytesConvertible message) {

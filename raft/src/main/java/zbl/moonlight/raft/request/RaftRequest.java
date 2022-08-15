@@ -5,6 +5,8 @@ import zbl.moonlight.raft.log.RaftLogEntry;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.request.SocketRequest;
 
+import java.nio.channels.SelectionKey;
+
 public abstract class RaftRequest extends SocketRequest {
     public final static byte REQUEST_VOTE = (byte) 0x01;
     public final static byte APPEND_ENTRIES = (byte) 0x02;
@@ -21,7 +23,8 @@ public abstract class RaftRequest extends SocketRequest {
     private Integer lastLogIndex;
     private Integer lastLogTerm;
 
-    protected RaftRequest() {
+    protected RaftRequest(SelectionKey selectionKey) {
+        super(selectionKey);
     }
 
     public int term() {

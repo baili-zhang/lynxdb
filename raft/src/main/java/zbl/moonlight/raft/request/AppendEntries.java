@@ -4,6 +4,7 @@ import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.log.RaftLogEntry;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,12 @@ import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
 public class AppendEntries extends RaftRequest {
     private final boolean isClusterMembershipChange;
 
-    public AppendEntries() {
-        this(false);
+    public AppendEntries(SelectionKey selectionKey) {
+        this(selectionKey, false);
     }
 
-    public AppendEntries(boolean isClusterMembershipChange) {
+    public AppendEntries(SelectionKey selectionKey, boolean isClusterMembershipChange) {
+        super(selectionKey);
         this.isClusterMembershipChange = isClusterMembershipChange;
     }
 

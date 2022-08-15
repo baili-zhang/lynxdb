@@ -12,6 +12,8 @@ public class WritableSocketRequest extends SocketRequest implements Writable {
     private final ByteBuffer buffer;
 
     public WritableSocketRequest(SelectionKey selectionKey, byte status, int serial, byte[] data) {
+        super(selectionKey);
+
         this.status = status;
         this.serial = serial;
         this.data = data;
