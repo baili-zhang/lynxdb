@@ -12,10 +12,9 @@ import java.util.List;
 public class RocksKvAdapter implements KvAdapter {
     private final RocksDatabase db;
 
-    public RocksKvAdapter(String name, String dataDir) {
+    public RocksKvAdapter(String dataDir) {
         try {
-            String path = Path.of(dataDir, name).toString();
-            db = RocksDatabase.open(path);
+            db = RocksDatabase.open(dataDir);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }

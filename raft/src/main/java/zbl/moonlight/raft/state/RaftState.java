@@ -123,6 +123,7 @@ public class RaftState {
     public void raftServer(RaftServer server) {
         if(raftServer == null) {
             raftServer = server;
+            stateMachine.raftServer(server);
         }
     }
 
@@ -191,6 +192,13 @@ public class RaftState {
     }
 
     public void sendAppendEntries() {
+        // TODO: 修改 raft 协议相关逻辑的时候再处理
+        if(nextIndex.isEmpty()) {
+            RaftLogEntry entry = raftLogEntryDeque.peekLast();
+            stateMachine.apply(new RaftLogEntry[]{entry});
+            return;
+        }
+
         try {
             for(SelectionKey key : nextIndex.keySet()) {
                 int logIndex = matchedIndex.get(key);

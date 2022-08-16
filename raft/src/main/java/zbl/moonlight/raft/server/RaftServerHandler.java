@@ -229,6 +229,7 @@ public class RaftServerHandler implements SocketServerHandler {
                         DATA_CHANGE,
                         command
                 );
+
                 // 尾部追加日志条目
                 raftState.appendEntry(entry);
                 // 重置心跳计时器

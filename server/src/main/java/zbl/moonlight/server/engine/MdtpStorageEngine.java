@@ -43,7 +43,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(CREATE_KV_STORE)
-    private byte[] doCreateKvStore(QueryParams params) {
+    public byte[] doCreateKvStore(QueryParams params) {
         CreateKvStoreContent content = new CreateKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -61,7 +61,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(DROP_KV_STORE)
-    private byte[] doDropKvStore(QueryParams params) {
+    public byte[] doDropKvStore(QueryParams params) {
         DropKvStoreContent content = new DropKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -79,7 +79,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(KV_SET)
-    private byte[] doKvSet(QueryParams params) {
+    public byte[] doKvSet(QueryParams params) {
         KvSetContent content = new KvSetContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
@@ -89,7 +89,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(KV_GET)
-    private byte[] doKvGet(QueryParams params) {
+    public byte[] doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 
         String kvstore = content.kvstore();
@@ -121,7 +121,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(KV_DELETE)
-    private byte[] doKvDelete(QueryParams params) {
+    public byte[] doKvDelete(QueryParams params) {
         KvDeleteContent content = new KvDeleteContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
@@ -131,7 +131,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(CREATE_TABLE)
-    private byte[] doCreateTable(QueryParams params) {
+    public byte[] doCreateTable(QueryParams params) {
         CreateTableContent content = new CreateTableContent(params);
         List<String> tables = content.tables();
 
@@ -149,7 +149,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(DROP_TABLE)
-    private byte[] doDropTable(QueryParams params) {
+    public byte[] doDropTable(QueryParams params) {
         DropTableContent content = new DropTableContent(params);
         List<String> tables = content.tables();
 
@@ -167,7 +167,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(CREATE_TABLE_COLUMN)
-    private byte[] doCreateTableColumn(QueryParams params) {
+    public byte[] doCreateTableColumn(QueryParams params) {
         CreateTableColumnContent content = new CreateTableColumnContent(params);
         List<byte[]> columns = content.columns();
 
@@ -189,7 +189,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(DROP_TABLE_COLUMN)
-    private byte[] doDropTableColumn(QueryParams params) {
+    public byte[] doDropTableColumn(QueryParams params) {
         DropTableColumnContent content = new DropTableColumnContent(params);
         HashSet<Column> columns = content.columns();
 
@@ -209,7 +209,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(TABLE_GET)
-    private byte[] doTableGet(QueryParams params) {
+    public byte[] doTableGet(QueryParams params) {
         TableGetContent content = new TableGetContent(params);
 
         TableAdapter db = tableMap.get(content.table());
@@ -247,7 +247,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(TABLE_SET)
-    private byte[] doTableSet(QueryParams params) {
+    public byte[] doTableSet(QueryParams params) {
         TableSetContent content = new TableSetContent(params);
         TableAdapter db = tableMap.get(content.table());
 
@@ -257,7 +257,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
     }
 
     @MdtpMethod(TABLE_DELETE)
-    private byte[] doTableDelete(QueryParams params) {
+    public byte[] doTableDelete(QueryParams params) {
         TableDeleteContent content = new TableDeleteContent(params);
         TableAdapter db = tableMap.get(content.table());
 

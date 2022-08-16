@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.socket.request.SocketRequest;
 import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
@@ -95,6 +96,20 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     public boolean isConnected(SelectionKey selectionKey) {
         return contexts.containsKey(selectionKey);
+    }
+
+    public void sendMessage(SocketRequest socketRequest) {
+        byte[] data = socketRequest.toBytes();
+        byte status = (byte) 0x00;
+
+        WritableSocketRequest request = new WritableSocketRequest(
+                socketRequest.selectionKey(),
+                status,
+                serial.getAndIncrement(),
+                data
+        );
+
+        offerInterruptibly(request);
     }
 
     public void sendMessage(SelectionKey selectionKey, BytesConvertible message) {

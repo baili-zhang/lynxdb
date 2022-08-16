@@ -13,10 +13,9 @@ public class RocksTableAdapter implements TableAdapter {
 
     private final RocksDatabase db;
 
-    public RocksTableAdapter(String name, String dataDir) {
+    public RocksTableAdapter(String dataDir) {
         try {
-            String path = Path.of(dataDir, name).toString();
-            db = RocksDatabase.open(path);
+            db = RocksDatabase.open(dataDir);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }

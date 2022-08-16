@@ -3,6 +3,7 @@ package zbl.moonlight.storage.rocks;
 import org.junit.jupiter.api.*;
 import zbl.moonlight.storage.core.Pair;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +28,8 @@ class RocksKvAdapterTest {
 
     @BeforeEach
     void setUp() {
-        db = new RocksKvAdapter(DB_NAME, DB_DIR);
+        String path = Path.of(DB_DIR, DB_NAME).toString();
+        db = new RocksKvAdapter(path);
 
         for(int i = 0; i < 100; i ++) {
             Constant.KEY_LIST.add((Constant.KEY_STR + i).getBytes());

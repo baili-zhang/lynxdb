@@ -43,9 +43,9 @@ public abstract class BaseStorageEngine {
 
     public BaseStorageEngine(Class<? extends BaseStorageEngine> clazz) {
         String dataDir = Configuration.getInstance().dataDir();
-        String metaDbDir = Path.of(dataDir, META_DIR).toString();
+        String metaDbDir = Path.of(dataDir, META_DIR, META_DB_NAME).toString();
 
-        metaDb = new RocksKvAdapter(META_DB_NAME, metaDbDir);
+        metaDb = new RocksKvAdapter(metaDbDir);
 
         initKvDb();
         initTable();
@@ -84,7 +84,7 @@ public abstract class BaseStorageEngine {
         for (String kvDbName : kvDbNames) {
             File subFile = Path.of(kvDir.getPath(), kvDbName).toFile();
             if(subFile.isDirectory()) {
-                kvDbMap.put(kvDbName, new RocksKvAdapter(kvDbName, kvDir.getPath()));
+                kvDbMap.put(kvDbName, new RocksKvAdapter(subFile.getPath()));
             }
         }
     }
@@ -95,19 +95,20 @@ public abstract class BaseStorageEngine {
 
         File tableDir = tablePath.toFile();
 
+        if(!tableDir.isDirectory() && !tableDir.mkdir()) {
+            throw new RuntimeException("Kv dir create failed");
+        }
 
-        if(tableDir.isDirectory()) {
-            String[] tableDbNames = tableDir.list();
+        String[] tableDbNames = tableDir.list();
 
-            if(tableDbNames == null) {
-                return;
-            }
+        if(tableDbNames == null) {
+            return;
+        }
 
-            for (String tableDbName : tableDbNames) {
-                File subFile = Path.of(tableDir.getPath(), tableDbName).toFile();
-                if(subFile.isDirectory()) {
-                    tableMap.put(tableDbName, new RocksTableAdapter(tableDbName, tableDir.getPath()));
-                }
+        for (String tableDbName : tableDbNames) {
+            File subFile = Path.of(tableDir.getPath(), tableDbName).toFile();
+            if(subFile.isDirectory()) {
+                tableMap.put(tableDbName, new RocksTableAdapter(subFile.getPath()));
             }
         }
     }
@@ -132,12 +133,12 @@ public abstract class BaseStorageEngine {
         File dir = path.toFile();
 
         if(!dir.exists() || !dir.isDirectory()) {
-            if(dir.mkdir()) {
+            if(!dir.mkdir()) {
                 throw new RuntimeException("Kv dir [" + name + "] create failed");
             }
         }
 
-        kvDbMap.put(name, new RocksKvAdapter(name, dir.getPath()));
+        kvDbMap.put(name, new RocksKvAdapter(dir.getPath()));
     }
 
     protected void dropKvDb(String name) {
@@ -156,22 +157,22 @@ public abstract class BaseStorageEngine {
 
     protected void createTableDb(String name) {
         String dataDir = Configuration.getInstance().dataDir();
-        Path path = Path.of(dataDir, KV_DIR, name);
+        Path path = Path.of(dataDir, TABLE_DIR, name);
 
         File dir = path.toFile();
 
         if(!dir.exists() || !dir.isDirectory()) {
-            if(dir.mkdir()) {
-                throw new RuntimeException("Kv dir [" + name + "] create failed");
+            if(!dir.mkdir()) {
+                throw new RuntimeException("Table dir [" + name + "] create failed");
             }
         }
 
-        tableMap.put(name, new RocksTableAdapter(name, dir.getPath()));
+        tableMap.put(name, new RocksTableAdapter(dir.getPath()));
     }
 
     protected void dropTableDb(String name) {
         String dataDir = Configuration.getInstance().dataDir();
-        Path path = Path.of(dataDir, KV_DIR, name);
+        Path path = Path.of(dataDir, TABLE_DIR, name);
 
         try {
             kvDbMap.get(name).close();

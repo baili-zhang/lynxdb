@@ -34,6 +34,7 @@ public class SocketContext {
 
     public void offerResponse(WritableSocketResponse response) {
         responses.offer(response);
+        selectionKey.interestOpsOr(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
     }
 
     public boolean responseQueueIsEmpty() {

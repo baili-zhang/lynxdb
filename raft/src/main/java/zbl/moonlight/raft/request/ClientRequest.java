@@ -1,17 +1,21 @@
 package zbl.moonlight.raft.request;
 
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-public class ClientRequest extends RaftRequest {
-    public final static byte RAFT_CLIENT_REQUEST_GET = (byte) 0x01;
-    public final static byte RAFT_CLIENT_REQUEST_SET = (byte) 0x02;
+import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
 
-    public ClientRequest(SelectionKey selectionKey) {
+public class ClientRequest extends RaftRequest {
+    private final byte[] command;
+
+    public ClientRequest(SelectionKey selectionKey, byte[] data) {
         super(selectionKey);
+        command = data;
     }
 
     @Override
     public byte[] toBytes() {
-        return new byte[0];
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + command.length);
+        return buffer.put(CLIENT_REQUEST).put(command).array();
     }
 }

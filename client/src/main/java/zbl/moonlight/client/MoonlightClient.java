@@ -8,6 +8,7 @@ import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
 import zbl.moonlight.core.utils.NumberUtils;
+import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.raft.request.RaftRequest;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
@@ -28,8 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
-import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_GET;
-import static zbl.moonlight.raft.request.ClientRequest.RAFT_CLIENT_REQUEST_SET;
 
 public class MoonlightClient extends Shutdown {
     private final SocketClient socketClient;
@@ -86,16 +85,8 @@ public class MoonlightClient extends Shutdown {
             }
 
             byte[] queryBytes = total.get(0);
-            byte status = (byte) 0x00;
 
-            WritableSocketRequest request = new WritableSocketRequest(
-                    selectionKey,
-                    status,
-                    serial.getAndIncrement(),
-                    queryBytes
-            );
-
-            socketClient.offerInterruptibly(request);
+            socketClient.sendMessage(new ClientRequest(selectionKey, queryBytes));
         }
     }
 
