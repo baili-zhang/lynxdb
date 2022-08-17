@@ -11,7 +11,6 @@ public class RequestVote extends RaftRequest {
         super(selectionKey);
     }
 
-    @Override
     public byte[] toBytes() {
         byte[] host = candidate().host().getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 5 + host.length + 1);

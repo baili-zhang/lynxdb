@@ -25,7 +25,7 @@ class SocketServerTest {
     private final byte requestStatus = (byte) 0x03;
 
     private final int requestSerial = 15;
-    private final long responseSerial = 20L;
+    private final int responseSerial = 20;
 
     @Test
     void execute() throws IOException, InterruptedException {
@@ -65,8 +65,8 @@ class SocketServerTest {
             }
         });
 
-        client.connect(new ServerNode("127.0.0.1", 7820));
         Executor.start(client);
+        client.connect(new ServerNode("127.0.0.1", 7820));
         latch.await();
     }
 }

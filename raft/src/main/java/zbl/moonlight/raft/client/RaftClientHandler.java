@@ -35,7 +35,7 @@ public class RaftClientHandler implements SocketClientHandler {
 
     @Override
     public void handleResponse(SocketResponse response) throws Exception {
-        ByteBuffer buffer = ByteBuffer.wrap(response.toBytes());
+        ByteBuffer buffer = ByteBuffer.wrap(null);
         byte status = buffer.get();
 
         switch (status) {

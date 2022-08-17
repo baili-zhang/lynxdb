@@ -1,14 +1,16 @@
 package zbl.moonlight.socket.request;
 
-import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.exceptions.NullFieldException;
 import zbl.moonlight.core.utils.NumberUtils;
-import zbl.moonlight.socket.interfaces.SocketBytesConvertible;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-public abstract class SocketRequest implements SocketBytesConvertible {
+import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
+import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
+
+public class SocketRequest {
     protected final SelectionKey selectionKey;
     protected Byte status;
     protected Integer serial;
@@ -62,21 +64,6 @@ public abstract class SocketRequest implements SocketBytesConvertible {
             throw new NullFieldException("data");
         }
         return data;
-    }
-
-    @Override
-    public final byte[] toContentBytes() {
-        int length = NumberUtils.BYTE_LENGTH + NumberUtils.LONG_LENGTH + data.length;
-        ByteBuffer buffer = ByteBuffer.allocate(length);
-        return buffer.put(status).putLong(serial).put(data).array();
-    }
-
-    @Override
-    public void fromBytes(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        status = buffer.get();
-        serial = buffer.getInt();
-        data = BufferUtils.getRemaining(buffer);
     }
 
     public boolean isKeepConnection() {

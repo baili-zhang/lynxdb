@@ -10,6 +10,7 @@ import zbl.moonlight.core.executor.Shutdown;
 import zbl.moonlight.core.utils.NumberUtils;
 import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.raft.request.RaftRequest;
+import zbl.moonlight.raft.response.ClientResult;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
@@ -86,7 +87,7 @@ public class MoonlightClient extends Shutdown {
 
             byte[] queryBytes = total.get(0);
 
-            socketClient.sendMessage(new ClientRequest(selectionKey, queryBytes));
+            socketClient.sendMessage(selectionKey, new ClientRequest(queryBytes).toBytes());
         }
     }
 

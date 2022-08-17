@@ -251,7 +251,7 @@ public class RaftState {
                         AppendEntries appendEntries = new AppendEntries(null);
 
                         if(raftClient.isConnected(selectionKey)) {
-                            raftClient.sendMessage(selectionKey, appendEntries);
+                            raftClient.sendMessage(selectionKey, appendEntries.toBytes());
 
                             logger.debug("[{}] send {} to node: {}.", currentNode,
                                     appendEntries, ((SocketChannel)selectionKey.channel()).getRemoteAddress());
@@ -305,7 +305,7 @@ public class RaftState {
                                     "Send RequestVote [{}] to other nodes.",
                             currentNode, raftRole(), requestVote);
 
-                    raftClient.broadcastMessage(requestVote);
+                    raftClient.broadcastMessage(null);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

@@ -20,7 +20,7 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
     public ReadableSocketResponse(SelectionKey key) {
         super(key);
         lengthBuffer = ByteBuffer.allocate(INT_LENGTH);
-        serialBuffer = ByteBuffer.allocate(LONG_LENGTH);
+        serialBuffer = ByteBuffer.allocate(INT_LENGTH);
     }
 
     @Override
@@ -32,7 +32,7 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
                 return;
             }
             int len = lengthBuffer.getInt(0);
-            dataBuffer = ByteBuffer.allocate(len - LONG_LENGTH);
+            dataBuffer = ByteBuffer.allocate(len);
         }
 
         if(!BufferUtils.isOver(serialBuffer)) {
@@ -40,7 +40,7 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
             if(!BufferUtils.isOver(serialBuffer)) {
                 return;
             }
-            serial = serialBuffer.getLong(0);
+            serial = serialBuffer.getInt(0);
         }
 
         if(!BufferUtils.isOver(dataBuffer)) {

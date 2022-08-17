@@ -64,7 +64,7 @@ public class RaftServerHandler implements SocketServerHandler {
             Integer logIndex = logIndexMap.peek(key);
             while (logIndex != null && logIndex <= commitIndex) {
                 byte[] data = RaftResponse.clientRequestSuccessWithoutResult();
-                WritableSocketResponse response = new WritableSocketResponse(key, 0L, data);
+                WritableSocketResponse response = new WritableSocketResponse(key, 0, data);
                 raftServer.offerInterruptibly(response);
                 logIndex = logIndexMap.peekAfterPoll(key);
             }
@@ -302,7 +302,7 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void sendResult(SelectionKey selectionKey, byte[] data) {
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, 0L, data);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, 0, data);
         raftServer.offer(response);
     }
 }

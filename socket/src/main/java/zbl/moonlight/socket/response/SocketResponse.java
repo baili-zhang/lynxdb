@@ -1,17 +1,16 @@
 package zbl.moonlight.socket.response;
 
-import zbl.moonlight.core.utils.BufferUtils;
-import zbl.moonlight.socket.interfaces.SocketBytesConvertible;
+import zbl.moonlight.core.common.BytesConvertible;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import static zbl.moonlight.core.utils.NumberUtils.LONG_LENGTH;
+import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
-public class SocketResponse implements SocketBytesConvertible {
+public class SocketResponse {
     protected final SelectionKey selectionKey;
 
-    protected long serial;
+    protected int serial;
     protected byte[] data;
 
     protected SocketResponse(SelectionKey selectionKey) {
@@ -22,24 +21,11 @@ public class SocketResponse implements SocketBytesConvertible {
         return selectionKey;
     }
 
-    public long serial() {
+    public int serial() {
         return serial;
     }
 
     public byte[] data() {
         return data;
-    }
-
-    @Override
-    public byte[] toContentBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(LONG_LENGTH + data.length);
-        return buffer.putLong(serial).put(data).array();
-    }
-
-    @Override
-    public void fromBytes(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        serial = buffer.getLong();
-        data = BufferUtils.getBytes(buffer);
     }
 }

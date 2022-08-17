@@ -98,12 +98,11 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         return contexts.containsKey(selectionKey);
     }
 
-    public void sendMessage(SocketRequest socketRequest) {
-        byte[] data = socketRequest.toBytes();
+    public void sendMessage(SelectionKey selectionKey, byte[] data) {
         byte status = (byte) 0x00;
 
         WritableSocketRequest request = new WritableSocketRequest(
-                socketRequest.selectionKey(),
+                selectionKey,
                 status,
                 serial.getAndIncrement(),
                 data

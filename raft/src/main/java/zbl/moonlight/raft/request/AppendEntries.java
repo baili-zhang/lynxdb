@@ -24,7 +24,6 @@ public class AppendEntries extends RaftRequest {
         this.isClusterMembershipChange = isClusterMembershipChange;
     }
 
-    @Override
     public byte[] toBytes() {
         byte[] host = leader().host().getBytes(StandardCharsets.UTF_8);
         int len = NumberUtils.INT_LENGTH * 6 + host.length + 1;

@@ -1,15 +1,16 @@
 package zbl.moonlight.raft.request;
 
+import zbl.moonlight.core.common.BytesConvertible;
+
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
+import static zbl.moonlight.raft.request.RaftRequest.CLIENT_REQUEST;
 
-public class ClientRequest extends RaftRequest {
+public class ClientRequest implements BytesConvertible {
     private final byte[] command;
 
-    public ClientRequest(SelectionKey selectionKey, byte[] data) {
-        super(selectionKey);
+    public ClientRequest(byte[] data) {
         command = data;
     }
 

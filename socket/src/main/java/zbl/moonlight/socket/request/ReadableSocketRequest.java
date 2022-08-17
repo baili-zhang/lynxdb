@@ -13,7 +13,7 @@ import static zbl.moonlight.core.utils.NumberUtils.*;
 public class ReadableSocketRequest extends SocketRequest implements Readable {
     private final ByteBuffer lengthBuffer = ByteBuffer.allocate(INT_LENGTH);
     private final ByteBuffer statusBuffer = ByteBuffer.allocate(BYTE_LENGTH);
-    private final ByteBuffer serialBuffer = ByteBuffer.allocate(LONG_LENGTH);
+    private final ByteBuffer serialBuffer = ByteBuffer.allocate(INT_LENGTH);
     private ByteBuffer dataBuffer;
 
     public ReadableSocketRequest(SelectionKey selectionKey) {
@@ -29,7 +29,7 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
             if(!BufferUtils.isOver(lengthBuffer)) {
                 return;
             }
-            dataBuffer = ByteBuffer.allocate(lengthBuffer.getInt(0) - BYTE_LENGTH - LONG_LENGTH);
+            dataBuffer = ByteBuffer.allocate(lengthBuffer.getInt(0));
         }
         /* 读取状态数据 */
         if(!BufferUtils.isOver(statusBuffer)) {
