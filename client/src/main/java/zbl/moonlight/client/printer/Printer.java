@@ -1,10 +1,11 @@
-package zbl.moonlight.client;
+package zbl.moonlight.client.printer;
 
 
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 
 public interface Printer {
     static void printPrompt(SelectionKey current) {
@@ -55,5 +56,9 @@ public interface Printer {
         }
         String message = String.format("INFO: Disconnect from [%s]", address);
         System.out.println(message);
+    }
+
+    static void printTable(List<List<String>> table) {
+        new TablePrinter(table).print();
     }
 }

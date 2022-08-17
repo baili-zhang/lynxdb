@@ -26,6 +26,11 @@ public interface BufferUtils {
         return remaining;
     }
 
+    static String getRemainingString(ByteBuffer buffer) {
+        byte[] bytes = getRemaining(buffer);
+        return new String(bytes);
+    }
+
     static byte[] toBytes(Collection<byte[]> src) {
         AtomicInteger length = new AtomicInteger(0);
         src.forEach(bytes -> length.getAndAdd(INT_LENGTH + bytes.length));

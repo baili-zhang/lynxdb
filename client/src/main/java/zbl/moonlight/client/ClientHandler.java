@@ -1,6 +1,9 @@
 package zbl.moonlight.client;
 
 import lombok.Setter;
+import zbl.moonlight.client.printer.Printer;
+import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.engine.result.Result;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
 import zbl.moonlight.socket.response.SocketResponse;
 
@@ -27,16 +30,21 @@ public class ClientHandler implements SocketClientHandler {
 
     @Override
     public void handleResponse(SocketResponse response) throws BrokenBarrierException, InterruptedException {
+        int serial = response.serial();
         byte[] data = response.data();
 
-        if(data == null || data.length < 1) {
-            throw new RuntimeException("Response data can not be null");
-        }
-
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte status = buffer.get();
-        byte[] body = new byte[data.length - 1];
-        buffer.get(body);
+        byte code = buffer.get();
+
+        switch (code) {
+            case Result.SUCCESS -> Printer.printOK();
+            case Result.Error.INVALID_ARGUMENT -> {
+                String message = BufferUtils.getRemainingString(buffer);
+                Printer.printError(message);
+            }
+
+            default -> Printer.printError("Unknown Response Status Code");
+        }
 
         barrier.await();
     }

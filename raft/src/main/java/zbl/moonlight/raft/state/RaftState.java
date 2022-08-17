@@ -143,17 +143,6 @@ public class RaftState {
                 logFilenamePrefix + "data.log");
         termLog = new TermLog(logFilenamePrefix + "term.log");
 
-        // 初始化集群节点配置
-        List<ServerNode> clusterNodes = stateMachine.clusterNodes();
-        if(clusterNodes == null) {
-            // 第一次启动服务
-            leaderNode = currentNode;
-            byte[] command =  currentNode.toString().getBytes(StandardCharsets.UTF_8);
-            RaftLogEntry raftLogEntry = new RaftLogEntry(null, 0, 1, CLUSTER_MEMBERSHIP_CHANGE, command);
-            appendEntry(raftLogEntry);
-            stateMachine.apply(new RaftLogEntry[]{raftLogEntry});
-        }
-
         // 超时计时器
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
         // 设置随机选举超时时间
@@ -194,7 +183,7 @@ public class RaftState {
     public void sendAppendEntries() {
         // TODO: 修改 raft 协议相关逻辑的时候再处理
         if(nextIndex.isEmpty()) {
-            RaftLogEntry entry = raftLogEntryDeque.peekLast();
+            RaftLogEntry entry = raftLogEntryDeque.pollLast();
             stateMachine.apply(new RaftLogEntry[]{entry});
             return;
         }
