@@ -29,4 +29,19 @@ class MQLTest {
         assert queries.get(0).type().equals(MQL.Keywords.KVSTORE);
         assert queries.get(1).type().equals(MQL.Keywords.TABLE);
     }
+
+    @Test
+    void test_003() {
+        String statement = """
+                show tables;
+                 show  kvstores   ;
+                """;
+
+        List<MqlQuery> queries = MQL.parse(statement);
+
+        assert queries.get(0).name().equals(MQL.Keywords.SHOW);
+        assert queries.get(0).type().equals(MQL.Keywords.TABLES);
+        assert queries.get(1).name().equals(MQL.Keywords.SHOW);
+        assert queries.get(1).type().equals(MQL.Keywords.KVSTORES);
+    }
 }

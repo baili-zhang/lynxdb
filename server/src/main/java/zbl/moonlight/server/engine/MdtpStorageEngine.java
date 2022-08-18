@@ -1,12 +1,12 @@
 package zbl.moonlight.server.engine;
 
+import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.engine.query.*;
 import zbl.moonlight.server.engine.result.Result;
 import zbl.moonlight.storage.core.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -20,6 +20,10 @@ import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 import static zbl.moonlight.server.annotations.MdtpMethod.*;
 
 public class MdtpStorageEngine extends BaseStorageEngine {
+    private static final String KEY = "Key";
+    private static final String KVSTORES = "KV Stores";
+    private static final String TABLES = "Tables";
+
     public MdtpStorageEngine() {
         super(MdtpStorageEngine.class);
     }
@@ -264,5 +268,39 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         db.delete(content.keys());
 
         return new byte[]{Result.SUCCESS};
+    }
+
+    @MdtpMethod(SHOW_KVSTORE)
+    public byte[] doShowKvstore(QueryParams params) {
+        List<byte[]> total = new ArrayList<>();
+
+        total.add(G.I.toBytes(KVSTORES));
+
+        for (String kvstore : kvDbMap.keySet()) {
+            total.add(G.I.toBytes(kvstore));
+        }
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
+
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
+
+        return buffer.put(Result.SUCCESS_SHOW).put(totalBytes).array();
+    }
+
+    @MdtpMethod(SHOW_TABLE)
+    public byte[] doShowTable(QueryParams params) {
+        List<byte[]> total = new ArrayList<>();
+
+        total.add(G.I.toBytes(TABLES));
+
+        for (String table : tableMap.keySet()) {
+            total.add(G.I.toBytes(table));
+        }
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
+
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
+
+        return buffer.put(Result.SUCCESS_SHOW).put(totalBytes).array();
     }
 }

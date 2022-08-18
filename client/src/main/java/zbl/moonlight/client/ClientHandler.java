@@ -10,6 +10,7 @@ import zbl.moonlight.socket.response.SocketResponse;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
@@ -38,6 +39,7 @@ public class ClientHandler implements SocketClientHandler {
 
         switch (code) {
             case Result.SUCCESS -> Printer.printOK();
+            case Result.SUCCESS_SHOW -> handleShow(buffer);
             case Result.Error.INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
@@ -47,6 +49,12 @@ public class ClientHandler implements SocketClientHandler {
         }
 
         barrier.await();
+    }
+
+    private void handleShow(ByteBuffer buffer) {
+        List<String> total = BufferUtils.toStringList(buffer);
+        List<List<String>> table = total.stream().map(List::of).toList();
+        Printer.printTable(table);
     }
 
     @Override

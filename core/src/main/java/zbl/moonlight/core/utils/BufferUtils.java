@@ -1,6 +1,7 @@
 package zbl.moonlight.core.utils;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,5 +50,15 @@ public interface BufferUtils {
 
     static ByteBuffer intByteBuffer() {
         return ByteBuffer.allocate(INT_LENGTH);
+    }
+
+    static List<String> toStringList(ByteBuffer buffer) {
+        List<String> result = new ArrayList<>();
+
+        while (!isOver(buffer)) {
+            result.add(getString(buffer));
+        }
+
+        return result;
     }
 }

@@ -1,13 +1,17 @@
 package zbl.moonlight.client.printer;
 
+import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TablePrinter {
     public static final String CROSS = "+";
     public static final String UNDERLINE = "-";
     public static final String SPACE = " ";
     public static final String SEPARATOR = "|";
+
+    public static final int MARGIN = 1;
 
     private final List<List<String>> table;
     private final List<Integer> width = new ArrayList<>();
@@ -20,10 +24,12 @@ public class TablePrinter {
         countWidth();
         printLine();
 
-        table.forEach(row -> {
-            printRow(row);
-            printLine();
-        });
+        for (int i = 0; i < table.size(); i++) {
+            printRow(table.get(i));
+            if(i == 0) printLine();
+        }
+
+        printLine();
     }
 
     private void countWidth() {
@@ -37,6 +43,11 @@ public class TablePrinter {
                 width.set(i, Math.max(cell.length(), width.get(i)));
                 i ++;
             }
+        }
+
+
+        for (int i = 0; i < width.size(); i++) {
+            width.set(i, width.get(i) + MARGIN * 2);
         }
     }
 
@@ -61,8 +72,9 @@ public class TablePrinter {
             int w = width.get(i ++);
             int spaceCount = w - cell.length();
 
+            rowLine.append(SPACE.repeat(MARGIN));
             rowLine.append(cell);
-            rowLine.append(SPACE.repeat(spaceCount));
+            rowLine.append(SPACE.repeat(spaceCount - MARGIN));
             rowLine.append(SEPARATOR);
         }
 

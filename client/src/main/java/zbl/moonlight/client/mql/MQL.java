@@ -12,6 +12,7 @@ public interface MQL {
         String INSERT       = "insert";
         String SELECT       = "select";
         String DELETE       = "delete";
+        String SHOW         = "show";
 
         String COLUMN       = "column";
 
@@ -22,6 +23,9 @@ public interface MQL {
 
         String TABLE        = "table";
         String KVSTORE      = "kvstore";
+
+        String TABLES       = "tables";
+        String KVSTORES     = "kvstores";
     }
 
     static List<MqlQuery> parse(String statement) {
@@ -74,6 +78,7 @@ public interface MQL {
             case Keywords.DROP -> parseDrop(chs, curr, query);
             case Keywords.SELECT -> parseSelect(chs, curr, query);
             case Keywords.INSERT -> parseInsert(chs, curr, query);
+            case Keywords.SHOW -> parseShow(chs, curr, query);
 
             case Keywords.CONNECT -> parseConnect(chs, curr, query);
             case Keywords.DISCONNECT -> parseDisconnect(chs, curr, query);
@@ -82,6 +87,29 @@ public interface MQL {
 
             default -> throw new RuntimeException("Command [" + command + "] is not Support.");
         };
+    }
+
+    private static int parseShow(char[] chs, int curr, MqlQuery query) {
+        query.name(Keywords.SHOW);
+
+        curr = parseSpace(chs, curr);
+
+        StringBuilder str = new StringBuilder();
+        while(!Character.isWhitespace(chs[curr]) && chs[curr] != ';') {
+            str.append(chs[curr ++]);
+        }
+
+        String type = str.toString();
+
+        switch (type) {
+            case Keywords.TABLES, Keywords.KVSTORES -> query.type(type);
+
+            default -> throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+
+        return parseSemicolon(chs, curr);
     }
 
     private static int parseCluster(char[] chs, int curr, MqlQuery query) {

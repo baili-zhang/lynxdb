@@ -75,6 +75,7 @@ public class MoonlightClient extends Shutdown {
                     switch (query.name()) {
                         case MQL.Keywords.CREATE -> handleCreate(query);
                         case MQL.Keywords.DELETE -> handleDelete(query);
+                        case MQL.Keywords.SHOW -> handleShow(query);
 
                         default -> throw new UnsupportedOperationException(query.name());
                     }
@@ -85,6 +86,15 @@ public class MoonlightClient extends Shutdown {
 
             socketClient.sendMessage(selectionKey, new ClientRequest(queryBytes).toBytes());
         }
+    }
+
+    private byte[] handleShow(MqlQuery query) {
+        return switch (query.type()) {
+            case MQL.Keywords.KVSTORES -> new byte[]{MdtpMethod.SHOW_KVSTORE};
+            case MQL.Keywords.TABLES -> new byte[]{MdtpMethod.SHOW_TABLE};
+
+            default -> throw new UnsupportedOperationException(query.type());
+        };
     }
 
     private byte[] handleDelete(MqlQuery query) {
