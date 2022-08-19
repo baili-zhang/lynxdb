@@ -212,8 +212,8 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(TABLE_GET)
-    public byte[] doTableGet(QueryParams params) {
+    @MdtpMethod(TABLE_SELECT)
+    public byte[] doTableSelect(QueryParams params) {
         TableGetContent content = new TableGetContent(params);
 
         TableAdapter db = tableMap.get(content.table());
@@ -222,32 +222,30 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         List<byte[]> keys = content.keys();
         List<byte[]> columns = content.columns().stream().map(Column::value).toList();
 
-        byte[] keysBytes = BufferUtils.toBytes(keys);
-        byte[] columnsBytes = BufferUtils.toBytes(columns);
+        List<byte[]> header = new ArrayList<>();
 
-        List<byte[]> values = new ArrayList<>();
+        header.add(G.I.toBytes(KEY));
+        header.addAll(columns);
+
+        List<byte[]> table = new ArrayList<>(header);
+
+        int columnSize = table.size();
 
         for(byte[] key : keys) {
             Map<Column, byte[]> row = rows.get(new Key(key));
 
+            table.add(key);
+
             for(byte[] column : columns) {
                 byte[] value = row.get(new Column(column));
-                values.add(value);
+                table.add(value == null ? new byte[0] : value);
             }
         }
 
-        byte[] valuesBytes = BufferUtils.toBytes(values);
+        byte[] tableBytes = BufferUtils.toBytes(table);
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + tableBytes.length);
 
-        List<byte[]> total = new ArrayList<>();
-        total.add(keysBytes);
-        total.add(columnsBytes);
-        total.add(valuesBytes);
-
-        byte[] totalBytes = BufferUtils.toBytes(total);
-
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
-
-        return buffer.put(Result.SUCCESS).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(columnSize).put(tableBytes).array();
     }
 
     @MdtpMethod(TABLE_SET)
@@ -284,7 +282,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
     }
 
     @MdtpMethod(SHOW_TABLE)
@@ -301,6 +299,6 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
     }
 }

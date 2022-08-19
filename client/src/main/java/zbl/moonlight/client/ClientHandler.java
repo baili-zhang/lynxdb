@@ -10,6 +10,7 @@ import zbl.moonlight.socket.response.SocketResponse;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -39,7 +40,8 @@ public class ClientHandler implements SocketClientHandler {
 
         switch (code) {
             case Result.SUCCESS -> Printer.printOK();
-            case Result.SUCCESS_SHOW -> handleShow(buffer);
+            case Result.SUCCESS_SHOW_COLUMN -> handleShowColumn(buffer);
+            case Result.SUCCESS_SHOW_TABLE -> handleShowTable(buffer);
             case Result.Error.INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
@@ -51,7 +53,22 @@ public class ClientHandler implements SocketClientHandler {
         barrier.await();
     }
 
-    private void handleShow(ByteBuffer buffer) {
+    private void handleShowTable(ByteBuffer buffer) {
+        int columnSize = buffer.getInt();
+        List<List<String>> table = new ArrayList<>();
+
+        while(!BufferUtils.isOver(buffer)) {
+            List<String> row = new ArrayList<>();
+            for(int i = 0; i < columnSize; i ++) {
+                row.add(BufferUtils.getString(buffer));
+            }
+            table.add(row);
+        }
+
+        Printer.printTable(table);
+    }
+
+    private void handleShowColumn(ByteBuffer buffer) {
         List<String> total = BufferUtils.toStringList(buffer);
         List<List<String>> table = total.stream().map(List::of).toList();
         Printer.printTable(table);

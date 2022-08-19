@@ -248,14 +248,6 @@ drop kvstore `kv_store_name`;
 
 **命令**
 
-单个 Key:
-
-```
-select `key` from kvstore `kv_store_name`;
-```
-
-多个 Key:
-
 ```
 select `key1`,`key2`,`key3` from kvstore `kv_store_name`;
 ```
@@ -268,14 +260,6 @@ select `key1`,`key2`,`key3` from kvstore `kv_store_name`;
 #### KV SET 请求
 
 **命令**
-
-单个 Key:
-
-```
-insert into kvstore `kv_store_name` value `key`,`value`;
-```
-
-多个 Key:
 
 ```
 insert into kvstore `kv_store_name` values (`key`,`value`),(`key`,`value`),(`key`,`value`);
@@ -290,14 +274,6 @@ insert into kvstore `kv_store_name` values (`key`,`value`),(`key`,`value`),(`key
 #### KV DELETE 请求
 
 **命令**
-
-单个 Key:
-
-```
-delete `key` from kvstore `kv_store_name`;
-```
-
-多个 Key:
 
 ```
 delete `key1`,`key2`,`key3` from kvstore `kv_store_name`;
@@ -342,10 +318,6 @@ drop table `table_name`;
 *命令*
 
 ```
-create column `column_name` in table `table_name`;
-```
-
-```
 create columns `column_name1`, `column_name2` in table `table_name`;
 ```
 
@@ -358,10 +330,6 @@ create columns `column_name1`, `column_name2` in table `table_name`;
 #### DROP TABLE COLUMN 请求
 
 ```
-drop column `column_name` in table `table_name`;
-```
-
-```
 drop column `column_name1`, `column_name2` in table `table_name`;
 ```
 
@@ -372,18 +340,6 @@ drop column `column_name1`, `column_name2` in table `table_name`;
 | 1 byte | string       | string       | ... |
 
 #### TABLE GET 请求
-
-```
-select `column` from table `table_name` where key is `key`;
-```
-
-```
-select `column` from table `table_name` where key in `key1`, `key2`, `key3`;
-```
-
-```
-select `column1`, `column2`, `column3` from table `table_name` where key is `key`;
-```
 
 ```
 select `column1`, `column2`, `column3` from table `table_name` where key in `key1`, `key2`, `key3`;

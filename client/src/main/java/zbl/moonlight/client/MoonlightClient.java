@@ -8,6 +8,7 @@ import zbl.moonlight.core.common.Converter;
 import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
+import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
@@ -76,6 +77,7 @@ public class MoonlightClient extends Shutdown {
                         case MQL.Keywords.CREATE -> handleCreate(query);
                         case MQL.Keywords.DELETE -> handleDelete(query);
                         case MQL.Keywords.SHOW -> handleShow(query);
+                        case MQL.Keywords.SELECT -> handleSelect(query);
 
                         default -> throw new UnsupportedOperationException(query.name());
                     }
@@ -85,6 +87,31 @@ public class MoonlightClient extends Shutdown {
             byte[] queryBytes = total.get(0);
 
             socketClient.sendMessage(selectionKey, new ClientRequest(queryBytes).toBytes());
+        }
+    }
+
+    private byte[] handleSelect(MqlQuery query) {
+        switch (query.from()) {
+            case MQL.Keywords.TABLE -> {
+                byte method = MdtpMethod.TABLE_SELECT;
+                List<byte[]> total = new ArrayList<>();
+
+                byte[] table = G.I.toBytes(query.tables().get(0));
+                List<byte[]> keysList = query.keys().stream().map(G.I::toBytes).toList();
+                List<byte[]> columnsList = query.columns().stream().map(G.I::toBytes).toList();
+
+                total.add(table);
+                total.add(BufferUtils.toBytes(keysList));
+                total.add(BufferUtils.toBytes(columnsList));
+
+                byte[] totalBytes = BufferUtils.toBytes(total);
+
+                int length = BYTE_LENGTH + totalBytes.length;
+
+                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+            }
+
+            default -> throw new UnsupportedOperationException(query.from());
         }
     }
 
@@ -117,7 +144,7 @@ public class MoonlightClient extends Shutdown {
                 ByteBuffer buffer = ByteBuffer.allocate(length.get());
 
                 buffer.put(method);
-                tables.forEach(table -> buffer.putInt(table.length).put(table));
+                buffer.put(BufferUtils.toBytes(tables));
 
                 return buffer.array();
             }

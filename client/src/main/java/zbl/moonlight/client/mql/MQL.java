@@ -26,6 +26,11 @@ public interface MQL {
 
         String TABLES       = "tables";
         String KVSTORES     = "kvstores";
+
+        String FROM         = "from";
+        String WHERE        = "where";
+        String KEY          = "key";
+        String IN           = "in";
     }
 
     static List<MqlQuery> parse(String statement) {
@@ -145,6 +150,88 @@ public interface MQL {
     private static int parseSelect(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.SELECT);
 
+        curr = parseSpace(chs, curr);
+        curr = parseList(chs, curr, query, query.columns());
+        curr = parseSpace(chs, curr);
+        curr = parseFrom(chs, curr, query);
+        curr = parseSpace(chs, curr);
+
+        curr = parseItem(chs, curr, query, query.tables());
+        curr = parseSpace(chs, curr);
+
+        curr = parseWhere(chs, curr, query);
+        curr = parseSpace(chs, curr);
+
+        return parseSemicolon(chs, curr);
+    }
+
+    static int parseWhere(char[] chs, int curr, MqlQuery query) {
+        StringBuilder where = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            where.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!where.toString().equals(Keywords.WHERE)) {
+            throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+
+        StringBuilder key = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            key.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!key.toString().equals(Keywords.KEY)) {
+            throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+
+        StringBuilder in = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            in.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!in.toString().equals(Keywords.IN)) {
+            throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+        curr = parseList(chs, curr, query, query.keys());
+
+        return curr;
+    }
+
+    static int parseFrom(char[] chs, int curr, MqlQuery query) {
+        StringBuilder from = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            from.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!from.toString().equals(Keywords.FROM)) {
+            throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+
+        StringBuilder type = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            type.append(chs[curr]);
+            curr ++;
+        }
+
+        query.from(type.toString().toLowerCase());
+
         return curr;
     }
 
@@ -167,9 +254,14 @@ public interface MQL {
         curr = parseType(chs, curr, query);
 
         switch (query.type()) {
-            case Keywords.TABLE, Keywords.KVSTORE -> {
+            case Keywords.KVSTORE -> {
                 curr = parseSpace(chs, curr);
-                curr = parseList(chs, curr, query);
+                curr = parseList(chs, curr, query, query.kvstores());
+            }
+
+            case Keywords.TABLE -> {
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query, query.tables());
             }
 
             case Keywords.COLUMN -> {
@@ -203,31 +295,28 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseList(char[] chs, int curr, MqlQuery query) {
+    private static int parseList(char[] chs, int curr, MqlQuery query, List<String> list) {
         while(curr < chs.length && chs[curr] != ' ') {
-            curr = parseItem(chs, curr, query);
+            curr = parseItem(chs, curr, query, list);
             curr = parseSpace(chs, curr);
 
             if(chs[curr] == ';') {
                 break;
             }
 
-            curr = parseComma(chs, curr);
+            if(chs[curr] != ',') {
+                break;
+            } else {
+                curr ++;
+            }
+
             curr = parseSpace(chs, curr);
         }
 
         return curr;
     }
 
-    private static int parseComma(char[] chs, int curr) {
-        if(chs[curr] != ',') {
-            throw new SyntaxException(chs, curr);
-        }
-
-        return ++ curr;
-    }
-
-    private static int parseItem(char[] chs, int curr, MqlQuery query) {
+    private static int parseItem(char[] chs, int curr, MqlQuery query, List<String> list) {
         StringBuilder str = new StringBuilder();
 
         if(chs[curr] == '`') {
@@ -250,12 +339,7 @@ public interface MQL {
         }
 
         String name = str.toString();
-
-        if(Keywords.TABLE.equals(query.type())) {
-            query.tables().add(name);
-        } else if(Keywords.KVSTORE.equals(query.type())) {
-            query.kvstores().add(name);
-        }
+        list.add(name);
 
         return curr;
     }

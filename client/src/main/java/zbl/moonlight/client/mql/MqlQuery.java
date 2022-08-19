@@ -6,8 +6,11 @@ import java.util.List;
 public class MqlQuery {
     private String name;
     private String type;
+    private String from;
     private List<String> kvstores = new ArrayList<>();
     private List<String> tables = new ArrayList<>();
+    private List<String> columns = new ArrayList<>();
+    private List<String> keys = new ArrayList<>();
 
     public void name(String val) {
         name = val;
@@ -25,6 +28,14 @@ public class MqlQuery {
         return type;
     }
 
+    public void from(String val) {
+        from = val;
+    }
+
+    public String from() {
+        return from;
+    }
+
     public void kvstores(List<String> val) {
         kvstores = val;
     }
@@ -39,5 +50,21 @@ public class MqlQuery {
 
     public List<String> tables() {
         return tables;
+    }
+
+    public void columns(List<String> val) {
+        columns = val;
+    }
+
+    public List<String> columns() {
+        return columns;
+    }
+
+    public void keys(List<String> val) {
+        keys = val;
+    }
+
+    public List<String> keys() {
+        return keys;
     }
 }

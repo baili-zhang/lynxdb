@@ -44,4 +44,17 @@ class MQLTest {
         assert queries.get(1).name().equals(MQL.Keywords.SHOW);
         assert queries.get(1).type().equals(MQL.Keywords.KVSTORES);
     }
+
+    @Test
+    void test_004_select_from_table () {
+        String statement = """
+                select `column1`, `column2`, `column3` from table `table_name` where key in `key1`, `key2`, `key3`;
+                """;
+
+        List<MqlQuery> queries = MQL.parse(statement);
+
+        assert queries.get(0).from().equals(MQL.Keywords.TABLE);
+        assert queries.get(0).columns().size() == 3;
+        assert queries.get(0).keys().size() == 3;
+    }
 }

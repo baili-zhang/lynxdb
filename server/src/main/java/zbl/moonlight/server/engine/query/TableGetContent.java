@@ -34,7 +34,7 @@ public class TableGetContent {
         ByteBuffer columnBuffer = ByteBuffer.wrap(columnBytes);
 
         while(!BufferUtils.isOver(columnBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(keysBuffer);
+            byte[] bytes = BufferUtils.getBytes(columnBuffer);
             columns.add(new Column(bytes));
         }
 
