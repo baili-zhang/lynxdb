@@ -14,6 +14,7 @@ class MQLTest {
         String statement = """
                 create kvstore table name1, ` table name2`; 
                 """;
+
         assertThrowsExactly(SyntaxException.class, () -> MQL.parse(statement));
     }
 
@@ -56,5 +57,22 @@ class MQLTest {
         assert queries.get(0).from().equals(MQL.Keywords.TABLE);
         assert queries.get(0).columns().size() == 3;
         assert queries.get(0).keys().size() == 3;
+    }
+
+    @Test
+    void test_005_insert_into_table() {
+        String statement = """
+                insert into table `table_name`
+                      (`column1`,`column2`,`column3`)
+                      values
+                          (`key1`, `value1_1`, `value1_2`, `value1_3`),
+                          (`key2`, `value2_1`, `value2_2`, `value2_3`);
+                """;
+
+        List<MqlQuery> queries = MQL.parse(statement);
+
+        assert queries.get(0).rows().size() == 2;
+        assert queries.get(0).tables().size() == 1;
+        assert queries.get(0).columns().size() == 3;
     }
 }

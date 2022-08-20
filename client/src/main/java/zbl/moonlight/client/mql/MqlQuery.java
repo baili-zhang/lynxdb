@@ -1,5 +1,7 @@
 package zbl.moonlight.client.mql;
 
+import zbl.moonlight.storage.core.Pair;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +13,7 @@ public class MqlQuery {
     private List<String> tables = new ArrayList<>();
     private List<String> columns = new ArrayList<>();
     private List<String> keys = new ArrayList<>();
+    private List<List<String>> rows = new ArrayList<>();
 
     public void name(String val) {
         name = val;
@@ -66,5 +69,13 @@ public class MqlQuery {
 
     public List<String> keys() {
         return keys;
+    }
+
+    public void rows(List<List<String>> val) {
+        rows = val;
+    }
+
+    public List<List<String>> rows() {
+        return rows;
     }
 }

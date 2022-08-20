@@ -21,7 +21,7 @@ public @interface MdtpMethod {
     byte DROP_TABLE_COLUMN      = (byte) 0x09;
 
     byte TABLE_SELECT           = (byte) 0x0a;
-    byte TABLE_SET              = (byte) 0x0b;
+    byte TABLE_INSERT = (byte) 0x0b;
     byte TABLE_DELETE           = (byte) 0x0c;
 
     byte SHOW_KVSTORE           = (byte) 0x0d;

@@ -217,6 +217,13 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         TableGetContent content = new TableGetContent(params);
 
         TableAdapter db = tableMap.get(content.table());
+
+        if(db == null) {
+            String template = "Table \"%s\" is not existed.";
+            String message = String.format(template, content.table());
+            return Result.invalidArgument(message);
+        }
+
         MultiTableRows rows = db.get(content.multiKeys());
 
         List<byte[]> keys = content.keys();
@@ -248,9 +255,9 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(columnSize).put(tableBytes).array();
     }
 
-    @MdtpMethod(TABLE_SET)
-    public byte[] doTableSet(QueryParams params) {
-        TableSetContent content = new TableSetContent(params);
+    @MdtpMethod(TABLE_INSERT)
+    public byte[] doTableInsert(QueryParams params) {
+        TableInsertContent content = new TableInsertContent(params);
         TableAdapter db = tableMap.get(content.table());
 
         db.set(content.rows());

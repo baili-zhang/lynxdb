@@ -10,11 +10,11 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 
-public class TableSetContent {
+public class TableInsertContent {
     private final String table;
     private final MultiTableRows rows;
 
-    public TableSetContent(QueryParams params) {
+    public TableInsertContent(QueryParams params) {
         ByteBuffer buffer = ByteBuffer.wrap(params.content());
         table = BufferUtils.getString(buffer);
 

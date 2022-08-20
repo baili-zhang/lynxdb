@@ -1,6 +1,7 @@
 package zbl.moonlight.client.mql;
 
 import zbl.moonlight.client.exception.SyntaxException;
+import zbl.moonlight.storage.core.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +27,13 @@ public interface MQL {
 
         String TABLES       = "tables";
         String KVSTORES     = "kvstores";
+        String VALUES       = "values";
 
         String FROM         = "from";
         String WHERE        = "where";
         String KEY          = "key";
         String IN           = "in";
+        String INTO         = "into";
     }
 
     static List<MqlQuery> parse(String statement) {
@@ -77,6 +80,8 @@ public interface MQL {
 
         String command = str.toString().toLowerCase();
 
+        curr = parseSpace(chs, curr);
+
         return switch (command) {
             case Keywords.CREATE -> parseCreate(chs, curr, query);
             case Keywords.DELETE -> parseDelete(chs, curr, query);
@@ -96,8 +101,6 @@ public interface MQL {
 
     private static int parseShow(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.SHOW);
-
-        curr = parseSpace(chs, curr);
 
         StringBuilder str = new StringBuilder();
         while(!Character.isWhitespace(chs[curr]) && chs[curr] != ';') {
@@ -144,19 +147,113 @@ public interface MQL {
     private static int parseInsert(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.INSERT);
 
+        curr = parseInto(chs, curr);
+        curr = parseSpace(chs, curr);
+        curr = parseType(chs, curr, query);
+        curr = parseSpace(chs, curr);
+
+        switch (query.type()) {
+            case Keywords.TABLE -> {
+                curr = parseList(chs, curr, query.tables());
+                curr = parseSpace(chs, curr);
+                curr = parseVector(chs, curr, query.columns());
+                curr = parseSpace(chs, curr);
+                curr = parseValues(chs, curr);
+                curr = parseSpace(chs, curr);
+                curr = parseVectors(chs, curr, query.rows());
+                curr = parseSpace(chs, curr);
+            }
+
+            case Keywords.KVSTORE -> {
+
+            }
+
+            default -> throw new SyntaxException(chs, curr);
+        }
+
+        return parseSemicolon(chs, curr);
+    }
+
+    static int parseValues(char[] chs, int curr) {
+        StringBuilder values = new StringBuilder();
+
+        while(curr < chs.length && !Character.isWhitespace(chs[curr])) {
+            values.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!values.toString().equals(Keywords.VALUES)) {
+            throw new SyntaxException(chs, curr);
+        }
+
+        return curr;
+    }
+
+    static int parseVectors(char[] chs, int curr,
+                            List<List<String>> vectors) {
+
+        while (curr < chs.length) {
+            List<String> vector = new ArrayList<>();
+            curr = parseVector(chs, curr, vector);
+            vectors.add(vector);
+
+            if(chs[curr] != ',') {
+                break;
+            } else {
+                ++ curr;
+            }
+
+            curr = parseSpace(chs, curr);
+        }
+
+        return curr;
+    }
+
+    static int parseVector(char[] chs, int curr,
+                           List<String> vector) {
+        if(chs[curr] != '(') {
+            throw new SyntaxException(chs, curr);
+        } else {
+            ++ curr;
+        }
+
+        curr = parseSpace(chs, curr);
+        curr = parseList(chs, curr, vector);
+        curr = parseSpace(chs, curr);
+
+        if(chs[curr] != ')') {
+            throw new SyntaxException(chs, curr);
+        } else {
+            ++ curr;
+        }
+
+        return parseSpace(chs, curr);
+    }
+
+    static int parseInto(char[] chs, int curr) {
+        StringBuilder into = new StringBuilder();
+
+        while(curr < chs.length && chs[curr] != ' ') {
+            into.append(chs[curr]);
+            curr ++;
+        }
+
+        if(!into.toString().equals(Keywords.INTO)) {
+            throw new SyntaxException(chs, curr);
+        }
+
         return curr;
     }
 
     private static int parseSelect(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.SELECT);
 
-        curr = parseSpace(chs, curr);
-        curr = parseList(chs, curr, query, query.columns());
+        curr = parseList(chs, curr, query.columns());
         curr = parseSpace(chs, curr);
         curr = parseFrom(chs, curr, query);
         curr = parseSpace(chs, curr);
 
-        curr = parseItem(chs, curr, query, query.tables());
+        curr = parseItem(chs, curr, query.tables());
         curr = parseSpace(chs, curr);
 
         curr = parseWhere(chs, curr, query);
@@ -204,7 +301,7 @@ public interface MQL {
         }
 
         curr = parseSpace(chs, curr);
-        curr = parseList(chs, curr, query, query.keys());
+        curr = parseList(chs, curr, query.keys());
 
         return curr;
     }
@@ -250,18 +347,17 @@ public interface MQL {
     private static int parseCreate(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.CREATE);
 
-        curr = parseSpace(chs, curr);
         curr = parseType(chs, curr, query);
 
         switch (query.type()) {
             case Keywords.KVSTORE -> {
                 curr = parseSpace(chs, curr);
-                curr = parseList(chs, curr, query, query.kvstores());
+                curr = parseList(chs, curr, query.kvstores());
             }
 
             case Keywords.TABLE -> {
                 curr = parseSpace(chs, curr);
-                curr = parseList(chs, curr, query, query.tables());
+                curr = parseList(chs, curr, query.tables());
             }
 
             case Keywords.COLUMN -> {
@@ -276,7 +372,7 @@ public interface MQL {
         curr = parseSpace(chs, curr);
 
         if(chs[curr] != ';') {
-            throw new RuntimeException("Can not find end char ';'.");
+            throw new SyntaxException(chs, curr);
         }
 
         return ++ curr;
@@ -295,9 +391,9 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseList(char[] chs, int curr, MqlQuery query, List<String> list) {
+    private static int parseList(char[] chs, int curr, List<String> list) {
         while(curr < chs.length && chs[curr] != ' ') {
-            curr = parseItem(chs, curr, query, list);
+            curr = parseItem(chs, curr, list);
             curr = parseSpace(chs, curr);
 
             if(chs[curr] == ';') {
@@ -316,7 +412,7 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseItem(char[] chs, int curr, MqlQuery query, List<String> list) {
+    private static int parseItem(char[] chs, int curr, List<String> list) {
         StringBuilder str = new StringBuilder();
 
         if(chs[curr] == '`') {
