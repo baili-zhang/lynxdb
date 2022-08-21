@@ -28,6 +28,7 @@ public interface MQL {
         String TABLES       = "tables";
         String KVSTORES     = "kvstores";
         String VALUES       = "values";
+        String COLUMNS      = "columns";
 
         String FROM         = "from";
         String WHERE        = "where";
@@ -288,7 +289,14 @@ public interface MQL {
         }
 
         curr = parseSpace(chs, curr);
+        curr = parseIn(chs, curr);
+        curr = parseSpace(chs, curr);
+        curr = parseList(chs, curr, query.keys());
 
+        return curr;
+    }
+
+    static int parseIn(char[] chs, int curr) {
         StringBuilder in = new StringBuilder();
 
         while(curr < chs.length && chs[curr] != ' ') {
@@ -300,11 +308,9 @@ public interface MQL {
             throw new SyntaxException(chs, curr);
         }
 
-        curr = parseSpace(chs, curr);
-        curr = parseList(chs, curr, query.keys());
-
         return curr;
     }
+
 
     static int parseFrom(char[] chs, int curr, MqlQuery query) {
         StringBuilder from = new StringBuilder();
@@ -360,8 +366,13 @@ public interface MQL {
                 curr = parseList(chs, curr, query.tables());
             }
 
-            case Keywords.COLUMN -> {
-
+            case Keywords.COLUMNS -> {
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.columns());
+                curr = parseSpace(chs, curr);
+                curr = parseIn(chs, curr);
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.tables());
             }
         }
 

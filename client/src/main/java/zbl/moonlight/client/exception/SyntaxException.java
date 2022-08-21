@@ -1,7 +1,5 @@
 package zbl.moonlight.client.exception;
 
-import java.util.Arrays;
-
 public class SyntaxException extends RuntimeException {
     private static final String TEMPLATE = "SyntaxError in: %s";
     public static final int MIN_LENGTH = 50;

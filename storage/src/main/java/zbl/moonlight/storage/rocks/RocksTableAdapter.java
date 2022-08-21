@@ -4,7 +4,6 @@ import org.rocksdb.RocksDBException;
 import zbl.moonlight.storage.core.*;
 import zbl.moonlight.storage.rocks.query.table.*;
 
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -57,7 +56,7 @@ public class RocksTableAdapter implements TableAdapter {
     public void set(MultiTableRows rows) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
-            db.doQuery(new TableBatchSetQuery(rows, resultSet));
+            db.doQuery(new TableBatchInsertQuery(rows, resultSet));
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }

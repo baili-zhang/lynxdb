@@ -13,6 +13,8 @@ import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
+import zbl.moonlight.storage.core.Column;
+import zbl.moonlight.storage.core.Key;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -66,7 +68,16 @@ public class MoonlightClient extends Shutdown {
             }
 
             Printer.printPrompt(current);
-            String statement = scanner.nextLine();
+
+            StringBuilder temp = new StringBuilder();
+            String line;
+
+            while (!(line = scanner.nextLine()).trim().endsWith(";")) {
+                temp.append(" ").append(line);
+            }
+
+            temp.append(" ").append(line);
+            String statement = temp.toString();
 
             List<MqlQuery> queries = MQL.parse(statement);
             List<byte[]> total = new ArrayList<>();
@@ -78,6 +89,7 @@ public class MoonlightClient extends Shutdown {
                         case MQL.Keywords.DELETE -> handleDelete(query);
                         case MQL.Keywords.SHOW -> handleShow(query);
                         case MQL.Keywords.SELECT -> handleSelect(query);
+                        case MQL.Keywords.INSERT -> handleInsert(query);
 
                         default -> throw new UnsupportedOperationException(query.name());
                     }
@@ -88,6 +100,35 @@ public class MoonlightClient extends Shutdown {
 
             socketClient.sendMessage(selectionKey, new ClientRequest(queryBytes).toBytes());
         }
+    }
+
+    private byte[] handleInsert(MqlQuery query) {
+        byte method = MdtpMethod.TABLE_INSERT;
+
+        List<byte[]> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+
+        List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
+
+        for(List<String> row : query.rows()) {
+            keys.add(G.I.toBytes(row.remove(0)));
+            values.addAll(row.stream().map(G.I::toBytes).toList());
+        }
+
+        byte[] keysBytes = BufferUtils.toBytes(keys);
+        byte[] columnBytes = BufferUtils.toBytes(columns);
+        byte[] valueBytes = BufferUtils.toBytes(values);
+
+        List<byte[]> total = new ArrayList<>();
+        total.add(G.I.toBytes(query.tables().get(0)));
+        total.add(keysBytes);
+        total.add(columnBytes);
+        total.add(valueBytes);
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
+        int length = BYTE_LENGTH + totalBytes.length;
+
+        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
     }
 
     private byte[] handleSelect(MqlQuery query) {
@@ -105,7 +146,6 @@ public class MoonlightClient extends Shutdown {
                 total.add(BufferUtils.toBytes(columnsList));
 
                 byte[] totalBytes = BufferUtils.toBytes(total);
-
                 int length = BYTE_LENGTH + totalBytes.length;
 
                 return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
@@ -147,6 +187,22 @@ public class MoonlightClient extends Shutdown {
                 buffer.put(BufferUtils.toBytes(tables));
 
                 return buffer.array();
+            }
+
+            case MQL.Keywords.COLUMNS -> {
+                byte method = MdtpMethod.CREATE_TABLE_COLUMN;
+
+                byte[] table = G.I.toBytes(query.tables().get(0));
+                List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
+
+                List<byte[]> total = new ArrayList<>();
+                total.add(table);
+                total.addAll(columns);
+
+                byte[] totalBytes = BufferUtils.toBytes(total);
+                int length = BYTE_LENGTH + totalBytes.length;
+
+                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
             }
 
             default -> throw new UnsupportedOperationException(query.type());

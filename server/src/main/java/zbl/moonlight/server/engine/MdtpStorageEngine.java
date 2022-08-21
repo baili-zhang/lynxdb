@@ -6,13 +6,11 @@ import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.engine.query.*;
 import zbl.moonlight.server.engine.result.Result;
 import zbl.moonlight.storage.core.*;
+import zbl.moonlight.storage.core.exception.ColumnsNotExistedException;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
@@ -260,7 +258,22 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         TableInsertContent content = new TableInsertContent(params);
         TableAdapter db = tableMap.get(content.table());
 
-        db.set(content.rows());
+        try {
+            db.set(content.rows());
+        } catch (ColumnsNotExistedException e) {
+            String template = "Table columns %s is not existed.";
+
+            String columns = String.join(
+                    ", ",
+                    e.columns()
+                            .stream()
+                            .map(s -> "\"" + s + "\"")
+                            .toList()
+            );
+
+            String errorMsg = String.format(template, columns);
+            return Result.invalidArgument(errorMsg);
+        }
 
         return new byte[]{Result.SUCCESS};
     }

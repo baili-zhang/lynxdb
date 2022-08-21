@@ -19,7 +19,7 @@ class MQLTest {
     }
 
     @Test
-    void test_002() {
+    void test_002_create_table() {
         String statement = """
                 create kvstore `kv_store_name`;
                 create table table_name1, table_name2;
@@ -74,5 +74,16 @@ class MQLTest {
         assert queries.get(0).rows().size() == 2;
         assert queries.get(0).tables().size() == 1;
         assert queries.get(0).columns().size() == 3;
+    }
+
+    @Test
+    void test_006_create_columns() {
+        String statement = """
+                create columns `column_name1`, `column_name2` in `table_name`;
+                """;
+
+        List<MqlQuery> queries = MQL.parse(statement);
+
+        assert queries.get(0).columns().size() == 2;
     }
 }

@@ -36,14 +36,14 @@ public class TableInsertContent {
         ByteBuffer columnBuffer = ByteBuffer.wrap(columnBytes);
 
         while(!BufferUtils.isOver(columnBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(keysBuffer);
+            byte[] bytes = BufferUtils.getBytes(columnBuffer);
             columns.add(new Column(bytes));
         }
 
         ByteBuffer valuesBuffer = ByteBuffer.wrap(valueBytes);
 
         while(!BufferUtils.isOver(valuesBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(keysBuffer);
+            byte[] bytes = BufferUtils.getBytes(valuesBuffer);
             values.add(bytes);
         }
 

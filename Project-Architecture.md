@@ -318,7 +318,7 @@ drop table `table_name`;
 *命令*
 
 ```
-create columns `column_name1`, `column_name2` in table `table_name`;
+create columns `column_name1`, `column_name2` in `table_name`;
 ```
 
 *格式*
@@ -339,13 +339,13 @@ drop column `column_name1`, `column_name2` in table `table_name`;
 |--------|--------------|--------------|-----|
 | 1 byte | string       | string       | ... |
 
-#### TABLE GET 请求
+#### TABLE SELECT 请求
 
 ```
 select `column1`, `column2`, `column3` from table `table_name` where key in `key1`, `key2`, `key3`;
 ```
 
-#### TABLE SET 请求
+#### TABLE INSERT 请求
 
 ```
 insert into table `table_name`
