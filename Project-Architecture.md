@@ -244,6 +244,12 @@ create kvstore `kv_store_name`;
 drop kvstore `kv_store_name`;
 ```
 
+#### SHOW KVSTORES 请求
+
+```
+show kvstores;
+```
+
 #### KV GET 请求
 
 **命令**
@@ -313,6 +319,12 @@ drop table `table_name`;
 |--------|------------|
 | 1 byte | remaining  |
 
+#### SHOW TABLES 请求
+
+```
+show tables;
+```
+
 #### CREATE TABLE COLUMN 请求
 
 *命令*
@@ -330,7 +342,7 @@ create columns `column_name1`, `column_name2` in `table_name`;
 #### DROP TABLE COLUMN 请求
 
 ```
-drop column `column_name1`, `column_name2` in table `table_name`;
+drop column `column_name1`, `column_name2` in `table_name`;
 ```
 
 *格式*
