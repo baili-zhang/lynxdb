@@ -2,43 +2,84 @@ package zbl.moonlight.server.mdtp;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zbl.moonlight.core.raft.request.Entry;
-import zbl.moonlight.core.raft.state.StateMachine;
-import zbl.moonlight.server.storage.StorageEngine;
+import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.raft.log.RaftLogEntry;
+import zbl.moonlight.raft.server.RaftServer;
+import zbl.moonlight.raft.state.RaftCommand;
+import zbl.moonlight.raft.state.StateMachine;
+import zbl.moonlight.server.engine.MdtpStorageEngine;
+import zbl.moonlight.server.engine.QueryParams;
+import zbl.moonlight.socket.client.ServerNode;
+import zbl.moonlight.socket.response.WritableSocketResponse;
 
-import java.nio.channels.SelectionKey;
+import java.util.List;
+
+import static zbl.moonlight.raft.state.RaftState.CLUSTER_MEMBERSHIP_CHANGE;
+import static zbl.moonlight.raft.state.RaftState.DATA_CHANGE;
 
 /**
- * 异步的状态机
- * 直接把 command 解析后转发给 storageEngine
+ * TODO: 异步执行会不会存在数据丢失的问题？
+ *
+ * 客户端 -> Raft 层 -> 状态机 -> Raft 层 -> 客户端
  */
-public class MdtpStateMachine implements StateMachine {
+public class MdtpStateMachine extends Executor<RaftCommand> implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
 
-    private StorageEngine storageEngine;
+    public static final String C_OLD_NEW = "c_old_new";
 
-    public void setStorageEngine(StorageEngine engine) {
-        storageEngine = engine;
+    /**
+     * 定义成 static final 类型，无论实例化多少个 MdtpStateMachine，都只有一个 MdtpStorageEngine 实例
+     */
+    private static final MdtpStorageEngine storageEngine = new MdtpStorageEngine();
+
+    private RaftServer raftServer;
+
+    public MdtpStateMachine() {
+    }
+
+    public void raftServer(RaftServer server) {
+        raftServer = server;
     }
 
     @Override
-    public void apply(Entry[] entries) {
-        if(storageEngine == null) {
-            throw new RuntimeException("[storageEngine] is [null]");
+    public List<ServerNode> clusterNodes() {
+        byte[] cOldNew = storageEngine.metaGet(C_OLD_NEW);
+
+        if(cOldNew == null) {
+            byte[] c = storageEngine.metaGet(C_OLD_NEW);
+            return ServerNode.parseNodeList(c);
         }
-        for(Entry entry : entries) {
-            MdtpCommand command = new MdtpCommand(null, entry.command());
-            logger.info("Apply command {} to state machine.", command);
-            storageEngine.offerInterruptibly(command);
+
+        return ServerNode.parseNodeList(cOldNew);
+    }
+
+    @Override
+    public void apply(RaftLogEntry[] entries) {
+        for (RaftLogEntry entry : entries) {
+            switch (entry.type()) {
+                case DATA_CHANGE -> {
+                    byte[] command = entry.command();
+                    QueryParams params = QueryParams.parse(command);
+                    byte[] data = storageEngine.doQuery(params);
+
+                    WritableSocketResponse response = new WritableSocketResponse(
+                            entry.selectionKey(),
+                            entry.serial(),
+                            data
+                    );
+
+                    raftServer.offerInterruptibly(response);
+                }
+
+                case CLUSTER_MEMBERSHIP_CHANGE -> {
+                    storageEngine.metaSet(C_OLD_NEW, entry.command());
+                }
+            }
         }
     }
 
     @Override
-    public void exec(SelectionKey key, byte[] command) {
-        if(storageEngine == null) {
-            throw new RuntimeException("[storageEngine] is [null]");
-        }
-        MdtpCommand mdtpCommand = new MdtpCommand(key, command);
-        storageEngine.offerInterruptibly(mdtpCommand);
+    protected void execute() {
+
     }
 }

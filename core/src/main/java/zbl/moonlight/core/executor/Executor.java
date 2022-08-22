@@ -34,7 +34,7 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         }
     }
 
-    public final void offerInterruptibly(E e) {
+    public void offerInterruptibly(E e) {
         offer(e);
         interrupt();
     }
@@ -61,7 +61,24 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
     }
 
     @Override
-    public void interrupt() {
+    public final void interrupt() {
         currentThread.interrupt();
     }
+
+    @Override
+    public final void run() {
+        doBeforeExecute();
+        while(isNotShutdown()) {
+            execute();
+        }
+    }
+
+    protected final void doAfterShutdown() {
+        interrupt();
+    }
+
+    protected void doBeforeExecute() {
+    }
+
+    protected abstract void execute();
 }

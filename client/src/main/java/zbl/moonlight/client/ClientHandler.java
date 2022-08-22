@@ -1,17 +1,19 @@
 package zbl.moonlight.client;
 
 import lombok.Setter;
-import zbl.moonlight.core.raft.response.RaftResponse;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.core.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.core.socket.response.SocketResponse;
+import zbl.moonlight.client.printer.Printer;
+import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.engine.result.Result;
+import zbl.moonlight.socket.interfaces.SocketClientHandler;
+import zbl.moonlight.socket.response.SocketResponse;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-
-import static zbl.moonlight.client.Command.*;
-import static zbl.moonlight.core.raft.response.RaftResponse.CLIENT_REQUEST_SUCCESS;
 
 public class ClientHandler implements SocketClientHandler {
     private final CyclicBarrier barrier;
@@ -22,44 +24,59 @@ public class ClientHandler implements SocketClientHandler {
         this.barrier = barrier;
     }
 
-    public void handleConnected(ServerNode node) throws Exception {
-        Printer.printConnected(node);
+    @Override
+    public void handleConnected(SelectionKey selectionKey) throws Exception {
+        Printer.printConnected(((SocketChannel)selectionKey.channel()).getRemoteAddress());
         barrier.await();
     }
 
+    @Override
     public void handleResponse(SocketResponse response) throws BrokenBarrierException, InterruptedException {
+        int serial = response.serial();
         byte[] data = response.data();
 
-        if(data == null || data.length < 1) {
-            throw new RuntimeException("Response data can not be null");
-        }
-
-        String commandName = (String) response.attachment();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte status = buffer.get();
-        byte[] body = new byte[data.length - 1];
-        buffer.get(body);
+        byte code = buffer.get();
 
-        switch (commandName) {
-            case GET_COMMAND -> {
-                if(body.length == 0) {
-                    Printer.printValueNotExist();
-                } else {
-                    Printer.printValue(body);
-                }
+        switch (code) {
+            case Result.SUCCESS -> Printer.printOK();
+            case Result.SUCCESS_SHOW_COLUMN -> handleShowColumn(buffer);
+            case Result.SUCCESS_SHOW_TABLE -> handleShowTable(buffer);
+            case Result.Error.INVALID_ARGUMENT -> {
+                String message = BufferUtils.getRemainingString(buffer);
+                Printer.printError(message);
             }
 
-            case SET_COMMAND, DELETE_COMMAND -> {
-                if(status == CLIENT_REQUEST_SUCCESS) {
-                    Printer.printOK();
-                }
-            }
+            default -> Printer.printError("Unknown Response Status Code");
         }
+
         barrier.await();
     }
 
-    public void handleConnectFailure(ServerNode node) throws Exception {
-        String message = String.format("Connect to [%s] failure", node);
+    private void handleShowTable(ByteBuffer buffer) {
+        int columnSize = buffer.getInt();
+        List<List<String>> table = new ArrayList<>();
+
+        while(!BufferUtils.isOver(buffer)) {
+            List<String> row = new ArrayList<>();
+            for(int i = 0; i < columnSize; i ++) {
+                row.add(BufferUtils.getString(buffer));
+            }
+            table.add(row);
+        }
+
+        Printer.printTable(table);
+    }
+
+    private void handleShowColumn(ByteBuffer buffer) {
+        List<String> total = BufferUtils.toStringList(buffer);
+        List<List<String>> table = total.stream().map(List::of).toList();
+        Printer.printTable(table);
+    }
+
+    @Override
+    public void handleConnectFailure(SelectionKey selectionKey) throws Exception {
+        String message = String.format("Connect to [%s] failure", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
         Printer.printError(message);
         /* 清空客户端的当前节点 */
         client.setCurrent(null);

@@ -1,10 +1,20 @@
 package zbl.moonlight.core.lsm;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import zbl.moonlight.core.common.Key;
 
-public class LsmTree implements Map<String, byte[]> {
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+
+public class LsmTree implements Map<Key, byte[]> {
+    private static final int MAX_MUTABLE_TABLE_SIZE = 100;
+
+    private static final byte[] NULL_VALUE = new byte[0];
+
+    private final List<List<SSTable>> diskTree = new ArrayList<>();
+
+    private ConcurrentSkipListMap<Key, byte[]> immutableMemTable = new ConcurrentSkipListMap<>();
+    private ConcurrentSkipListMap<Key, byte[]> memTable = new ConcurrentSkipListMap<>();
+
     public LsmTree() {
 
     }
@@ -31,41 +41,69 @@ public class LsmTree implements Map<String, byte[]> {
 
     @Override
     public byte[] get(Object key) {
-        return new byte[0];
+        byte[] value = memTable.get(key);
+        if(value != null) {
+            return Arrays.equals(value, NULL_VALUE) ? null : value;
+        }
+
+        value = immutableMemTable.get(key);
+        if(value != null) {
+            return Arrays.equals(value, NULL_VALUE) ? null : value;
+        }
+
+        for (List<SSTable> level : diskTree) {
+            for (SSTable table : level) {
+                if (table.containsKey(key) && (value = table.get(key)) != null) {
+                    return value;
+                }
+            }
+        }
+
+        return null;
     }
 
     @Override
-    public byte[] put(String key, byte[] value) {
-        return new byte[0];
+    public byte[] put(Key key, byte[] value) {
+        memTable.put(key, value);
+        if(memTable.size() == MAX_MUTABLE_TABLE_SIZE) {
+            immutableMemTable = memTable;
+            /* TODO:异步执行 compact */
+            memTable = new ConcurrentSkipListMap<>();
+        }
+        return null;
     }
 
     @Override
     public byte[] remove(Object key) {
-        return new byte[0];
+        if(!(key instanceof Key k)) {
+            throw new RuntimeException("key is not an instance of [Key]");
+        }
+        put(k, NULL_VALUE);
+        return null;
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends byte[]> m) {
-
+    public void putAll(Map<? extends Key, ? extends byte[]> m) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void clear() {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Set<String> keySet() {
-        return null;
+    public Set<Key> keySet() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Collection<byte[]> values() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Set<Entry<String, byte[]>> entrySet() {
-        return null;
+    public Set<Entry<Key, byte[]>> entrySet() {
+        throw new UnsupportedOperationException();
     }
 }
