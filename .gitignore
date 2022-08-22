@@ -6,6 +6,9 @@ bin/
 # temp file
 core/temp/
 
+# db file
+**/data/*
+
 # idea
 .idea/
 

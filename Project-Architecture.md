@@ -66,15 +66,15 @@ public abstract class Executor<E> implements Executable<E> {
 
 #### SocketRequest 格式
 
-| status | data length | data                  |
-|--------|-------------|-----------------------|
-| 1 byte | 4 bytes     | = (data length) bytes |
+| status | serial number | data length | data                  |
+|--------|---------------|-------------|-----------------------|
+| 1 byte | 8 bytes       | 4 bytes     | = (data length) bytes |
 
 #### SocketResponse 格式
 
-| data length | data                  |
-|-------------|-----------------------|
-| 4 bytes     | = (data length) bytes |
+| serial number | data length | data                  |
+|---------------|-------------|-----------------------|
+| 8 bytes       | 4 bytes     | = (data length) bytes |
 
 
 #### SocketServer 相关
@@ -159,11 +159,11 @@ SocketClient 作为 Socket 客户端，支持连接多台 SocketServer 服务器
 
 **请求格式**
 
-| host length | host                | port    | term    | prev log index | prev log term | leader commit | entry length | entry               | ... |
-|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------------|---------------------|-----|
-| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 4 bytes      | (entry length size) | ... |
+| host length | host                | port    | term    | prev log index | prev log term | leader commit | type   | raftLogEntry length | raftLogEntry               | ... |
+|-------------|---------------------|---------|---------|----------------|---------------|---------------|--------|---------------------|----------------------------|-----|
+| 4 bytes     | (host length) bytes | 4 bytes | 4 bytes | 4 bytes        | 4 bytes       | 4 bytes       | 1 byte | 4 bytes             | (raftLogEntry length size) | ... |
 
-*entry 格式*
+*raftLogEntry 格式*
 
 | term    | command   |
 |---------|-----------|
@@ -199,6 +199,12 @@ Client request type:
 
 **响应格式**
 
+当前节点所处的状态：
+
+*Leader*：处理客户端请求，处理客户端请求前需要确认自己是否还是 leader
+*Candidate*：不处理客户端请求，直接响应 “leader 不存在”
+*Follower*：将请求重定向给 leader
+
 | response status | command result |
 |-----------------|----------------|
 | 1 byte          | (any) bytes    |
@@ -219,72 +225,6 @@ Client request type:
 - Mdtp 通信部分
 - Configuration 部分
 - StorageEngine 部分
-
-### Mdtp 通信模块
-
-- SET 请求
-- GET 请求
-- DELETE 请求
-
-#### SET 请求
-
-**文本格式**
-
-```shell
-set key value
-```
-
-**请求格式**
-
-| method | key length | key                | value length | value          |
-|--------|------------|--------------------|--------------|----------------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes      | (value) length |
-
-**响应格式**
-
-无响应体
-
-#### GET 请求
-
-**文本格式**
-
-```shell
-get key
-```
-
-**请求格式**
-
-| method | key length | key                | value length        | value |
-|--------|------------|--------------------|---------------------|-------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
-
-**响应格式**
-
-*值存在*
-
-| value       |
-|-------------|
-| (any) bytes |
-
-*值不存在：无响应体*
-
-#### DELETE 请求
-
-**文本格式**
-
-```shell
-delete key
-```
-
-**请求格式**
-
-| method | key length | key                | value length        | value |
-|--------|------------|--------------------|---------------------|-------|
-| 1 byte | 4 bytes    | (key length) bytes | 4 bytes (value = 0) | none  |
-
-**响应格式**
-
-无响应体
 
 ## 客户端模块
 

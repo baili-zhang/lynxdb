@@ -2,42 +2,47 @@ package zbl.moonlight.server;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.common.Converter;
+import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.executor.Executor;
-import zbl.moonlight.core.raft.server.RaftServer;
-import zbl.moonlight.core.socket.client.ServerNode;
-import zbl.moonlight.server.config.Configuration;
-import zbl.moonlight.server.storage.StorageEngine;
-import zbl.moonlight.server.mdtp.MdtpStateMachine;
+import zbl.moonlight.raft.client.RaftClient;
+import zbl.moonlight.raft.client.RaftClientHandler;
+import zbl.moonlight.raft.server.RaftServer;
+import zbl.moonlight.raft.server.RaftServerHandler;
+import zbl.moonlight.raft.state.RaftState;
+import zbl.moonlight.server.context.Configuration;
+import zbl.moonlight.socket.client.ServerNode;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 public class MoonlightServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
     private final RaftServer raftServer;
-    private final StorageEngine storageEngine;
+    private final RaftClient raftClient;
 
     MoonlightServer() throws IOException {
-        Configuration config = new Configuration();
+        Configuration config = Configuration.getInstance();
+        logger.info("Configuration: [{}]", config);
+
+        G.I.converter(new Converter(config.charset()));
 
         ServerNode current = config.currentNode();
-        String logFilenamePrefix = current.host() + "_" + current.port() + "_raft_";
 
-        MdtpStateMachine stateMachine = new MdtpStateMachine();
-        raftServer = new RaftServer(stateMachine, null,
-                null, logFilenamePrefix);
-        storageEngine = new StorageEngine(raftServer.socketServer(), new HashMap<>());
-        stateMachine.setStorageEngine(storageEngine);
+        raftClient = new RaftClient();
+        raftServer = new RaftServer(current, raftClient);
+
+        RaftState raftState = RaftState.getInstance();
+        raftState.raftClient(raftClient);
+        raftState.raftServer(raftServer);
+
+        raftServer.setHandler(new RaftServerHandler(raftServer));
+        raftServer.setClientHandler(new RaftClientHandler(raftServer, raftClient));
     }
 
     public void run() {
-        raftServer.start();
-        Executor.start(storageEngine);
-    }
-
-    public void shutdown() {
-        storageEngine.shutdown();
+        Executor.start(raftServer);
+        Executor.start(raftClient);
     }
 
     public static void main(String[] args) throws IOException {
