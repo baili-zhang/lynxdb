@@ -1,6 +1,7 @@
 package zbl.moonlight.socket.client;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public record ServerNode (String host, int port) {
 
     public static List<ServerNode> parseNodeList(byte[] value) {
         if(value == null) {
-            return null;
+            return new ArrayList<>();
         }
 
         String total = new String(value);

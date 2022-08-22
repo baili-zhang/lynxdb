@@ -79,11 +79,11 @@ public interface MQL {
             curr ++;
         }
 
-        String command = str.toString().toLowerCase();
+        String command = str.toString();
 
         curr = parseSpace(chs, curr);
 
-        return switch (command) {
+        return switch (command.toLowerCase()) {
             case Keywords.CREATE -> parseCreate(chs, curr, query);
             case Keywords.DELETE -> parseDelete(chs, curr, query);
             case Keywords.DROP -> parseDrop(chs, curr, query);
@@ -110,8 +110,15 @@ public interface MQL {
 
         String type = str.toString();
 
-        switch (type) {
+        switch (type.toLowerCase()) {
             case Keywords.TABLES, Keywords.KVSTORES -> query.type(type);
+            case Keywords.COLUMNS -> {
+                query.type(type);
+                curr = parseSpace(chs, curr);
+                curr = parseIn(chs, curr);
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.tables());
+            }
 
             default -> throw new SyntaxException(chs, curr);
         }
@@ -153,24 +160,25 @@ public interface MQL {
         curr = parseType(chs, curr, query);
         curr = parseSpace(chs, curr);
 
-        switch (query.type()) {
+        switch (query.type().toLowerCase()) {
             case Keywords.TABLE -> {
                 curr = parseList(chs, curr, query.tables());
                 curr = parseSpace(chs, curr);
                 curr = parseVector(chs, curr, query.columns());
-                curr = parseSpace(chs, curr);
-                curr = parseValues(chs, curr);
-                curr = parseSpace(chs, curr);
-                curr = parseVectors(chs, curr, query.rows());
-                curr = parseSpace(chs, curr);
             }
 
             case Keywords.KVSTORE -> {
-
+                curr = parseList(chs, curr, query.kvstores());
             }
 
             default -> throw new SyntaxException(chs, curr);
         }
+
+        curr = parseSpace(chs, curr);
+        curr = parseValues(chs, curr);
+        curr = parseSpace(chs, curr);
+        curr = parseVectors(chs, curr, query.rows());
+        curr = parseSpace(chs, curr);
 
         return parseSemicolon(chs, curr);
     }
@@ -183,7 +191,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!values.toString().equals(Keywords.VALUES)) {
+        if(!values.toString().equalsIgnoreCase(Keywords.VALUES)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -239,7 +247,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!into.toString().equals(Keywords.INTO)) {
+        if(!into.toString().equalsIgnoreCase(Keywords.INTO)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -249,12 +257,21 @@ public interface MQL {
     private static int parseSelect(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.SELECT);
 
-        curr = parseList(chs, curr, query.columns());
-        curr = parseSpace(chs, curr);
-        curr = parseFrom(chs, curr, query);
-        curr = parseSpace(chs, curr);
+        try {
+            curr = parseFrom(chs, curr, query);
+            curr = parseSpace(chs, curr);
 
-        curr = parseItem(chs, curr, query.tables());
+            curr = parseItem(chs, curr, query.kvstores());
+        } catch (SyntaxException ignored) {
+            curr = parseList(chs, curr, query.columns());
+            curr = parseSpace(chs, curr);
+
+            curr = parseFrom(chs, curr, query);
+            curr = parseSpace(chs, curr);
+
+            curr = parseItem(chs, curr, query.tables());
+        }
+
         curr = parseSpace(chs, curr);
 
         curr = parseWhere(chs, curr, query);
@@ -271,7 +288,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!where.toString().equals(Keywords.WHERE)) {
+        if(!where.toString().equalsIgnoreCase(Keywords.WHERE)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -284,7 +301,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!key.toString().equals(Keywords.KEY)) {
+        if(!key.toString().equalsIgnoreCase(Keywords.KEY)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -304,7 +321,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!in.toString().equals(Keywords.IN)) {
+        if(!in.toString().equalsIgnoreCase(Keywords.IN)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -320,7 +337,7 @@ public interface MQL {
             curr ++;
         }
 
-        if(!from.toString().equals(Keywords.FROM)) {
+        if(!from.toString().equalsIgnoreCase(Keywords.FROM)) {
             throw new SyntaxException(chs, curr);
         }
 
@@ -341,13 +358,53 @@ public interface MQL {
     private static int parseDrop(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.DROP);
 
-        return curr;
+        curr = parseType(chs, curr, query);
+
+        switch (query.type().toLowerCase()) {
+            case Keywords.KVSTORE -> {
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.kvstores());
+            }
+
+            case Keywords.TABLE -> {
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.tables());
+            }
+
+            case Keywords.COLUMNS -> {
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.columns());
+                curr = parseSpace(chs, curr);
+                curr = parseIn(chs, curr);
+                curr = parseSpace(chs, curr);
+                curr = parseList(chs, curr, query.tables());
+            }
+        }
+
+        return parseSemicolon(chs, curr);
     }
 
     private static int parseDelete(char[] chs, int curr, MqlQuery query) {
         query.name(Keywords.DELETE);
 
-        return curr;
+        curr = parseList(chs, curr, query.keys());
+        curr = parseSpace(chs, curr);
+        curr = parseFrom(chs, curr, query);
+        curr = parseSpace(chs, curr);
+
+        switch (query.from()) {
+            case Keywords.TABLE ->
+                    curr = parseItem(chs, curr, query.tables());
+
+            case Keywords.KVSTORE ->
+                    curr = parseItem(chs, curr, query.kvstores());
+
+            default -> throw new SyntaxException(chs, curr);
+        }
+
+        curr = parseSpace(chs, curr);
+
+        return parseSemicolon(chs, curr);
     }
 
     private static int parseCreate(char[] chs, int curr, MqlQuery query) {
@@ -355,7 +412,7 @@ public interface MQL {
 
         curr = parseType(chs, curr, query);
 
-        switch (query.type()) {
+        switch (query.type().toLowerCase()) {
             case Keywords.KVSTORE -> {
                 curr = parseSpace(chs, curr);
                 curr = parseList(chs, curr, query.kvstores());
@@ -436,7 +493,8 @@ public interface MQL {
         } else {
             while(curr < chs.length) {
                 if(chs[curr] == ';' || chs[curr] == ','
-                        || Character.isWhitespace(chs[curr])) {
+                        || Character.isWhitespace(chs[curr])
+                        || chs[curr] == ')') {
                     break;
                 }
 

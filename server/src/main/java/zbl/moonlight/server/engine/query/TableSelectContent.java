@@ -11,14 +11,14 @@ import java.util.HashSet;
 import java.util.List;
 
 
-public class TableGetContent {
+public class TableSelectContent {
     private final String table;
     private final MultiTableKeys multiKeys;
 
     private final List<byte[]> keys = new ArrayList<>();
     private final HashSet<Column> columns = new HashSet<>();
 
-    public TableGetContent(QueryParams params) {
+    public TableSelectContent(QueryParams params) {
         ByteBuffer buffer = ByteBuffer.wrap(params.content());
         table = BufferUtils.getString(buffer);
 

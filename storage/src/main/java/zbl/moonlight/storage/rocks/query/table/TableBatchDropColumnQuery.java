@@ -25,6 +25,7 @@ public class TableBatchDropColumnQuery extends Query<HashSet<Column>, Void> {
             }
         }
 
+        cfHandles.forEach(handle -> columnFamilyHandles.remove(handle));
         db.dropColumnFamilies(cfHandles);
         cfHandles.forEach(ColumnFamilyHandle::close);
     }

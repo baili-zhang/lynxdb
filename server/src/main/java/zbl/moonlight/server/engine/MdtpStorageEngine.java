@@ -1,5 +1,6 @@
 package zbl.moonlight.server.engine;
 
+import org.rocksdb.RocksDB;
 import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.utils.BufferUtils;
 import zbl.moonlight.server.annotations.MdtpMethod;
@@ -19,8 +20,12 @@ import static zbl.moonlight.server.annotations.MdtpMethod.*;
 
 public class MdtpStorageEngine extends BaseStorageEngine {
     private static final String KEY = "Key";
+    private static final String VALUE = "Value";
     private static final String KVSTORES = "KV Stores";
     private static final String TABLES = "Tables";
+    private static final String COLUMNS = "Columns";
+
+    private static final int KVSTORE_COLUMNS_SIZE = 2;
 
     public MdtpStorageEngine() {
         super(MdtpStorageEngine.class);
@@ -90,7 +95,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(KV_GET)
+    @MdtpMethod(KV_SELECT)
     public byte[] doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 
@@ -105,21 +110,20 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
         List<Pair<byte[], byte[]>> values = db.get(content.keys());
 
-        AtomicInteger length = new AtomicInteger(0);
-        values.forEach(pair -> length.getAndAdd(pair.left().length + pair.right().length + 2 * INT_LENGTH));
-
-        ByteBuffer buffer = ByteBuffer.allocate(length.get() + BYTE_LENGTH);
-        buffer.put(Result.SUCCESS);
+        List<byte[]> total = new ArrayList<>();
+        total.add(G.I.toBytes(KEY));
+        total.add(G.I.toBytes(VALUE));
 
         values.forEach(pair -> {
-            int keyLen = pair.left().length;
-            int valLen = pair.right().length;
-
-            buffer.putInt(keyLen).put(pair.left())
-                    .putInt(valLen).put(pair.right());
+            total.add(pair.left());
+            total.add(pair.right() == null ? new byte[0] : pair.right());
         });
 
-        return buffer.array();
+        byte[] totalBytes = BufferUtils.toBytes(total);
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + totalBytes.length);
+
+        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(KVSTORE_COLUMNS_SIZE)
+                .put(totalBytes).array();
     }
 
     @MdtpMethod(KV_DELETE)
@@ -212,7 +216,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
     @MdtpMethod(TABLE_SELECT)
     public byte[] doTableSelect(QueryParams params) {
-        TableGetContent content = new TableGetContent(params);
+        TableSelectContent content = new TableSelectContent(params);
 
         TableAdapter db = tableMap.get(content.table());
 
@@ -317,6 +321,34 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
         byte[] totalBytes = BufferUtils.toBytes(total);
 
+        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
+
+        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+    }
+
+    @MdtpMethod(SHOW_COLUMN)
+    public byte[] doShowColumn(QueryParams params) {
+        String table = new String(params.content());
+
+        TableAdapter db = tableMap.get(table);
+
+        if(db == null) {
+            String template = "Table \"%s\" is not existed.";
+            String message = String.format(template, table);
+            return Result.invalidArgument(message);
+        }
+
+        List<byte[]> columns = db.columns().stream()
+                .map(Column::value)
+                .filter(val -> !Arrays.equals(val, RocksDB.DEFAULT_COLUMN_FAMILY))
+                .toList();
+
+
+        List<byte[]> total = new ArrayList<>();
+        total.add(G.I.toBytes(COLUMNS));
+        total.addAll(columns);
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
         return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();

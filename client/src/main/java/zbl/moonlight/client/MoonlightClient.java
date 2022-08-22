@@ -13,20 +13,20 @@ import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
 import zbl.moonlight.socket.client.SocketClient;
-import zbl.moonlight.storage.core.Column;
-import zbl.moonlight.storage.core.Key;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static zbl.moonlight.client.mql.MQL.Keywords.*;
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
@@ -85,11 +85,13 @@ public class MoonlightClient extends Shutdown {
             for(MqlQuery query : queries) {
                 total.add(
                     switch (query.name()) {
-                        case MQL.Keywords.CREATE -> handleCreate(query);
-                        case MQL.Keywords.DELETE -> handleDelete(query);
-                        case MQL.Keywords.SHOW -> handleShow(query);
-                        case MQL.Keywords.SELECT -> handleSelect(query);
-                        case MQL.Keywords.INSERT -> handleInsert(query);
+                        case CREATE -> handleCreate(query);
+                        case DROP -> handleDrop(query);
+                        case DELETE -> handleDelete(query);
+                        case SHOW -> handleShow(query);
+                        case SELECT -> handleSelect(query);
+                        case INSERT -> TABLE.equalsIgnoreCase(query.type())
+                                ? handleTableInsert(query) : handleKvInsert(query);
 
                         default -> throw new UnsupportedOperationException(query.name());
                     }
@@ -102,7 +104,59 @@ public class MoonlightClient extends Shutdown {
         }
     }
 
-    private byte[] handleInsert(MqlQuery query) {
+    private byte[] handleDrop(MqlQuery query) {
+        switch (query.type()) {
+            case KVSTORE -> {
+                byte method = MdtpMethod.DROP_KV_STORE;
+                List<byte[]> kvstores = query.kvstores().stream().map(G.I::toBytes).toList();
+
+                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * kvstores.size());
+                kvstores.forEach(kvstore -> length.getAndAdd(kvstore.length));
+
+                ByteBuffer buffer = ByteBuffer.allocate(length.get());
+
+                buffer.put(method);
+                buffer.put(BufferUtils.toBytes(kvstores));
+
+                return buffer.array();
+            }
+
+            case TABLE -> {
+                byte method = MdtpMethod.DROP_TABLE;
+                List<byte[]> tables = query.tables().stream().map(G.I::toBytes).toList();
+
+                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * tables.size());
+                tables.forEach(table -> length.getAndAdd(table.length));
+
+                ByteBuffer buffer = ByteBuffer.allocate(length.get());
+
+                buffer.put(method);
+                buffer.put(BufferUtils.toBytes(tables));
+
+                return buffer.array();
+            }
+
+            case COLUMNS -> {
+                byte method = MdtpMethod.DROP_TABLE_COLUMN;
+
+                byte[] table = G.I.toBytes(query.tables().get(0));
+                List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
+
+                List<byte[]> total = new ArrayList<>();
+                total.add(table);
+                total.addAll(columns);
+
+                byte[] totalBytes = BufferUtils.toBytes(total);
+                int length = BYTE_LENGTH + totalBytes.length;
+
+                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+            }
+
+            default -> throw new UnsupportedOperationException(query.type());
+        }
+    }
+
+    private byte[] handleTableInsert(MqlQuery query) {
         byte method = MdtpMethod.TABLE_INSERT;
 
         List<byte[]> keys = new ArrayList<>();
@@ -131,9 +185,27 @@ public class MoonlightClient extends Shutdown {
         return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
     }
 
+    private byte[] handleKvInsert(MqlQuery query) {
+        byte method = MdtpMethod.KV_SET;
+
+        List<byte[]> pairs = query.rows().stream()
+                .flatMap(Collection::stream)
+                .map(G.I::toBytes)
+                .toList();
+
+        List<byte[]> total = new ArrayList<>();
+        total.add(G.I.toBytes(query.kvstores().get(0)));
+        total.addAll(pairs);
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
+        int length = BYTE_LENGTH + totalBytes.length;
+
+        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+    }
+
     private byte[] handleSelect(MqlQuery query) {
         switch (query.from()) {
-            case MQL.Keywords.TABLE -> {
+            case TABLE -> {
                 byte method = MdtpMethod.TABLE_SELECT;
                 List<byte[]> total = new ArrayList<>();
 
@@ -151,30 +223,85 @@ public class MoonlightClient extends Shutdown {
                 return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
             }
 
+            case KVSTORE -> {
+                byte method = MdtpMethod.KV_SELECT;
+                List<byte[]> total = new ArrayList<>();
+
+                byte[] kvstore = G.I.toBytes(query.kvstores().get(0));
+                List<byte[]> keysList = query.keys().stream().map(G.I::toBytes).toList();
+
+                total.add(kvstore);
+                total.addAll(keysList);
+
+                byte[] totalBytes = BufferUtils.toBytes(total);
+                int length = BYTE_LENGTH + totalBytes.length;
+
+                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+            }
+
             default -> throw new UnsupportedOperationException(query.from());
         }
     }
 
     private byte[] handleShow(MqlQuery query) {
-        return switch (query.type()) {
-            case MQL.Keywords.KVSTORES -> new byte[]{MdtpMethod.SHOW_KVSTORE};
-            case MQL.Keywords.TABLES -> new byte[]{MdtpMethod.SHOW_TABLE};
+        switch (query.type().toLowerCase()) {
+            case KVSTORES -> {
+                return new byte[]{MdtpMethod.SHOW_KVSTORE};
+            }
+            case TABLES -> {
+                return new byte[]{MdtpMethod.SHOW_TABLE};
+            }
+            case COLUMNS -> {
+                byte method = MdtpMethod.SHOW_COLUMN;
+                byte[] table = G.I.toBytes(query.tables().get(0));
+
+                int length = BYTE_LENGTH + table.length;
+                return ByteBuffer.allocate(length).put(method).put(table).array();
+            }
 
             default -> throw new UnsupportedOperationException(query.type());
-        };
+        }
     }
 
     private byte[] handleDelete(MqlQuery query) {
-        return new byte[0];
+        byte method = TABLE.equalsIgnoreCase(query.from())
+                ? MdtpMethod.TABLE_DELETE
+                : MdtpMethod.KV_DELETE;
+
+        byte[] name = TABLE.equalsIgnoreCase(query.from())
+                ? G.I.toBytes(query.tables().get(0))
+                : G.I.toBytes(query.kvstores().get(0));
+
+        List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+
+        List<byte[]> total = new ArrayList<>();
+        total.add(name);
+        total.addAll(keys);
+
+        byte[] totalBytes = BufferUtils.toBytes(total);
+        int length = BYTE_LENGTH + totalBytes.length;
+
+        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
     }
 
     private byte[] handleCreate(MqlQuery query) {
         switch (query.type()) {
-            case MQL.Keywords.KVSTORE -> {
-                return new byte[0];
+            case KVSTORE -> {
+                byte method = MdtpMethod.CREATE_KV_STORE;
+                List<byte[]> kvstores = query.kvstores().stream().map(G.I::toBytes).toList();
+
+                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * kvstores.size());
+                kvstores.forEach(kvstore -> length.getAndAdd(kvstore.length));
+
+                ByteBuffer buffer = ByteBuffer.allocate(length.get());
+
+                buffer.put(method);
+                buffer.put(BufferUtils.toBytes(kvstores));
+
+                return buffer.array();
             }
 
-            case MQL.Keywords.TABLE -> {
+            case TABLE -> {
                 byte method = MdtpMethod.CREATE_TABLE;
                 List<byte[]> tables = query.tables().stream().map(G.I::toBytes).toList();
 
@@ -189,7 +316,7 @@ public class MoonlightClient extends Shutdown {
                 return buffer.array();
             }
 
-            case MQL.Keywords.COLUMNS -> {
+            case COLUMNS -> {
                 byte method = MdtpMethod.CREATE_TABLE_COLUMN;
 
                 byte[] table = G.I.toBytes(query.tables().get(0));

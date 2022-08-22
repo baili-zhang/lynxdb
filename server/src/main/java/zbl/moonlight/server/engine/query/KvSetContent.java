@@ -10,11 +10,18 @@ import java.util.List;
 
 public class KvSetContent {
     private final String kvstore;
-    private List<Pair<byte[], byte[]>> kvPairs = new ArrayList<>();
+    private final List<Pair<byte[], byte[]>> kvPairs = new ArrayList<>();
 
     public KvSetContent(QueryParams params) {
         ByteBuffer buffer = ByteBuffer.wrap(params.content());
         kvstore = BufferUtils.getString(buffer);
+
+        while(!BufferUtils.isOver(buffer)) {
+            byte[] key = BufferUtils.getBytes(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+
+            kvPairs.add(new Pair<>(key, value));
+        }
     }
 
     public List<Pair<byte[], byte[]>> kvPairs () {

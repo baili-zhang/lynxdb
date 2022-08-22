@@ -2,6 +2,7 @@ package zbl.moonlight.server.engine;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import zbl.moonlight.core.utils.FileUtils;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.context.Configuration;
 import zbl.moonlight.storage.core.KvAdapter;
@@ -147,7 +148,7 @@ public abstract class BaseStorageEngine {
 
         try {
             kvDbMap.get(name).close();
-            Files.delete(path);
+            FileUtils.delete(path);
         } catch (Exception e) {
             throw new RuntimeException("Drop kvstore [" + name + "] fail");
         }
@@ -175,8 +176,8 @@ public abstract class BaseStorageEngine {
         Path path = Path.of(dataDir, TABLE_DIR, name);
 
         try {
-            kvDbMap.get(name).close();
-            Files.delete(path);
+            tableMap.get(name).close();
+            FileUtils.delete(path);
         } catch (Exception e) {
             throw new RuntimeException("Drop kvstore [" + name + "] fail");
         }
