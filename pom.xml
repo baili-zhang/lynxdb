@@ -11,12 +11,14 @@
 
     <modules>
         <module>server</module>
-        <module>client</module>
+        <module>cmd</module>
         <module>test</module>
         <module>core</module>
         <module>socket</module>
         <module>raft</module>
         <module>storage</module>
+        <module>starter</module>
+        <module>client</module>
     </modules>
 
     <properties>

@@ -17,9 +17,7 @@ import zbl.moonlight.socket.request.WritableSocketRequest;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
@@ -240,7 +238,7 @@ public class RaftState {
                         AppendEntries appendEntries = new AppendEntries(null);
 
                         if(raftClient.isConnected(selectionKey)) {
-                            raftClient.sendMessage(selectionKey, appendEntries.toBytes());
+                            raftClient.send(selectionKey, appendEntries.toBytes());
 
                             logger.debug("[{}] send {} to node: {}.", currentNode,
                                     appendEntries, ((SocketChannel)selectionKey.channel()).getRemoteAddress());
@@ -294,7 +292,7 @@ public class RaftState {
                                     "Send RequestVote [{}] to other nodes.",
                             currentNode, raftRole(), requestVote);
 
-                    raftClient.broadcastMessage(null);
+                    raftClient.broadcast(null);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

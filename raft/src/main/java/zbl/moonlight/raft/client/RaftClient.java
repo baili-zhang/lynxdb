@@ -12,11 +12,11 @@ public class RaftClient extends SocketClient {
     }
 
     @Override
-    public void broadcastMessage(BytesConvertible message) {
+    public void broadcast(BytesConvertible message) {
         if(connectedNodes().isEmpty()) {
             RaftState.getInstance().raftRole(RaftRole.LEADER);
             return;
         }
-        super.broadcastMessage(message);
+        super.broadcast(message);
     }
 }

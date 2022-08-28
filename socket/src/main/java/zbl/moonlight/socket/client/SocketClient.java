@@ -4,8 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.executor.Executor;
+import zbl.moonlight.socket.common.NioMessage;
 import zbl.moonlight.socket.interfaces.SocketClientHandler;
-import zbl.moonlight.socket.request.SocketRequest;
 import zbl.moonlight.socket.request.WritableSocketRequest;
 
 import java.io.IOException;
@@ -41,8 +41,12 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     private SocketClientHandler handler;
 
-    public SocketClient() throws IOException {
-        selector = Selector.open();
+    public SocketClient() {
+        try {
+            selector = Selector.open();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         /* 线程池执行器 */
         executor = new ThreadPoolExecutor(DEFAULT_CORE_POOL_SIZE,
@@ -98,34 +102,37 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         return contexts.containsKey(selectionKey);
     }
 
-    public void sendMessage(SelectionKey selectionKey, byte[] data) {
+    public final int send(SelectionKey selectionKey, byte[] data) {
         byte status = (byte) 0x00;
+        int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
                 selectionKey,
                 status,
-                serial.getAndIncrement(),
+                requestSerial,
                 data
         );
 
         offerInterruptibly(request);
+        return requestSerial;
     }
 
-    public void sendMessage(SelectionKey selectionKey, BytesConvertible message) {
-        byte[] data = message.toBytes();
+    public final int send(NioMessage message) {
         byte status = (byte) 0x00;
+        int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
-                selectionKey,
+                message.selectionKey(),
                 status,
-                serial.getAndIncrement(),
-                data
+                requestSerial,
+                message.toBytes()
         );
 
         offerInterruptibly(request);
+        return requestSerial;
     }
 
-    public void broadcastMessage(BytesConvertible message) {
+    public void broadcast(BytesConvertible message) {
         byte[] data = message.toBytes();
 
         for(SelectionKey selectionKey : contexts.keySet()) {
@@ -266,7 +273,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
             }
         }
 
-        private void doWrite() throws IOException {
+        private void doWrite() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
             WritableSocketRequest request = context.peekRequest();
 
@@ -287,9 +294,12 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         /**
          * 处理节点断开连接的情况
          */
-        private void handleDisconnect() throws IOException {
+        private void handleDisconnect() throws Exception {
             contexts.remove(selectionKey);
             selectionKey.cancel();
+
+            handler.handleDisconnect(selectionKey);
+
             logger.info("Disconnect from node [{}].", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
         }
     }

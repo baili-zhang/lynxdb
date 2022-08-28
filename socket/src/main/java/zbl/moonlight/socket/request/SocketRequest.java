@@ -1,14 +1,8 @@
 package zbl.moonlight.socket.request;
 
-import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.exceptions.NullFieldException;
-import zbl.moonlight.core.utils.NumberUtils;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-
-import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
-import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
 public class SocketRequest {
     protected final SelectionKey selectionKey;

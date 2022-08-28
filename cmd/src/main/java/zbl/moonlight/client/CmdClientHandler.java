@@ -15,12 +15,12 @@ import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
-public class ClientHandler implements SocketClientHandler {
+public class CmdClientHandler implements SocketClientHandler {
     private final CyclicBarrier barrier;
     @Setter
-    private MoonlightClient client;
+    private MoonlightCmd client;
 
-    ClientHandler(CyclicBarrier barrier) {
+    CmdClientHandler(CyclicBarrier barrier) {
         this.barrier = barrier;
     }
 
