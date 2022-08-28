@@ -2,10 +2,13 @@ package zbl.moonlight.socket.common;
 
 import zbl.moonlight.core.common.BytesConvertible;
 import zbl.moonlight.core.common.BytesList;
+import zbl.moonlight.core.common.BytesListConvertible;
 
 import java.nio.channels.SelectionKey;
 
-public abstract class NioMessage extends NioSelectionKey implements BytesConvertible {
+public abstract class NioMessage extends NioSelectionKey
+        implements BytesListConvertible {
+
     protected final BytesList bytesList = new BytesList();
 
     public NioMessage(SelectionKey key) {
@@ -13,7 +16,7 @@ public abstract class NioMessage extends NioSelectionKey implements BytesConvert
     }
 
     @Override
-    public byte[] toBytes() {
-        return bytesList.toBytes();
+    public BytesList toBytesList() {
+        return bytesList;
     }
 }

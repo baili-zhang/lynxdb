@@ -2,6 +2,7 @@ package zbl.moonlight.socket.request;
 
 import zbl.moonlight.core.common.BytesList;
 import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.socket.common.NioMessage;
 import zbl.moonlight.socket.common.NioSelectionKey;
 import zbl.moonlight.socket.interfaces.Writable;
 
@@ -21,6 +22,18 @@ public class WritableSocketRequest extends NioSelectionKey implements Writable {
         bytesList.appendRawByte(status);
         bytesList.appendRawInt(serial);
         bytesList.appendRawBytes(data);
+
+        buffer = ByteBuffer.wrap(bytesList.toBytes());
+    }
+
+    public WritableSocketRequest(byte status, int serial,
+                                 NioMessage message) {
+        super(message.selectionKey());
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(status);
+        bytesList.appendRawInt(serial);
+        bytesList.append(message);
 
         buffer = ByteBuffer.wrap(bytesList.toBytes());
     }

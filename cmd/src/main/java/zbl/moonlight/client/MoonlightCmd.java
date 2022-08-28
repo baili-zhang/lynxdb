@@ -224,7 +224,7 @@ public class MoonlightCmd extends Shutdown {
             }
 
             case KVSTORE -> {
-                byte method = MdtpMethod.KV_SELECT;
+                byte method = MdtpMethod.KV_GET;
                 List<byte[]> total = new ArrayList<>();
 
                 byte[] kvstore = G.I.toBytes(query.kvstores().get(0));

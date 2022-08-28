@@ -12,7 +12,7 @@ public @interface MdtpMethod {
     byte DROP_KV_STORE          = (byte) 0x02;
 
     byte KV_SET                 = (byte) 0x03;
-    byte KV_SELECT = (byte) 0x04;
+    byte KV_GET = (byte) 0x04;
     byte KV_DELETE              = (byte) 0x05;
 
     byte CREATE_TABLE           = (byte) 0x06;

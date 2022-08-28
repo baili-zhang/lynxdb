@@ -16,8 +16,11 @@ public class MoonlightFuture implements Future<byte[]> {
 
     public void value(byte[] val) {
         value = val;
-        completed = true;
-        LockSupport.unpark(current);
+
+        if(!completed) {
+            completed = true;
+            LockSupport.unpark(current);
+        }
     }
 
     @Override
@@ -37,7 +40,7 @@ public class MoonlightFuture implements Future<byte[]> {
 
     @Override
     public byte[] get() {
-        if(value == null) {
+        while (!completed) {
             LockSupport.park();
         }
         return value;

@@ -122,10 +122,9 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
-                message.selectionKey(),
                 status,
                 requestSerial,
-                message.toBytes()
+                message
         );
 
         offerInterruptibly(request);

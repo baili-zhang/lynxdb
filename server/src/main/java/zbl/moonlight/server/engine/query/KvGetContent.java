@@ -4,6 +4,7 @@ import zbl.moonlight.core.common.BytesList;
 import zbl.moonlight.core.common.BytesListConvertible;
 import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.engine.QueryParams;
 
 import java.nio.ByteBuffer;
@@ -41,6 +42,7 @@ public class KvGetContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
+        bytesList.appendRawByte(MdtpMethod.KV_GET);
         bytesList.appendVarBytes(G.I.toBytes(kvstore));
         keys.forEach(bytesList::appendVarBytes);
 

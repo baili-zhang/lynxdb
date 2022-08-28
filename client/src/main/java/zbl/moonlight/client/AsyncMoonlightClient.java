@@ -18,8 +18,7 @@ public class AsyncMoonlightClient extends SocketClient {
     }
 
     public MoonlightFuture asyncKvGet(SelectionKey selectionKey,
-                                                             String kvstore,
-                                                             List<byte[]> keys) {
+                                      String kvstore, List<byte[]> keys) {
         MoonlightFuture future = new MoonlightFuture();
         KvGetContent content = new KvGetContent(kvstore, keys);
         ClientRequest request = new ClientRequest(selectionKey, content);

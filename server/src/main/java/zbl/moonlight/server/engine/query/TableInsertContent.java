@@ -1,6 +1,10 @@
 package zbl.moonlight.server.engine.query;
 
+import zbl.moonlight.core.common.BytesList;
+import zbl.moonlight.core.common.BytesListConvertible;
+import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.engine.QueryParams;
 import zbl.moonlight.storage.core.Column;
 import zbl.moonlight.storage.core.Key;
@@ -10,7 +14,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 
-public class TableInsertContent {
+public class TableInsertContent implements BytesListConvertible {
     private final String table;
     private final MultiTableRows rows;
 
@@ -61,11 +65,45 @@ public class TableInsertContent {
         }
     }
 
+    public TableInsertContent(String table, MultiTableRows rows) {
+        this.table = table;
+        this.rows = rows;
+    }
+
     public String table() {
         return table;
     }
 
     public MultiTableRows rows() {
         return rows;
+    }
+
+    @Override
+    public BytesList toBytesList() {
+        BytesList bytesList = new BytesList();
+
+        bytesList.appendRawByte(MdtpMethod.TABLE_INSERT);
+        bytesList.appendVarBytes(G.I.toBytes(table));
+
+        List<Key> keys = rows.keySet().stream().toList();
+
+        if(keys.size() == 0) {
+            throw new RuntimeException("rows is empty");
+        }
+
+        List<Column> columns = rows.get(keys.get(0)).keySet().stream().toList();
+
+        keys.stream().map(Key::value).forEach(bytesList::appendVarBytes);
+        columns.stream().map(Column::value).forEach(bytesList::appendVarBytes);
+
+        for(Key key : keys) {
+            Map<Column, byte[]> row = rows.get(key);
+            for (Column column : columns) {
+                byte[] value = row.get(column);
+                bytesList.appendVarBytes(value);
+            }
+        }
+
+        return bytesList;
     }
 }

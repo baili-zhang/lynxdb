@@ -12,7 +12,6 @@ import zbl.moonlight.storage.core.exception.ColumnsNotExistedException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
@@ -95,7 +94,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(KV_SELECT)
+    @MdtpMethod(KV_GET)
     public byte[] doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 

@@ -1,6 +1,10 @@
 package zbl.moonlight.server.engine.query;
 
+import zbl.moonlight.core.common.BytesList;
+import zbl.moonlight.core.common.BytesListConvertible;
+import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.server.engine.QueryParams;
 import zbl.moonlight.storage.core.Column;
 import zbl.moonlight.storage.core.MultiTableKeys;
@@ -11,7 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 
 
-public class TableSelectContent {
+public class TableSelectContent implements BytesListConvertible {
     private final String table;
     private final MultiTableKeys multiKeys;
 
@@ -41,6 +45,11 @@ public class TableSelectContent {
         multiKeys = new MultiTableKeys(keys, columns);
     }
 
+    public TableSelectContent(String table, MultiTableKeys multiKeys) {
+        this.table = table;
+        this.multiKeys = multiKeys;
+    }
+
     public String table() {
         return table;
     }
@@ -55,5 +64,18 @@ public class TableSelectContent {
 
     public HashSet<Column> columns() {
         return columns;
+    }
+
+    @Override
+    public BytesList toBytesList() {
+        BytesList bytesList = new BytesList();
+
+        bytesList.appendRawByte(MdtpMethod.TABLE_SELECT);
+        bytesList.appendVarBytes(G.I.toBytes(table));
+
+        multiKeys.left().forEach(bytesList::appendVarBytes);
+        multiKeys.right().stream().map(Column::value).forEach(bytesList::appendVarBytes);
+
+        return bytesList;
     }
 }
