@@ -1,6 +1,5 @@
 package zbl.moonlight.client;
 
-import lombok.Setter;
 import zbl.moonlight.client.mql.MQL;
 import zbl.moonlight.client.mql.MqlQuery;
 import zbl.moonlight.client.printer.Printer;
@@ -9,10 +8,8 @@ import zbl.moonlight.core.common.G;
 import zbl.moonlight.core.executor.Executor;
 import zbl.moonlight.core.executor.Shutdown;
 import zbl.moonlight.core.utils.BufferUtils;
-import zbl.moonlight.raft.request.ClientRequest;
 import zbl.moonlight.server.annotations.MdtpMethod;
 import zbl.moonlight.socket.client.ServerNode;
-import zbl.moonlight.socket.client.SocketClient;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -22,51 +19,33 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static zbl.moonlight.client.mql.MQL.Keywords.*;
 import static zbl.moonlight.core.utils.NumberUtils.BYTE_LENGTH;
 import static zbl.moonlight.core.utils.NumberUtils.INT_LENGTH;
 
-public class MoonlightCmd extends Shutdown {
-    private final SocketClient socketClient;
-    private final Scanner scanner;
-
-    private final CyclicBarrier barrier = new CyclicBarrier(2);
-    private final CmdClientHandler cmdClientHandler = new CmdClientHandler(barrier);
+public class MoonlightCmdClient extends Shutdown {
+    private final AsyncMoonlightClient client = new AsyncMoonlightClient();
+    private final Scanner scanner = new Scanner(System.in);
 
     private final AtomicInteger serial = new AtomicInteger(1);
 
     /**
      * 终端当前连接的节点
      */
-    @Setter
     private volatile SelectionKey current;
 
-    public MoonlightCmd() throws IOException {
-        socketClient = new SocketClient();
-        socketClient.setHandler(cmdClientHandler);
-        scanner = new Scanner(System.in);
-
+    public MoonlightCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
     }
 
-    public void start() throws IOException, BrokenBarrierException, InterruptedException {
-        Executor.start(socketClient);
-        cmdClientHandler.setClient(this);
-
-        SelectionKey selectionKey = socketClient
-                .connect(new ServerNode("127.0.0.1", 7820));
+    public void start() throws IOException {
+        Executor.start(client);
+        ServerNode serverNode = new ServerNode("127.0.0.1", 7820);
+        current = client.connect(serverNode);
 
         while (isNotShutdown()) {
-            barrier.await();
-
-            if(barrier.isBroken()) {
-                barrier.reset();
-            }
-
             Printer.printPrompt(current);
 
             StringBuilder temp = new StringBuilder();
@@ -80,83 +59,55 @@ public class MoonlightCmd extends Shutdown {
             String statement = temp.toString();
 
             List<MqlQuery> queries = MQL.parse(statement);
-            List<byte[]> total = new ArrayList<>();
 
             for(MqlQuery query : queries) {
-                total.add(
-                    switch (query.name()) {
-                        case CREATE -> handleCreate(query);
-                        case DROP -> handleDrop(query);
-                        case DELETE -> handleDelete(query);
-                        case SHOW -> handleShow(query);
-                        case SELECT -> handleSelect(query);
-                        case INSERT -> TABLE.equalsIgnoreCase(query.type())
-                                ? handleTableInsert(query) : handleKvInsert(query);
-
-                        default -> throw new UnsupportedOperationException(query.name());
+                switch (query.name()) {
+                    case CREATE -> handleCreate(query);
+                    case DROP -> handleDrop(query);
+                    case DELETE -> handleDelete(query);
+                    case SHOW -> handleShow(query);
+                    case SELECT -> handleSelect(query);
+                    case INSERT -> {
+                        if(TABLE.equalsIgnoreCase(query.type())) {
+                            handleTableInsert(query);
+                        } else {
+                            handleKvInsert(query);
+                        }
                     }
-                );
+
+                    default -> throw new UnsupportedOperationException(query.name());
+                }
             }
-
-            byte[] queryBytes = total.get(0);
-
-            socketClient.send(selectionKey, new ClientRequest(queryBytes).toBytes());
         }
     }
 
-    private byte[] handleDrop(MqlQuery query) {
+    private void handleDrop(MqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
-                byte method = MdtpMethod.DROP_KV_STORE;
-                List<byte[]> kvstores = query.kvstores().stream().map(G.I::toBytes).toList();
-
-                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * kvstores.size());
-                kvstores.forEach(kvstore -> length.getAndAdd(kvstore.length));
-
-                ByteBuffer buffer = ByteBuffer.allocate(length.get());
-
-                buffer.put(method);
-                buffer.put(BufferUtils.toBytes(kvstores));
-
-                return buffer.array();
+                MoonlightFuture future = client.asyncCreateKvstore(current, query.kvstores());
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             case TABLE -> {
-                byte method = MdtpMethod.DROP_TABLE;
-                List<byte[]> tables = query.tables().stream().map(G.I::toBytes).toList();
-
-                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * tables.size());
-                tables.forEach(table -> length.getAndAdd(table.length));
-
-                ByteBuffer buffer = ByteBuffer.allocate(length.get());
-
-                buffer.put(method);
-                buffer.put(BufferUtils.toBytes(tables));
-
-                return buffer.array();
+                MoonlightFuture future = client.asyncCreateTable(current, query.tables());
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             case COLUMNS -> {
-                byte method = MdtpMethod.DROP_TABLE_COLUMN;
-
-                byte[] table = G.I.toBytes(query.tables().get(0));
+                String table = query.tables().get(0);
                 List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
-
-                List<byte[]> total = new ArrayList<>();
-                total.add(table);
-                total.addAll(columns);
-
-                byte[] totalBytes = BufferUtils.toBytes(total);
-                int length = BYTE_LENGTH + totalBytes.length;
-
-                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+                MoonlightFuture future = client.asyncCreateTableColumn(current, table, columns);
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             default -> throw new UnsupportedOperationException(query.type());
         }
     }
 
-    private byte[] handleTableInsert(MqlQuery query) {
+    private void handleTableInsert(MqlQuery query) {
         byte method = MdtpMethod.TABLE_INSERT;
 
         List<byte[]> keys = new ArrayList<>();
@@ -182,10 +133,10 @@ public class MoonlightCmd extends Shutdown {
         byte[] totalBytes = BufferUtils.toBytes(total);
         int length = BYTE_LENGTH + totalBytes.length;
 
-        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+        ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private byte[] handleKvInsert(MqlQuery query) {
+    private void handleKvInsert(MqlQuery query) {
         byte method = MdtpMethod.KV_SET;
 
         List<byte[]> pairs = query.rows().stream()
@@ -200,10 +151,10 @@ public class MoonlightCmd extends Shutdown {
         byte[] totalBytes = BufferUtils.toBytes(total);
         int length = BYTE_LENGTH + totalBytes.length;
 
-        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+        ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private byte[] handleSelect(MqlQuery query) {
+    private void handleSelect(MqlQuery query) {
         switch (query.from()) {
             case TABLE -> {
                 byte method = MdtpMethod.TABLE_SELECT;
@@ -220,7 +171,7 @@ public class MoonlightCmd extends Shutdown {
                 byte[] totalBytes = BufferUtils.toBytes(total);
                 int length = BYTE_LENGTH + totalBytes.length;
 
-                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+                ByteBuffer.allocate(length).put(method).put(totalBytes);
             }
 
             case KVSTORE -> {
@@ -236,34 +187,32 @@ public class MoonlightCmd extends Shutdown {
                 byte[] totalBytes = BufferUtils.toBytes(total);
                 int length = BYTE_LENGTH + totalBytes.length;
 
-                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+                ByteBuffer.allocate(length).put(method).put(totalBytes);
             }
 
             default -> throw new UnsupportedOperationException(query.from());
         }
     }
 
-    private byte[] handleShow(MqlQuery query) {
+    private void handleShow(MqlQuery query) {
         switch (query.type().toLowerCase()) {
             case KVSTORES -> {
-                return new byte[]{MdtpMethod.SHOW_KVSTORE};
             }
             case TABLES -> {
-                return new byte[]{MdtpMethod.SHOW_TABLE};
             }
             case COLUMNS -> {
                 byte method = MdtpMethod.SHOW_COLUMN;
                 byte[] table = G.I.toBytes(query.tables().get(0));
 
                 int length = BYTE_LENGTH + table.length;
-                return ByteBuffer.allocate(length).put(method).put(table).array();
+                ByteBuffer.allocate(length).put(method).put(table);
             }
 
             default -> throw new UnsupportedOperationException(query.type());
         }
     }
 
-    private byte[] handleDelete(MqlQuery query) {
+    private void handleDelete(MqlQuery query) {
         byte method = TABLE.equalsIgnoreCase(query.from())
                 ? MdtpMethod.TABLE_DELETE
                 : MdtpMethod.KV_DELETE;
@@ -281,10 +230,10 @@ public class MoonlightCmd extends Shutdown {
         byte[] totalBytes = BufferUtils.toBytes(total);
         int length = BYTE_LENGTH + totalBytes.length;
 
-        return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+        ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private byte[] handleCreate(MqlQuery query) {
+    private void handleCreate(MqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
                 byte method = MdtpMethod.CREATE_KV_STORE;
@@ -298,7 +247,6 @@ public class MoonlightCmd extends Shutdown {
                 buffer.put(method);
                 buffer.put(BufferUtils.toBytes(kvstores));
 
-                return buffer.array();
             }
 
             case TABLE -> {
@@ -313,7 +261,6 @@ public class MoonlightCmd extends Shutdown {
                 buffer.put(method);
                 buffer.put(BufferUtils.toBytes(tables));
 
-                return buffer.array();
             }
 
             case COLUMNS -> {
@@ -329,17 +276,15 @@ public class MoonlightCmd extends Shutdown {
                 byte[] totalBytes = BufferUtils.toBytes(total);
                 int length = BYTE_LENGTH + totalBytes.length;
 
-                return ByteBuffer.allocate(length).put(method).put(totalBytes).array();
+                ByteBuffer.allocate(length).put(method).put(totalBytes);
             }
 
             default -> throw new UnsupportedOperationException(query.type());
         }
     }
 
-    public static void main(String[] args)
-            throws IOException, BrokenBarrierException, InterruptedException {
-
-        MoonlightCmd client = new MoonlightCmd();
+    public static void main(String[] args) throws IOException {
+        MoonlightCmdClient client = new MoonlightCmdClient();
         client.start();
     }
 
@@ -348,12 +293,16 @@ public class MoonlightCmd extends Shutdown {
         if(current != null) {
             disconnect();
         }
-        socketClient.shutdown();
-        socketClient.interrupt();
+
+        client.shutdown();
     }
 
     private void disconnect() {
         Printer.printDisconnect(current);
         current = null;
+    }
+
+    public void setCurrent(SelectionKey key) {
+        this.current = key;
     }
 }

@@ -13,7 +13,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>zbl.moonlight.cmd</groupId>
+            <groupId>zbl.moonlight</groupId>
             <artifactId>cmd</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>

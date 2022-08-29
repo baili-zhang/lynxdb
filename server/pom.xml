@@ -9,7 +9,6 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>zbl.moonlight.server</groupId>
     <artifactId>server</artifactId>
     <packaging>jar</packaging>
 

@@ -61,4 +61,8 @@ public interface Printer {
     static void printTable(List<List<String>> table) {
         new TablePrinter(table).print();
     }
+
+    static void printResponse(byte[] response) {
+
+    }
 }
