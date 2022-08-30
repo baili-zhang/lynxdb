@@ -30,7 +30,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>zbl.moonlight.server</groupId>
+            <groupId>zbl.moonlight</groupId>
             <artifactId>server</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>

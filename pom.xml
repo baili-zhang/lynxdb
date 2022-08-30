@@ -12,7 +12,6 @@
     <modules>
         <module>server</module>
         <module>cmd</module>
-        <module>test</module>
         <module>core</module>
         <module>socket</module>
         <module>raft</module>
@@ -22,6 +21,7 @@
     </modules>
 
     <properties>
+        <springboot.version>2.7.3</springboot.version>
         <rocksdb.version>7.3.1</rocksdb.version>
         <lombok.version>1.18.20</lombok.version>
         <log4j.version>2.16.0</log4j.version>
