@@ -175,19 +175,11 @@ public class MoonlightCmdClient extends Shutdown {
             }
 
             case KVSTORE -> {
-                byte method = MdtpMethod.KV_GET;
-                List<byte[]> total = new ArrayList<>();
-
-                byte[] kvstore = G.I.toBytes(query.kvstores().get(0));
-                List<byte[]> keysList = query.keys().stream().map(G.I::toBytes).toList();
-
-                total.add(kvstore);
-                total.addAll(keysList);
-
-                byte[] totalBytes = BufferUtils.toBytes(total);
-                int length = BYTE_LENGTH + totalBytes.length;
-
-                ByteBuffer.allocate(length).put(method).put(totalBytes);
+                String kvstore = query.kvstores().get(0);
+                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                MoonlightFuture future = client.asyncKvGet(current, kvstore, keys);
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             default -> throw new UnsupportedOperationException(query.from());
@@ -300,9 +292,5 @@ public class MoonlightCmdClient extends Shutdown {
     private void disconnect() {
         Printer.printDisconnect(current);
         current = null;
-    }
-
-    public void setCurrent(SelectionKey key) {
-        this.current = key;
     }
 }

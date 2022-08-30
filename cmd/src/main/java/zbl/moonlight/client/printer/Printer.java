@@ -1,10 +1,15 @@
 package zbl.moonlight.client.printer;
 
 
+import zbl.moonlight.core.utils.BufferUtils;
+import zbl.moonlight.server.engine.result.Result;
+
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 public interface Printer {
@@ -63,6 +68,40 @@ public interface Printer {
     }
 
     static void printResponse(byte[] response) {
+        ByteBuffer buffer = ByteBuffer.wrap(response);
+        byte code = buffer.get();
 
+        switch (code) {
+            case Result.SUCCESS -> Printer.printOK();
+            case Result.SUCCESS_SHOW_COLUMN -> handleShowColumn(buffer);
+            case Result.SUCCESS_SHOW_TABLE -> handleShowTable(buffer);
+            case Result.Error.INVALID_ARGUMENT -> {
+                String message = BufferUtils.getRemainingString(buffer);
+                Printer.printError(message);
+            }
+
+            default -> Printer.printError("Unknown Response Status Code");
+        }
+    }
+
+    private static void handleShowTable(ByteBuffer buffer) {
+        int columnSize = buffer.getInt();
+        List<List<String>> table = new ArrayList<>();
+
+        while(!BufferUtils.isOver(buffer)) {
+            List<String> row = new ArrayList<>();
+            for(int i = 0; i < columnSize; i ++) {
+                row.add(BufferUtils.getString(buffer));
+            }
+            table.add(row);
+        }
+
+        Printer.printTable(table);
+    }
+
+    private static void handleShowColumn(ByteBuffer buffer) {
+        List<String> total = BufferUtils.toStringList(buffer);
+        List<List<String>> table = total.stream().map(List::of).toList();
+        Printer.printTable(table);
     }
 }
