@@ -1,6 +1,6 @@
 # 项目架构
 
-Moonlight 分为三个模块：
+LynxDB 分为三个模块：
 
 - 核心模块（core）
 - 服务器模块（server）

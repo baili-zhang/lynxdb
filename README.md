@@ -1,6 +1,6 @@
-# Moonlight
+# LynxDB
 
-Moonlight 是一款基于 Raft 协议的、轻量级的、使用 Java 语言实现的分布式存储系统，底层采用 RocksDB 存储引擎，支持 KV 存储和表结构存储。
+LynxDB 是一款基于 Raft 协议的、轻量级的、使用 Java 语言实现的分布式存储系统，底层采用 RocksDB 存储引擎，支持 KV 存储和表结构存储。
 
 ## 运行
 
@@ -8,13 +8,13 @@ Windows 系统下的服务器启动脚本是 start-server.bat ，客户端启动
 
 Linux 系统下的服务端启动脚本是 start-server.sh ，客户端启动脚本是 start-client.sh。
 
-Moonlight 服务器的**默认端口号为`7820`**，确保端口`7820`没有被其他进程占用。
+LynxDB 服务器的**默认端口号为`7820`**，确保端口`7820`没有被其他进程占用。
 
 ## 开始使用
 
-### MQL 查询语句
+### LQL 查询语句
 
-MQL (Moonlight Query Language) 是一种与 SQL 语句类似的简单查询语句，包括创建，删除，查询，插入数据等语句。
+LQL (LynxDB Query Language) 是一种与 SQL 语句类似的简单查询语句，包括创建，删除，查询，插入数据等语句。
 
 **CREATE 语句**
 

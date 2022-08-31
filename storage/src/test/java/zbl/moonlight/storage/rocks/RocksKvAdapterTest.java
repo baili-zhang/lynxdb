@@ -1,7 +1,8 @@
 package zbl.moonlight.storage.rocks;
 
+import com.bailizhang.lynxdb.storage.rocks.RocksKvAdapter;
 import org.junit.jupiter.api.*;
-import zbl.moonlight.storage.core.Pair;
+import com.bailizhang.lynxdb.storage.core.Pair;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
