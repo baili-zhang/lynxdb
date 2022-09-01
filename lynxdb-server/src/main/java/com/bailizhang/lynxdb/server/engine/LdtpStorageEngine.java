@@ -18,12 +18,6 @@ import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
 public class LdtpStorageEngine extends BaseStorageEngine {
-    private static final String KEY = "Key";
-    private static final String VALUE = "Value";
-    private static final String KVSTORES = "KV Stores";
-    private static final String TABLES = "Tables";
-    private static final String COLUMNS = "Columns";
-
     private static final int KVSTORE_COLUMNS_SIZE = 2;
 
     public LdtpStorageEngine() {
@@ -110,8 +104,6 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         List<Pair<byte[], byte[]>> values = db.get(content.keys());
 
         List<byte[]> total = new ArrayList<>();
-        total.add(G.I.toBytes(KEY));
-        total.add(G.I.toBytes(VALUE));
 
         values.forEach(pair -> {
             total.add(pair.left());
@@ -121,7 +113,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] totalBytes = BufferUtils.toBytes(total);
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(KVSTORE_COLUMNS_SIZE)
+        return buffer.put(Result.SUCCESS_WITH_KV_PAIRS).putInt(KVSTORE_COLUMNS_SIZE)
                 .put(totalBytes).array();
     }
 
@@ -230,12 +222,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         List<byte[]> keys = content.keys();
         List<byte[]> columns = content.columns().stream().map(Column::value).toList();
 
-        List<byte[]> header = new ArrayList<>();
-
-        header.add(G.I.toBytes(KEY));
-        header.addAll(columns);
-
-        List<byte[]> table = new ArrayList<>(header);
+        List<byte[]> table = new ArrayList<>(columns);
 
         int columnSize = table.size();
 
@@ -253,7 +240,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] tableBytes = BufferUtils.toBytes(table);
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + tableBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(columnSize).put(tableBytes).array();
+        return buffer.put(Result.SUCCESS_WITH_TABLE).putInt(columnSize).put(tableBytes).array();
     }
 
     @LdtpMethod(TABLE_INSERT)
@@ -295,8 +282,6 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public byte[] doShowKvstore(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
 
-        total.add(G.I.toBytes(KVSTORES));
-
         for (String kvstore : kvDbMap.keySet()) {
             total.add(G.I.toBytes(kvstore));
         }
@@ -305,14 +290,12 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_WITH_LIST).put(totalBytes).array();
     }
 
     @LdtpMethod(SHOW_TABLE)
     public byte[] doShowTable(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
-
-        total.add(G.I.toBytes(TABLES));
 
         for (String table : tableMap.keySet()) {
             total.add(G.I.toBytes(table));
@@ -322,7 +305,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_WITH_LIST).put(totalBytes).array();
     }
 
     @LdtpMethod(SHOW_COLUMN)
@@ -343,13 +326,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 .toList();
 
 
-        List<byte[]> total = new ArrayList<>();
-        total.add(G.I.toBytes(COLUMNS));
-        total.addAll(columns);
+        List<byte[]> total = new ArrayList<>(columns);
 
         byte[] totalBytes = BufferUtils.toBytes(total);
         ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
 
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return buffer.put(Result.SUCCESS_WITH_LIST).put(totalBytes).array();
     }
 }

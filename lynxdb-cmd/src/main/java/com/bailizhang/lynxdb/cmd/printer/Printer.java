@@ -73,8 +73,8 @@ public interface Printer {
 
         switch (code) {
             case Result.SUCCESS -> Printer.printOK();
-            case Result.SUCCESS_SHOW_COLUMN -> handleShowColumn(buffer);
-            case Result.SUCCESS_SHOW_TABLE -> handleShowTable(buffer);
+            case Result.SUCCESS_WITH_LIST -> handleShowColumn(buffer);
+            case Result.SUCCESS_WITH_TABLE -> handleShowTable(buffer);
             case Result.Error.INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
