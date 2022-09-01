@@ -4,22 +4,24 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>zbl.moonlight</groupId>
-    <artifactId>moonlight</artifactId>
+    <groupId>com.bailizhang.lynxdb</groupId>
+    <artifactId>parent</artifactId>
     <packaging>pom</packaging>
     <version>1.4-SNAPSHOT</version>
 
     <modules>
-        <module>server</module>
-        <module>client</module>
-        <module>test</module>
-        <module>core</module>
-        <module>socket</module>
-        <module>raft</module>
-        <module>storage</module>
+        <module>lynxdb-server</module>
+        <module>lynxdb-cmd</module>
+        <module>lynxdb-core</module>
+        <module>lynxdb-socket</module>
+        <module>lynxdb-raft</module>
+        <module>lynxdb-storage</module>
+        <module>lynxdb-spring-boot-starter</module>
+        <module>lynxdb-client</module>
     </modules>
 
     <properties>
+        <springboot.version>2.7.3</springboot.version>
         <rocksdb.version>7.3.1</rocksdb.version>
         <lombok.version>1.18.20</lombok.version>
         <log4j.version>2.16.0</log4j.version>

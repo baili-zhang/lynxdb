@@ -1,86 +1,84 @@
-# Moonlight
+# LynxDB
 
-Moonlight 是一款基于 Raft 协议的、轻量级的、使用 Java 语言实现的分布式存储系统，底层采用 RocksDB 存储引擎，支持 KV 存储和表结构存储。
+LynxDB is a light-weight distributed storage system implemented in the Java language and based on the Raft protocol. The bottom layer of LynxDb uses the RocksDB storage engine. LynxDB supports KV storage and table structure storage.
 
-## 运行
+## Running LynxDB
 
-Windows 系统下的服务器启动脚本是 start-server.bat ，客户端启动脚本是 start-client.bat。
+The server startup script under Windows system is `start-server.bat` , and the client startup script is `start-client.bat`.
 
-Linux 系统下的服务端启动脚本是 start-server.sh ，客户端启动脚本是 start-client.sh。
+The server startup script under Linux system is `start-server.sh` , and the client startup script is `start-client.sh`.
 
-Moonlight 服务器的**默认端口号为`7820`**，确保端口`7820`没有被其他进程占用。
+The default port number for LynxDB server is `7820`, make sure port `7820` is not occupied by other processes.
 
-## 开始使用
+## Query Language
 
-### MQL 查询语句
+LQL (LynxDB Query Language) is a simple query statement similar to SQL statement, including create, delete, query, insert data and other statements.
 
-MQL (Moonlight Query Language) 是一种与 SQL 语句类似的简单查询语句，包括创建，删除，查询，插入数据等语句。
+**CREATE**
 
-**CREATE 语句**
-
-*创建表*
+*Create table*
 
 ```
 CREATE TABLE `user_table`;
 ```
 
-*创建 KV 库*
+*Create kv store*
 
 ```
 CREATE KVSTORE `user_kv`;
 ```
 
-*创建列*
+*create table column*
 
 ```
 CREATE COLUMNS `name`, `age` in `user_table`;
 ```
 
-只有表支持列，KV 库不支持列。
+Only tables support columns, the KV store does not.
 
-**SHOW 语句**
+**SHOW**
 
-*查看所有表*
+*Show all tables*
 
 ```
 SHOW TABLES;
 ```
 
-*查看所有 KV 库*
+*Show all kv stores*
 
 ```
 SHOW KVSTORES;
 ```
 
-*查看表的所有列*
+*Show all columns in table*
 
 ```
 SHOW COLUMNS IN `user_table`;
 ```
 
-**DROP 语句**
+**DROP**
 
-*删除表*
+*Drop table*
 
 ```
 DROP TABLE `user_table`;
 ```
 
-*删除 KV 库*
+*Drop kv store*
 
 ```
 DROP KVSTORE `user_kv`;
 ```
 
-*删除表的列*
+*Drop columns of table*
 
 ```
 DROP COLUMNS `name`, `age` IN `user_table`;
 ```
 
-**SELECT 语句**
+**SELECT**
 
-*查询表中的数据*
+*Select data from table*
 
 ```
 SELECT `name`, `age`
@@ -88,16 +86,16 @@ SELECT `name`, `age`
     WHERE KEY IN `NO.1`, `NO.2`;
 ```
 
-*查询 KV 库中的数据*
+*Select data from kv store*
 
 ```
 SELECT FROM KVSTORE `count_kv`
     WHERE KEY IN `article_count`, `user_count`;
 ```
 
-**INSERT 语句**
+**INSERT**
 
-*将数据插入表中*
+*Insert data into table*
 
 ```
 INSERT INTO TABLE `user_table`
@@ -107,7 +105,7 @@ INSERT INTO TABLE `user_table`
           (`NO.2`, `Trump`, `63`);
 ```
 
-*将数据插入 KV 库中*
+*Insert data into kv store*
 
 ```
 INSERT INTO KVSTORE `count_kv`
@@ -116,33 +114,33 @@ INSERT INTO KVSTORE `count_kv`
         (`user_count`,`20`);
 ```
 
-**DELETE 语句**
+**DELETE**
 
-*从表中删除数据*
+*Delete data from table*
 
 ```
 DELETE `NO.1`, `NO.2` FROM TABLE `user_table`;
 ```
 
-*从 KV 库中删除数据*
+*Delete data from kv store*
 
 ```
 DELETE `article_count`,`user_count` FROM KVSTORE `count_kv`;
 ```
 
-## 配置
+## Configuration
 
-### 配置文件
+**Configuration file**
 
-目录：`/config/app.cfg`
+Dir: `/config/app.cfg`
 
-### 配置项
+**Configuration item**
 
 ```
 host = 127.0.0.1
 port = 7820
 ```
 
-## 维护人
+## Maintainers
 
-[维护人](./MAINTAINERS)
+See [MAINTAINERS](./MAINTAINERS)
