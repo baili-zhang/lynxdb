@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 import com.bailizhang.lynxdb.storage.core.Column;
 import com.bailizhang.lynxdb.storage.core.MultiTableKeys;
@@ -70,7 +70,7 @@ public class TableSelectContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(MdtpMethod.TABLE_SELECT);
+        bytesList.appendRawByte(LdtpMethod.TABLE_SELECT);
         bytesList.appendVarBytes(G.I.toBytes(table));
 
         multiKeys.left().forEach(bytesList::appendVarBytes);

@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 import com.bailizhang.lynxdb.storage.core.Column;
 
@@ -44,7 +44,7 @@ public class DropTableColumnContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(MdtpMethod.DROP_TABLE_COLUMN);
+        bytesList.appendRawByte(LdtpMethod.DROP_TABLE_COLUMN);
         bytesList.appendVarBytes(G.I.toBytes(table));
         columns.stream().map(Column::value).forEach(bytesList::appendVarBytes);
 

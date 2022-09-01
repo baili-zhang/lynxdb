@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.storage.core.*;
 import org.rocksdb.RocksDB;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.query.*;
 import com.bailizhang.lynxdb.server.engine.result.Result;
 import com.bailizhang.lynxdb.storage.core.exception.ColumnsNotExistedException;
@@ -15,9 +15,9 @@ import java.util.*;
 
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.BYTE_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
-import static com.bailizhang.lynxdb.server.annotations.MdtpMethod.*;
+import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
-public class MdtpStorageEngine extends BaseStorageEngine {
+public class LdtpStorageEngine extends BaseStorageEngine {
     private static final String KEY = "Key";
     private static final String VALUE = "Value";
     private static final String KVSTORES = "KV Stores";
@@ -26,8 +26,8 @@ public class MdtpStorageEngine extends BaseStorageEngine {
 
     private static final int KVSTORE_COLUMNS_SIZE = 2;
 
-    public MdtpStorageEngine() {
-        super(MdtpStorageEngine.class);
+    public LdtpStorageEngine() {
+        super(LdtpStorageEngine.class);
     }
 
     public byte[] metaGet(String key) {
@@ -48,7 +48,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         metaDb.set(new Pair<>(key.getBytes(StandardCharsets.UTF_8), value));
     }
 
-    @MdtpMethod(CREATE_KV_STORE)
+    @LdtpMethod(CREATE_KV_STORE)
     public byte[] doCreateKvStore(QueryParams params) {
         CreateKvStoreContent content = new CreateKvStoreContent(params);
         List<String> kvstores = content.kvstores();
@@ -66,7 +66,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(DROP_KV_STORE)
+    @LdtpMethod(DROP_KV_STORE)
     public byte[] doDropKvStore(QueryParams params) {
         DropKvStoreContent content = new DropKvStoreContent(params);
         List<String> kvstores = content.kvstores();
@@ -84,7 +84,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(KV_SET)
+    @LdtpMethod(KV_SET)
     public byte[] doKvSet(QueryParams params) {
         KvSetContent content = new KvSetContent(params);
 
@@ -94,7 +94,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(KV_GET)
+    @LdtpMethod(KV_GET)
     public byte[] doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 
@@ -125,7 +125,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
                 .put(totalBytes).array();
     }
 
-    @MdtpMethod(KV_DELETE)
+    @LdtpMethod(KV_DELETE)
     public byte[] doKvDelete(QueryParams params) {
         KvDeleteContent content = new KvDeleteContent(params);
 
@@ -135,7 +135,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(CREATE_TABLE)
+    @LdtpMethod(CREATE_TABLE)
     public byte[] doCreateTable(QueryParams params) {
         CreateTableContent content = new CreateTableContent(params);
         List<String> tables = content.tables();
@@ -153,7 +153,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(DROP_TABLE)
+    @LdtpMethod(DROP_TABLE)
     public byte[] doDropTable(QueryParams params) {
         DropTableContent content = new DropTableContent(params);
         List<String> tables = content.tables();
@@ -171,7 +171,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(CREATE_TABLE_COLUMN)
+    @LdtpMethod(CREATE_TABLE_COLUMN)
     public byte[] doCreateTableColumn(QueryParams params) {
         CreateTableColumnContent content = new CreateTableColumnContent(params);
         List<byte[]> columns = content.columns();
@@ -193,7 +193,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(DROP_TABLE_COLUMN)
+    @LdtpMethod(DROP_TABLE_COLUMN)
     public byte[] doDropTableColumn(QueryParams params) {
         DropTableColumnContent content = new DropTableColumnContent(params);
         HashSet<Column> columns = content.columns();
@@ -213,7 +213,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(TABLE_SELECT)
+    @LdtpMethod(TABLE_SELECT)
     public byte[] doTableSelect(QueryParams params) {
         TableSelectContent content = new TableSelectContent(params);
 
@@ -256,7 +256,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(columnSize).put(tableBytes).array();
     }
 
-    @MdtpMethod(TABLE_INSERT)
+    @LdtpMethod(TABLE_INSERT)
     public byte[] doTableInsert(QueryParams params) {
         TableInsertContent content = new TableInsertContent(params);
         TableAdapter db = tableMap.get(content.table());
@@ -281,7 +281,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(TABLE_DELETE)
+    @LdtpMethod(TABLE_DELETE)
     public byte[] doTableDelete(QueryParams params) {
         TableDeleteContent content = new TableDeleteContent(params);
         TableAdapter db = tableMap.get(content.table());
@@ -291,7 +291,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return new byte[]{Result.SUCCESS};
     }
 
-    @MdtpMethod(SHOW_KVSTORE)
+    @LdtpMethod(SHOW_KVSTORE)
     public byte[] doShowKvstore(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
 
@@ -308,7 +308,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
     }
 
-    @MdtpMethod(SHOW_TABLE)
+    @LdtpMethod(SHOW_TABLE)
     public byte[] doShowTable(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
 
@@ -325,7 +325,7 @@ public class MdtpStorageEngine extends BaseStorageEngine {
         return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
     }
 
-    @MdtpMethod(SHOW_COLUMN)
+    @LdtpMethod(SHOW_COLUMN)
     public byte[] doShowColumn(QueryParams params) {
         String table = new String(params.content());
 

@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 
 import java.nio.ByteBuffer;
@@ -36,7 +36,7 @@ public class CreateKvStoreContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(MdtpMethod.CREATE_KV_STORE);
+        bytesList.appendRawByte(LdtpMethod.CREATE_KV_STORE);
         kvstores.stream().map(G.I::toBytes).forEach(bytesList::appendVarBytes);
 
         return bytesList;

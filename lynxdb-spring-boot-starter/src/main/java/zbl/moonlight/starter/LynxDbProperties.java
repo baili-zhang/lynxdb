@@ -3,7 +3,7 @@ package zbl.moonlight.starter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("zbl.moonlight")
-public class MoonlightProperties {
+public class LynxDbProperties {
     private String host;
     private int port;
 

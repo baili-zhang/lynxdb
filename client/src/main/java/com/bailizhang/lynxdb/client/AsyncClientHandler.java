@@ -8,10 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AsyncClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, MoonlightFuture>> futureMap;
+            ConcurrentHashMap<Integer, LynxDbFuture>> futureMap;
 
     public AsyncClientHandler(ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, MoonlightFuture>> map) {
+            ConcurrentHashMap<Integer, LynxDbFuture>> map) {
         futureMap = map;
     }
 
@@ -29,13 +29,13 @@ public class AsyncClientHandler implements SocketClientHandler {
     public void handleResponse(SocketResponse response) {
         int serial = response.serial();
         SelectionKey key = response.selectionKey();
-        ConcurrentHashMap<Integer, MoonlightFuture> map = futureMap.get(key);
+        ConcurrentHashMap<Integer, LynxDbFuture> map = futureMap.get(key);
 
         if(map == null) {
             throw new RuntimeException("Map is null");
         }
 
-        MoonlightFuture future = map.get(serial);
+        LynxDbFuture future = map.get(serial);
         future.value(response.data());
     }
 }

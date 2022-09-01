@@ -1,8 +1,8 @@
-package com.bailizhang.lynxdb.server.mdtp;
+package com.bailizhang.lynxdb.server.ldtp;
 
 import java.nio.channels.SelectionKey;
 
-public record MdtpCommand (
+public record LdtpCommand(
         SelectionKey selectionKey,
         long serial,
         byte method,

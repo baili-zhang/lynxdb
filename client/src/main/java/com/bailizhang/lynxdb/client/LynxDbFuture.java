@@ -4,13 +4,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public class MoonlightFuture implements Future<byte[]> {
+public class LynxDbFuture implements Future<byte[]> {
     private final Thread current;
 
     private volatile boolean completed = false;
     private volatile byte[] value;
 
-    public MoonlightFuture() {
+    public LynxDbFuture() {
         current = Thread.currentThread();
     }
 

@@ -1,9 +1,9 @@
-package com.bailizhang.lynxdb.cmd.mql;
+package com.bailizhang.lynxdb.cmd.lql;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MqlQuery {
+public class LqlQuery {
     private String name;
     private String type;
     private String from;

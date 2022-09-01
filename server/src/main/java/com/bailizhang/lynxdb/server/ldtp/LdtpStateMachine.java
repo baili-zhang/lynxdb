@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.mdtp;
+package com.bailizhang.lynxdb.server.ldtp;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -7,7 +7,7 @@ import com.bailizhang.lynxdb.raft.log.RaftLogEntry;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.raft.state.RaftCommand;
 import com.bailizhang.lynxdb.raft.state.StateMachine;
-import com.bailizhang.lynxdb.server.engine.MdtpStorageEngine;
+import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
@@ -22,7 +22,7 @@ import static com.bailizhang.lynxdb.raft.state.RaftState.DATA_CHANGE;
  *
  * 客户端 -> Raft 层 -> 状态机 -> Raft 层 -> 客户端
  */
-public class MdtpStateMachine extends Executor<RaftCommand> implements StateMachine {
+public class LdtpStateMachine extends Executor<RaftCommand> implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
 
     public static final String C_OLD_NEW = "c_old_new";
@@ -30,11 +30,11 @@ public class MdtpStateMachine extends Executor<RaftCommand> implements StateMach
     /**
      * 定义成 static final 类型，无论实例化多少个 MdtpStateMachine，都只有一个 MdtpStorageEngine 实例
      */
-    private static final MdtpStorageEngine storageEngine = new MdtpStorageEngine();
+    private static final LdtpStorageEngine storageEngine = new LdtpStorageEngine();
 
     private RaftServer raftServer;
 
-    public MdtpStateMachine() {
+    public LdtpStateMachine() {
     }
 
     public void raftServer(RaftServer server) {

@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 
 import java.nio.ByteBuffer;
@@ -43,7 +43,7 @@ public class TableDeleteContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(MdtpMethod.TABLE_DELETE);
+        bytesList.appendRawByte(LdtpMethod.TABLE_DELETE);
         bytesList.appendVarBytes(G.I.toBytes(table));
         keys.forEach(bytesList::appendVarBytes);
 

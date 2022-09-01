@@ -12,16 +12,16 @@ import com.bailizhang.lynxdb.core.common.G;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
-@ConditionalOnClass(MoonlightTemplate.class)
-@EnableConfigurationProperties(MoonlightProperties.class)
-public class MoonlightAutoConfiguration {
+@ConditionalOnClass(LynxDbTemplate.class)
+@EnableConfigurationProperties(LynxDbProperties.class)
+public class LynxDbAutoConfiguration {
     @Autowired
-    private MoonlightProperties properties;
+    private LynxDbProperties properties;
 
     @Bean
     @ConditionalOnMissingBean
-    MoonlightTemplate moonlightTemplate (){
+    LynxDbTemplate lynxDbTemplate(){
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        return new MoonlightTemplate(properties);
+        return new LynxDbTemplate(properties);
     }
 }

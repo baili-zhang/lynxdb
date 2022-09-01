@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.cmd.mql;
+package com.bailizhang.lynxdb.cmd.lql;
 
 import org.junit.jupiter.api.Test;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
@@ -6,9 +6,9 @@ import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static com.bailizhang.lynxdb.cmd.mql.MQL.Keywords.*;
+import static com.bailizhang.lynxdb.cmd.lql.LQL.Keywords.*;
 
-class MQLTest {
+class LQLTest {
 
     @Test
     void test_001() {
@@ -16,7 +16,7 @@ class MQLTest {
                 create kvstore table name1, ` table name2`; 
                 """;
 
-        assertThrowsExactly(SyntaxException.class, () -> MQL.parse(statement));
+        assertThrowsExactly(SyntaxException.class, () -> LQL.parse(statement));
     }
 
     @Test
@@ -26,10 +26,10 @@ class MQLTest {
                 create table table_name1, table_name2;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).type().equals(KVSTORE);
-        assert queries.get(1).type().equals(MQL.Keywords.TABLE);
+        assert queries.get(1).type().equals(LQL.Keywords.TABLE);
     }
 
     @Test
@@ -40,12 +40,12 @@ class MQLTest {
                 show columns in `user_table`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
-        assert queries.get(0).name().equals(MQL.Keywords.SHOW);
-        assert queries.get(0).type().equals(MQL.Keywords.TABLES);
-        assert queries.get(1).name().equals(MQL.Keywords.SHOW);
-        assert queries.get(1).type().equals(MQL.Keywords.KVSTORES);
+        assert queries.get(0).name().equals(LQL.Keywords.SHOW);
+        assert queries.get(0).type().equals(LQL.Keywords.TABLES);
+        assert queries.get(1).name().equals(LQL.Keywords.SHOW);
+        assert queries.get(1).type().equals(LQL.Keywords.KVSTORES);
     }
 
     @Test
@@ -54,9 +54,9 @@ class MQLTest {
                 SELECT `column1`, `column2`, `column3` FROM TABLE `table_name` WHERE KEY IN `key1`, `key2`, `key3`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
-        assert queries.get(0).from().equals(MQL.Keywords.TABLE);
+        assert queries.get(0).from().equals(LQL.Keywords.TABLE);
         assert queries.get(0).columns().size() == 3;
         assert queries.get(0).keys().size() == 3;
     }
@@ -73,7 +73,7 @@ class MQLTest {
                 insert into table user (name, age) values (1, trump, 18);
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).rows().size() == 2;
         assert queries.get(0).tables().size() == 1;
@@ -86,7 +86,7 @@ class MQLTest {
                 create columns `column_name1`, `column_name2` in `table_name`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).columns().size() == 2;
     }
@@ -97,7 +97,7 @@ class MQLTest {
                 DROP TABLE `user_table`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert DROP.equalsIgnoreCase(queries.get(0).name());
         assert TABLE.equalsIgnoreCase(queries.get(0).type());
@@ -110,7 +110,7 @@ class MQLTest {
                 DROP KVSTORE `user_kv`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert DROP.equalsIgnoreCase(queries.get(0).name());
         assert KVSTORE.equalsIgnoreCase(queries.get(0).type());
@@ -123,7 +123,7 @@ class MQLTest {
                 DROP COLUMNS `name`, `age` IN `user_table`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert DROP.equalsIgnoreCase(queries.get(0).name());
         assert COLUMNS.equalsIgnoreCase(queries.get(0).type());
@@ -138,7 +138,7 @@ class MQLTest {
                     WHERE KEY IN `NO.1`, `NO.2`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).from().equalsIgnoreCase(KVSTORE);
         assert queries.get(0).columns().size() == 0;
@@ -155,7 +155,7 @@ class MQLTest {
                         (`key`,`value`);
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).type().equalsIgnoreCase(KVSTORE);
         assert queries.get(0).columns().size() == 0;
@@ -168,7 +168,7 @@ class MQLTest {
                 DELETE `article_count`,`user_count` FROM KVSTORE `count_kv`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).from().equalsIgnoreCase(KVSTORE);
         assert queries.get(0).columns().size() == 0;
@@ -181,7 +181,7 @@ class MQLTest {
                 DELETE `NO.1`, `NO.2` FROM TABLE `user_table`;
                 """;
 
-        List<MqlQuery> queries = MQL.parse(statement);
+        List<LqlQuery> queries = LQL.parse(statement);
 
         assert queries.get(0).from().equalsIgnoreCase(TABLE);
         assert queries.get(0).columns().size() == 0;

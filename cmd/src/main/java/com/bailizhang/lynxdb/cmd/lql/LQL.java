@@ -1,11 +1,11 @@
-package com.bailizhang.lynxdb.cmd.mql;
+package com.bailizhang.lynxdb.cmd.lql;
 
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public interface MQL {
+public interface LQL {
     interface Keywords {
         String CREATE       = "create";
         String DROP         = "drop";
@@ -36,14 +36,14 @@ public interface MQL {
         String INTO         = "into";
     }
 
-    static List<MqlQuery> parse(String statement) {
-        List<MqlQuery> mqlQueries = new ArrayList<>();
+    static List<LqlQuery> parse(String statement) {
+        List<LqlQuery> mqlQueries = new ArrayList<>();
 
         char[] chs = statement.toCharArray();
         int curr = 0;
 
         while (curr < chs.length) {
-            MqlQuery query = new MqlQuery();
+            LqlQuery query = new LqlQuery();
             curr = parseSpace(chs, curr);
 
             if(curr >= chs.length) {
@@ -57,7 +57,7 @@ public interface MQL {
         return mqlQueries;
     }
 
-    private static int parseQuery(char[] chs, int curr, MqlQuery query) {
+    private static int parseQuery(char[] chs, int curr, LqlQuery query) {
         curr = parseStatement(chs, curr, query);
         return curr;
     }
@@ -70,7 +70,7 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseStatement(char[] chs, int curr, MqlQuery query) {
+    private static int parseStatement(char[] chs, int curr, LqlQuery query) {
         StringBuilder str = new StringBuilder();
 
         while(curr < chs.length && chs[curr] != ' ') {
@@ -99,7 +99,7 @@ public interface MQL {
         };
     }
 
-    private static int parseShow(char[] chs, int curr, MqlQuery query) {
+    private static int parseShow(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.SHOW);
 
         StringBuilder str = new StringBuilder();
@@ -127,31 +127,31 @@ public interface MQL {
         return parseSemicolon(chs, curr);
     }
 
-    private static int parseCluster(char[] chs, int curr, MqlQuery query) {
+    private static int parseCluster(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.CLUSTER);
 
         return curr;
     }
 
-    private static int parseExit(char[] chs, int curr, MqlQuery query) {
+    private static int parseExit(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.EXIT);
 
         return curr;
     }
 
-    private static int parseDisconnect(char[] chs, int curr, MqlQuery query) {
+    private static int parseDisconnect(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.DISCONNECT);
 
         return curr;
     }
 
-    private static int parseConnect(char[] chs, int curr, MqlQuery query) {
+    private static int parseConnect(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.CONNECT);
 
         return curr;
     }
 
-    private static int parseInsert(char[] chs, int curr, MqlQuery query) {
+    private static int parseInsert(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.INSERT);
 
         curr = parseInto(chs, curr);
@@ -253,7 +253,7 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseSelect(char[] chs, int curr, MqlQuery query) {
+    private static int parseSelect(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.SELECT);
 
         try {
@@ -279,7 +279,7 @@ public interface MQL {
         return parseSemicolon(chs, curr);
     }
 
-    static int parseWhere(char[] chs, int curr, MqlQuery query) {
+    static int parseWhere(char[] chs, int curr, LqlQuery query) {
         StringBuilder where = new StringBuilder();
 
         while(curr < chs.length && chs[curr] != ' ') {
@@ -328,7 +328,7 @@ public interface MQL {
     }
 
 
-    static int parseFrom(char[] chs, int curr, MqlQuery query) {
+    static int parseFrom(char[] chs, int curr, LqlQuery query) {
         StringBuilder from = new StringBuilder();
 
         while(curr < chs.length && chs[curr] != ' ') {
@@ -354,7 +354,7 @@ public interface MQL {
         return curr;
     }
 
-    private static int parseDrop(char[] chs, int curr, MqlQuery query) {
+    private static int parseDrop(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.DROP);
 
         curr = parseType(chs, curr, query);
@@ -383,7 +383,7 @@ public interface MQL {
         return parseSemicolon(chs, curr);
     }
 
-    private static int parseDelete(char[] chs, int curr, MqlQuery query) {
+    private static int parseDelete(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.DELETE);
 
         curr = parseList(chs, curr, query.keys());
@@ -406,7 +406,7 @@ public interface MQL {
         return parseSemicolon(chs, curr);
     }
 
-    private static int parseCreate(char[] chs, int curr, MqlQuery query) {
+    private static int parseCreate(char[] chs, int curr, LqlQuery query) {
         query.name(Keywords.CREATE);
 
         curr = parseType(chs, curr, query);
@@ -445,7 +445,7 @@ public interface MQL {
         return ++ curr;
     }
 
-    private static int parseType(char[] chs, int curr, MqlQuery query) {
+    private static int parseType(char[] chs, int curr, LqlQuery query) {
         StringBuilder str = new StringBuilder();
 
         while(curr < chs.length && chs[curr] != ' ') {

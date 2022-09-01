@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface MdtpMethod {
+public @interface LdtpMethod {
     byte CREATE_KV_STORE        = (byte) 0x01;
     byte DROP_KV_STORE          = (byte) 0x02;
 

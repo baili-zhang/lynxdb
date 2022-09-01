@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.server.context;
 import com.bailizhang.lynxdb.raft.state.RaftConfiguration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-public class MoonlightRaftConfiguration implements RaftConfiguration {
+public class LynxDbRaftConfiguration implements RaftConfiguration {
     @Override
     public String electionMode() {
         return Configuration.getInstance().electionMode();

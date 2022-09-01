@@ -15,13 +15,13 @@ import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.IOException;
 
-public class MoonlightServer {
+public class LynxDbServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
     private final RaftServer raftServer;
     private final RaftClient raftClient;
 
-    MoonlightServer() throws IOException {
+    LynxDbServer() throws IOException {
         Configuration config = Configuration.getInstance();
         logger.info("Configuration: [{}]", config);
 
@@ -46,6 +46,6 @@ public class MoonlightServer {
     }
 
     public static void main(String[] args) throws IOException {
-        new MoonlightServer().run();
+        new LynxDbServer().run();
     }
 }

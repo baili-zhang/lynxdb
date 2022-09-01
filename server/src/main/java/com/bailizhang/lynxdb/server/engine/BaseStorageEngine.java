@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.server.engine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.storage.core.KvAdapter;
 import com.bailizhang.lynxdb.storage.core.TableAdapter;
@@ -115,13 +115,13 @@ public abstract class BaseStorageEngine {
     private void initMethod(Class<? extends BaseStorageEngine> clazz) {
         Method[] methods = clazz.getDeclaredMethods();
         Arrays.stream(methods).forEach(method -> {
-            MdtpMethod mdtpMethod = method.getAnnotation(MdtpMethod.class);
+            LdtpMethod ldtpMethod = method.getAnnotation(LdtpMethod.class);
 
-            if(mdtpMethod == null) {
+            if(ldtpMethod == null) {
                 return;
             }
 
-            methodMap.put(mdtpMethod.value(), method);
+            methodMap.put(ldtpMethod.value(), method);
         });
     }
 

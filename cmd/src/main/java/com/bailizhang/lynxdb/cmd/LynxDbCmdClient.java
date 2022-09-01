@@ -1,17 +1,17 @@
 package com.bailizhang.lynxdb.cmd;
 
-import com.bailizhang.lynxdb.cmd.mql.MQL;
-import com.bailizhang.lynxdb.cmd.mql.MqlQuery;
+import com.bailizhang.lynxdb.cmd.lql.LQL;
+import com.bailizhang.lynxdb.cmd.lql.LqlQuery;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.annotations.MdtpMethod;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import com.bailizhang.lynxdb.client.AsyncMoonlightClient;
-import com.bailizhang.lynxdb.client.MoonlightFuture;
+import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
+import com.bailizhang.lynxdb.client.LynxDbFuture;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.bailizhang.lynxdb.cmd.mql.MQL.Keywords.*;
+import static com.bailizhang.lynxdb.cmd.lql.LQL.Keywords.*;
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.BYTE_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 
-public class MoonlightCmdClient extends Shutdown {
-    private final AsyncMoonlightClient client = new AsyncMoonlightClient();
+public class LynxDbCmdClient extends Shutdown {
+    private final AsyncLynxDbClient client = new AsyncLynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
 
     private final AtomicInteger serial = new AtomicInteger(1);
@@ -38,7 +38,7 @@ public class MoonlightCmdClient extends Shutdown {
      */
     private volatile SelectionKey current;
 
-    public MoonlightCmdClient() {
+    public LynxDbCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
     }
 
@@ -60,9 +60,9 @@ public class MoonlightCmdClient extends Shutdown {
             temp.append(" ").append(line);
             String statement = temp.toString();
 
-            List<MqlQuery> queries = MQL.parse(statement);
+            List<LqlQuery> queries = LQL.parse(statement);
 
-            for(MqlQuery query : queries) {
+            for(LqlQuery query : queries) {
                 switch (query.name()) {
                     case CREATE -> handleCreate(query);
                     case DROP -> handleDrop(query);
@@ -83,16 +83,16 @@ public class MoonlightCmdClient extends Shutdown {
         }
     }
 
-    private void handleDrop(MqlQuery query) {
+    private void handleDrop(LqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
-                MoonlightFuture future = client.asyncCreateKvstore(current, query.kvstores());
+                LynxDbFuture future = client.asyncCreateKvstore(current, query.kvstores());
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
 
             case TABLE -> {
-                MoonlightFuture future = client.asyncCreateTable(current, query.tables());
+                LynxDbFuture future = client.asyncCreateTable(current, query.tables());
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -100,7 +100,7 @@ public class MoonlightCmdClient extends Shutdown {
             case COLUMNS -> {
                 String table = query.tables().get(0);
                 List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
-                MoonlightFuture future = client.asyncCreateTableColumn(current, table, columns);
+                LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -109,8 +109,8 @@ public class MoonlightCmdClient extends Shutdown {
         }
     }
 
-    private void handleTableInsert(MqlQuery query) {
-        byte method = MdtpMethod.TABLE_INSERT;
+    private void handleTableInsert(LqlQuery query) {
+        byte method = LdtpMethod.TABLE_INSERT;
 
         List<byte[]> keys = new ArrayList<>();
         List<byte[]> values = new ArrayList<>();
@@ -138,8 +138,8 @@ public class MoonlightCmdClient extends Shutdown {
         ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private void handleKvInsert(MqlQuery query) {
-        byte method = MdtpMethod.KV_SET;
+    private void handleKvInsert(LqlQuery query) {
+        byte method = LdtpMethod.KV_SET;
 
         List<byte[]> pairs = query.rows().stream()
                 .flatMap(Collection::stream)
@@ -156,10 +156,10 @@ public class MoonlightCmdClient extends Shutdown {
         ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private void handleSelect(MqlQuery query) {
+    private void handleSelect(LqlQuery query) {
         switch (query.from()) {
             case TABLE -> {
-                byte method = MdtpMethod.TABLE_SELECT;
+                byte method = LdtpMethod.TABLE_SELECT;
                 List<byte[]> total = new ArrayList<>();
 
                 byte[] table = G.I.toBytes(query.tables().get(0));
@@ -179,7 +179,7 @@ public class MoonlightCmdClient extends Shutdown {
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
                 List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
-                MoonlightFuture future = client.asyncKvGet(current, kvstore, keys);
+                LynxDbFuture future = client.asyncKvGet(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -188,14 +188,14 @@ public class MoonlightCmdClient extends Shutdown {
         }
     }
 
-    private void handleShow(MqlQuery query) {
+    private void handleShow(LqlQuery query) {
         switch (query.type().toLowerCase()) {
             case KVSTORES -> {
             }
             case TABLES -> {
             }
             case COLUMNS -> {
-                byte method = MdtpMethod.SHOW_COLUMN;
+                byte method = LdtpMethod.SHOW_COLUMN;
                 byte[] table = G.I.toBytes(query.tables().get(0));
 
                 int length = BYTE_LENGTH + table.length;
@@ -206,10 +206,10 @@ public class MoonlightCmdClient extends Shutdown {
         }
     }
 
-    private void handleDelete(MqlQuery query) {
+    private void handleDelete(LqlQuery query) {
         byte method = TABLE.equalsIgnoreCase(query.from())
-                ? MdtpMethod.TABLE_DELETE
-                : MdtpMethod.KV_DELETE;
+                ? LdtpMethod.TABLE_DELETE
+                : LdtpMethod.KV_DELETE;
 
         byte[] name = TABLE.equalsIgnoreCase(query.from())
                 ? G.I.toBytes(query.tables().get(0))
@@ -227,10 +227,10 @@ public class MoonlightCmdClient extends Shutdown {
         ByteBuffer.allocate(length).put(method).put(totalBytes);
     }
 
-    private void handleCreate(MqlQuery query) {
+    private void handleCreate(LqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
-                byte method = MdtpMethod.CREATE_KV_STORE;
+                byte method = LdtpMethod.CREATE_KV_STORE;
                 List<byte[]> kvstores = query.kvstores().stream().map(G.I::toBytes).toList();
 
                 AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * kvstores.size());
@@ -244,7 +244,7 @@ public class MoonlightCmdClient extends Shutdown {
             }
 
             case TABLE -> {
-                byte method = MdtpMethod.CREATE_TABLE;
+                byte method = LdtpMethod.CREATE_TABLE;
                 List<byte[]> tables = query.tables().stream().map(G.I::toBytes).toList();
 
                 AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * tables.size());
@@ -258,7 +258,7 @@ public class MoonlightCmdClient extends Shutdown {
             }
 
             case COLUMNS -> {
-                byte method = MdtpMethod.CREATE_TABLE_COLUMN;
+                byte method = LdtpMethod.CREATE_TABLE_COLUMN;
 
                 byte[] table = G.I.toBytes(query.tables().get(0));
                 List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
@@ -278,7 +278,7 @@ public class MoonlightCmdClient extends Shutdown {
     }
 
     public static void main(String[] args) throws IOException {
-        MoonlightCmdClient client = new MoonlightCmdClient();
+        LynxDbCmdClient client = new LynxDbCmdClient();
         client.start();
     }
 
