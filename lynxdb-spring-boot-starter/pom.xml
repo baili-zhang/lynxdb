@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>client</artifactId>
+            <artifactId>lynxdb-client</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>

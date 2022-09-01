@@ -9,7 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>storage</artifactId>
+    <artifactId>lynxdb-socket</artifactId>
+
     <build>
         <plugins>
             <plugin>
@@ -30,8 +31,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.rocksdb</groupId>
-            <artifactId>rocksdbjni</artifactId>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-core</artifactId>
+            <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

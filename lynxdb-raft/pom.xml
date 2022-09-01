@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>socket</artifactId>
+    <artifactId>lynxdb-raft</artifactId>
 
     <build>
         <plugins>
@@ -32,16 +32,8 @@
     <dependencies>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>lynxdb-socket</artifactId>
             <version>1.4-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
         </dependency>
     </dependencies>
 

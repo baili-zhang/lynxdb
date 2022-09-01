@@ -10,14 +10,14 @@
     <version>1.4-SNAPSHOT</version>
 
     <modules>
-        <module>server</module>
-        <module>cmd</module>
-        <module>core</module>
-        <module>socket</module>
-        <module>raft</module>
-        <module>storage</module>
+        <module>lynxdb-server</module>
+        <module>lynxdb-cmd</module>
+        <module>lynxdb-core</module>
+        <module>lynxdb-socket</module>
+        <module>lynxdb-raft</module>
+        <module>lynxdb-storage</module>
         <module>lynxdb-spring-boot-starter</module>
-        <module>client</module>
+        <module>lynxdb-client</module>
     </modules>
 
     <properties>
