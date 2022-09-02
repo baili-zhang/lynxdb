@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.core.lsm;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.enhance.EnhanceFile;
+import com.bailizhang.lynxdb.core.file.LogFile;
 import com.bailizhang.lynxdb.core.utils.NumberUtils;
 
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class SSTable implements Map<String, byte[]> {
 
     private final BloomFilter bloomFilter;
     private final int capacity;
-    private final EnhanceFile file;
+    private final LogFile file;
 
     private int size;
 
@@ -64,7 +64,7 @@ public class SSTable implements Map<String, byte[]> {
 
 
         capacity = (int) Math.pow(MAGNIFICATION, level - 1) * DEFAULT_MIN_SIZE;
-        file = new EnhanceFile(DEFAULT_DATE_LOG_DIR, String.format(DATA_SLICE_NAME_TEMPLATE, level, index));
+        file = new LogFile(DEFAULT_DATE_LOG_DIR, String.format(DATA_SLICE_NAME_TEMPLATE, level, index));
 
         sizePosition = (long) capacity * MAGNIFICATION + BLOOM_FILTER_POSITION;
         entryPosition = sizePosition + NumberUtils.INT_LENGTH;

@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.core.lsm;
 
-import com.bailizhang.lynxdb.core.enhance.EnhanceFile;
+import com.bailizhang.lynxdb.core.file.LogFile;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -8,11 +8,11 @@ import java.lang.reflect.Method;
 public class BloomFilter {
     private static final int LIMIT_HASH_FUNC_SIZE = 7;
 
-    private final EnhanceFile file;
+    private final LogFile file;
     private final int bitCount;
     private final Method[] hashFunctions = new Method[LIMIT_HASH_FUNC_SIZE];
 
-    BloomFilter(EnhanceFile file, int bitCount) {
+    BloomFilter(LogFile file, int bitCount) {
         this.file = file;
         this.bitCount = bitCount;
 

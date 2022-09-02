@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.raft.log;
 
-import com.bailizhang.lynxdb.core.enhance.EnhanceFile;
+import com.bailizhang.lynxdb.core.file.LogFile;
 import com.bailizhang.lynxdb.core.utils.NumberUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
@@ -23,10 +23,10 @@ public class TermLog {
     private static final byte VOTE_FOR_IS_NULL = (byte) 0x01;
     private static final byte VOTE_FOR_IS_NOT_NULL = (byte) 0x02;
 
-    private final EnhanceFile termFile;
+    private final LogFile termFile;
 
     public TermLog(String filename) throws IOException {
-        termFile = new EnhanceFile(DEFAULT_DIR, filename);
+        termFile = new LogFile(DEFAULT_DIR, filename);
         if(termFile.length() == 0) {
             termFile.writeInt(0, CURRENT_TERM_POSITION);
             termFile.writeByte(VOTE_FOR_IS_NULL, FLAG_POSITION);

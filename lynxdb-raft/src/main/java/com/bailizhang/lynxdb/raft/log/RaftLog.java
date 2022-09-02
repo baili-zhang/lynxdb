@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.raft.log;
 
 import com.bailizhang.lynxdb.raft.state.RaftState;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.enhance.EnhanceFile;
+import com.bailizhang.lynxdb.core.file.LogFile;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,8 +33,8 @@ public class RaftLog {
     private static final String DEFAULT_RAFT_INDEX_LOG_FILENAME = "raft_log.index";
     private static final String DEFAULT_RAFT_DATA_LOG_FILENAME = "raft_log.data";
 
-    private final EnhanceFile indexFile;
-    private final EnhanceFile dataFile;
+    private final LogFile indexFile;
+    private final LogFile dataFile;
 
     /**
      * 当 index == 0 时，返回 BEGIN_ENTRY
@@ -48,8 +48,8 @@ public class RaftLog {
     }
 
     public RaftLog(String indexFilename, String dataFilename) throws IOException {
-        indexFile = new EnhanceFile(DEFAULT_RAFT_LOG_DIR, indexFilename);
-        dataFile = new EnhanceFile(DEFAULT_RAFT_LOG_DIR, dataFilename);
+        indexFile = new LogFile(DEFAULT_RAFT_LOG_DIR, indexFilename);
+        dataFile = new LogFile(DEFAULT_RAFT_LOG_DIR, dataFilename);
 
         /* 如果是新文件，则设置最大索引值，避免最大索引值读不到的问题 */
         if(indexFile.length() == 0) {
