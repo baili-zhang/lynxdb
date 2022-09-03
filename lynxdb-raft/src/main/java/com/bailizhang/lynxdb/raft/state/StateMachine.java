@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.raft.state;
 
-import com.bailizhang.lynxdb.raft.log.RaftLogEntry;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 

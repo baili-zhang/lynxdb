@@ -34,33 +34,7 @@ public class RaftClientHandler implements SocketClientHandler {
 
     @Override
     public void handleResponse(SocketResponse response) throws Exception {
-        ByteBuffer buffer = ByteBuffer.wrap(null);
-        byte status = buffer.get();
 
-        switch (status) {
-            case RaftResponse.REQUEST_VOTE_SUCCESS, RaftResponse.REQUEST_VOTE_FAILURE,
-                    RaftResponse.APPEND_ENTRIES_SUCCESS, RaftResponse.APPEND_ENTRIES_FAILURE -> {
-                int term = buffer.getInt();
-                int len = buffer.getInt();
-                byte[] host = new byte[len];
-                buffer.get(host);
-                int port = buffer.getInt();
-                ServerNode node = new ServerNode(new String(host), port);
-                handleRaftRpcResponse(status, term, node, buffer);
-            }
-
-            /* 客户端请求成功，则向客户端响应[CLIENT_REQUEST_SUCCESS] */
-            case RaftResponse.CLIENT_REQUEST_SUCCESS -> {
-//                    logger.info("[{}] Client request success.", raftState.currentNode());
-//                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
-//                            new byte[]{CLIENT_REQUEST_SUCCESS}, null));
-            }
-
-            /* 客户端请求失败，则向客户端响应[CLIENT_REQUEST_FAILURE] */
-            case RaftResponse.CLIENT_REQUEST_FAILURE -> {}
-//                    raftServer.offerInterruptibly(new SocketResponse((SelectionKey) response.attachment(),
-//                            new byte[]{CLIENT_REQUEST_FAILURE}, null));
-        }
     }
 
     @Override
@@ -68,30 +42,12 @@ public class RaftClientHandler implements SocketClientHandler {
     }
 
     private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {
-        if(term > raftState.currentTerm()) {
-//            raftState.setCurrentTerm(term);
-//            logger.info("[{}] set [currentTerm] to {}, raft request failure.",
-//                    raftState.currentNode(), term);
-            return;
-        }
-
         switch (status) {
             case RaftResponse.REQUEST_VOTE_SUCCESS -> {
-//                raftState.setVotedNodeAndCheck(node);
-//                logger.info("[{}] -- Get Vote from node: {}", raftState.currentNode(), node);
             }
             case RaftResponse.APPEND_ENTRIES_SUCCESS -> {
-//                int matchedIndex = buffer.getInt();
-//                raftState.nextIndex().put(node, matchedIndex + 1);
-//                raftState.matchedIndex().put(node, matchedIndex);
-//                raftState.checkCommitIndex();
             }
             case RaftResponse.APPEND_ENTRIES_FAILURE -> {
-//                int nextIndex = raftState.nextIndex().get(node);
-//                if(nextIndex == 1) {
-//                    throw new RuntimeException("nextIndex is 1, [APPEND_ENTRIES] should success.");
-//                }
-//                raftState.nextIndex().put(node, nextIndex - 1);
             }
         }
     }

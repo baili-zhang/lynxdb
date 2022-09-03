@@ -45,7 +45,6 @@ public class SSTable implements Map<String, byte[]> {
     private final long sizePosition;
     private final long entryPosition;
 
-    private final BloomFilter bloomFilter;
     private final int capacity;
     private final LogFile file;
 
@@ -71,19 +70,6 @@ public class SSTable implements Map<String, byte[]> {
 
         /* 布隆过滤器的长度 */
         int len = (int)sizePosition - BLOOM_FILTER_POSITION;
-        ByteBuffer buffer = file.read(BLOOM_FILTER_POSITION, len);
-        /* 如果布隆过滤器没有创建 */
-        if(!BufferUtils.isOver(buffer)) {
-            if(buffer.position() == 0) {
-                file.write(ByteBuffer.allocate(len), BLOOM_FILTER_POSITION);
-                file.writeInt(INIT_SIZE, sizePosition);
-            } else {
-                throw new RuntimeException("Incomplete bloom filter.");
-            }
-        }
-
-        size = file.readInt(sizePosition);
-        bloomFilter = new BloomFilter(file, capacity << 3);
     }
 
     @Override
@@ -98,11 +84,7 @@ public class SSTable implements Map<String, byte[]> {
 
     @Override
     public boolean containsKey(Object key) {
-        if(!(key instanceof String str)) {
-            throw new RuntimeException("[key] is not an instance of [String].");
-        }
-
-        return bloomFilter.isKeyExist(str);
+        return false;
     }
 
     @Override
@@ -112,31 +94,7 @@ public class SSTable implements Map<String, byte[]> {
 
     @Override
     public byte[] get(Object key) {
-        if(!(key instanceof String str)) {
-            throw new RuntimeException("[key] is not an instance of [String].");
-        }
-
-        /* 如果布隆过滤器中不存在，则返回 null */
-        if(!bloomFilter.isKeyExist(str)) {
-            return null;
-        }
-
-        long position = entryPosition;
-        SSTableEntry finalEntry = null;
-        for (int i = 0; i < size; i++) {
-            try {
-                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
-                if(entry.isKey(str)) {
-                    finalEntry = entry;
-                }
-                /* 更新 position */
-                position += entry.totalLength();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return finalEntry == null || finalEntry.isDelete() ? null : finalEntry.value();
+        return null;
     }
 
     @Override
@@ -162,26 +120,6 @@ public class SSTable implements Map<String, byte[]> {
     }
 
     private void append(byte status, String keyStr, byte[] value) {
-        if(value == null) {
-            value = new byte[0];
-        }
-
-        /* 布隆过滤器设置 key 值 */
-        bloomFilter.setKey(keyStr);
-
-        byte[] key = keyStr.getBytes(StandardCharsets.UTF_8);
-
-        int len = BYTE_LENGTH + INT_LENGTH + key.length + value.length;
-        ByteBuffer buffer = ByteBuffer.allocate(len + INT_LENGTH);
-        buffer.putInt(len).put(status).putInt(key.length).put(key).put(value);
-
-        try {
-            file.append(buffer.array());
-            size ++;
-            file.writeInt(size, sizePosition);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -193,88 +131,22 @@ public class SSTable implements Map<String, byte[]> {
 
     @Override
     public void clear() {
-        try {
-            file.delete();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
     }
 
     @Override
     public Set<String> keySet() {
-        HashSet<String> keySet = new HashSet<>();
-
-        long position = entryPosition;
-        for (int i = 0; i < size; i++) {
-            try {
-                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
-                String key = entry.key();
-
-                if(entry.isDelete()) {
-                    keySet.remove(key);
-                } else {
-                    keySet.add(key);
-                }
-                /* 更新 position */
-                position += entry.totalLength();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return keySet;
+        return new HashSet<>();
     }
 
     @Override
     public Collection<byte[]> values() {
-        HashMap<String, byte[]> map = new HashMap<>();
-
-        long position = entryPosition;
-        for (int i = 0; i < size; i++) {
-            try {
-                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
-                String key = entry.key();
-                byte[] value = entry.value();
-
-                if(entry.isDelete()) {
-                    map.remove(key);
-                } else {
-                    map.put(key, value);
-                }
-                /* 更新 position */
-                position += entry.totalLength();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return map.values();
+        return new ArrayList<>();
     }
 
     @Override
     public Set<Entry<String, byte[]>> entrySet() {
-        HashMap<String, byte[]> map = new HashMap<>();
-
-        long position = entryPosition;
-        for (int i = 0; i < size; i++) {
-            try {
-                SSTableEntry entry = new SSTableEntry(file.readBytes(position));
-                String key = entry.key();
-                byte[] value = entry.value();
-
-                if(entry.isDelete()) {
-                    map.remove(key);
-                } else {
-                    map.put(key, value);
-                }
-                /* 更新 position */
-                position += entry.totalLength();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return map.entrySet();
+        return new HashSet<>();
     }
 
     public boolean isFull() {

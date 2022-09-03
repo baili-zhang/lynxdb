@@ -20,4 +20,6 @@ public interface RaftConfiguration {
     String electionMode();
 
     ServerNode currentNode();
+
+    String logDir();
 }

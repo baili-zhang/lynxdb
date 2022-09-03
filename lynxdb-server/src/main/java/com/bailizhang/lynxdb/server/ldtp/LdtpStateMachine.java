@@ -1,9 +1,9 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
+import com.bailizhang.lynxdb.raft.state.RaftLogEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.log.RaftLogEntry;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.raft.state.RaftCommand;
 import com.bailizhang.lynxdb.raft.state.StateMachine;
