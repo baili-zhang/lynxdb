@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.cmd.exception;
 
 public class SyntaxException extends RuntimeException {
-    private static final String TEMPLATE = "SyntaxError in: %s";
+    private static final String TEMPLATE = "SyntaxError in: \"%s\"";
     public static final int MIN_LENGTH = 50;
 
     public SyntaxException(char[] chs, int curr) {

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.server.LynxDbServer;
+import com.bailizhang.lynxdb.server.LynxDbMainServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.IOException;
@@ -23,7 +23,7 @@ class AsyncLynxDbClientTest {
 
     @BeforeEach
     public void setUp() throws IOException, InterruptedException {
-        LynxDbServer.main(new String[0]);
+        LynxDbMainServer.main(new String[0]);
         TimeUnit.SECONDS.sleep(3);
     }
 

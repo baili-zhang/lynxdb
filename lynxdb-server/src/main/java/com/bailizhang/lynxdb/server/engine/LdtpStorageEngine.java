@@ -170,14 +170,26 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         TableAdapter db = tableMap.get(content.table());
 
+        List<String> alreadyExisted = new ArrayList<>();
         for(byte[] bytes : columns) {
             Column column = new Column(bytes);
 
             if(db.columns().contains(column)) {
-                String template = "Table column \"%s\" has existed.";
-                String errorMsg = String.format(template, column);
-                return Result.invalidArgument(errorMsg);
+                alreadyExisted.add(new String(column.value()));
             }
+        }
+
+        if(!alreadyExisted.isEmpty()) {
+            String template = "Table column %s has existed.";
+            String columnsMsg = String.join(", ",
+                    alreadyExisted
+                            .stream()
+                            .map(s -> "\"" + s + "\"")
+                            .toList()
+            ) ;
+
+            String errorMsg = String.format(template, columnsMsg);
+            return Result.invalidArgument(errorMsg);
         }
 
         db.createColumns(columns);
@@ -308,8 +320,8 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return buffer.put(Result.SUCCESS_WITH_LIST).put(totalBytes).array();
     }
 
-    @LdtpMethod(SHOW_COLUMN)
-    public byte[] doShowColumn(QueryParams params) {
+    @LdtpMethod(SHOW_TABLE_COLUMN)
+    public byte[] doShowTableColumn(QueryParams params) {
         String table = new String(params.content());
 
         TableAdapter db = tableMap.get(table);

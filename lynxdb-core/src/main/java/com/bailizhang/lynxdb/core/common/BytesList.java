@@ -23,12 +23,20 @@ public class BytesList implements BytesConvertible{
         append(RAW, value);
     }
 
+    public void appendRawStr(String s) {
+        append(RAW, G.I.toBytes(s));
+    }
+
     public void appendRawInt(int value) {
         append(RAW, value);
     }
 
     public void appendVarBytes(byte[] value) {
         append(VAR, value);
+    }
+
+    public void appendVarStr(String s) {
+        append(VAR, G.I.toBytes(s));
     }
 
     public <V> void append(byte type, V value) {

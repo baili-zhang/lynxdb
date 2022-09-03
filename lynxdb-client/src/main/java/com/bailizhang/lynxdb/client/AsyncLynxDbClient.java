@@ -1,6 +1,8 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.raft.request.ClientRequest;
+import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.query.*;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.storage.core.Column;
@@ -170,6 +172,44 @@ public class AsyncLynxDbClient extends SocketClient {
         LynxDbFuture future = new LynxDbFuture();
         TableSelectContent content = new TableSelectContent(table, keys);
         ClientRequest request = new ClientRequest(selectionKey, content);
+
+        int serial = send(request);
+        futureMap.get(selectionKey).put(serial, future);
+
+        return future;
+    }
+
+    public LynxDbFuture asyncShowTable(SelectionKey selectionKey) {
+        LynxDbFuture future = new LynxDbFuture();
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(LdtpMethod.SHOW_TABLE);
+        ClientRequest request = new ClientRequest(selectionKey, bytesList);
+
+        int serial = send(request);
+        futureMap.get(selectionKey).put(serial, future);
+
+        return future;
+    }
+
+    public LynxDbFuture asyncShowKvstore(SelectionKey selectionKey) {
+        LynxDbFuture future = new LynxDbFuture();
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(LdtpMethod.SHOW_KVSTORE);
+        ClientRequest request = new ClientRequest(selectionKey, bytesList);
+
+        int serial = send(request);
+        futureMap.get(selectionKey).put(serial, future);
+
+        return future;
+    }
+
+    public LynxDbFuture asyncShowTableColumn(SelectionKey selectionKey,
+                                             String table) {
+        LynxDbFuture future = new LynxDbFuture();
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(LdtpMethod.SHOW_TABLE_COLUMN);
+        bytesList.appendRawStr(table);
+        ClientRequest request = new ClientRequest(selectionKey, bytesList);
 
         int serial = send(request);
         futureMap.get(selectionKey).put(serial, future);

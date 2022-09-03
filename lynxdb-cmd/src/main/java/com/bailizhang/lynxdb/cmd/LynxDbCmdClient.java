@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.cmd;
 
+import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 import com.bailizhang.lynxdb.cmd.lql.LQL;
 import com.bailizhang.lynxdb.cmd.lql.LqlQuery;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
@@ -12,15 +13,13 @@ import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.LynxDbFuture;
+import com.bailizhang.lynxdb.storage.core.Column;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.cmd.lql.LQL.Keywords.*;
@@ -28,10 +27,12 @@ import static com.bailizhang.lynxdb.core.utils.NumberUtils.BYTE_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 
 public class LynxDbCmdClient extends Shutdown {
+    private static final String TABLES_HEADER = "Tables";
+    private static final String KVSTORE_HEADER = "KV Stores";
+    private static final String TABLE_COLUMN_HEADER = "Columns";
+
     private final AsyncLynxDbClient client = new AsyncLynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
-
-    private final AtomicInteger serial = new AtomicInteger(1);
 
     /**
      * 终端当前连接的节点
@@ -60,7 +61,14 @@ public class LynxDbCmdClient extends Shutdown {
             temp.append(" ").append(line);
             String statement = temp.toString();
 
-            List<LqlQuery> queries = LQL.parse(statement);
+            List<LqlQuery> queries;
+
+            try {
+                queries = LQL.parse(statement);
+            } catch (SyntaxException e) {
+                Printer.printRawMessage(e.getMessage());
+                continue;
+            }
 
             for(LqlQuery query : queries) {
                 switch (query.name()) {
@@ -86,21 +94,27 @@ public class LynxDbCmdClient extends Shutdown {
     private void handleDrop(LqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
-                LynxDbFuture future = client.asyncCreateKvstore(current, query.kvstores());
+                LynxDbFuture future = client.asyncDropKvstore(current, query.kvstores());
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
 
             case TABLE -> {
-                LynxDbFuture future = client.asyncCreateTable(current, query.tables());
+                LynxDbFuture future = client.asyncDropTable(current, query.tables());
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
 
             case COLUMNS -> {
                 String table = query.tables().get(0);
-                List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
-                LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
+                HashSet<Column> columns = new HashSet<>();
+
+                for (String column : query.columns()) {
+                    Column c = new Column(G.I.toBytes(column));
+                    columns.add(c);
+                }
+
+                LynxDbFuture future = client.asyncDropTableColumn(current, table, columns);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -191,15 +205,20 @@ public class LynxDbCmdClient extends Shutdown {
     private void handleShow(LqlQuery query) {
         switch (query.type().toLowerCase()) {
             case KVSTORES -> {
+                LynxDbFuture future = client.asyncShowKvstore(current);
+                byte[] response = future.get();
+                Printer.printList(response, KVSTORE_HEADER);
             }
             case TABLES -> {
+                LynxDbFuture future = client.asyncShowTable(current);
+                byte[] response = future.get();
+                Printer.printList(response, TABLES_HEADER);
             }
             case COLUMNS -> {
-                byte method = LdtpMethod.SHOW_COLUMN;
-                byte[] table = G.I.toBytes(query.tables().get(0));
-
-                int length = BYTE_LENGTH + table.length;
-                ByteBuffer.allocate(length).put(method).put(table);
+                String table = query.tables().get(0);
+                LynxDbFuture future = client.asyncShowTableColumn(current, table);
+                byte[] response = future.get();
+                Printer.printList(response, TABLE_COLUMN_HEADER);
             }
 
             default -> throw new UnsupportedOperationException(query.type());
@@ -230,47 +249,24 @@ public class LynxDbCmdClient extends Shutdown {
     private void handleCreate(LqlQuery query) {
         switch (query.type()) {
             case KVSTORE -> {
-                byte method = LdtpMethod.CREATE_KV_STORE;
-                List<byte[]> kvstores = query.kvstores().stream().map(G.I::toBytes).toList();
-
-                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * kvstores.size());
-                kvstores.forEach(kvstore -> length.getAndAdd(kvstore.length));
-
-                ByteBuffer buffer = ByteBuffer.allocate(length.get());
-
-                buffer.put(method);
-                buffer.put(BufferUtils.toBytes(kvstores));
-
+                LynxDbFuture future = client.asyncCreateKvstore(current, query.kvstores());
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             case TABLE -> {
-                byte method = LdtpMethod.CREATE_TABLE;
-                List<byte[]> tables = query.tables().stream().map(G.I::toBytes).toList();
-
-                AtomicInteger length = new AtomicInteger(BYTE_LENGTH + INT_LENGTH * tables.size());
-                tables.forEach(table -> length.getAndAdd(table.length));
-
-                ByteBuffer buffer = ByteBuffer.allocate(length.get());
-
-                buffer.put(method);
-                buffer.put(BufferUtils.toBytes(tables));
-
+                LynxDbFuture future = client.asyncCreateTable(current, query.tables());
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             case COLUMNS -> {
-                byte method = LdtpMethod.CREATE_TABLE_COLUMN;
-
-                byte[] table = G.I.toBytes(query.tables().get(0));
+                String table = query.tables().get(0);
                 List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
 
-                List<byte[]> total = new ArrayList<>();
-                total.add(table);
-                total.addAll(columns);
-
-                byte[] totalBytes = BufferUtils.toBytes(total);
-                int length = BYTE_LENGTH + totalBytes.length;
-
-                ByteBuffer.allocate(length).put(method).put(totalBytes);
+                LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
+                byte[] response = future.get();
+                Printer.printResponse(response);
             }
 
             default -> throw new UnsupportedOperationException(query.type());

@@ -71,9 +71,10 @@ public interface LQL {
     }
 
     private static int parseStatement(char[] chs, int curr, LqlQuery query) {
+        int begin = curr;
         StringBuilder str = new StringBuilder();
 
-        while(curr < chs.length && chs[curr] != ' ') {
+        while(curr < chs.length && !Character.isWhitespace(chs[curr])) {
             str.append(chs[curr]);
             curr ++;
         }
@@ -95,7 +96,7 @@ public interface LQL {
             case Keywords.EXIT -> parseExit(chs, curr, query);
             case Keywords.CLUSTER -> parseCluster(chs, curr, query);
 
-            default -> throw new RuntimeException("Command [" + command + "] is not Support.");
+            default -> throw new SyntaxException(chs, begin);
         };
     }
 
