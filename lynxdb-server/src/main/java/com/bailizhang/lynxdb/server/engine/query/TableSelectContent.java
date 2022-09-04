@@ -13,33 +13,31 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.IntStream;
 
 
 public class TableSelectContent implements BytesListConvertible {
     private final String table;
     private final MultiTableKeys multiKeys;
 
-    private final List<byte[]> keys = new ArrayList<>();
-    private final HashSet<Column> columns = new HashSet<>();
+    private final List<byte[]> keys;
+    private final HashSet<Column> columns;
 
     public TableSelectContent(QueryParams params) {
         ByteBuffer buffer = ByteBuffer.wrap(params.content());
         table = BufferUtils.getString(buffer);
 
-        byte[] keysBytes = BufferUtils.getBytes(buffer);
-        byte[] columnBytes = BufferUtils.getBytes(buffer);
+        keys = new ArrayList<>();
+        columns = new HashSet<>();
 
-        ByteBuffer keysBuffer = ByteBuffer.wrap(keysBytes);
-
-        while(!BufferUtils.isOver(keysBuffer)) {
-            keys.add(BufferUtils.getBytes(keysBuffer));
+        int keySize = buffer.getInt();
+        for(int i = 0; i < keySize; i ++) {
+            keys.add(BufferUtils.getBytes(buffer));
         }
 
-        ByteBuffer columnBuffer = ByteBuffer.wrap(columnBytes);
-
-        while(!BufferUtils.isOver(columnBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(columnBuffer);
-            columns.add(new Column(bytes));
+        int columnSize = buffer.getInt();
+        for(int i = 0; i < columnSize; i ++) {
+            columns.add(new Column(BufferUtils.getBytes(buffer)));
         }
 
         multiKeys = new MultiTableKeys(keys, columns);
@@ -47,6 +45,8 @@ public class TableSelectContent implements BytesListConvertible {
 
     public TableSelectContent(String table, MultiTableKeys multiKeys) {
         this.table = table;
+        this.keys = multiKeys.left();
+        this.columns = multiKeys.right();
         this.multiKeys = multiKeys;
     }
 
@@ -73,8 +73,13 @@ public class TableSelectContent implements BytesListConvertible {
         bytesList.appendRawByte(LdtpMethod.TABLE_SELECT);
         bytesList.appendVarBytes(G.I.toBytes(table));
 
-        multiKeys.left().forEach(bytesList::appendVarBytes);
-        multiKeys.right().stream().map(Column::value).forEach(bytesList::appendVarBytes);
+        int keySize = keys.size();
+        int columnSize = columns.size();
+
+        bytesList.appendRawInt(keySize);
+        keys.forEach(bytesList::appendVarBytes);
+        bytesList.appendRawInt(columnSize);
+        columns.stream().map(Column::value).forEach(bytesList::appendVarBytes);
 
         return bytesList;
     }

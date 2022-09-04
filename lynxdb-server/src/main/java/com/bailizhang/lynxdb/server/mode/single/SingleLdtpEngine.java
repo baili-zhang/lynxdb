@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.raft.request.ClientRequest;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
@@ -35,7 +36,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
 
         System.arraycopy(data, 1, command, 0, command.length);
         QueryParams queryParams = QueryParams.parse(command);
-        byte[] result = engine.doQuery(queryParams);
+        BytesList result = engine.doQuery(queryParams);
 
         WritableSocketResponse response = new WritableSocketResponse(
                 request.selectionKey(),

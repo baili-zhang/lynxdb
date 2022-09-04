@@ -60,15 +60,6 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
                 case DATA_CHANGE -> {
                     byte[] command = entry.command();
                     QueryParams params = QueryParams.parse(command);
-                    byte[] data = storageEngine.doQuery(params);
-
-                    WritableSocketResponse response = new WritableSocketResponse(
-                            entry.selectionKey(),
-                            entry.serial(),
-                            data
-                    );
-
-                    raftServer.offerInterruptibly(response);
                 }
 
                 case CLUSTER_MEMBERSHIP_CHANGE -> {

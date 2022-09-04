@@ -72,7 +72,7 @@ public class BytesList implements BytesConvertible{
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(length);
-        buffer.putInt(length);
+        buffer.putInt(length - NumberUtils.INT_LENGTH);
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
                 if(node.value instanceof byte[] bytes) {

@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.server.engine.result;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 
 import java.nio.ByteBuffer;
@@ -17,10 +18,17 @@ public interface Result {
         byte INVALID_ARGUMENT = (byte) 0x70;
     }
 
-    static byte[] invalidArgument(String message) {
-        byte[] msgBytes = G.I.toBytes(message);
+    static BytesList invalidArgument(String message) {
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(INVALID_ARGUMENT);
+        bytesList.appendRawStr(message);
 
-        ByteBuffer buffer = ByteBuffer.allocate(msgBytes.length + BYTE_LENGTH);
-        return buffer.put(INVALID_ARGUMENT).put(msgBytes).array();
+        return bytesList;
+    }
+
+    static BytesList success() {
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(SUCCESS);
+        return bytesList;
     }
 }

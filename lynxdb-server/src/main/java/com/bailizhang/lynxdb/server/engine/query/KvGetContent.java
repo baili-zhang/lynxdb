@@ -43,7 +43,7 @@ public class KvGetContent implements BytesListConvertible {
         BytesList bytesList = new BytesList();
 
         bytesList.appendRawByte(LdtpMethod.KV_GET);
-        bytesList.appendVarBytes(G.I.toBytes(kvstore));
+        bytesList.appendVarStr(kvstore);
         keys.forEach(bytesList::appendVarBytes);
 
         return bytesList;

@@ -12,6 +12,8 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.bailizhang.lynxdb.cmd.LynxDbCmdClient.KEY_HEADER;
+
 public interface Printer {
     static void printPrompt(SelectionKey current) {
         if(current == null) {
@@ -79,29 +81,52 @@ public interface Printer {
         }
     }
 
-    static void handleShowKvPairs(ByteBuffer buffer, List<String> header) {
-        int columnSize = 2;
-        List<List<String>> table = new ArrayList<>();
-        table.add(header);
+    static void printKvPairs(byte[] response, List<String> header) {
+        ByteBuffer buffer = ByteBuffer.wrap(response);
+        byte code = buffer.get();
 
-        while(!BufferUtils.isOver(buffer)) {
-            List<String> row = new ArrayList<>();
-            for(int i = 0; i < columnSize; i ++) {
-                row.add(BufferUtils.getString(buffer));
+        switch (code) {
+            case Result.SUCCESS_WITH_KV_PAIRS -> {
+                int columnSize = 2;
+                List<List<String>> table = new ArrayList<>();
+                table.add(header);
+
+                while(!BufferUtils.isOver(buffer)) {
+                    List<String> row = new ArrayList<>();
+                    for(int i = 0; i < columnSize; i ++) {
+                        row.add(BufferUtils.getString(buffer));
+                    }
+                    table.add(row);
+                }
+
+                Printer.printTable(table);
             }
-            table.add(row);
-        }
 
-        Printer.printTable(table);
+            case Result.Error.INVALID_ARGUMENT -> {
+                String message = BufferUtils.getRemainingString(buffer);
+                Printer.printError(message);
+            }
+
+            default -> Printer.printError("Unknown Response Status Code");
+        }
     }
 
     static void handleShowTable(ByteBuffer buffer) {
         int columnSize = buffer.getInt();
         List<List<String>> table = new ArrayList<>();
 
+        List<String> header = new ArrayList<>();
+        header.add(KEY_HEADER);
+
+        for(int i = 0; i < columnSize; i ++) {
+            header.add(BufferUtils.getString(buffer));
+        }
+
+        table.add(header);
+
         while(!BufferUtils.isOver(buffer)) {
             List<String> row = new ArrayList<>();
-            for(int i = 0; i < columnSize; i ++) {
+            for(int i = 0; i < columnSize + 1; i ++) {
                 row.add(BufferUtils.getString(buffer));
             }
             table.add(row);

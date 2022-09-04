@@ -139,6 +139,7 @@ Dir: `/config/app.cfg`
 ```
 host = 127.0.0.1
 port = 7820
+running_mode = single
 ```
 
 ## Maintainers
