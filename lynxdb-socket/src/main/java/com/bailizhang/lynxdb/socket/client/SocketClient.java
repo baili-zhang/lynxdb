@@ -193,7 +193,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         private final String namePrefix;
 
         ClientThreadFactory() {
-            namePrefix = "Socket-Client-IO-";
+            namePrefix = "lynxdb-client-";
         }
 
         public Thread newThread(Runnable r) {

@@ -49,6 +49,10 @@ public interface BufferUtils {
         return byteBuffer.position() == byteBuffer.limit();
     }
 
+    static boolean isNotOver(ByteBuffer byteBuffer) {
+        return !isOver(byteBuffer);
+    }
+
     static ByteBuffer intByteBuffer() {
         return ByteBuffer.allocate(INT_LENGTH);
     }

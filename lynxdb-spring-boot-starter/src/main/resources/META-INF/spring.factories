@@ -1,1 +1,2 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=zbl.moonlight.starter.LynxDbAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+    com.bailizhang.lynxdb.springboot.starter.LynxDbAutoConfiguration
