@@ -26,7 +26,7 @@ public @interface LdtpMethod {
 
     byte SHOW_KVSTORE           = (byte) 0x0d;
     byte SHOW_TABLE             = (byte) 0x0e;
-    byte SHOW_COLUMN = (byte) 0x0f;
+    byte SHOW_TABLE_COLUMN = (byte) 0x0f;
 
     byte value();
 }

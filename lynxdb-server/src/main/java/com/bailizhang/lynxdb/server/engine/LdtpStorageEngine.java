@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.server.engine;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.storage.core.*;
 import org.rocksdb.RocksDB;
 import com.bailizhang.lynxdb.core.common.G;
@@ -18,14 +19,6 @@ import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
 public class LdtpStorageEngine extends BaseStorageEngine {
-    private static final String KEY = "Key";
-    private static final String VALUE = "Value";
-    private static final String KVSTORES = "KV Stores";
-    private static final String TABLES = "Tables";
-    private static final String COLUMNS = "Columns";
-
-    private static final int KVSTORE_COLUMNS_SIZE = 2;
-
     public LdtpStorageEngine() {
         super(LdtpStorageEngine.class);
     }
@@ -49,7 +42,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(CREATE_KV_STORE)
-    public byte[] doCreateKvStore(QueryParams params) {
+    public BytesList doCreateKvStore(QueryParams params) {
         CreateKvStoreContent content = new CreateKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -63,11 +56,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         content.kvstores().forEach(this::createKvDb);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(DROP_KV_STORE)
-    public byte[] doDropKvStore(QueryParams params) {
+    public BytesList doDropKvStore(QueryParams params) {
         DropKvStoreContent content = new DropKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -81,21 +74,21 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         kvstores.forEach(this::dropKvDb);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(KV_SET)
-    public byte[] doKvSet(QueryParams params) {
+    public BytesList doKvSet(QueryParams params) {
         KvSetContent content = new KvSetContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
         db.set(content.kvPairs());
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(KV_GET)
-    public byte[] doKvGet(QueryParams params) {
+    public BytesList doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 
         String kvstore = content.kvstore();
@@ -110,33 +103,31 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         List<Pair<byte[], byte[]>> values = db.get(content.keys());
 
         List<byte[]> total = new ArrayList<>();
-        total.add(G.I.toBytes(KEY));
-        total.add(G.I.toBytes(VALUE));
 
         values.forEach(pair -> {
             total.add(pair.left());
             total.add(pair.right() == null ? new byte[0] : pair.right());
         });
 
-        byte[] totalBytes = BufferUtils.toBytes(total);
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + totalBytes.length);
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS_WITH_KV_PAIRS);
+        total.forEach(bytesList::appendVarBytes);
 
-        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(KVSTORE_COLUMNS_SIZE)
-                .put(totalBytes).array();
+        return bytesList;
     }
 
     @LdtpMethod(KV_DELETE)
-    public byte[] doKvDelete(QueryParams params) {
+    public BytesList doKvDelete(QueryParams params) {
         KvDeleteContent content = new KvDeleteContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
         db.delete(content.keys());
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(CREATE_TABLE)
-    public byte[] doCreateTable(QueryParams params) {
+    public BytesList doCreateTable(QueryParams params) {
         CreateTableContent content = new CreateTableContent(params);
         List<String> tables = content.tables();
 
@@ -150,11 +141,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         tables.forEach(this::createTableDb);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(DROP_TABLE)
-    public byte[] doDropTable(QueryParams params) {
+    public BytesList doDropTable(QueryParams params) {
         DropTableContent content = new DropTableContent(params);
         List<String> tables = content.tables();
 
@@ -168,33 +159,45 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         tables.forEach(this::dropTableDb);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(CREATE_TABLE_COLUMN)
-    public byte[] doCreateTableColumn(QueryParams params) {
+    public BytesList doCreateTableColumn(QueryParams params) {
         CreateTableColumnContent content = new CreateTableColumnContent(params);
         List<byte[]> columns = content.columns();
 
         TableAdapter db = tableMap.get(content.table());
 
+        List<String> alreadyExisted = new ArrayList<>();
         for(byte[] bytes : columns) {
             Column column = new Column(bytes);
 
             if(db.columns().contains(column)) {
-                String template = "Table column \"%s\" has existed.";
-                String errorMsg = String.format(template, column);
-                return Result.invalidArgument(errorMsg);
+                alreadyExisted.add(new String(column.value()));
             }
+        }
+
+        if(!alreadyExisted.isEmpty()) {
+            String template = "Table column %s has existed.";
+            String columnsMsg = String.join(", ",
+                    alreadyExisted
+                            .stream()
+                            .map(s -> "\"" + s + "\"")
+                            .toList()
+            ) ;
+
+            String errorMsg = String.format(template, columnsMsg);
+            return Result.invalidArgument(errorMsg);
         }
 
         db.createColumns(columns);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(DROP_TABLE_COLUMN)
-    public byte[] doDropTableColumn(QueryParams params) {
+    public BytesList doDropTableColumn(QueryParams params) {
         DropTableColumnContent content = new DropTableColumnContent(params);
         HashSet<Column> columns = content.columns();
 
@@ -210,11 +213,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         db.dropColumns(columns);
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(TABLE_SELECT)
-    public byte[] doTableSelect(QueryParams params) {
+    public BytesList doTableSelect(QueryParams params) {
         TableSelectContent content = new TableSelectContent(params);
 
         TableAdapter db = tableMap.get(content.table());
@@ -230,12 +233,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         List<byte[]> keys = content.keys();
         List<byte[]> columns = content.columns().stream().map(Column::value).toList();
 
-        List<byte[]> header = new ArrayList<>();
-
-        header.add(G.I.toBytes(KEY));
-        header.addAll(columns);
-
-        List<byte[]> table = new ArrayList<>(header);
+        List<byte[]> table = new ArrayList<>(columns);
 
         int columnSize = table.size();
 
@@ -250,14 +248,16 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             }
         }
 
-        byte[] tableBytes = BufferUtils.toBytes(table);
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + INT_LENGTH + tableBytes.length);
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS_WITH_TABLE);
+        bytesList.appendRawInt(columnSize);
+        table.forEach(bytesList::appendVarBytes);
 
-        return buffer.put(Result.SUCCESS_SHOW_TABLE).putInt(columnSize).put(tableBytes).array();
+        return bytesList;
     }
 
     @LdtpMethod(TABLE_INSERT)
-    public byte[] doTableInsert(QueryParams params) {
+    public BytesList doTableInsert(QueryParams params) {
         TableInsertContent content = new TableInsertContent(params);
         TableAdapter db = tableMap.get(content.table());
 
@@ -278,55 +278,51 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             return Result.invalidArgument(errorMsg);
         }
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(TABLE_DELETE)
-    public byte[] doTableDelete(QueryParams params) {
+    public BytesList doTableDelete(QueryParams params) {
         TableDeleteContent content = new TableDeleteContent(params);
         TableAdapter db = tableMap.get(content.table());
 
         db.delete(content.keys());
 
-        return new byte[]{Result.SUCCESS};
+        return Result.success();
     }
 
     @LdtpMethod(SHOW_KVSTORE)
-    public byte[] doShowKvstore(QueryParams params) {
+    public BytesList doShowKvstore(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
-
-        total.add(G.I.toBytes(KVSTORES));
 
         for (String kvstore : kvDbMap.keySet()) {
             total.add(G.I.toBytes(kvstore));
         }
 
-        byte[] totalBytes = BufferUtils.toBytes(total);
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        total.forEach(bytesList::appendVarBytes);
 
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
-
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return bytesList;
     }
 
     @LdtpMethod(SHOW_TABLE)
-    public byte[] doShowTable(QueryParams params) {
+    public BytesList doShowTable(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
-
-        total.add(G.I.toBytes(TABLES));
 
         for (String table : tableMap.keySet()) {
             total.add(G.I.toBytes(table));
         }
 
-        byte[] totalBytes = BufferUtils.toBytes(total);
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        total.forEach(bytesList::appendVarBytes);
 
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
-
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return bytesList;
     }
 
-    @LdtpMethod(SHOW_COLUMN)
-    public byte[] doShowColumn(QueryParams params) {
+    @LdtpMethod(SHOW_TABLE_COLUMN)
+    public BytesList doShowTableColumn(QueryParams params) {
         String table = new String(params.content());
 
         TableAdapter db = tableMap.get(table);
@@ -343,13 +339,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 .toList();
 
 
-        List<byte[]> total = new ArrayList<>();
-        total.add(G.I.toBytes(COLUMNS));
-        total.addAll(columns);
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        columns.forEach(bytesList::appendVarBytes);
 
-        byte[] totalBytes = BufferUtils.toBytes(total);
-        ByteBuffer buffer = ByteBuffer.allocate(BYTE_LENGTH + totalBytes.length);
-
-        return buffer.put(Result.SUCCESS_SHOW_COLUMN).put(totalBytes).array();
+        return bytesList;
     }
 }

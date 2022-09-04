@@ -29,7 +29,7 @@ public class ReadableSocketRequest extends SocketRequest implements Readable {
             if(!BufferUtils.isOver(lengthBuffer)) {
                 return;
             }
-            int dataLen = lengthBuffer.getInt(0) - INT_LENGTH * 2 - BYTE_LENGTH;
+            int dataLen = lengthBuffer.getInt(0) - INT_LENGTH - BYTE_LENGTH;
             dataBuffer = ByteBuffer.allocate(dataLen);
         }
         /* 读取状态数据 */

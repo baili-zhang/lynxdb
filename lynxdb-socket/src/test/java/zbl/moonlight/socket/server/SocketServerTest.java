@@ -1,5 +1,6 @@
 package zbl.moonlight.socket.server;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.socket.server.SocketServerConfig;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import com.bailizhang.lynxdb.socket.response.SocketResponse;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -38,10 +40,13 @@ class SocketServerTest {
                 assert request.status() == requestStatus;
                 assert Arrays.equals(request.data(), requestData);
 
+                BytesList bytesList = new BytesList();
+                bytesList.appendVarBytes(requestData);
+
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),
                         responseSerial,
-                        responseData));
+                        bytesList));
             }
         });
         Executor.start(server);

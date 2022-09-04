@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.raft.log.RaftLogEntry;
 import com.bailizhang.lynxdb.core.exceptions.NullFieldException;
+import com.bailizhang.lynxdb.raft.state.RaftLogEntry;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 

@@ -26,28 +26,22 @@ public class TableInsertContent implements BytesListConvertible {
         List<Column> columns = new ArrayList<>();
         List<byte[]> values = new ArrayList<>();
 
-        byte[] keysBytes = BufferUtils.getBytes(buffer);
-        byte[] columnBytes = BufferUtils.getBytes(buffer);
-        byte[] valueBytes = BufferUtils.getBytes(buffer);
+        int keySize = buffer.getInt();
 
-        ByteBuffer keysBuffer = ByteBuffer.wrap(keysBytes);
-
-        while(!BufferUtils.isOver(keysBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(keysBuffer);
+        for(int i = 0; i < keySize; i ++) {
+            byte[] bytes = BufferUtils.getBytes(buffer);
             keys.add(new Key(bytes));
         }
 
-        ByteBuffer columnBuffer = ByteBuffer.wrap(columnBytes);
+        int columnSize = buffer.getInt();
 
-        while(!BufferUtils.isOver(columnBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(columnBuffer);
+        for(int i = 0; i < columnSize; i ++) {
+            byte[] bytes = BufferUtils.getBytes(buffer);
             columns.add(new Column(bytes));
         }
 
-        ByteBuffer valuesBuffer = ByteBuffer.wrap(valueBytes);
-
-        while(!BufferUtils.isOver(valuesBuffer)) {
-            byte[] bytes = BufferUtils.getBytes(valuesBuffer);
+        while(!BufferUtils.isOver(buffer)) {
+            byte[] bytes = BufferUtils.getBytes(buffer);
             values.add(bytes);
         }
 
@@ -93,7 +87,13 @@ public class TableInsertContent implements BytesListConvertible {
 
         List<Column> columns = rows.get(keys.get(0)).keySet().stream().toList();
 
+        int keySize = keys.size();
+        int columnSize = columns.size();
+
+        bytesList.appendRawInt(keySize);
         keys.stream().map(Key::value).forEach(bytesList::appendVarBytes);
+
+        bytesList.appendRawInt(columnSize);
         columns.stream().map(Column::value).forEach(bytesList::appendVarBytes);
 
         for(Key key : keys) {

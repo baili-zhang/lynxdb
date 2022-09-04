@@ -44,9 +44,7 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
             synchronized (queue) {
                 try {
                     queue.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                } catch (InterruptedException ignored) {}
             }
         }
         return queue.poll();
