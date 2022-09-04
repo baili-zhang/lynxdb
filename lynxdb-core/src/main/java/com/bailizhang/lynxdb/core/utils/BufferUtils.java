@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.NumberUtils.LONG_LENGTH;
 
 public interface BufferUtils {
     static String getString(ByteBuffer buffer) {
@@ -48,8 +49,24 @@ public interface BufferUtils {
         return byteBuffer.position() == byteBuffer.limit();
     }
 
+    static boolean isNotOver(ByteBuffer byteBuffer) {
+        return !isOver(byteBuffer);
+    }
+
     static ByteBuffer intByteBuffer() {
         return ByteBuffer.allocate(INT_LENGTH);
+    }
+
+    static ByteBuffer intByteBuffer(int value) {
+        return ByteBuffer.allocate(INT_LENGTH).putInt(value).rewind();
+    }
+
+    static ByteBuffer longByteBuffer() {
+        return ByteBuffer.allocate(LONG_LENGTH);
+    }
+
+    static ByteBuffer longByteBuffer(long value) {
+        return ByteBuffer.allocate(LONG_LENGTH).putLong(value).rewind();
     }
 
     static List<String> toStringList(ByteBuffer buffer) {

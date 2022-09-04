@@ -1,4 +1,4 @@
-package zbl.moonlight.starter;
+package com.bailizhang.lynxdb.springboot.starter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

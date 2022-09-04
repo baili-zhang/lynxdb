@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.request;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 
@@ -12,5 +13,11 @@ public class ClientRequest extends NioMessage {
         super(key);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.append(content);
+    }
+
+    public ClientRequest(SelectionKey key, BytesList list) {
+        super(key);
+        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.append(list);
     }
 }

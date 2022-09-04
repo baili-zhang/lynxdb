@@ -13,4 +13,9 @@ public class LynxDbRaftConfiguration implements RaftConfiguration {
     public ServerNode currentNode() {
         return Configuration.getInstance().currentNode();
     }
+
+    @Override
+    public String logDir() {
+        return Configuration.getInstance().raftLogDir();
+    }
 }

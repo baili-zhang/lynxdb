@@ -1,9 +1,9 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
+import com.bailizhang.lynxdb.raft.state.RaftLogEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.log.RaftLogEntry;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.raft.state.RaftCommand;
 import com.bailizhang.lynxdb.raft.state.StateMachine;
@@ -60,15 +60,6 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
                 case DATA_CHANGE -> {
                     byte[] command = entry.command();
                     QueryParams params = QueryParams.parse(command);
-                    byte[] data = storageEngine.doQuery(params);
-
-                    WritableSocketResponse response = new WritableSocketResponse(
-                            entry.selectionKey(),
-                            entry.serial(),
-                            data
-                    );
-
-                    raftServer.offerInterruptibly(response);
                 }
 
                 case CLUSTER_MEMBERSHIP_CHANGE -> {

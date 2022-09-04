@@ -31,7 +31,7 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
                 return;
             }
             int len = lengthBuffer.getInt(0);
-            dataBuffer = ByteBuffer.allocate(len);
+            dataBuffer = ByteBuffer.allocate(len - INT_LENGTH);
         }
 
         if(!BufferUtils.isOver(serialBuffer)) {

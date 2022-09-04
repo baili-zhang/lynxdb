@@ -15,9 +15,11 @@ import java.nio.file.Path;
 
 @ToString
 public class Configuration {
-    private static final Logger logger = LogManager.getLogger("Configuration");
+    public static final String CLUSTER = "cluster";
+    public static final String SINGLE = "single";
 
-    private static final String DEFAULT_DIR_PATH = System.getProperty("user.dir") + "/config";
+    private static final String DEFAULT_CONFIG_DIR = System.getProperty("user.dir") + "/config";
+    private static final String DEFAULT_RAFT_LOG_DIR = System.getProperty("user.dir") + "/logs/raft";
     private static final String DEFAULT_FILENAME = "app.cfg";
     private static final String BASE_DIR = "[base]";
 
@@ -26,6 +28,7 @@ public class Configuration {
     private static final String HOST = "host";
     private static final String PORT = "port";
     private static final String DATA_DIR = "data_dir";
+    private static final String RUNNING_MODE = "running_mode";
     private static final String ELECTION_MODE = "election_mode";
 
     private final ServerNode currentNode;
@@ -34,10 +37,12 @@ public class Configuration {
     private int port;
 
     private String dataDir;
+    private final String raftLogDir;
 
+    private String runningMode;
     private String electionMode;
 
-    private Charset charset = StandardCharsets.UTF_8;
+    private final Charset charset = StandardCharsets.UTF_8;
 
     private static class Holder {
         private static final Configuration instance;
@@ -56,7 +61,7 @@ public class Configuration {
     }
 
     private Configuration() throws IOException {
-        this(DEFAULT_DIR_PATH, DEFAULT_FILENAME);
+        this(DEFAULT_CONFIG_DIR, DEFAULT_FILENAME);
     }
 
     private Configuration(String dirname, String filename) throws IOException {
@@ -85,10 +90,12 @@ public class Configuration {
                 case DATA_DIR -> dataDir = value.startsWith(BASE_DIR)
                         ? value.replace(BASE_DIR, System.getProperty("user.dir"))
                         : value;
+                case RUNNING_MODE -> runningMode = value;
                 case ELECTION_MODE -> electionMode = value;
             }
         }
 
+        raftLogDir = DEFAULT_RAFT_LOG_DIR;
         currentNode = new ServerNode(host, port);
     }
 
@@ -106,5 +113,13 @@ public class Configuration {
 
     public Charset charset() {
         return charset;
+    }
+
+    public String raftLogDir() {
+        return raftLogDir;
+    }
+
+    public String runningMode() {
+        return runningMode;
     }
 }

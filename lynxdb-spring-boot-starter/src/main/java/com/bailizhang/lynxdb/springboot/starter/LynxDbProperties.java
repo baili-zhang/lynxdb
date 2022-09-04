@@ -1,8 +1,8 @@
-package zbl.moonlight.starter;
+package com.bailizhang.lynxdb.springboot.starter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties("zbl.moonlight")
+@ConfigurationProperties("com.bailizhang.lynxdb")
 public class LynxDbProperties {
     private String host;
     private int port;

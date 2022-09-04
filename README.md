@@ -10,6 +10,39 @@ The server startup script under Linux system is `start-server.sh` , and the clie
 
 The default port number for LynxDB server is `7820`, make sure port `7820` is not occupied by other processes.
 
+## Spring Boot
+
+*Maven Dependency*
+
+```xml
+<dependency>
+    <groupId>com.bailizhang.lynxdb</groupId>
+    <artifactId>lynxdb-spring-boot-starter</artifactId>
+    <version>{lynxdb.version}</version>
+</dependency>
+```
+
+*application.yml*
+
+```yaml
+com:
+  bailizhang:
+    lynxdb:
+      host: "127.0.0.1"
+      port: 7820
+```
+
+*Autowired*
+
+```
+@Autowired
+private LynxDbTemplate lynxDbTemplate;
+```
+
+*Example*
+
+GitHub: [lynxdb-spring-boot-starter-test](https://github.com/baili-zhang/lynxdb-spring-boot-starter-test)
+
 ## Query Language
 
 LQL (LynxDB Query Language) is a simple query statement similar to SQL statement, including create, delete, query, insert data and other statements.
@@ -139,6 +172,7 @@ Dir: `/config/app.cfg`
 ```
 host = 127.0.0.1
 port = 7820
+running_mode = single
 ```
 
 ## Maintainers
