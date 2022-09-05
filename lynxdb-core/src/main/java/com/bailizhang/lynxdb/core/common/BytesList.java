@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.core.common;
 
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
+import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
@@ -54,16 +54,16 @@ public class BytesList implements BytesConvertible{
 
     @Override
     public byte[] toBytes() {
-        int length = NumberUtils.INT_LENGTH;
+        int length = PrimitiveTypeUtils.INT_LENGTH;
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
-                length += NumberUtils.INT_LENGTH;
+                length += PrimitiveTypeUtils.INT_LENGTH;
             }
 
             if(node.value instanceof Integer) {
-                length += NumberUtils.INT_LENGTH;
+                length += PrimitiveTypeUtils.INT_LENGTH;
             } else if(node.value instanceof Byte) {
-                length += NumberUtils.BYTE_LENGTH;
+                length += PrimitiveTypeUtils.BYTE_LENGTH;
             } else if (node.value instanceof byte[] bytes) {
                 length += bytes.length;
             } else {
@@ -72,7 +72,7 @@ public class BytesList implements BytesConvertible{
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(length);
-        buffer.putInt(length - NumberUtils.INT_LENGTH);
+        buffer.putInt(length - PrimitiveTypeUtils.INT_LENGTH);
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
                 if(node.value instanceof byte[] bytes) {

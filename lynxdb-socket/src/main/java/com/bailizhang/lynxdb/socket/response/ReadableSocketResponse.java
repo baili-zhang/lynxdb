@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
 public class ReadableSocketResponse extends SocketResponse implements Readable {
     private final ByteBuffer lengthBuffer;

@@ -1,16 +1,10 @@
 package com.bailizhang.lynxdb.core.lsm;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.file.LogFile;
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
+import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.BYTE_LENGTH;
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 
 /**
  * DataSlice 最小时：size = 1000, 布隆过滤器的长度 = 10000
@@ -66,7 +60,7 @@ public class SSTable implements Map<String, byte[]> {
         file = new LogFile(DEFAULT_DATE_LOG_DIR, String.format(DATA_SLICE_NAME_TEMPLATE, level, index));
 
         sizePosition = (long) capacity * MAGNIFICATION + BLOOM_FILTER_POSITION;
-        entryPosition = sizePosition + NumberUtils.INT_LENGTH;
+        entryPosition = sizePosition + PrimitiveTypeUtils.INT_LENGTH;
 
         /* 布隆过滤器的长度 */
         int len = (int)sizePosition - BLOOM_FILTER_POSITION;

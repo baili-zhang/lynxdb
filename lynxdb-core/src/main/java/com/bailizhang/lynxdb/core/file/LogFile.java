@@ -3,8 +3,6 @@ package com.bailizhang.lynxdb.core.file;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,7 +11,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.zip.CRC32C;
 
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.LONG_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 public class LogFile implements AutoCloseable {
     private static final int BEGIN_POSITION = 0;

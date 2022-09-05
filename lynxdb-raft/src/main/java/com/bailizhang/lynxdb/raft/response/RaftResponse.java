@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.raft.response;
 
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
+import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
@@ -29,7 +29,7 @@ public interface RaftResponse {
     static byte[] requestVoteSuccess(int term, ServerNode currentNode) {
         byte[] hostBytes = currentNode.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
+        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(REQUEST_VOTE_SUCCESS).putInt(term).putInt(hostLength).put(hostBytes)
                 .putInt(currentNode.port()).array();
     }
@@ -37,7 +37,7 @@ public interface RaftResponse {
     static byte[] requestVoteFailure(int term, ServerNode currentNode) {
         byte[] hostBytes = currentNode.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
+        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(REQUEST_VOTE_FAILURE).putInt(term).putInt(hostLength).put(hostBytes)
                 .putInt(currentNode.port()).array();
     }
@@ -45,7 +45,7 @@ public interface RaftResponse {
     static byte[] appendEntriesSuccess(int term, ServerNode node, int matchIndex) {
         byte[] hostBytes = node.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 4 + hostLength + 1);
+        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 4 + hostLength + 1);
         return buffer.put(APPEND_ENTRIES_SUCCESS).putInt(term).putInt(hostLength).put(hostBytes)
                 .putInt(node.port()).putInt(matchIndex).array();
     }
@@ -53,7 +53,7 @@ public interface RaftResponse {
     static byte[] appendEntriesFailure(int term, ServerNode node) {
         byte[] hostBytes = node.host().getBytes(StandardCharsets.UTF_8);
         int hostLength = hostBytes.length;
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 3 + hostLength + 1);
+        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 3 + hostLength + 1);
         return buffer.put(APPEND_ENTRIES_FAILURE).putInt(term).putInt(hostLength).put(hostBytes)
                 .putInt(node.port()).array();
     }
