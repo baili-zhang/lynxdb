@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.client;
 
 import com.bailizhang.lynxdb.client.exception.InvalidArgumentException;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ClassUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -73,7 +74,6 @@ public class LynxDbFuture implements Future<byte[]> {
 
                 while (BufferUtils.isNotOver(buffer)) {
                     String key = BufferUtils.getString(buffer);
-                    String val = BufferUtils.getString(buffer);
 
                     String methodName = SET_METHOD_PREFIX + key.replace("_", "").toLowerCase();
                     Method method = methodMap.get(methodName);
@@ -81,6 +81,9 @@ public class LynxDbFuture implements Future<byte[]> {
                     if(method == null) {
                         continue;
                     }
+
+                    Class<?> parameterType = method.getParameterTypes()[0];
+                    Object val = getValue(buffer, parameterType);
 
                     method.invoke(instance, val);
                 }
@@ -146,9 +149,11 @@ public class LynxDbFuture implements Future<byte[]> {
 
                     for(int i = 0; i < columnSize + 1; i ++) {
                         String column = KEY_COLUMN + columns.get(i).toLowerCase();
-                        String val = BufferUtils.getString(buffer);
 
                         Method method = methodMap.get(column);
+                        Class<?> parameterType = method.getParameterTypes()[0];
+                        Object val = getValue(buffer, parameterType);
+
                         method.invoke(instance, val);
                     }
 
@@ -172,6 +177,32 @@ public class LynxDbFuture implements Future<byte[]> {
         throw new UnsupportedOperationException();
     }
 
+    private Object getValue(ByteBuffer buffer, Class<?> parameterType) {
+        Object val;
+
+        if (ClassUtils.isString(parameterType)) {
+            val = BufferUtils.getString(buffer);
+        } else if (ClassUtils.isByte(parameterType)) {
+            val = buffer.get();
+        } else if (ClassUtils.isShort(parameterType)) {
+            val = buffer.getShort();
+        } else if (ClassUtils.isInt(parameterType)) {
+            val = buffer.getInt();
+        } else if (ClassUtils.isLong(parameterType)) {
+            val = buffer.getLong();
+        } else if (ClassUtils.isChar(parameterType)) {
+            val = buffer.getChar();
+        } else if (ClassUtils.isFloat(parameterType)) {
+            val = buffer.getFloat();
+        } else if (ClassUtils.isDouble(parameterType)) {
+            val = buffer.getDouble();
+        } else {
+            throw new RuntimeException("Unsupported parameter type: " + parameterType.getName());
+        }
+
+        return val;
+    }
+
     private HashMap<String, Method> methodMap(Class<?> clazz) {
         Method[] methods = clazz.getDeclaredMethods();
         HashMap<String, Method> methodMap = new HashMap<>();
@@ -181,7 +212,15 @@ public class LynxDbFuture implements Future<byte[]> {
                 continue;
             }
 
-            if(!method.getParameterTypes()[0].equals(String.class)) {
+            Class<?> parameterType = method.getParameterTypes()[0];
+            if(!ClassUtils.isByte(parameterType)
+                    && !ClassUtils.isInt(parameterType)
+                    && !ClassUtils.isShort(parameterType)
+                    && !ClassUtils.isLong(parameterType)
+                    && !ClassUtils.isString(parameterType)
+                    && !ClassUtils.isChar(parameterType)
+                    && !ClassUtils.isFloat(parameterType)
+                    && !ClassUtils.isDouble(parameterType)) {
                 continue;
             }
 

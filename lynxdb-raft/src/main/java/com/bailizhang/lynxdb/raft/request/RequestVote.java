@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
+import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -13,7 +13,7 @@ public class RequestVote extends RaftRequest {
 
     public byte[] toBytes() {
         byte[] host = candidate().host().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(NumberUtils.INT_LENGTH * 5 + host.length + 1);
+        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 5 + host.length + 1);
         return buffer.put(REQUEST_VOTE).putInt(host.length)
                 .put(host).putInt(candidate().port()).putInt(term())
                 .putInt(lastLogIndex()).putInt(lastLogTerm()).array();
