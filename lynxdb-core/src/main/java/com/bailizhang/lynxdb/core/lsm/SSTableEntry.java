@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.core.lsm;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
+import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
 
@@ -21,7 +21,7 @@ public class SSTableEntry {
         value = BufferUtils.getRemaining(buffer);
 
         /* entry 前面还有一个整型表示 entry 长度 */
-        totalLength = entry.length + NumberUtils.INT_LENGTH;
+        totalLength = entry.length + PrimitiveTypeUtils.INT_LENGTH;
     }
 
     public boolean isKey(String str) {

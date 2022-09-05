@@ -1,26 +1,17 @@
 package com.bailizhang.lynxdb.raft.server;
 
 import com.bailizhang.lynxdb.raft.request.RaftRequest;
-import com.bailizhang.lynxdb.raft.response.RaftResponse;
-import com.bailizhang.lynxdb.raft.state.RaftLogEntry;
-import com.bailizhang.lynxdb.raft.state.RaftRole;
 import com.bailizhang.lynxdb.raft.state.RaftState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.NumberUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
-import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final static Logger logger = LogManager.getLogger("RaftServerHandler");

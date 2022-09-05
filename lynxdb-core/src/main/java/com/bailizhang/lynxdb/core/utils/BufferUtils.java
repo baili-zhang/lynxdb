@@ -6,8 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.LONG_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 public interface BufferUtils {
     static String getString(ByteBuffer buffer) {

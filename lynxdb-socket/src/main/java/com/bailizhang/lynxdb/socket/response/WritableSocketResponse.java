@@ -4,15 +4,12 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.Writable;
-import com.bailizhang.lynxdb.core.common.BytesConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-
-import static com.bailizhang.lynxdb.core.utils.NumberUtils.INT_LENGTH;
 
 public class WritableSocketResponse extends NioMessage implements Writable {
     private final ByteBuffer buffer;
