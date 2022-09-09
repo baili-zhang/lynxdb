@@ -35,7 +35,7 @@ public class AsyncClientHandler implements SocketClientHandler {
             throw new RuntimeException("Map is null");
         }
 
-        LynxDbFuture future = map.get(serial);
+        LynxDbFuture future = map.remove(serial);
         future.value(response.data());
     }
 }
