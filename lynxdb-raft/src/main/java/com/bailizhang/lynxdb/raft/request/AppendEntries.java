@@ -1,16 +1,16 @@
 package com.bailizhang.lynxdb.raft.request;
 
+import com.bailizhang.lynxdb.socket.common.NioMessage;
+
 import java.nio.channels.SelectionKey;
 
-public class AppendEntries extends RaftRequest {
-    private final boolean isClusterMembershipChange;
+import static com.bailizhang.lynxdb.raft.request.RaftRequest.APPEND_ENTRIES;
 
-    public AppendEntries(SelectionKey selectionKey) {
-        this(selectionKey, false);
-    }
-
-    public AppendEntries(SelectionKey selectionKey, boolean isClusterMembershipChange) {
+public class AppendEntries extends NioMessage {
+    public AppendEntries(SelectionKey selectionKey, AppendEntriesArgs args) {
         super(selectionKey);
-        this.isClusterMembershipChange = isClusterMembershipChange;
+
+        bytesList.appendRawByte(APPEND_ENTRIES);
+        bytesList.append(args);
     }
 }

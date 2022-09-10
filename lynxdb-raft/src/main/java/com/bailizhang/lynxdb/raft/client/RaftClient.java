@@ -8,7 +8,7 @@ import com.bailizhang.lynxdb.socket.client.SocketClient;
 import java.io.IOException;
 
 public class RaftClient extends SocketClient {
-    public RaftClient() throws IOException {
+    public RaftClient() {
     }
 
     @Override

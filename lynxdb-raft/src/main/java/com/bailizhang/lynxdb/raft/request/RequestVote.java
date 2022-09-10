@@ -1,21 +1,16 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
+import com.bailizhang.lynxdb.socket.common.NioMessage;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.charset.StandardCharsets;
 
-public class RequestVote extends RaftRequest {
-    public RequestVote(SelectionKey selectionKey) {
+import static com.bailizhang.lynxdb.raft.request.RaftRequest.REQUEST_VOTE;
+
+public class RequestVote extends NioMessage {
+    public RequestVote(SelectionKey selectionKey, RequestVoteArgs args) {
         super(selectionKey);
-    }
 
-    public byte[] toBytes() {
-        byte[] host = candidate().host().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(PrimitiveTypeUtils.INT_LENGTH * 5 + host.length + 1);
-        return buffer.put(REQUEST_VOTE).putInt(host.length)
-                .put(host).putInt(candidate().port()).putInt(term())
-                .putInt(lastLogIndex()).putInt(lastLogTerm()).array();
+        bytesList.appendRawByte(REQUEST_VOTE);
+        bytesList.append(args);
     }
 }

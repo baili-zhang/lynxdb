@@ -8,6 +8,9 @@ import java.nio.channels.SelectionKey;
 
 import static com.bailizhang.lynxdb.raft.request.RaftRequest.CLIENT_REQUEST;
 
+/**
+ * TODO: ClientRequest 应该放到 socket 模块中
+ */
 public class ClientRequest extends NioMessage {
     public ClientRequest(SelectionKey key, BytesListConvertible content) {
         super(key);

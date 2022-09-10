@@ -46,7 +46,7 @@ public class Timeout implements Runnable {
                 TimeUnit.MILLISECONDS.sleep(sleepTime);
                 /* 同步执行定时任务 */
                 if(!reset) {
-                    task.run();
+                    task.execute();
                     /* 重置时间 */
                     time = System.currentTimeMillis();
                 } else {

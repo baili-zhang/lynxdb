@@ -160,6 +160,10 @@ public class RaftState {
         raftLogEntryDeque.addFirst(entry);
     }
 
+    public void sendRequestVote() {
+
+    }
+
     public void sendAppendEntries() {
         if(nextIndex.isEmpty()) {
             RaftLogEntry entry = raftLogEntryDeque.pollLast();
@@ -191,7 +195,7 @@ public class RaftState {
     public RaftRole raftRole() {
         return raftRole;
     }
-    public synchronized void transformToCandidate() throws IOException {
+    public synchronized void transformToCandidate() {
         raftRole(RaftRole.CANDIDATE);
     }
 
