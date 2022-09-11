@@ -27,7 +27,7 @@ public class ClusterLynxDbServer implements LynxDbServer {
         raftState.raftServer(raftServer);
 
         raftServer.setHandler(new RaftServerHandler(raftServer));
-        raftServer.setClientHandler(new RaftClientHandler(raftServer, raftClient));
+        raftServer.setClientHandler(new RaftClientHandler());
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.response;
+package com.bailizhang.lynxdb.raft.result;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;

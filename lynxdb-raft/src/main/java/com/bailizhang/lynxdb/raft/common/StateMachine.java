@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.state;
+package com.bailizhang.lynxdb.raft.common;
 
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
@@ -26,4 +26,6 @@ public interface StateMachine {
     void apply(RaftLogEntry[] entries);
 
     void raftServer(RaftServer server);
+
+    void metaSet(String key, byte[] value);
 }

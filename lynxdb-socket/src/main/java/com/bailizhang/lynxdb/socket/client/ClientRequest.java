@@ -1,26 +1,22 @@
-package com.bailizhang.lynxdb.raft.request;
+package com.bailizhang.lynxdb.socket.client;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.socket.code.Request;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 
 import java.nio.channels.SelectionKey;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.CLIENT_REQUEST;
-
-/**
- * TODO: ClientRequest 应该放到 socket 模块中
- */
 public class ClientRequest extends NioMessage {
     public ClientRequest(SelectionKey key, BytesListConvertible content) {
         super(key);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(Request.CLIENT_REQUEST);
         bytesList.append(content);
     }
 
     public ClientRequest(SelectionKey key, BytesList list) {
         super(key);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(Request.CLIENT_REQUEST);
         bytesList.append(list);
     }
 }

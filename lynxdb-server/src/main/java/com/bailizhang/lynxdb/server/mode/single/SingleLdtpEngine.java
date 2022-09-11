@@ -2,7 +2,6 @@ package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.request.ClientRequest;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;

@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.state;
+package com.bailizhang.lynxdb.raft.common;
 
 import java.nio.channels.SelectionKey;
 

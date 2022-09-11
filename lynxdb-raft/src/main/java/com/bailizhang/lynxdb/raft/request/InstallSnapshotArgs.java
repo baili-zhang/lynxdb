@@ -2,9 +2,12 @@ package com.bailizhang.lynxdb.raft.request;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-public record InstallSnapshotArgs(
+import java.nio.ByteBuffer;
+
+public record InstallSnapshotArgs (
         int term,
         ServerNode leader,
         int lastIncludedIndex,
@@ -29,5 +32,21 @@ public record InstallSnapshotArgs(
         bytesList.appendRawByte(done);
 
         return bytesList;
+    }
+
+    public static InstallSnapshotArgs from(ByteBuffer buffer) {
+        int term = buffer.getInt();
+
+        String leaderStr = BufferUtils.getString(buffer);
+        ServerNode leader = ServerNode.from(leaderStr);
+
+        int lastIncludedIndex = buffer.getInt();
+        int lastIncludedTerm = buffer.getInt();
+        int offset = buffer.getInt();
+        byte[] data = BufferUtils.getBytes(buffer);
+        byte done = buffer.get();
+
+        return new InstallSnapshotArgs(term, leader, lastIncludedIndex,
+                lastIncludedTerm, offset, data, done);
     }
 }

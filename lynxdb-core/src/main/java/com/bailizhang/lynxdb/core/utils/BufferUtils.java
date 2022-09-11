@@ -41,6 +41,10 @@ public interface BufferUtils {
         return buffer.array();
     }
 
+    static byte[] toBytes(int src) {
+        return intByteBuffer(src).array();
+    }
+
     /* 判断ByteBuffer是否读结束（或写结束） */
     static boolean isOver(ByteBuffer byteBuffer) {
         if(byteBuffer == null) {
