@@ -1,10 +1,13 @@
 package com.bailizhang.lynxdb.storage.rocks;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.storage.core.Snapshot;
 import org.rocksdb.*;
 import com.bailizhang.lynxdb.storage.core.Database;
 import com.bailizhang.lynxdb.storage.core.ResultSet;
 import com.bailizhang.lynxdb.storage.rocks.query.Query;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,10 +15,10 @@ import java.util.List;
 public class RocksDatabase implements Database {
     public static final String COLUMN_FAMILY_ALREADY_EXISTS = "Column family already exists";
 
+    private final String name;
+
     private final Options options;
-
     private final DBOptions dbOptions;
-
     private final RocksDB rocksDB;
 
     private final List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
@@ -25,7 +28,10 @@ public class RocksDatabase implements Database {
         RocksDB.loadLibrary();
     }
 
-    private RocksDatabase(String path) throws RocksDBException {
+    private RocksDatabase(String dir, String dbname) throws RocksDBException {
+        String path = Path.of(dir, dbname).toString();
+        name = dbname;
+
         options = new Options();
         dbOptions = new DBOptions().setCreateIfMissing(true);
 
@@ -64,8 +70,8 @@ public class RocksDatabase implements Database {
         options.close();
     }
 
-    public static RocksDatabase open(String path) throws RocksDBException {
-        return new RocksDatabase(path);
+    public static RocksDatabase open(String dir, String dbname) throws RocksDBException {
+        return new RocksDatabase(dir, dbname);
     }
 
     @Override
@@ -75,4 +81,33 @@ public class RocksDatabase implements Database {
         query.doQuery(rocksDB);
         return query.resultSet();
     }
+
+    @Override
+    public Snapshot snapshot() {
+        BytesList bytesList = new BytesList();
+
+        try (ReadOptions readOptions = new ReadOptions()) {
+            readOptions.setSnapshot(rocksDB.getSnapshot());
+
+            for(ColumnFamilyHandle handle : columnFamilyHandles) {
+                byte[] column = handle.getName();
+                bytesList.appendVarBytes(column);
+
+                try(RocksIterator itr = rocksDB.newIterator(handle, readOptions)) {
+                    for(itr.seekToFirst(); itr.isValid(); itr.next()) {
+                        byte[] key = itr.key();
+                        byte[] value = itr.value();
+
+                        bytesList.appendVarBytes(key);
+                        bytesList.appendVarBytes(value);
+                    }
+                }
+            }
+        } catch (RocksDBException e) {
+            e.printStackTrace();
+        }
+
+        return new RocksSnapshot(name, bytesList);
+    }
+
 }

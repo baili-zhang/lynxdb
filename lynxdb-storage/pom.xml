@@ -30,6 +30,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-core</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
         </dependency>

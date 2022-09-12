@@ -28,4 +28,6 @@ public interface StateMachine {
     void raftServer(RaftServer server);
 
     void metaSet(String key, byte[] value);
+
+    RaftSnapshot currentSnapshot();
 }

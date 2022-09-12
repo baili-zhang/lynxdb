@@ -1,14 +1,13 @@
 package com.bailizhang.lynxdb.core.lsm;
 
 import com.bailizhang.lynxdb.core.common.Key;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class LsmTree implements Map<Key, byte[]> {
     private static final int MAX_MUTABLE_TABLE_SIZE = 100;
-
-    private static final byte[] NULL_VALUE = new byte[0];
 
     private final List<List<SSTable>> diskTree = new ArrayList<>();
 
@@ -43,12 +42,12 @@ public class LsmTree implements Map<Key, byte[]> {
     public byte[] get(Object key) {
         byte[] value = memTable.get(key);
         if(value != null) {
-            return Arrays.equals(value, NULL_VALUE) ? null : value;
+            return Arrays.equals(value, BufferUtils.EMPTY_BYTES) ? null : value;
         }
 
         value = immutableMemTable.get(key);
         if(value != null) {
-            return Arrays.equals(value, NULL_VALUE) ? null : value;
+            return Arrays.equals(value, BufferUtils.EMPTY_BYTES) ? null : value;
         }
 
         for (List<SSTable> level : diskTree) {
@@ -78,7 +77,7 @@ public class LsmTree implements Map<Key, byte[]> {
         if(!(key instanceof Key k)) {
             throw new RuntimeException("key is not an instance of [Key]");
         }
-        put(k, NULL_VALUE);
+        put(k, BufferUtils.EMPTY_BYTES);
         return null;
     }
 

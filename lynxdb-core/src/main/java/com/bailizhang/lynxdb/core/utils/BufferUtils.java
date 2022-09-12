@@ -10,6 +10,8 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 public interface BufferUtils {
+    byte[] EMPTY_BYTES = new byte[0];
+
     static String getString(ByteBuffer buffer) {
         return new String(BufferUtils.getBytes(buffer));
     }
