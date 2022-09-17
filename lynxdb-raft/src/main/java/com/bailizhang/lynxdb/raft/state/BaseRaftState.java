@@ -18,14 +18,7 @@ public class BaseRaftState {
             throw new RuntimeException("Can not find StateMachine.");
         }
 
-        ServiceLoader<RaftConfiguration> raftConfigurations = ServiceLoader.load(RaftConfiguration.class);
-        Optional<RaftConfiguration> rcOptional = raftConfigurations.findFirst();
-
-        if(rcOptional.isEmpty()) {
-            throw new RuntimeException("Can not find RaftConfiguration.");
-        }
-
         stateMachine = smOptional.get();
-        raftConfiguration = rcOptional.get();
+        raftConfiguration = RaftConfiguration.getInstance();
     }
 }

@@ -11,6 +11,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 public interface BufferUtils {
     byte[] EMPTY_BYTES = new byte[0];
+    byte EMPTY_BYTE = (byte) 0x00;
 
     static String getString(ByteBuffer buffer) {
         return new String(BufferUtils.getBytes(buffer));
@@ -45,6 +46,21 @@ public interface BufferUtils {
 
     static byte[] toBytes(int src) {
         return intByteBuffer(src).array();
+    }
+
+    static byte[] toBytes(int[] src) {
+        return toBuffer(src).array();
+    }
+
+    static ByteBuffer toBuffer(int[] src) {
+        int len = src.length * INT_LENGTH;
+        ByteBuffer buffer = ByteBuffer.allocate(len);
+
+        for(int i : src) {
+            buffer.putInt(i);
+        }
+
+        return buffer.rewind();
     }
 
     /* 判断ByteBuffer是否读结束（或写结束） */

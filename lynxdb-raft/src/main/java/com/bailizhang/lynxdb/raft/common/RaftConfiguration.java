@@ -2,24 +2,47 @@ package com.bailizhang.lynxdb.raft.common;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-public interface RaftConfiguration {
+import java.util.Optional;
+import java.util.ServiceLoader;
+
+public abstract class RaftConfiguration {
     /**
      * 需要得到 leader 确认才能启动选举计时器
      */
-    String FOLLOWER = "follower";
+    public static final String FOLLOWER = "follower";
     /**
      * 需要连接一半以上的节点后才能转换成 candidate
      */
-    String CANDIDATE = "candidate";
+    public static final String CANDIDATE = "candidate";
     /**
      * 选举计时器超时即可转换成 candidate
      */
-    String LEADER = "leader";
+    public static final String LEADER = "leader";
 
+    private static final RaftConfiguration instance;
 
-    String electionMode();
+    static {
+        ServiceLoader<RaftConfiguration> raftConfigurations = ServiceLoader.load(RaftConfiguration.class);
+        Optional<RaftConfiguration> rcOptional = raftConfigurations.findFirst();
 
-    ServerNode currentNode();
+        if(rcOptional.isEmpty()) {
+            throw new RuntimeException("Can not find RaftConfiguration.");
+        }
 
-    String logDir();
+        instance = rcOptional.get();
+    }
+
+    public static RaftConfiguration getInstance() {
+        return instance;
+    }
+
+    protected RaftConfiguration() {
+
+    }
+
+    public abstract String electionMode();
+
+    public abstract ServerNode currentNode();
+
+    public abstract String logDir();
 }

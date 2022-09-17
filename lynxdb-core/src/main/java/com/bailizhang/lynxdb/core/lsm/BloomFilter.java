@@ -1,8 +1,5 @@
 package com.bailizhang.lynxdb.core.lsm;
 
-import com.bailizhang.lynxdb.core.file.LogFile;
-
-import java.io.IOException;
 import java.lang.reflect.Method;
 
 public class BloomFilter {

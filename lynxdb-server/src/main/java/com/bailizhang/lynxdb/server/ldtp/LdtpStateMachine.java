@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
 import com.bailizhang.lynxdb.raft.common.RaftLogEntry;
-import com.bailizhang.lynxdb.raft.common.RaftSnapshot;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.executor.Executor;
@@ -41,25 +40,6 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     @Override
     public void metaSet(String key, byte[] value) {
         storageEngine.metaSet(key, value);
-    }
-
-    @Override
-    public RaftSnapshot currentSnapshot() {
-        RaftSnapshot snapshot = new RaftSnapshot();
-
-        List<String> kvstores = storageEngine.allKvstores();
-        for(String kvstore : kvstores) {
-            byte[] data = storageEngine.kvstoreData(kvstore);
-            snapshot.kvstore(kvstore, data);
-        }
-
-        List<String> tables = storageEngine.allTables();
-        for(String table : tables) {
-            byte[] data = storageEngine.tableData(table);
-            snapshot.table(table, data);
-        }
-
-        return snapshot;
     }
 
     @Override

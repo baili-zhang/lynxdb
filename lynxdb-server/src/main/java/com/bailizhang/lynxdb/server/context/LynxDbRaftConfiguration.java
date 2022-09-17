@@ -3,19 +3,29 @@ package com.bailizhang.lynxdb.server.context;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-public class LynxDbRaftConfiguration implements RaftConfiguration {
+public class LynxDbRaftConfiguration extends RaftConfiguration {
+    private final String electionMode;
+    private final ServerNode currentNode;
+    private final String logDir;
+
+    private LynxDbRaftConfiguration() {
+        electionMode = Configuration.getInstance().electionMode();
+        currentNode = Configuration.getInstance().currentNode();
+        logDir = Configuration.getInstance().raftLogDir();
+    }
+
     @Override
     public String electionMode() {
-        return Configuration.getInstance().electionMode();
+        return electionMode;
     }
 
     @Override
     public ServerNode currentNode() {
-        return Configuration.getInstance().currentNode();
+        return currentNode;
     }
 
     @Override
     public String logDir() {
-        return Configuration.getInstance().raftLogDir();
+        return logDir;
     }
 }
