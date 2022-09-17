@@ -8,8 +8,7 @@ import com.bailizhang.lynxdb.raft.log.entry.LogEntryType;
 import com.bailizhang.lynxdb.raft.log.entry.LogEntryValid;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +28,10 @@ public class LogGroup {
     public LogGroup() {
         File file = new File(groupDir);
 
+        if(!file.exists()) {
+            FileUtils.createDir(file);
+        }
+
         if(!file.isDirectory()) {
             throw new RuntimeException(groupDir + " is not a directory");
         }
@@ -40,13 +43,14 @@ public class LogGroup {
             return;
         }
 
-        indexList = Arrays.stream(filenames)
+        List<Integer> list = Arrays.stream(filenames)
                 .map(filename -> {
                     String[] temp = filename.split("\\.");
                     return Integer.valueOf(temp[0]);
                 })
                 .toList();
 
+        indexList = new ArrayList<>(list);
         indexList.sort(Integer::compareTo);
     }
 
@@ -66,6 +70,10 @@ public class LogGroup {
         append(LogEntryMethod.SET, LogEntryType.TABLE, convertible);
     }
 
+    public void delete() {
+        FileUtils.delete(Path.of(groupDir));
+    }
+
     private void append(byte method, byte type, BytesListConvertible convertible) {
         LogRegion region = lastRegion();
 
@@ -79,7 +87,6 @@ public class LogGroup {
         LogEntry entry = new LogEntry(method, LogEntryValid.VALID, type, current, data);
         region.append(entry);
     }
-
 
     private LogRegion lastRegion() {
         if(indexList.isEmpty()) {

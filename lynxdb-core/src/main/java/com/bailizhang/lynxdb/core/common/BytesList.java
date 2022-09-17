@@ -70,8 +70,10 @@ public class BytesList implements BytesConvertible{
                 length += PrimitiveTypeUtils.INT_LENGTH;
             }
 
-            if(node.value instanceof Integer) {
+            if (node.value instanceof Integer) {
                 length += PrimitiveTypeUtils.INT_LENGTH;
+            } else if (node.value instanceof Long) {
+                length += PrimitiveTypeUtils.LONG_LENGTH;
             } else if(node.value instanceof Byte) {
                 length += PrimitiveTypeUtils.BYTE_LENGTH;
             } else if (node.value instanceof byte[] bytes) {
@@ -98,6 +100,8 @@ public class BytesList implements BytesConvertible{
 
             if(node.value instanceof Integer i) {
                 buffer.putInt(i);
+            } else if (node.value instanceof Long l) {
+                buffer.putLong(l);
             } else if(node.value instanceof Byte b) {
                 buffer.put(b);
             } else if (node.value instanceof byte[] bytes) {

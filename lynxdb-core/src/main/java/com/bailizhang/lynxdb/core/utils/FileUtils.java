@@ -1,6 +1,8 @@
 package com.bailizhang.lynxdb.core.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -24,6 +26,22 @@ public interface FileUtils {
 
         if(!success) {
             throw new RuntimeException("Can not delete " + path);
+        }
+    }
+
+    static void createDir(File file) {
+        try {
+            Files.createDirectories(file.toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static void createFile(File file) {
+        try {
+            Files.createFile(file.toPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

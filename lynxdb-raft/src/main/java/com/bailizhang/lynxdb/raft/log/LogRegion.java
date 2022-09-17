@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.raft.log;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32C;
@@ -52,7 +54,7 @@ public class LogRegion implements AutoCloseable {
         }
 
         try {
-            channel = FileChannel.open(path);
+            channel = FileChannel.open(path, StandardOpenOption.WRITE);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -79,6 +81,8 @@ public class LogRegion implements AutoCloseable {
             String template = "Region \"%d\" file exists";
             throw new RuntimeException(String.format(template, id));
         }
+
+        FileUtils.createFile(file);
 
         LogRegion region;
         try {
@@ -187,7 +191,7 @@ public class LogRegion implements AutoCloseable {
     private static String name(int id) {
         String idStr = String.valueOf(id);
         int zeroCount = DEFAULT_NAME_LENGTH - idStr.length();
-        return ZERO.repeat(Math.max(0, zeroCount)) + idStr;
+        return ZERO.repeat(Math.max(0, zeroCount)) + idStr + FileUtils.LOG_SUFFIX;
     }
 
     private void readBegin() throws IOException {
