@@ -29,8 +29,7 @@ class RocksKvAdapterTest {
 
     @BeforeEach
     void setUp() {
-        String path = Path.of(DB_DIR, DB_NAME).toString();
-        db = new RocksKvAdapter(path);
+        db = new RocksKvAdapter(DB_DIR, DB_NAME);
 
         for(int i = 0; i < 100; i ++) {
             Constant.KEY_LIST.add((Constant.KEY_STR + i).getBytes());
