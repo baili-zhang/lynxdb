@@ -51,8 +51,8 @@ public class RaftClientHandler implements SocketClientHandler {
                 raftState.checkTerm(term);
 
                 switch (result.voteGranted()) {
-                    case IS_VOTE_GRANTED -> raftState.voteGranted(selectionKey);
-                    case NOT_VOTE_GRANTED -> raftState.voteNotGranted(selectionKey);
+                    case IS_VOTE_GRANTED -> raftState.voteGranted(term, selectionKey);
+                    case NOT_VOTE_GRANTED -> raftState.voteNotGranted(term, selectionKey);
 
                     default -> throw new UnsupportedOperationException();
                 }

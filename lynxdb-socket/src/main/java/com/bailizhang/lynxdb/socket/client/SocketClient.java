@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.socket.client;
 
+import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
@@ -133,14 +134,19 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     public void broadcast(BytesConvertible message) {
         byte[] data = message.toBytes();
+        int broadcastSerial = serial.incrementAndGet();
 
         for(SelectionKey selectionKey : contexts.keySet()) {
             ConnectionContext context = contexts.get(selectionKey);
             byte status = (byte) 0x00;
-            context.offerRequest(new WritableSocketRequest(selectionKey, status, serial.getAndIncrement(), data));
+            context.offerRequest(new WritableSocketRequest(selectionKey, status, broadcastSerial, data));
         }
 
         interrupt();
+    }
+
+    public void broadcast(BytesListConvertible message) {
+        broadcast(message.toBytesList());
     }
 
     public Set<SelectionKey> connectedNodes() {

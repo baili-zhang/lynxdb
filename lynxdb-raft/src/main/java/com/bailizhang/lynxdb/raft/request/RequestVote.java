@@ -7,8 +7,8 @@ import java.nio.channels.SelectionKey;
 import static com.bailizhang.lynxdb.raft.request.RaftRequest.REQUEST_VOTE;
 
 public class RequestVote extends NioMessage {
-    public RequestVote(SelectionKey selectionKey, RequestVoteArgs args) {
-        super(selectionKey);
+    public RequestVote(RequestVoteArgs args) {
+        super(null);
 
         bytesList.appendRawByte(REQUEST_VOTE);
         bytesList.append(args);

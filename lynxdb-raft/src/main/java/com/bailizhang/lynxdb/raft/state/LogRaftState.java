@@ -15,4 +15,12 @@ public class LogRaftState extends BaseRaftState {
     public void appendEntry(RaftLogEntry entry) {
         raftLogEntryDeque.addFirst(entry);
     }
+
+    public int lastLogTerm() {
+        return 0;
+    }
+
+    public int lastLogIndex() {
+        return 0;
+    }
 }

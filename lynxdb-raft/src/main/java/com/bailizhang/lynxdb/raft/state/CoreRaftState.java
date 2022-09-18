@@ -11,11 +11,11 @@ public class CoreRaftState extends TimeoutRaftState {
 
     private static final String CURRENT_TERM = "current_term";
 
-    private final ServerNode currentNode;
+    protected final ServerNode currentNode;
 
-    private volatile ServerNode leaderNode;
-    private volatile RaftRole raftRole = RaftRole.FOLLOWER;
-    private volatile int currentTerm;
+    protected volatile ServerNode leaderNode;
+    protected volatile RaftRole raftRole = RaftRole.FOLLOWER;
+    protected volatile int currentTerm;
 
     protected CoreRaftState() {
         currentNode = raftConfiguration.currentNode();
