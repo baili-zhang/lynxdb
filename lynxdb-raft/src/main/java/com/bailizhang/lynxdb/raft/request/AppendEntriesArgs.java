@@ -3,17 +3,19 @@ package com.bailizhang.lynxdb.raft.request;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.raft.common.RaftLogEntry;
+import com.bailizhang.lynxdb.raft.log.LogEntry;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public record AppendEntriesArgs (
         int term,
         ServerNode leader,
         int prevLogIndex,
         int prevLogTerm,
-        RaftLogEntry[] entries,
+        List<LogEntry> entries,
         int leaderCommit
 ) implements BytesListConvertible {
     @Override
@@ -25,9 +27,9 @@ public record AppendEntriesArgs (
         bytesList.appendRawInt(prevLogIndex);
         bytesList.appendRawInt(prevLogTerm);
 
-        bytesList.appendRawInt(entries.length);
-        for(RaftLogEntry entry : entries) {
-            bytesList.append(entry);
+        bytesList.appendRawInt(entries.size());
+        for(LogEntry entry : entries) {
+            bytesList.appendVarBytes(entry.data());
         }
 
         bytesList.appendRawInt(leaderCommit);
@@ -45,9 +47,9 @@ public record AppendEntriesArgs (
         int prevLogTerm = buffer.getInt();
 
         int entriesSize = buffer.getInt();
-        RaftLogEntry[] entries = new RaftLogEntry[entriesSize];
+        List<LogEntry> entries = new ArrayList<>();
         for(int i = 0; i < entriesSize; i ++) {
-            entries[i] = RaftLogEntry.from(buffer);
+            entries.add(LogEntry.fromSocket(buffer));
         }
 
         int leaderCommit = buffer.getInt();

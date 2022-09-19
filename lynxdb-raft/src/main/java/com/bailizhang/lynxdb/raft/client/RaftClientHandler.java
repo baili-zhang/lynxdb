@@ -4,19 +4,19 @@ import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.raft.state.RaftState;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-import static com.bailizhang.lynxdb.raft.result.RaftResult.*;
 import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_FAILED;
 import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_SUCCESS;
+import static com.bailizhang.lynxdb.raft.result.RaftResult.*;
 import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.IS_VOTE_GRANTED;
 import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.NOT_VOTE_GRANTED;
 

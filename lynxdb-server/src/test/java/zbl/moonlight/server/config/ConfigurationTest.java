@@ -1,8 +1,8 @@
 package zbl.moonlight.server.config;
 
-import org.junit.jupiter.api.Test;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 

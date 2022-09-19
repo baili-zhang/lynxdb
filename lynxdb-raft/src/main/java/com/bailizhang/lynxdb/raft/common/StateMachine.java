@@ -23,7 +23,7 @@ public interface StateMachine {
      * 应用日志条目
      * @param entries 日志条目
      */
-    void apply(RaftLogEntry[] entries);
+    void apply(AppliableLogEntry[] entries);
 
     void raftServer(RaftServer server);
 

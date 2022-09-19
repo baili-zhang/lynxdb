@@ -1,10 +1,10 @@
 package com.bailizhang.lynxdb.storage.rocks.query.table;
 
-import org.rocksdb.*;
 import com.bailizhang.lynxdb.storage.core.Column;
 import com.bailizhang.lynxdb.storage.core.ResultSet;
 import com.bailizhang.lynxdb.storage.core.SingleTableRow;
 import com.bailizhang.lynxdb.storage.rocks.query.Query;
+import org.rocksdb.*;
 
 public class TableSingleSetQuery extends Query<SingleTableRow, Void> {
     public TableSingleSetQuery(SingleTableRow queryData, ResultSet<Void> resultSet) {

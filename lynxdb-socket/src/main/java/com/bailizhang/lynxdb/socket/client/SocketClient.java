@@ -1,13 +1,13 @@
 package com.bailizhang.lynxdb.socket.client;
 
+import com.bailizhang.lynxdb.core.common.BytesConvertible;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.bailizhang.lynxdb.core.common.BytesConvertible;
-import com.bailizhang.lynxdb.core.executor.Executor;
 
 import java.io.IOException;
 import java.net.ConnectException;

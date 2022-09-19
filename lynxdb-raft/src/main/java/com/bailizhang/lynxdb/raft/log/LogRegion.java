@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.raft.log;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32C;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 /**
@@ -165,6 +163,7 @@ public class LogRegion implements AutoCloseable {
                 entry.invalid(),
                 entry.type(),
                 entry.dataBegin(),
+                entry.term(),
                 data
         );
     }

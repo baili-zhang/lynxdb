@@ -20,6 +20,9 @@ public class TimeoutRaftState extends LogRaftState {
     private final Timeout heartbeat;
     private final Timeout election;
 
+    private final Thread heartbeatThread;
+    private final Thread electionThread;
+
     public TimeoutRaftState() {
         final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
@@ -27,23 +30,25 @@ public class TimeoutRaftState extends LogRaftState {
 
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
         election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
+
+        heartbeatThread = new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME);
+        electionThread = new Thread(election, ELECTION_TIMEOUT_NAME);
     }
 
     public void startTimeout() {
         String electionMode = raftConfiguration.electionMode();
 
-        if(RaftConfiguration.FOLLOWER.equals(electionMode)) {
-
-            logger.info("Election Mode is [{}], Do not start Timeout.", electionMode);
-
-        } else if (RaftConfiguration.LEADER.equals(electionMode)
+        if (isLeader() || RaftConfiguration.LEADER.equals(electionMode)
                 || RaftConfiguration.CANDIDATE.equals(electionMode)) {
 
-            logger.info("Election Mode is [{}].", electionMode);
+            heartbeatThread.start();
+            electionThread.start();
 
-            new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME).start();
-            new Thread(election, ELECTION_TIMEOUT_NAME).start();
+            logger.info("Election Mode is [{}], raft role is: [{}]", electionMode, raftRole);
+            return;
         }
+
+        logger.info("Election Mode is [{}], Do not start Timeout.", electionMode);
     }
 
     public void resetElectionTimeout() {

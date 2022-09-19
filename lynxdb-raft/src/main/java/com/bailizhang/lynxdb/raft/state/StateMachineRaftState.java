@@ -1,14 +1,14 @@
 package com.bailizhang.lynxdb.raft.state;
 
-import com.bailizhang.lynxdb.raft.common.RaftLogEntry;
+import com.bailizhang.lynxdb.raft.common.AppliableLogEntry;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StateMachineRaftState extends RpcRaftState {
     private final AtomicInteger lastApplied = new AtomicInteger(0);
 
-    public void apply(RaftLogEntry[] entries) {
-        stateMachine.apply(entries);
+    public void apply(AppliableLogEntry[] requests) {
+        stateMachine.apply(requests);
         lastApplied.set(commitIndex.get());
     }
 

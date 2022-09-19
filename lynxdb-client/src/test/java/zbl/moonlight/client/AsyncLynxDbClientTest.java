@@ -2,13 +2,13 @@ package zbl.moonlight.client;
 
 import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.LynxDbFuture;
-import com.bailizhang.lynxdb.storage.core.Pair;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.server.LynxDbMainServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import com.bailizhang.lynxdb.storage.core.Pair;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.bailizhang.lynxdb.server.engine.result.Result.*;
-import static com.bailizhang.lynxdb.server.engine.result.Result.Error.INVALID_ARGUMENT;
+import static com.bailizhang.lynxdb.server.engine.result.Result.SUCCESS;
+import static com.bailizhang.lynxdb.server.engine.result.Result.SUCCESS_WITH_KV_PAIRS;
 
 class AsyncLynxDbClientTest {
     public static final String HOST = "127.0.0.1";

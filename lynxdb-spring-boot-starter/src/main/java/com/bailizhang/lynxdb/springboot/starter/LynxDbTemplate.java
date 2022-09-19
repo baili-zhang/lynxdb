@@ -12,7 +12,6 @@ import com.bailizhang.lynxdb.storage.core.Pair;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 

@@ -4,7 +4,6 @@ import com.bailizhang.lynxdb.storage.core.*;
 import com.bailizhang.lynxdb.storage.rocks.RocksTableAdapter;
 import org.junit.jupiter.api.*;
 
-import java.nio.file.Path;
 import java.util.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)

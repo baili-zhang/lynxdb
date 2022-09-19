@@ -1,8 +1,6 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
@@ -10,6 +8,8 @@ import com.bailizhang.lynxdb.storage.core.KvAdapter;
 import com.bailizhang.lynxdb.storage.core.TableAdapter;
 import com.bailizhang.lynxdb.storage.rocks.RocksKvAdapter;
 import com.bailizhang.lynxdb.storage.rocks.RocksTableAdapter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;

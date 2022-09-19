@@ -1,27 +1,27 @@
 package com.bailizhang.lynxdb.raft.server;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.raft.log.LogEntry;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
 import com.bailizhang.lynxdb.raft.request.RaftRequest;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
-import com.bailizhang.lynxdb.raft.common.RaftLogEntry;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.LeaderNotExistedResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.raft.state.RaftState;
-import com.bailizhang.lynxdb.socket.client.ClientRequest;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
+import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
+import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.result.RedirectResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.bailizhang.lynxdb.socket.client.ServerNode;
-import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.List;
 
 import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.IS_DONE;
 import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.NOT_DONE;
@@ -64,7 +64,6 @@ public class RaftServerHandler implements SocketServerHandler {
         int lastLogIndex = args.lastLogIndex();
         int lastLogTerm = args.lastLogTerm();
 
-        raftState.checkTerm(term);
         RequestVoteResult result = raftState.handleRequestVote(term, candidate, lastLogIndex, lastLogTerm);
 
         WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
@@ -78,10 +77,9 @@ public class RaftServerHandler implements SocketServerHandler {
         ServerNode leader = args.leader();
         int prevLogIndex = args.prevLogIndex();
         int prevLogTerm = args.prevLogTerm();
-        RaftLogEntry[] entries = args.entries();
+        List<LogEntry> entries = args.entries();
         int leaderCommit = args.leaderCommit();
 
-        raftState.checkTerm(term);
         AppendEntriesResult result = raftState.handleAppendEntries();
 
         WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
@@ -98,8 +96,6 @@ public class RaftServerHandler implements SocketServerHandler {
         int offset = args.offset();
         byte[] data = args.data();
         byte done = args.done();
-
-        raftState.checkTerm(term);
 
         InstallSnapshotResult result = switch (done) {
             case NOT_DONE -> raftState.handleInstallSnapshotDone();

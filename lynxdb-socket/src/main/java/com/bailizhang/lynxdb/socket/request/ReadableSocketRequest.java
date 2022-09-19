@@ -1,14 +1,15 @@
 package com.bailizhang.lynxdb.socket.request;
 
-import com.bailizhang.lynxdb.socket.interfaces.Readable;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.socket.interfaces.Readable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
 public class ReadableSocketRequest extends SocketRequest implements Readable {
     private final ByteBuffer lengthBuffer = ByteBuffer.allocate(INT_LENGTH);

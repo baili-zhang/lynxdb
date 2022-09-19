@@ -11,7 +11,10 @@ import com.bailizhang.lynxdb.storage.core.Key;
 import com.bailizhang.lynxdb.storage.core.MultiTableRows;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class TableInsertContent implements BytesListConvertible {

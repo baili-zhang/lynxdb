@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.cmd;
 
+import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
+import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 import com.bailizhang.lynxdb.cmd.lql.LQL;
 import com.bailizhang.lynxdb.cmd.lql.LqlQuery;
@@ -9,8 +11,6 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
-import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.storage.core.*;
 
 import java.io.IOException;

@@ -11,6 +11,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -54,27 +55,57 @@ public class LogGroup {
         indexList.sort(Integer::compareTo);
     }
 
-    public void appendKvDelete(BytesListConvertible convertible) {
-        append(LogEntryMethod.DELETE, LogEntryType.KV_STORE, convertible);
+    public void appendKvDelete(int term, BytesListConvertible convertible) {
+        append(LogEntryMethod.DELETE, LogEntryType.KV_STORE, term, convertible);
     }
 
-    public void appendKvSet(BytesListConvertible convertible) {
-        append(LogEntryMethod.SET, LogEntryType.KV_STORE, convertible);
+    public void appendKvSet(int term, BytesListConvertible convertible) {
+        append(LogEntryMethod.SET, LogEntryType.KV_STORE, term, convertible);
     }
 
-    public void appendTableDelete(BytesListConvertible convertible) {
-        append(LogEntryMethod.DELETE, LogEntryType.TABLE, convertible);
+    public void appendTableDelete(int term, BytesListConvertible convertible) {
+        append(LogEntryMethod.DELETE, LogEntryType.TABLE, term, convertible);
     }
 
-    public void appendTableSet(BytesListConvertible convertible) {
-        append(LogEntryMethod.SET, LogEntryType.TABLE, convertible);
+    public void appendTableSet(int term, BytesListConvertible convertible) {
+        append(LogEntryMethod.SET, LogEntryType.TABLE, term, convertible);
+    }
+
+    /**
+     * [begin, end]
+     *
+     * @param begin begin index
+     * @param end end index
+     */
+    public LinkedList<LogEntry> range(int begin, int end) {
+        LinkedList<LogEntry> entries = new LinkedList<>();
+
+        for(int i : indexList) {
+            LogRegion region = new LogRegion(i);
+
+            if(begin > region.end()) {
+                continue;
+            }
+
+            int minEnd = Math.min(region.end(), end);
+            for(int j = begin; j <= minEnd; j ++) {
+                LogEntry entry = region.readEntry(j);
+                entries.add(entry);
+            }
+
+            if(end <= region.end()) {
+                break;
+            }
+        }
+
+        return entries;
     }
 
     public void delete() {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    private void append(byte method, byte type, BytesListConvertible convertible) {
+    private void append(byte method, byte type, int term, BytesListConvertible convertible) {
         LogRegion region = lastRegion();
 
         if(region.length() >= DEFAULT_FILE_THRESHOLD) {
@@ -84,7 +115,7 @@ public class LogGroup {
         long current = region.length();
         byte[] data = convertible.toBytesList().toBytes();
 
-        LogEntry entry = new LogEntry(method, LogEntryValid.VALID, type, current, data);
+        LogEntry entry = new LogEntry(method, LogEntryValid.VALID, type, current, term, data);
         region.append(entry);
     }
 
