@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.raft.state;
 
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.log.LogEntry;
+import com.bailizhang.lynxdb.raft.log.LogRegion;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
@@ -34,6 +35,8 @@ public class RpcRaftState extends CoreRaftState {
 
     private final ConcurrentHashMap<SelectionKey, Integer> nextIndex = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SelectionKey, Integer> matchedIndex = new ConcurrentHashMap<>();
+
+    private volatile ServerNode votedFor = null;
 
     private RaftClient raftClient;
     private RaftServer raftServer;
@@ -100,15 +103,43 @@ public class RpcRaftState extends CoreRaftState {
     }
 
     public void appendEntriesSuccess(SelectionKey selectionKey) {
+        int newMatchIndex = nextIndex.get(selectionKey);
+        matchedIndex.put(selectionKey, newMatchIndex);
     }
 
     public void appendEntriesFailed(SelectionKey selectionKey) {
+        int oldMatchIndex = matchedIndex.get(selectionKey);
+        matchedIndex.put(selectionKey, oldMatchIndex - 1);
     }
 
     public RequestVoteResult handleRequestVote(int term, ServerNode candidate,
                                                int lastLogIndex, int lastLogTerm) {
+        if(checkTerm(term)) {
+            return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+        }
 
-        return null;
+        if(currentTerm == term && votedFor != null) {
+            return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+        }
+
+        if(electionTimeoutTimes.get() == 0) {
+            return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+        }
+
+        LogRegion region = raftLog.lastEntry();
+        int lastIndex = region.end();
+        if(lastLogIndex > lastIndex) {
+            votedFor = candidate;
+            return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
+        } else if(lastLogIndex == lastIndex) {
+            LogEntry entry = region.readIndex(lastIndex);
+            if(lastLogTerm > entry.term()) {
+                votedFor = candidate;
+                return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
+            }
+        }
+
+        return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
     }
 
 

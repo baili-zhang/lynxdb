@@ -40,7 +40,7 @@ class SocketServerTest {
                 assert Arrays.equals(request.data(), requestData);
 
                 BytesList bytesList = new BytesList();
-                bytesList.appendVarBytes(requestData);
+                bytesList.appendRawBytes(responseData);
 
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),

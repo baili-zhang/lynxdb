@@ -7,6 +7,8 @@ import com.bailizhang.lynxdb.raft.timeout.HeartbeatTask;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class TimeoutRaftState extends LogRaftState {
     private static final Logger logger = LogManager.getLogger("TimeoutRaftState");
 
@@ -23,13 +25,15 @@ public class TimeoutRaftState extends LogRaftState {
     private final Thread heartbeatThread;
     private final Thread electionThread;
 
+    protected final AtomicInteger electionTimeoutTimes = new AtomicInteger(0);
+
     public TimeoutRaftState() {
         final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
 
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
-        election = new Timeout(new ElectionTask(), ELECTION_INTERVAL_MILLIS);
+        election = new Timeout(new ElectionTask(electionTimeoutTimes), ELECTION_INTERVAL_MILLIS);
 
         heartbeatThread = new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME);
         electionThread = new Thread(election, ELECTION_TIMEOUT_NAME);

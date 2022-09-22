@@ -126,6 +126,16 @@ public class LogRegion implements AutoCloseable {
         }
     }
 
+    public LogEntry readIndex(int idx) {
+        if(idx < begin && idx > end) {
+            return null;
+        }
+
+        int i = idx - begin;
+
+        return entries.get(i);
+    }
+
     public LogEntry readEntry(int idx) {
         if(idx < begin && idx > end) {
             return null;

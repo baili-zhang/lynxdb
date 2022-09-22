@@ -133,4 +133,9 @@ public class LogGroup {
         indexList.add(++ id);
         return new LogRegion(id);
     }
+
+    public LogRegion lastEntry() {
+        Integer id = indexList.get(indexList.size() - 1);
+        return new LogRegion(id);
+    }
 }

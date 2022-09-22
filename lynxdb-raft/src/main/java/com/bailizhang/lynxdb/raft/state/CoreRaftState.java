@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.raft.state;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,12 +7,9 @@ import org.apache.logging.log4j.Logger;
 public class CoreRaftState extends TimeoutRaftState {
     private static final Logger logger = LogManager.getLogger("CoreRaftState");
 
-    private static final String CURRENT_TERM = "current_term";
-
     protected final ServerNode currentNode;
 
     protected volatile ServerNode leaderNode;
-    protected volatile int currentTerm;
 
     protected CoreRaftState() {
         currentNode = raftConfiguration.currentNode();
@@ -26,11 +22,6 @@ public class CoreRaftState extends TimeoutRaftState {
             return false;
         }
         return true;
-    }
-
-    public void currentTerm(int term) {
-        stateMachine.metaSet(CURRENT_TERM, BufferUtils.toBytes(term));
-        currentTerm = term;
     }
 
     public ServerNode currentNode() {
