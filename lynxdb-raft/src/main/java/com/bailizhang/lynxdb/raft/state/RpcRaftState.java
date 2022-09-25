@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.raft.state;
 
 import com.bailizhang.lynxdb.raft.client.RaftClient;
+import com.bailizhang.lynxdb.raft.common.AppliableLogEntry;
 import com.bailizhang.lynxdb.raft.log.LogEntry;
 import com.bailizhang.lynxdb.raft.log.LogRegion;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
@@ -87,6 +88,7 @@ public class RpcRaftState extends CoreRaftState {
         if(votedNodes.size() >= (serverNodes.size() >> 1) + 1) {
             transformToLeader();
             startTimeout();
+            initNextIndexAndMatchIndex();
         }
     }
 
@@ -143,8 +145,47 @@ public class RpcRaftState extends CoreRaftState {
     }
 
 
-    public AppendEntriesResult handleAppendEntries() {
-        return null;
+    public AppendEntriesResult handleAppendEntries(int term,
+                                                   ServerNode leader,
+                                                   int prevLogIndex,
+                                                   int prevLogTerm,
+                                                   List<LogEntry> entries,
+                                                   int leaderCommit) {
+
+        if(checkTerm(term)) {
+            return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
+        }
+
+        if(leaderNode == null) {
+            leaderNode = leader;
+        } else if(!leaderNode.equals(leader)) {
+            return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
+        }
+
+        LogRegion region = raftLog.lastEntry();
+        int preIndex = region.end();
+        LogEntry entry = region.readIndex(preIndex);
+        int preTerm = entry.term();
+
+        if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
+            return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
+        }
+
+        List<AppliableLogEntry> appliableLogEntries = entries.stream()
+                .map(logEntry ->
+                        new AppliableLogEntry(
+                                null,
+                                0,
+                                logEntry.type(),
+                                logEntry.data()
+                        )
+                )
+                .toList();
+
+        stateMachine.apply(appliableLogEntries);
+        commitIndex.set(leaderCommit);
+
+        return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
     }
 
     public InstallSnapshotResult handleInstallSnapshotDone() {
@@ -158,14 +199,6 @@ public class RpcRaftState extends CoreRaftState {
     public void handleClientRequest(byte[] command) {
     }
 
-    public int commitIndex() {
-        return commitIndex.get();
-    }
-
-    public void commitIndex(int index) {
-        commitIndex.set(index);
-    }
-
     public void raftClient(RaftClient client) {
         if(raftClient == null) {
             raftClient = client;
@@ -176,6 +209,20 @@ public class RpcRaftState extends CoreRaftState {
         if(raftServer == null) {
             raftServer = server;
             stateMachine.raftServer(server);
+        }
+    }
+
+    private void initNextIndexAndMatchIndex() {
+        nextIndex.clear();
+        matchedIndex.clear();
+
+        Set<SelectionKey> connected = raftClient.connectedNodes();
+        LogRegion region = raftLog.lastEntry();
+        int end = region.end();
+
+        for(SelectionKey selectionKey : connected) {
+            nextIndex.put(selectionKey, end + 1);
+            matchedIndex.put(selectionKey, 0);
         }
     }
 }

@@ -8,6 +8,4 @@ public record AppliableLogEntry(
         byte type,
         byte[] data
 ) {
-    public static final byte CLIENT_COMMAND = (byte) 0x01;
-    public static final byte MEMBER_CHANGE = (byte) 0x02;
 }

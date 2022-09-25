@@ -80,7 +80,14 @@ public class RaftServerHandler implements SocketServerHandler {
         List<LogEntry> entries = args.entries();
         int leaderCommit = args.leaderCommit();
 
-        AppendEntriesResult result = raftState.handleAppendEntries();
+        AppendEntriesResult result = raftState.handleAppendEntries(
+                term,
+                leader,
+                prevLogIndex,
+                prevLogTerm,
+                entries,
+                leaderCommit
+        );
 
         WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
         raftServer.offerInterruptibly(response);

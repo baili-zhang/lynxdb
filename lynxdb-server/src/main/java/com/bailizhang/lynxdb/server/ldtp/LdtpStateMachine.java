@@ -15,8 +15,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
-import static com.bailizhang.lynxdb.raft.common.AppliableLogEntry.CLIENT_COMMAND;
-import static com.bailizhang.lynxdb.raft.common.AppliableLogEntry.MEMBER_CHANGE;
+import static com.bailizhang.lynxdb.raft.state.RaftState.CLIENT_COMMAND;
+import static com.bailizhang.lynxdb.raft.state.RaftState.MEMBER_CHANGE;
 
 /**
  * TODO: 异步执行会不会存在数据丢失的问题？
@@ -57,7 +57,7 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     }
 
     @Override
-    public void apply(AppliableLogEntry[] entries) {
+    public void apply(List<AppliableLogEntry> entries) {
         for (AppliableLogEntry entry : entries) {
             switch (entry.type()) {
                 case CLIENT_COMMAND -> {

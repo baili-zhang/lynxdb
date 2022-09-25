@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.mode;
+package com.bailizhang.lynxdb.server.mode.cluster;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
@@ -7,6 +7,7 @@ import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.raft.server.RaftServerHandler;
 import com.bailizhang.lynxdb.raft.state.RaftState;
 import com.bailizhang.lynxdb.server.context.Configuration;
+import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.IOException;
