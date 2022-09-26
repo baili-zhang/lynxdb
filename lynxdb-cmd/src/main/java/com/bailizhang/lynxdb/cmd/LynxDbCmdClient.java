@@ -180,8 +180,8 @@ public class LynxDbCmdClient extends Shutdown {
 
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
-                LynxDbFuture future = client.asyncKvGet(current, kvstore, keys);
+                List<String> keys = query.keys();
+                LynxDbFuture future = client.asyncKvGet1(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printKvPairs(response, List.of(KEY_HEADER, VALUE_COLUMN));
             }
@@ -217,18 +217,18 @@ public class LynxDbCmdClient extends Shutdown {
         switch (query.from()) {
             case TABLE -> {
                 String table = query.tables().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                List<String> keys = query.keys();
 
-                LynxDbFuture future = client.asyncTableDelete(current, table, keys);
+                LynxDbFuture future = client.asyncTableDelete1(current, table, keys);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
 
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                List<String> keys = query.keys();
 
-                LynxDbFuture future = client.asyncKvDelete(current, kvstore, keys);
+                LynxDbFuture future = client.asyncKvDelete1(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -253,9 +253,9 @@ public class LynxDbCmdClient extends Shutdown {
 
             case COLUMNS -> {
                 String table = query.tables().get(0);
-                List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
+                List<String> columns = query.columns();
 
-                LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
+                LynxDbFuture future = client.asyncCreateTableColumn1(current, table, columns);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }

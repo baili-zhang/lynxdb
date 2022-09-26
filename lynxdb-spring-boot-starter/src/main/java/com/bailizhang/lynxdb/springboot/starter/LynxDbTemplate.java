@@ -39,13 +39,12 @@ public class LynxDbTemplate {
         return client.asyncCreateKvstore(current, kvstores);
     }
 
-    public LynxDbFuture asyncCreateTableColumn(String table, List<byte[]> columns) {
-        return client.asyncCreateTableColumn(current, table, columns);
+    public LynxDbFuture asyncCreateTableColumn0(String table, List<byte[]> columns) {
+        return client.asyncCreateTableColumn0(current, table, columns);
     }
 
-    public LynxDbFuture asyncCreateTableColumn(List<String> columns, String table) {
-        List<byte[]> cols = columns.stream().map(G.I::toBytes).toList();
-        return client.asyncCreateTableColumn(current, table, cols);
+    public LynxDbFuture asyncCreateTableColumn1(String table, List<String> columns) {
+        return client.asyncCreateTableColumn1(current, table, columns);
     }
 
     public LynxDbFuture asyncDropKvstore(List<String> kvstores) {
@@ -66,35 +65,32 @@ public class LynxDbTemplate {
         return client.asyncDropTableColumn(current, table, cols);
     }
 
-    public LynxDbFuture asyncKvDelete(String kvstore, List<byte[]> keys) {
-        return client.asyncKvDelete(current, kvstore, keys);
+    public LynxDbFuture asyncKvDelete0(String kvstore, List<byte[]> keys) {
+        return client.asyncKvDelete0(current, kvstore, keys);
     }
 
-    public LynxDbFuture asyncKvDelete(List<String> keys, String kvstore) {
-        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
-        return client.asyncKvDelete(current, kvstore, keyList);
+    public LynxDbFuture asyncKvDelete1(String kvstore, List<String> keys) {
+        return client.asyncKvDelete1(current, kvstore, keys);
     }
 
-    public LynxDbFuture asyncKvGet(String kvstore, List<byte[]> keys) {
-        return client.asyncKvGet(current, kvstore, keys);
+    public LynxDbFuture asyncKvGet0(String kvstore, List<byte[]> keys) {
+        return client.asyncKvGet0(current, kvstore, keys);
     }
 
-    public LynxDbFuture asyncKvGet(List<String> keys, String kvstore) {
-        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
-        return client.asyncKvGet(current, kvstore, keyList);
+    public LynxDbFuture asyncKvGet1(String kvstore, List<String> keys) {
+        return client.asyncKvGet1(current, kvstore, keys);
     }
 
     public LynxDbFuture asyncKvSet(String kvstore, List<Pair<byte[], byte[]>> kvPairs) {
         return client.asyncKvSet(current, kvstore, kvPairs);
     }
 
-    public LynxDbFuture asyncTableDelete(String table, List<byte[]> keys) {
-        return client.asyncTableDelete(current, table, keys);
+    public LynxDbFuture asyncTableDelete0(String table, List<byte[]> keys) {
+        return client.asyncTableDelete0(current, table, keys);
     }
 
-    public LynxDbFuture asyncTableDelete(List<String> keys, String table) {
-        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
-        return client.asyncTableDelete(current, table, keyList);
+    public LynxDbFuture asyncTableDelete1(String table, List<String> keys) {
+        return client.asyncTableDelete1(current, table, keys);
     }
 
     public LynxDbFuture asyncTableInsert(String table, MultiTableRows rows) {
