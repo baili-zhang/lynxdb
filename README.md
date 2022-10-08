@@ -39,10 +39,6 @@ com:
 private LynxDbTemplate lynxDbTemplate;
 ```
 
-*Example*
-
-GitHub: [lynxdb-spring-boot-starter-test](https://github.com/baili-zhang/lynxdb-spring-boot-starter-test)
-
 ## Query Language
 
 LQL (LynxDB Query Language) is a simple query statement similar to SQL statement, including create, delete, query, insert data and other statements.
