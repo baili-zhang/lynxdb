@@ -34,7 +34,7 @@
     <scm>
         <connection>scm:git:git://github.com/baili-zhang/lynxdb.git</connection>
         <developerConnection>scm:git:ssh://github.com:baili-zhang/lynxdb.git</developerConnection>
-        <url>https://github.com/baili-zhang/lynxdb/tree/master</url>
+        <url>https://github.com/baili-zhang/lynxdb/tree/main</url>
     </scm>
 
     <build>
