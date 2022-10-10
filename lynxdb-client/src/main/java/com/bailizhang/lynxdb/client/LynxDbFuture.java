@@ -4,6 +4,8 @@ import com.bailizhang.lynxdb.client.exception.InvalidArgumentException;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ClassUtils;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -12,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 import static com.bailizhang.lynxdb.server.engine.result.Result.Error.INVALID_ARGUMENT;
@@ -21,21 +24,34 @@ public class LynxDbFuture implements Future<byte[]> {
     private final static String SET_METHOD_PREFIX = "set";
     private final static String KEY_COLUMN = "key";
 
-    private final Thread current;
+    private final AtomicInteger count = new AtomicInteger(0);
+    private final Node header;
+    private volatile Node tail;
 
     private volatile boolean completed = false;
     private volatile byte[] value;
 
     public LynxDbFuture() {
-        current = Thread.currentThread();
+        Node node = new Node(null);
+        header = node;
+        tail = node;
     }
 
     public void value(byte[] val) {
+        if(completed) {
+            return;
+        }
+
         value = val;
 
         if(!completed) {
             completed = true;
-            LockSupport.unpark(current);
+
+            Node node = header;
+            while(node.next != null) {
+                node = node.next;
+                LockSupport.unpark(node.thread);
+            }
         }
     }
 
@@ -57,9 +73,26 @@ public class LynxDbFuture implements Future<byte[]> {
     @Override
     public byte[] get() {
         while (!completed) {
+            Thread thread = Thread.currentThread();
+            Node node = new Node(thread);
+            Node t = tail;
+
+            while(!TAIL.compareAndSet(this, t, node)) {
+                Thread.yield();
+                t = tail;
+            }
+
+            t.next = node;
+            node.prev = t;
+
+            count.getAndIncrement();
             LockSupport.park();
         }
         return value;
+    }
+
+    public int blockedThreadCount() {
+        return count.get();
     }
 
     public <T> T get(Class<T> clazz) throws InvalidArgumentException, NoSuchMethodException,
@@ -231,5 +264,26 @@ public class LynxDbFuture implements Future<byte[]> {
         }
 
         return methodMap;
+    }
+
+    private static class Node {
+        private Node prev;
+        private Node next;
+        private final Thread thread;
+
+        Node(Thread thd) {
+            thread = thd;
+        }
+    }
+
+    private static final VarHandle TAIL;
+
+    static {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            TAIL = lookup.findVarHandle(LynxDbFuture.class, "tail", Node.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
