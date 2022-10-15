@@ -9,17 +9,13 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 
 class LogGroupTest {
-    private LogGroup logGroup;
-
     @BeforeEach
     void setUp() {
-        G.I.converter(new Converter(StandardCharsets.UTF_8));
-        logGroup = new LogGroup();
+
     }
 
     @AfterEach
     void tearDown() {
-        logGroup.delete();
     }
 
     @Test

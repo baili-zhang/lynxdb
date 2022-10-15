@@ -6,6 +6,7 @@ import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.log.entry.LogEntryMethod;
 import com.bailizhang.lynxdb.raft.log.entry.LogEntryType;
 import com.bailizhang.lynxdb.raft.log.entry.LogEntryValid;
+import com.bailizhang.lynxdb.raft.state.RaftState;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -18,15 +19,16 @@ import java.util.List;
  * TODO: 日志 Region 压缩以后再做
  */
 public class LogGroup {
-    private static final String groupDir = RaftConfiguration.getInstance().logDir();
-
     private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
     private static final int BEGIN_ID = 1;
     private static final int BEGIN_INDEX = 1;
 
     private final List<Integer> indexList;
 
-    public LogGroup() {
+    private final String groupDir;
+
+    public LogGroup(String dir) {
+        groupDir = dir;
         File file = new File(groupDir);
 
         if(!file.exists()) {

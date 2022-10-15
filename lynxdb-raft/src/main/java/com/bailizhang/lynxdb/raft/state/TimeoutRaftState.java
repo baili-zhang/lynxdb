@@ -19,15 +19,15 @@ public class TimeoutRaftState extends LogRaftState {
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
 
-    private final Timeout heartbeat;
-    private final Timeout election;
-
-    private final Thread heartbeatThread;
-    private final Thread electionThread;
+    private Timeout heartbeat;
+    private Timeout election;
 
     protected final AtomicInteger electionTimeoutTimes = new AtomicInteger(0);
 
     public TimeoutRaftState() {
+    }
+
+    public void startTimeout() {
         final int ELECTION_INTERVAL_MILLIS = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
@@ -35,11 +35,9 @@ public class TimeoutRaftState extends LogRaftState {
         heartbeat = new Timeout(new HeartbeatTask(), HEARTBEAT_INTERVAL_MILLIS);
         election = new Timeout(new ElectionTask(electionTimeoutTimes), ELECTION_INTERVAL_MILLIS);
 
-        heartbeatThread = new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME);
-        electionThread = new Thread(election, ELECTION_TIMEOUT_NAME);
-    }
+        Thread heartbeatThread = new Thread(heartbeat, HEARTBEAT_TIMEOUT_NAME);
+        Thread electionThread = new Thread(election, ELECTION_TIMEOUT_NAME);
 
-    public void startTimeout() {
         String electionMode = raftConfiguration.electionMode();
 
         if (isLeader() || RaftConfiguration.LEADER.equals(electionMode)

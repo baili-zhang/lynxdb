@@ -27,7 +27,15 @@ public class BaseRaftState {
         }
 
         stateMachine = smOptional.get();
-        raftConfiguration = RaftConfiguration.getInstance();
+
+        ServiceLoader<RaftConfiguration> raftConfigurations = ServiceLoader.load(RaftConfiguration.class);
+        Optional<RaftConfiguration> rcOptional = raftConfigurations.findFirst();
+
+        if(rcOptional.isEmpty()) {
+            throw new RuntimeException("Can not find RaftConfiguration.");
+        }
+
+        raftConfiguration = rcOptional.get();
     }
 
     protected volatile RaftRole raftRole = RaftRole.FOLLOWER;
@@ -68,5 +76,9 @@ public class BaseRaftState {
         raftRole = role;
 
         logger.info("Transform raftRole from [{}] to [{}]", oldRaftRole, raftRole);
+    }
+
+    public String logDir() {
+        return raftConfiguration.logDir();
     }
 }

@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class LogRaftState extends BaseRaftState {
     protected final ConcurrentLinkedDeque<LogEntry> raftLogEntryDeque = new ConcurrentLinkedDeque<>();
-    protected final LogGroup raftLog = new LogGroup();
+    protected final LogGroup raftLog = new LogGroup(raftConfiguration.logDir());
 
     protected LogRaftState() {
     }

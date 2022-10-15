@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.raft.log;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.state.RaftState;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +33,7 @@ public class LogRegion implements AutoCloseable {
     private static final int DEFAULT_NAME_LENGTH = 8;
     private static final String ZERO = "0";
 
-    private static final String groupDir = RaftConfiguration.getInstance().logDir();
+    private static final String groupDir = RaftState.getInstance().logDir();
 
     private final File file;
 
