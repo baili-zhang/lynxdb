@@ -66,7 +66,7 @@ class AsyncLynxDbClientTest {
 
         for(int i = 0; i < 100; i ++) {
             String key = KEY + i;
-            LynxDbFuture fut = client.asyncKvGet1(current, KV_STORE, List.of(key));
+            LynxDbFuture fut = client.asyncKvGetByStrList(current, KV_STORE, List.of(key));
             byte[] r = fut.get();
             assert r[0] == SUCCESS_WITH_KV_PAIRS;
         }

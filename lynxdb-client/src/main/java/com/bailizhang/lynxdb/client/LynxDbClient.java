@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.client.exception.LynxDbException;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.storage.core.Column;
 import com.bailizhang.lynxdb.storage.core.MultiTableKeys;
 import com.bailizhang.lynxdb.storage.core.MultiTableRows;
@@ -13,75 +15,131 @@ public class LynxDbClient extends AsyncLynxDbClient {
     public LynxDbClient() {
     }
 
-    public byte[] createTable(SelectionKey selectionKey,
-                              List<String> tables) {
+    public void createTable(SelectionKey selectionKey,
+                            List<String> tables) {
         LynxDbFuture future = asyncCreateTable(selectionKey, tables);
-        return future.get();
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
-    public byte[] createKvstore(SelectionKey selectionKey,
-                                List<String> kvstores) {
-        LynxDbFuture future = asyncCreateKvstore(selectionKey, kvstores);
-        return future.get();
-    }
-
-    public byte[] createTableColumn0(SelectionKey selectionKey,
-                                     String table,
-                                     List<byte[]> columns) {
-        LynxDbFuture future = asyncCreateTableColumn0(selectionKey, table, columns);
-        return future.get();
-    }
-
-    public byte[] createTableColumn1(SelectionKey selectionKey,
-                                     String table,
-                                     List<String> columns) {
-        LynxDbFuture future = asyncCreateTableColumn1(selectionKey, table, columns);
-        return future.get();
-    }
-
-    public byte[] dropKvstore(SelectionKey selectionKey,
+    public void createKvstore(SelectionKey selectionKey,
                               List<String> kvstores) {
+        LynxDbFuture future = asyncCreateKvstore(selectionKey, kvstores);
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
+    }
+
+    public void createTableColumnByBytesList(SelectionKey selectionKey,
+                                   String table,
+                                   List<byte[]> columns) {
+        LynxDbFuture future = asyncCreateTableColumnByBytesList(selectionKey, table, columns);
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
+    }
+
+    public void createTableColumnByStrList(SelectionKey selectionKey,
+                                   String table,
+                                   List<String> columns) {
+        LynxDbFuture future = asyncCreateTableColumnByStrList(selectionKey, table, columns);
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
+    }
+
+    public void dropKvstore(SelectionKey selectionKey,
+                            List<String> kvstores) {
         LynxDbFuture future = asyncDropKvstore(selectionKey, kvstores);
-        return future.get();
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
-    public byte[] dropTable(SelectionKey selectionKey,
-                                  List<String> tables) {
+    public void dropTable(SelectionKey selectionKey,
+                          List<String> tables) {
         LynxDbFuture future = asyncDropTable(selectionKey, tables);
-        return future.get();
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
-    public byte[] dropTableColumn(SelectionKey selectionKey,
-                                  String table,
-                                  HashSet<Column> columns) {
+    public void dropTableColumn(SelectionKey selectionKey,
+                                String table,
+                                HashSet<Column> columns) {
         LynxDbFuture future = asyncDropTableColumn(selectionKey, table, columns);
-        return future.get();
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
-    public byte[] kvDelete0(SelectionKey selectionKey,
-                                       String kvstore,
-                                       List<byte[]> keys) {
-        LynxDbFuture future = asyncKvDelete0(selectionKey, kvstore, keys);
-        return future.get();
+    public void kvDeleteByBytesList(SelectionKey selectionKey,
+                          String kvstore,
+                          List<byte[]> keys) {
+        LynxDbFuture future = asyncKvDeleteByBytesList(selectionKey, kvstore, keys);
+        byte[] value = future.get();
+
+        LynxDbResult result = new LynxDbResult(value);
+        if(result.isDone()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
-    public byte[] kvDelete1(SelectionKey selectionKey,
-                            String kvstore,
-                            List<String> keys) {
-        LynxDbFuture future = asyncKvDelete1(selectionKey, kvstore, keys);
-        return future.get();
+    public void kvDeleteByStrList(SelectionKey selectionKey,
+                          String kvstore,
+                          List<String> keys) {
+        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
+        kvDeleteByBytesList(selectionKey, kvstore, keyList);
     }
 
-    public byte[] kvGet0(SelectionKey selectionKey,
+    public <T> List<T> kvGetByClass(SelectionKey selectionKey, Class<T> clazz) {
+
+    }
+
+    public byte[] kvGetByBytesList(SelectionKey selectionKey,
                          String kvstore, List<byte[]> keys) {
-        LynxDbFuture future = asyncKvGet0(selectionKey, kvstore, keys);
+        LynxDbFuture future = asyncKvGetByBytesList(selectionKey, kvstore, keys);
         return future.get();
     }
 
-    public byte[] kvGet1(SelectionKey selectionKey,
+    public byte[] kvGetByStrList(SelectionKey selectionKey,
                          String kvstore, List<String> keys) {
-        LynxDbFuture future = asyncKvGet1(selectionKey, kvstore, keys);
+        LynxDbFuture future = asyncKvGetByStrList(selectionKey, kvstore, keys);
         return future.get();
+    }
+
+    public <T> List<T> kvGetByClassSelective(SelectionKey selectionKey, List<byte[]> keys, Class<T> clazz) {
+
     }
 
     public byte[] kvSet(SelectionKey selectionKey,

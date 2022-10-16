@@ -40,11 +40,11 @@ public class LynxDbTemplate {
     }
 
     public LynxDbFuture asyncCreateTableColumn0(String table, List<byte[]> columns) {
-        return client.asyncCreateTableColumn0(current, table, columns);
+        return client.asyncCreateTableColumnByBytesList(current, table, columns);
     }
 
     public LynxDbFuture asyncCreateTableColumn1(String table, List<String> columns) {
-        return client.asyncCreateTableColumn1(current, table, columns);
+        return client.asyncCreateTableColumnByStrList(current, table, columns);
     }
 
     public LynxDbFuture asyncDropKvstore(List<String> kvstores) {
@@ -66,7 +66,7 @@ public class LynxDbTemplate {
     }
 
     public LynxDbFuture asyncKvDelete0(String kvstore, List<byte[]> keys) {
-        return client.asyncKvDelete0(current, kvstore, keys);
+        return client.asyncKvDeleteByBytesList(current, kvstore, keys);
     }
 
     public LynxDbFuture asyncKvDelete1(String kvstore, List<String> keys) {
@@ -74,11 +74,11 @@ public class LynxDbTemplate {
     }
 
     public LynxDbFuture asyncKvGet0(String kvstore, List<byte[]> keys) {
-        return client.asyncKvGet0(current, kvstore, keys);
+        return client.asyncKvGetByBytesList(current, kvstore, keys);
     }
 
     public LynxDbFuture asyncKvGet1(String kvstore, List<String> keys) {
-        return client.asyncKvGet1(current, kvstore, keys);
+        return client.asyncKvGetByStrList(current, kvstore, keys);
     }
 
     public LynxDbFuture asyncKvSet(String kvstore, List<Pair<byte[], byte[]>> kvPairs) {
