@@ -1,9 +1,10 @@
 package com.bailizhang.lynxdb.client;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.raft.request.ClientRequest;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.query.*;
+import com.bailizhang.lynxdb.socket.client.ClientRequest;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.storage.core.Column;
 import com.bailizhang.lynxdb.storage.core.MultiTableKeys;
@@ -48,9 +49,9 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncCreateTableColumn(SelectionKey selectionKey,
-                                               String table,
-                                               List<byte[]> columns) {
+    public LynxDbFuture asyncCreateTableColumnByBytesList(SelectionKey selectionKey,
+                                                          String table,
+                                                          List<byte[]> columns) {
         LynxDbFuture future = new LynxDbFuture();
         CreateTableColumnContent content = new CreateTableColumnContent(table, columns);
 
@@ -60,6 +61,13 @@ public class AsyncLynxDbClient extends SocketClient {
         futureMap.get(selectionKey).put(serial, future);
 
         return future;
+    }
+
+    public LynxDbFuture asyncCreateTableColumn(SelectionKey selectionKey,
+                                               String table,
+                                               List<String> columns) {
+        List<byte[]> cols = columns.stream().map(G.I::toBytes).toList();
+        return asyncCreateTableColumnByBytesList(selectionKey, table, cols);
     }
 
     public LynxDbFuture asyncDropKvstore(SelectionKey selectionKey,
@@ -102,9 +110,9 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncKvDelete(SelectionKey selectionKey,
-                                      String kvstore,
-                                      List<byte[]> keys) {
+    public LynxDbFuture asyncKvDeleteByBytesList(SelectionKey selectionKey,
+                                                 String kvstore,
+                                                 List<byte[]> keys) {
         LynxDbFuture future = new LynxDbFuture();
         KvDeleteContent content = new KvDeleteContent(kvstore, keys);
         ClientRequest request = new ClientRequest(selectionKey, content);
@@ -115,8 +123,15 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncKvGet(SelectionKey selectionKey,
-                                   String kvstore, List<byte[]> keys) {
+    public LynxDbFuture asyncKvDelete1(SelectionKey selectionKey,
+                                       String kvstore,
+                                       List<String> keys) {
+        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
+        return asyncKvDeleteByBytesList(selectionKey, kvstore, keyList);
+    }
+
+    public LynxDbFuture asyncKvGetByBytesList(SelectionKey selectionKey,
+                                              String kvstore, List<byte[]> keys) {
         LynxDbFuture future = new LynxDbFuture();
         KvGetContent content = new KvGetContent(kvstore, keys);
         ClientRequest request = new ClientRequest(selectionKey, content);
@@ -125,6 +140,12 @@ public class AsyncLynxDbClient extends SocketClient {
         futureMap.get(selectionKey).put(serial, future);
 
         return future;
+    }
+
+    public LynxDbFuture asyncKvGet(SelectionKey selectionKey,
+                                   String kvstore, List<String> keys) {
+        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
+        return asyncKvGetByBytesList(selectionKey, kvstore, keyList);
     }
 
     public LynxDbFuture asyncKvSet(SelectionKey selectionKey,
@@ -140,7 +161,7 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncTableDelete(SelectionKey selectionKey,
+    public LynxDbFuture asyncTableDelete0(SelectionKey selectionKey,
                                          String table,
                                          List<byte[]> keys) {
         LynxDbFuture future = new LynxDbFuture();
@@ -151,6 +172,13 @@ public class AsyncLynxDbClient extends SocketClient {
         futureMap.get(selectionKey).put(serial, future);
 
         return future;
+    }
+
+    public LynxDbFuture asyncTableDelete1(SelectionKey selectionKey,
+                                          String table,
+                                          List<String> keys) {
+        List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
+        return asyncTableDelete0(selectionKey, table, keyList);
     }
 
     public LynxDbFuture asyncTableInsert(SelectionKey selectionKey,

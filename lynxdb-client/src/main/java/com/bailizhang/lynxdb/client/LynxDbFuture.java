@@ -1,39 +1,42 @@
 package com.bailizhang.lynxdb.client;
 
-import com.bailizhang.lynxdb.client.exception.InvalidArgumentException;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ClassUtils;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-import static com.bailizhang.lynxdb.server.engine.result.Result.*;
-import static com.bailizhang.lynxdb.server.engine.result.Result.Error.INVALID_ARGUMENT;
-
 public class LynxDbFuture implements Future<byte[]> {
-    private final static String SET_METHOD_PREFIX = "set";
-    private final static String KEY_COLUMN = "key";
 
-    private final Thread current;
+    private final AtomicInteger count = new AtomicInteger(0);
+    private final Node header;
+    private volatile Node tail;
 
     private volatile boolean completed = false;
     private volatile byte[] value;
 
     public LynxDbFuture() {
-        current = Thread.currentThread();
+        Node node = new Node(null);
+        header = node;
+        tail = node;
     }
 
     public void value(byte[] val) {
+        if(completed) {
+            return;
+        }
+
         value = val;
 
         if(!completed) {
             completed = true;
-            LockSupport.unpark(current);
+
+            Node node = header;
+            while(node.next != null) {
+                node = node.next;
+                LockSupport.unpark(node.thread);
+            }
         }
     }
 
@@ -55,121 +58,22 @@ public class LynxDbFuture implements Future<byte[]> {
     @Override
     public byte[] get() {
         while (!completed) {
+            Thread thread = Thread.currentThread();
+            Node node = new Node(thread);
+            Node t = tail;
+
+            while(!TAIL.compareAndSet(this, t, node)) {
+                Thread.yield();
+                t = tail;
+            }
+
+            t.next = node;
+            node.prev = t;
+
+            count.getAndIncrement();
             LockSupport.park();
         }
         return value;
-    }
-
-    public <T> T get(Class<T> clazz) throws InvalidArgumentException, NoSuchMethodException,
-            InvocationTargetException, InstantiationException, IllegalAccessException {
-
-        byte[] value = get();
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-
-        byte code = buffer.get();
-        switch (code) {
-            case SUCCESS_WITH_KV_PAIRS -> {
-                T instance = clazz.getDeclaredConstructor().newInstance();
-                HashMap<String, Method> methodMap = methodMap(clazz);
-
-                while (BufferUtils.isNotOver(buffer)) {
-                    String key = BufferUtils.getString(buffer);
-
-                    String methodName = SET_METHOD_PREFIX + key.replace("_", "").toLowerCase();
-                    Method method = methodMap.get(methodName);
-
-                    if(method == null) {
-                        continue;
-                    }
-
-                    Class<?> parameterType = method.getParameterTypes()[0];
-                    Object val = getValue(buffer, parameterType);
-
-                    method.invoke(instance, val);
-                }
-
-                return instance;
-            }
-
-            case INVALID_ARGUMENT -> {
-                String message = BufferUtils.getRemainingString(buffer);
-                throw new InvalidArgumentException(message);
-            }
-
-            default -> throw new UnsupportedOperationException();
-        }
-    }
-
-    public List<String> getList() throws InvalidArgumentException {
-        byte[] value = get();
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-
-        byte code = buffer.get();
-        switch (code) {
-            case SUCCESS_WITH_LIST -> {
-                List<String> list = new ArrayList<>();
-
-                while (BufferUtils.isNotOver(buffer)) {
-                    list.add(BufferUtils.getString(buffer));
-                }
-
-                return list;
-            }
-
-            case INVALID_ARGUMENT -> {
-                String message = BufferUtils.getRemainingString(buffer);
-                throw new InvalidArgumentException(message);
-            }
-
-            default -> throw new UnsupportedOperationException();
-        }
-    }
-
-    public <T> List<T> getList(Class<T> clazz) throws InvalidArgumentException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        byte[] value = get();
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-
-        byte code = buffer.get();
-        switch (code) {
-            case SUCCESS_WITH_TABLE -> {
-                List<T> list = new ArrayList<>();
-
-                int columnSize = buffer.getInt();
-                List<String> columns = new ArrayList<>();
-
-                columns.add(KEY_COLUMN);
-                for(int i = 0; i < columnSize; i ++) {
-                    columns.add(BufferUtils.getString(buffer));
-                }
-
-                HashMap<String, Method> methodMap = methodMap(clazz);
-
-                while (BufferUtils.isNotOver(buffer)) {
-                    T instance = clazz.getDeclaredConstructor().newInstance();
-
-                    for(int i = 0; i < columnSize + 1; i ++) {
-                        String column = KEY_COLUMN + columns.get(i).toLowerCase();
-
-                        Method method = methodMap.get(column);
-                        Class<?> parameterType = method.getParameterTypes()[0];
-                        Object val = getValue(buffer, parameterType);
-
-                        method.invoke(instance, val);
-                    }
-
-                    list.add(instance);
-                }
-
-                return list;
-            }
-
-            case INVALID_ARGUMENT -> {
-                String message = BufferUtils.getRemainingString(buffer);
-                throw new InvalidArgumentException(message);
-            }
-
-            default -> throw new UnsupportedOperationException();
-        }
     }
 
     @Override
@@ -177,57 +81,28 @@ public class LynxDbFuture implements Future<byte[]> {
         throw new UnsupportedOperationException();
     }
 
-    private Object getValue(ByteBuffer buffer, Class<?> parameterType) {
-        Object val;
-
-        if (ClassUtils.isString(parameterType)) {
-            val = BufferUtils.getString(buffer);
-        } else if (ClassUtils.isByte(parameterType)) {
-            val = buffer.get();
-        } else if (ClassUtils.isShort(parameterType)) {
-            val = buffer.getShort();
-        } else if (ClassUtils.isInt(parameterType)) {
-            val = buffer.getInt();
-        } else if (ClassUtils.isLong(parameterType)) {
-            val = buffer.getLong();
-        } else if (ClassUtils.isChar(parameterType)) {
-            val = buffer.getChar();
-        } else if (ClassUtils.isFloat(parameterType)) {
-            val = buffer.getFloat();
-        } else if (ClassUtils.isDouble(parameterType)) {
-            val = buffer.getDouble();
-        } else {
-            throw new RuntimeException("Unsupported parameter type: " + parameterType.getName());
-        }
-
-        return val;
+    public int blockedThreadCount() {
+        return count.get();
     }
 
-    private HashMap<String, Method> methodMap(Class<?> clazz) {
-        Method[] methods = clazz.getDeclaredMethods();
-        HashMap<String, Method> methodMap = new HashMap<>();
+    private static class Node {
+        private Node prev;
+        private Node next;
+        private final Thread thread;
 
-        for(Method method : methods) {
-            if(method.getParameterCount() != 1) {
-                continue;
-            }
-
-            Class<?> parameterType = method.getParameterTypes()[0];
-            if(!ClassUtils.isByte(parameterType)
-                    && !ClassUtils.isInt(parameterType)
-                    && !ClassUtils.isShort(parameterType)
-                    && !ClassUtils.isLong(parameterType)
-                    && !ClassUtils.isString(parameterType)
-                    && !ClassUtils.isChar(parameterType)
-                    && !ClassUtils.isFloat(parameterType)
-                    && !ClassUtils.isDouble(parameterType)) {
-                continue;
-            }
-
-            String methodName = method.getName().replace("_", "").toLowerCase();
-            methodMap.put(methodName, method);
+        Node(Thread thd) {
+            thread = thd;
         }
+    }
 
-        return methodMap;
+    private static final VarHandle TAIL;
+
+    static {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            TAIL = lookup.findVarHandle(LynxDbFuture.class, "tail", Node.class);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

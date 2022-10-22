@@ -1,21 +1,22 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
-import com.bailizhang.lynxdb.raft.state.RaftLogEntry;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.raft.common.AppliableLogEntry;
+import com.bailizhang.lynxdb.raft.common.RaftCommand;
+import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
-import com.bailizhang.lynxdb.raft.state.RaftCommand;
-import com.bailizhang.lynxdb.raft.state.StateMachine;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
-import static com.bailizhang.lynxdb.raft.state.RaftState.CLUSTER_MEMBERSHIP_CHANGE;
-import static com.bailizhang.lynxdb.raft.state.RaftState.DATA_CHANGE;
+import static com.bailizhang.lynxdb.raft.state.RaftState.CLIENT_COMMAND;
+import static com.bailizhang.lynxdb.raft.state.RaftState.MEMBER_CHANGE;
 
 /**
  * TODO: 异步执行会不会存在数据丢失的问题？
@@ -27,9 +28,6 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
 
     public static final String C_OLD_NEW = "c_old_new";
 
-    /**
-     * 定义成 static final 类型，无论实例化多少个 MdtpStateMachine，都只有一个 MdtpStorageEngine 实例
-     */
     private static final LdtpStorageEngine storageEngine = new LdtpStorageEngine();
 
     private RaftServer raftServer;
@@ -39,6 +37,11 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
 
     public void raftServer(RaftServer server) {
         raftServer = server;
+    }
+
+    @Override
+    public void metaSet(String key, byte[] value) {
+        storageEngine.metaSet(key, value);
     }
 
     @Override
@@ -54,16 +57,23 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     }
 
     @Override
-    public void apply(RaftLogEntry[] entries) {
-        for (RaftLogEntry entry : entries) {
+    public void apply(List<AppliableLogEntry> entries) {
+        for (AppliableLogEntry entry : entries) {
             switch (entry.type()) {
-                case DATA_CHANGE -> {
-                    byte[] command = entry.command();
+                case CLIENT_COMMAND -> {
+                    byte[] command = entry.data();
                     QueryParams params = QueryParams.parse(command);
+                    BytesList bytesList = storageEngine.doQuery(params);
+                    WritableSocketResponse response = new WritableSocketResponse(
+                            entry.selectionKey(),
+                            entry.serial(),
+                            bytesList
+                    );
+                    raftServer.offerInterruptibly(response);
                 }
 
-                case CLUSTER_MEMBERSHIP_CHANGE -> {
-                    storageEngine.metaSet(C_OLD_NEW, entry.command());
+                case MEMBER_CHANGE -> {
+                    storageEngine.metaSet(C_OLD_NEW, entry.data());
                 }
             }
         }

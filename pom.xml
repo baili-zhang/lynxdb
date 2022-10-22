@@ -7,7 +7,7 @@
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.4-SNAPSHOT</version>
+    <version>2022.0.2-alpha</version>
 
     <modules>
         <module>lynxdb-server</module>
@@ -21,7 +21,7 @@
     </modules>
 
     <properties>
-        <springboot.version>2.7.3</springboot.version>
+        <springboot.version>2.7.4</springboot.version>
         <rocksdb.version>7.3.1</rocksdb.version>
         <lombok.version>1.18.20</lombok.version>
         <log4j.version>2.16.0</log4j.version>

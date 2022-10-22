@@ -9,4 +9,5 @@ public interface KvAdapter extends AutoCloseable {
     void set(List<Pair<byte[], byte[]>> kvPairs);
     void delete(byte[] key);
     void delete(List<byte[]> keys);
+    Snapshot snapshot();
 }

@@ -2,7 +2,6 @@ package com.bailizhang.lynxdb.server.engine.query;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.QueryParams;

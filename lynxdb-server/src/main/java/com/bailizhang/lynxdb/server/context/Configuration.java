@@ -1,9 +1,7 @@
 package com.bailizhang.lynxdb.server.context;
 
-import lombok.ToString;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import lombok.ToString;
 
 import java.io.BufferedReader;
 import java.io.File;

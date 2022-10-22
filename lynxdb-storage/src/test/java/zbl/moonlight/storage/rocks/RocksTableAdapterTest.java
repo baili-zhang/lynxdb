@@ -4,7 +4,6 @@ import com.bailizhang.lynxdb.storage.core.*;
 import com.bailizhang.lynxdb.storage.rocks.RocksTableAdapter;
 import org.junit.jupiter.api.*;
 
-import java.nio.file.Path;
 import java.util.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
@@ -33,8 +32,7 @@ class RocksTableAdapterTest {
 
     @BeforeEach
     void setUp() {
-        Path path = Path.of(DB_DIR, DB_NAME);
-        db = new RocksTableAdapter(path.toString());
+        db = new RocksTableAdapter(DB_DIR, DB_NAME);
 
         for(int i = 0; i < 10; i ++) {
             byte[] bytes = (Constant.COLUMN_STR + i).getBytes();

@@ -6,5 +6,6 @@ package com.bailizhang.lynxdb.core.timeout;
  *  主要是为了语义上的清楚。
  */
 @FunctionalInterface
-public interface TimeoutTask extends Runnable {
+public interface TimeoutTask {
+    void execute();
 }

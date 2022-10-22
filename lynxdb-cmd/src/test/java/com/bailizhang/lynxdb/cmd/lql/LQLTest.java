@@ -1,12 +1,12 @@
 package com.bailizhang.lynxdb.cmd.lql;
 
-import org.junit.jupiter.api.Test;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static com.bailizhang.lynxdb.cmd.lql.LQL.Keywords.*;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 class LQLTest {
 

@@ -1,9 +1,9 @@
 package com.bailizhang.lynxdb.storage.rocks.query.table;
 
-import org.rocksdb.*;
 import com.bailizhang.lynxdb.storage.core.ResultSet;
 import com.bailizhang.lynxdb.storage.core.exception.ColumnAlreadyExistedException;
 import com.bailizhang.lynxdb.storage.rocks.query.Query;
+import org.rocksdb.*;
 
 import static com.bailizhang.lynxdb.storage.rocks.RocksDatabase.COLUMN_FAMILY_ALREADY_EXISTS;
 
