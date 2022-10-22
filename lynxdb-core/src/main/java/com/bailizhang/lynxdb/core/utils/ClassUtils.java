@@ -1,5 +1,9 @@
 package com.bailizhang.lynxdb.core.utils;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public interface ClassUtils {
@@ -33,5 +37,11 @@ public interface ClassUtils {
 
     static boolean isDouble(Class<?> clazz) {
         return Objects.equals(clazz, double.class) || Objects.equals(clazz, Double.class);
+    }
+
+    static List<Field> findFields(Class<?> clazz, Class<? extends Annotation> annotation) {
+        return Arrays.stream(clazz.getDeclaredFields())
+                .filter(field -> FieldUtils.isAnnotated(field, annotation))
+                .toList();
     }
 }

@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.cmd;
 
+import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
+import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 import com.bailizhang.lynxdb.cmd.lql.LQL;
 import com.bailizhang.lynxdb.cmd.lql.LqlQuery;
@@ -9,8 +11,6 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
-import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.storage.core.*;
 
 import java.io.IOException;
@@ -180,7 +180,7 @@ public class LynxDbCmdClient extends Shutdown {
 
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                List<String> keys = query.keys();
                 LynxDbFuture future = client.asyncKvGet(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printKvPairs(response, List.of(KEY_HEADER, VALUE_COLUMN));
@@ -217,18 +217,18 @@ public class LynxDbCmdClient extends Shutdown {
         switch (query.from()) {
             case TABLE -> {
                 String table = query.tables().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                List<String> keys = query.keys();
 
-                LynxDbFuture future = client.asyncTableDelete(current, table, keys);
+                LynxDbFuture future = client.asyncTableDelete1(current, table, keys);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
 
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
-                List<byte[]> keys = query.keys().stream().map(G.I::toBytes).toList();
+                List<String> keys = query.keys();
 
-                LynxDbFuture future = client.asyncKvDelete(current, kvstore, keys);
+                LynxDbFuture future = client.asyncKvDelete1(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }
@@ -253,7 +253,7 @@ public class LynxDbCmdClient extends Shutdown {
 
             case COLUMNS -> {
                 String table = query.tables().get(0);
-                List<byte[]> columns = query.columns().stream().map(G.I::toBytes).toList();
+                List<String> columns = query.columns();
 
                 LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
                 byte[] response = future.get();

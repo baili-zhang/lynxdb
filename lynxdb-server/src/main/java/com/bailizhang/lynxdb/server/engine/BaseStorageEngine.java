@@ -1,8 +1,6 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
@@ -10,6 +8,8 @@ import com.bailizhang.lynxdb.storage.core.KvAdapter;
 import com.bailizhang.lynxdb.storage.core.TableAdapter;
 import com.bailizhang.lynxdb.storage.rocks.RocksKvAdapter;
 import com.bailizhang.lynxdb.storage.rocks.RocksTableAdapter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * BaseStorageEngine：
@@ -43,16 +44,16 @@ public abstract class BaseStorageEngine {
 
     public BaseStorageEngine(Class<? extends BaseStorageEngine> clazz) {
         String dataDir = Configuration.getInstance().dataDir();
-        String metaDbDir = Path.of(dataDir, META_DIR, META_DB_NAME).toString();
+        String metaDbDir = Path.of(dataDir, META_DIR).toString();
 
-        metaDb = new RocksKvAdapter(metaDbDir);
+        metaDb = new RocksKvAdapter(metaDbDir, META_DB_NAME);
 
         initKvDb();
         initTable();
         initMethod(clazz);
     }
 
-    public BytesList doQuery(QueryParams params) {
+    public synchronized BytesList doQuery(QueryParams params) {
         Method doQueryMethod = methodMap.get(params.method());
         if(doQueryMethod == null) {
             throw new RuntimeException("Not Supported mdtp method.");
@@ -63,6 +64,22 @@ public abstract class BaseStorageEngine {
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public synchronized List<String> allKvstores() {
+        return kvDbMap.keySet().stream().toList();
+    }
+
+    public synchronized List<String> allTables() {
+        return tableMap.keySet().stream().toList();
+    }
+
+    public synchronized byte[] kvstoreData(String kvstore) {
+        return null;
+    }
+
+    public synchronized byte[] tableData(String table) {
+        return null;
     }
 
     private void initKvDb() {
@@ -84,7 +101,7 @@ public abstract class BaseStorageEngine {
         for (String kvDbName : kvDbNames) {
             File subFile = Path.of(kvDir.getPath(), kvDbName).toFile();
             if(subFile.isDirectory()) {
-                kvDbMap.put(kvDbName, new RocksKvAdapter(subFile.getPath()));
+                kvDbMap.put(kvDbName, new RocksKvAdapter(kvPath.toString(), kvDbName));
             }
         }
     }
@@ -108,7 +125,7 @@ public abstract class BaseStorageEngine {
         for (String tableDbName : tableDbNames) {
             File subFile = Path.of(tableDir.getPath(), tableDbName).toFile();
             if(subFile.isDirectory()) {
-                tableMap.put(tableDbName, new RocksTableAdapter(subFile.getPath()));
+                tableMap.put(tableDbName, new RocksTableAdapter(tablePath.toString(), tableDbName));
             }
         }
     }
@@ -128,7 +145,7 @@ public abstract class BaseStorageEngine {
 
     protected void createKvDb(String name) {
         String dataDir = Configuration.getInstance().dataDir();
-        Path path = Path.of(dataDir, KV_DIR, name);
+        Path path = Path.of(dataDir, KV_DIR);
 
         File dir = path.toFile();
 
@@ -138,7 +155,7 @@ public abstract class BaseStorageEngine {
             }
         }
 
-        kvDbMap.put(name, new RocksKvAdapter(dir.getPath()));
+        kvDbMap.put(name, new RocksKvAdapter(path.toString(), name));
     }
 
     protected void dropKvDb(String name) {
@@ -157,7 +174,7 @@ public abstract class BaseStorageEngine {
 
     protected void createTableDb(String name) {
         String dataDir = Configuration.getInstance().dataDir();
-        Path path = Path.of(dataDir, TABLE_DIR, name);
+        Path path = Path.of(dataDir, TABLE_DIR);
 
         File dir = path.toFile();
 
@@ -167,7 +184,7 @@ public abstract class BaseStorageEngine {
             }
         }
 
-        tableMap.put(name, new RocksTableAdapter(dir.getPath()));
+        tableMap.put(name, new RocksTableAdapter(path.toString(), name));
     }
 
     protected void dropTableDb(String name) {

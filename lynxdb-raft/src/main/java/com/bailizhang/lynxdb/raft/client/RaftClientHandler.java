@@ -1,29 +1,31 @@
 package com.bailizhang.lynxdb.raft.client;
 
-import com.bailizhang.lynxdb.raft.response.RaftResponse;
+import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
+import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
+import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.raft.state.RaftState;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import com.bailizhang.lynxdb.raft.server.RaftServer;
-import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
+import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_FAILED;
+import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_SUCCESS;
+import static com.bailizhang.lynxdb.raft.result.RaftResult.*;
+import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.IS_VOTE_GRANTED;
+import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.NOT_VOTE_GRANTED;
+
 public class RaftClientHandler implements SocketClientHandler {
     private final static Logger logger = LogManager.getLogger("RaftClientHandler");
 
-    private final RaftServer raftServer;
-    private final RaftClient raftClient;
     private final RaftState raftState;
 
-    public RaftClientHandler(RaftServer raftServer, RaftClient raftClient) {
-        this.raftServer = raftServer;
-        this.raftClient = raftClient;
+    public RaftClientHandler() {
         raftState = RaftState.getInstance();
     }
 
@@ -33,22 +35,47 @@ public class RaftClientHandler implements SocketClientHandler {
     }
 
     @Override
-    public void handleResponse(SocketResponse response) throws Exception {
+    public void handleResponse(SocketResponse response) {
+        SelectionKey selectionKey = response.selectionKey();
 
-    }
+        byte[] data = response.data();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
 
-    @Override
-    public void handleAfterLatchAwait() throws Exception {
-    }
+        byte code = buffer.get();
 
-    private void handleRaftRpcResponse(byte status, int term, ServerNode node, ByteBuffer buffer) throws IOException {
-        switch (status) {
-            case RaftResponse.REQUEST_VOTE_SUCCESS -> {
+        switch (code) {
+            case REQUEST_VOTE_RESULT -> {
+                RequestVoteResult result = RequestVoteResult.from(buffer);
+                int term = result.term();
+
+                raftState.checkTerm(term);
+
+                switch (result.voteGranted()) {
+                    case IS_VOTE_GRANTED -> raftState.voteGranted(term, selectionKey);
+                    case NOT_VOTE_GRANTED -> raftState.voteNotGranted(term, selectionKey);
+
+                    default -> throw new UnsupportedOperationException();
+                }
             }
-            case RaftResponse.APPEND_ENTRIES_SUCCESS -> {
+
+            case APPEND_ENTRIES_RESULT -> {
+                AppendEntriesResult result = AppendEntriesResult.from(buffer);
+                raftState.checkTerm(result.term());
+
+                switch (result.success()) {
+                    case IS_SUCCESS -> raftState.appendEntriesSuccess(selectionKey);
+                    case IS_FAILED -> raftState.appendEntriesFailed(selectionKey);
+
+                    default -> throw new UnsupportedOperationException();
+                }
             }
-            case RaftResponse.APPEND_ENTRIES_FAILURE -> {
+
+            case INSTALL_SNAPSHOT_RESULT -> {
+                InstallSnapshotResult result = InstallSnapshotResult.from(buffer);
+                raftState.checkTerm(result.term());
             }
+
+            default -> throw new UnsupportedOperationException();
         }
     }
 }

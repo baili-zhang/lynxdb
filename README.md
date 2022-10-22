@@ -18,7 +18,7 @@ The default port number for LynxDB server is `7820`, make sure port `7820` is no
 <dependency>
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>lynxdb-spring-boot-starter</artifactId>
-    <version>{lynxdb.version}</version>
+    <version>${lynxdb.version}</version>
 </dependency>
 ```
 
@@ -38,10 +38,6 @@ com:
 @Autowired
 private LynxDbTemplate lynxDbTemplate;
 ```
-
-*Example*
-
-GitHub: [lynxdb-spring-boot-starter-test](https://github.com/baili-zhang/lynxdb-spring-boot-starter-test)
 
 ## Query Language
 

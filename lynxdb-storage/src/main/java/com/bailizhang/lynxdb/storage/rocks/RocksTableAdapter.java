@@ -12,9 +12,9 @@ public class RocksTableAdapter implements TableAdapter {
 
     private final RocksDatabase db;
 
-    public RocksTableAdapter(String dataDir) {
+    public RocksTableAdapter(String dir, String dbname) {
         try {
-            db = RocksDatabase.open(dataDir);
+            db = RocksDatabase.open(dir, dbname);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
@@ -131,6 +131,11 @@ public class RocksTableAdapter implements TableAdapter {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Snapshot snapshot() {
+        return null;
     }
 
     @Override

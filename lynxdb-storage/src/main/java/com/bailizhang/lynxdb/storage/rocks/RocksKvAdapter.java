@@ -1,19 +1,20 @@
 package com.bailizhang.lynxdb.storage.rocks;
 
+import com.bailizhang.lynxdb.storage.core.KvAdapter;
 import com.bailizhang.lynxdb.storage.core.Pair;
+import com.bailizhang.lynxdb.storage.core.ResultSet;
+import com.bailizhang.lynxdb.storage.core.Snapshot;
 import com.bailizhang.lynxdb.storage.rocks.query.kv.*;
 import org.rocksdb.RocksDBException;
-import com.bailizhang.lynxdb.storage.core.KvAdapter;
-import com.bailizhang.lynxdb.storage.core.ResultSet;
 
 import java.util.List;
 
 public class RocksKvAdapter implements KvAdapter {
     private final RocksDatabase db;
 
-    public RocksKvAdapter(String dataDir) {
+    public RocksKvAdapter(String dir, String dbname) {
         try {
-            db = RocksDatabase.open(dataDir);
+            db = RocksDatabase.open(dir, dbname);
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
@@ -79,6 +80,11 @@ public class RocksKvAdapter implements KvAdapter {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Snapshot snapshot() {
+        return null;
     }
 
     @Override

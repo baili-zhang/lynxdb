@@ -11,8 +11,14 @@ public class BytesList implements BytesConvertible{
 
     private final LinkedList<BytesNode<?>> bytesNodes = new LinkedList<>();
 
-    public BytesList() {
+    private final boolean withLength;
 
+    public BytesList() {
+        withLength = true;
+    }
+
+    public BytesList(boolean withLen) {
+        withLength = withLen;
     }
 
     public void appendRawByte(byte value) {
@@ -28,6 +34,10 @@ public class BytesList implements BytesConvertible{
     }
 
     public void appendRawInt(int value) {
+        append(RAW, value);
+    }
+
+    public void appendRawLong(long value) {
         append(RAW, value);
     }
 
@@ -54,14 +64,16 @@ public class BytesList implements BytesConvertible{
 
     @Override
     public byte[] toBytes() {
-        int length = PrimitiveTypeUtils.INT_LENGTH;
+        int length = withLength ? PrimitiveTypeUtils.INT_LENGTH : 0;
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
                 length += PrimitiveTypeUtils.INT_LENGTH;
             }
 
-            if(node.value instanceof Integer) {
+            if (node.value instanceof Integer) {
                 length += PrimitiveTypeUtils.INT_LENGTH;
+            } else if (node.value instanceof Long) {
+                length += PrimitiveTypeUtils.LONG_LENGTH;
             } else if(node.value instanceof Byte) {
                 length += PrimitiveTypeUtils.BYTE_LENGTH;
             } else if (node.value instanceof byte[] bytes) {
@@ -72,7 +84,11 @@ public class BytesList implements BytesConvertible{
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(length);
-        buffer.putInt(length - PrimitiveTypeUtils.INT_LENGTH);
+
+        if(withLength) {
+            buffer.putInt(length - PrimitiveTypeUtils.INT_LENGTH);
+        }
+
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
                 if(node.value instanceof byte[] bytes) {
@@ -84,6 +100,8 @@ public class BytesList implements BytesConvertible{
 
             if(node.value instanceof Integer i) {
                 buffer.putInt(i);
+            } else if (node.value instanceof Long l) {
+                buffer.putLong(l);
             } else if(node.value instanceof Byte b) {
                 buffer.put(b);
             } else if (node.value instanceof byte[] bytes) {

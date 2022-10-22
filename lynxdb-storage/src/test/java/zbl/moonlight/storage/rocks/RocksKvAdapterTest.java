@@ -1,10 +1,9 @@
 package zbl.moonlight.storage.rocks;
 
+import com.bailizhang.lynxdb.storage.core.Pair;
 import com.bailizhang.lynxdb.storage.rocks.RocksKvAdapter;
 import org.junit.jupiter.api.*;
-import com.bailizhang.lynxdb.storage.core.Pair;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,8 +28,7 @@ class RocksKvAdapterTest {
 
     @BeforeEach
     void setUp() {
-        String path = Path.of(DB_DIR, DB_NAME).toString();
-        db = new RocksKvAdapter(path);
+        db = new RocksKvAdapter(DB_DIR, DB_NAME);
 
         for(int i = 0; i < 100; i ++) {
             Constant.KEY_LIST.add((Constant.KEY_STR + i).getBytes());

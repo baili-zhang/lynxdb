@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.cmd.lql;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public interface LQL {

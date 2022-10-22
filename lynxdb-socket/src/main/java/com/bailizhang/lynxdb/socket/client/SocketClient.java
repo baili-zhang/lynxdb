@@ -1,12 +1,13 @@
 package com.bailizhang.lynxdb.socket.client;
 
+import com.bailizhang.lynxdb.core.common.BytesConvertible;
+import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.bailizhang.lynxdb.core.common.BytesConvertible;
-import com.bailizhang.lynxdb.core.executor.Executor;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -29,6 +30,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
     private final static int DEFAULT_CAPACITY = 200;
     private final static int DEFAULT_CORE_POOL_SIZE = 5;
     private final static int DEFAULT_MAX_POOL_SIZE = 10;
+    private final static int DEFAULT_CONNECT_TIMES = 3;
 
     private final Object setLock = new Object();
     private final AtomicInteger serial = new AtomicInteger(0);
@@ -133,14 +135,19 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     public void broadcast(BytesConvertible message) {
         byte[] data = message.toBytes();
+        int broadcastSerial = serial.incrementAndGet();
 
         for(SelectionKey selectionKey : contexts.keySet()) {
             ConnectionContext context = contexts.get(selectionKey);
             byte status = (byte) 0x00;
-            context.offerRequest(new WritableSocketRequest(selectionKey, status, serial.getAndIncrement(), data));
+            context.offerRequest(new WritableSocketRequest(selectionKey, status, broadcastSerial, data));
         }
 
         interrupt();
+    }
+
+    public void broadcast(BytesListConvertible message) {
+        broadcast(message.toBytesList());
     }
 
     public Set<SelectionKey> connectedNodes() {
@@ -213,18 +220,13 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
         @Override
         public void run() {
-            SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
             try {
-                if(!socketChannel.isConnected()) {
-                    if (selectionKey.isConnectable()) {
-                        doConnect();
-                    }
-                } else {
-                    if (selectionKey.isReadable()) {
-                        doRead();
-                    } else if (selectionKey.isWritable()) {
-                        doWrite();
-                    }
+                if (selectionKey.isConnectable()) {
+                    doConnect();
+                } else if (selectionKey.isReadable()) {
+                    doRead();
+                } else if (selectionKey.isWritable()) {
+                    doWrite();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -237,15 +239,21 @@ public class SocketClient extends Executor<WritableSocketRequest> {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
             try {
-                while (!socketChannel.finishConnect()) {
+                int times = DEFAULT_CONNECT_TIMES;
+                while (times > 0) {
+                    if(socketChannel.finishConnect()) {
+                        break;
+                    }
+                    times --;
                 }
 
-                /* 处理连接成功 */
-                selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+                if(socketChannel.isConnected()) {
+                    /* 处理连接成功 */
+                    selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+                    handler.handleConnected(selectionKey);
 
-                handler.handleConnected(selectionKey);
-
-                logger.info("Has connected to socket node {}.", socketChannel.getRemoteAddress());
+                    logger.info("Has connected to socket node {}.", socketChannel.getRemoteAddress());
+                }
             } catch (ConnectException e) {
                 try {
                     handler.handleConnectFailure(selectionKey);

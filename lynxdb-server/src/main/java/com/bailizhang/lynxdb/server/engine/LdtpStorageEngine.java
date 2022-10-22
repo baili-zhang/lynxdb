@@ -1,13 +1,14 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.storage.core.*;
-import org.rocksdb.RocksDB;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.query.*;
 import com.bailizhang.lynxdb.server.engine.result.Result;
+import com.bailizhang.lynxdb.storage.core.*;
 import com.bailizhang.lynxdb.storage.core.exception.ColumnsNotExistedException;
+import org.rocksdb.RocksDB;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -102,7 +103,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         values.forEach(pair -> {
             total.add(pair.left());
-            total.add(pair.right() == null ? new byte[0] : pair.right());
+            total.add(pair.right() == null ? BufferUtils.EMPTY_BYTES : pair.right());
         });
 
         BytesList bytesList = new BytesList();
@@ -240,7 +241,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
             for(byte[] column : columns) {
                 byte[] value = row.get(new Column(column));
-                table.add(value == null ? new byte[0] : value);
+                table.add(value == null ? BufferUtils.EMPTY_BYTES : value);
             }
         }
 

@@ -7,13 +7,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public record ServerNode (String host, int port) {
+    private static final String SEPARATOR = ":";
+
     @Override
     public String toString() {
-        return host + ":" + port;
+        return host + SEPARATOR + port;
     }
 
-    public static ServerNode parse(String node) {
-        String[] info = node.split(":");
+    public static ServerNode from(String node) {
+        String[] info = node.split(SEPARATOR);
 
         if(info.length != 2) {
             throw new RuntimeException("Parse ServerNode failed.");
@@ -35,6 +37,6 @@ public record ServerNode (String host, int port) {
 
         String total = new String(value);
         String[] nodes = total.trim().split("\\s+");
-        return Arrays.stream(nodes).map(ServerNode::parse).toList();
+        return Arrays.stream(nodes).map(ServerNode::from).toList();
     }
 }
