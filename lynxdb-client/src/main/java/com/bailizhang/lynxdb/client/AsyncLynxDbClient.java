@@ -63,9 +63,9 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncCreateTableColumnByStrList(SelectionKey selectionKey,
-                                                        String table,
-                                                        List<String> columns) {
+    public LynxDbFuture asyncCreateTableColumn(SelectionKey selectionKey,
+                                               String table,
+                                               List<String> columns) {
         List<byte[]> cols = columns.stream().map(G.I::toBytes).toList();
         return asyncCreateTableColumnByBytesList(selectionKey, table, cols);
     }
@@ -142,8 +142,8 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncKvGetByStrList(SelectionKey selectionKey,
-                                            String kvstore, List<String> keys) {
+    public LynxDbFuture asyncKvGet(SelectionKey selectionKey,
+                                   String kvstore, List<String> keys) {
         List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
         return asyncKvGetByBytesList(selectionKey, kvstore, keyList);
     }

@@ -181,7 +181,7 @@ public class LynxDbCmdClient extends Shutdown {
             case KVSTORE -> {
                 String kvstore = query.kvstores().get(0);
                 List<String> keys = query.keys();
-                LynxDbFuture future = client.asyncKvGetByStrList(current, kvstore, keys);
+                LynxDbFuture future = client.asyncKvGet(current, kvstore, keys);
                 byte[] response = future.get();
                 Printer.printKvPairs(response, List.of(KEY_HEADER, VALUE_COLUMN));
             }
@@ -255,7 +255,7 @@ public class LynxDbCmdClient extends Shutdown {
                 String table = query.tables().get(0);
                 List<String> columns = query.columns();
 
-                LynxDbFuture future = client.asyncCreateTableColumnByStrList(current, table, columns);
+                LynxDbFuture future = client.asyncCreateTableColumn(current, table, columns);
                 byte[] response = future.get();
                 Printer.printResponse(response);
             }

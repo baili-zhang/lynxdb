@@ -1,13 +1,14 @@
 package com.bailizhang.lynxdb.client;
 
 import com.bailizhang.lynxdb.client.exception.LynxDbException;
+import com.bailizhang.lynxdb.client.utils.LynxDbUtils;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.storage.core.Column;
-import com.bailizhang.lynxdb.storage.core.MultiTableKeys;
-import com.bailizhang.lynxdb.storage.core.MultiTableRows;
-import com.bailizhang.lynxdb.storage.core.Pair;
+import com.bailizhang.lynxdb.core.utils.FieldUtils;
+import com.bailizhang.lynxdb.storage.core.*;
 
+import java.lang.reflect.Field;
 import java.nio.channels.SelectionKey;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -33,7 +34,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -46,7 +47,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -55,11 +56,11 @@ public class LynxDbClient extends AsyncLynxDbClient {
     public void createTableColumnByStrList(SelectionKey selectionKey,
                                    String table,
                                    List<String> columns) {
-        LynxDbFuture future = asyncCreateTableColumnByStrList(selectionKey, table, columns);
+        LynxDbFuture future = asyncCreateTableColumn(selectionKey, table, columns);
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -71,7 +72,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -83,7 +84,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -96,7 +97,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -109,7 +110,7 @@ public class LynxDbClient extends AsyncLynxDbClient {
         byte[] value = future.get();
 
         LynxDbResult result = new LynxDbResult(value);
-        if(result.isDone()) {
+        if(result.isSuccessful()) {
             return;
         }
         throw new LynxDbException(result.message());
@@ -122,24 +123,34 @@ public class LynxDbClient extends AsyncLynxDbClient {
         kvDeleteByBytesList(selectionKey, kvstore, keyList);
     }
 
-    public <T> List<T> kvGetByClass(SelectionKey selectionKey, Class<T> clazz) {
-
-    }
-
     public byte[] kvGetByBytesList(SelectionKey selectionKey,
                          String kvstore, List<byte[]> keys) {
         LynxDbFuture future = asyncKvGetByBytesList(selectionKey, kvstore, keys);
         return future.get();
     }
 
-    public byte[] kvGetByStrList(SelectionKey selectionKey,
-                         String kvstore, List<String> keys) {
-        LynxDbFuture future = asyncKvGetByStrList(selectionKey, kvstore, keys);
+    public byte[] kvGet(SelectionKey selectionKey,
+                        String kvstore, List<String> keys) {
+        LynxDbFuture future = asyncKvGet(selectionKey, kvstore, keys);
         return future.get();
     }
 
-    public <T> List<T> kvGetByClassSelective(SelectionKey selectionKey, List<byte[]> keys, Class<T> clazz) {
+    public <T> T kvGet(SelectionKey selectionKey, Class<T> clazz) {
+        String kvstore = LynxDbUtils.findKvstoreName(clazz);
 
+        Collection<Field> fields = LynxDbUtils.findFields(clazz);
+        List<String> keys = FieldUtils.findNames(fields);
+
+        byte[] value = kvGet(selectionKey, kvstore, keys);
+        LynxDbResult result = new LynxDbResult(value);
+        return result.kvGet(clazz);
+    }
+
+    public <T> T kvGetSelective(SelectionKey selectionKey, List<String> keys, Class<T> clazz) {
+        String kvstore = LynxDbUtils.findKvstoreName(clazz);
+        byte[] value = kvGet(selectionKey, kvstore, keys);
+        LynxDbResult result = new LynxDbResult(value);
+        return result.kvGet(clazz);
     }
 
     public byte[] kvSet(SelectionKey selectionKey,
@@ -147,6 +158,19 @@ public class LynxDbClient extends AsyncLynxDbClient {
                         List<Pair<byte[], byte[]>> kvPairs) {
         LynxDbFuture future = asyncKvSet(selectionKey, kvstore, kvPairs);
         return future.get();
+    }
+
+    public void kvSet(SelectionKey selectionKey, Object o) {
+        Class<?> clazz = o.getClass();
+        String kvstore = LynxDbUtils.findKvstoreName(clazz);
+        List<Pair<byte[], byte[]>> kvPairs = LynxDbUtils.findKvPairs(o);
+        byte[] value = kvSet(selectionKey, kvstore, kvPairs);
+        LynxDbResult result = new LynxDbResult(value);
+
+        if(result.isSuccessful()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 
     public byte[] tableDelete0(SelectionKey selectionKey,
