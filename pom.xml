@@ -18,6 +18,7 @@
         <module>lynxdb-storage</module>
         <module>lynxdb-spring-boot-starter</module>
         <module>lynxdb-client</module>
+        <module>lynxdb-spring-cloud-starter</module>
     </modules>
 
     <properties>
