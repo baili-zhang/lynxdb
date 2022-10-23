@@ -2,30 +2,23 @@ package com.bailizhang.lynxdb.raft.log;
 
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
-import com.bailizhang.lynxdb.raft.log.entry.LogEntryMethod;
-import com.bailizhang.lynxdb.raft.log.entry.LogEntryType;
-import com.bailizhang.lynxdb.raft.log.entry.LogEntryValid;
-import com.bailizhang.lynxdb.raft.state.RaftState;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
-/**
- * TODO: 日志 Region 压缩以后再做
- */
+
 public class LogGroup {
     private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
-    private static final int BEGIN_ID = 1;
-    private static final int BEGIN_INDEX = 1;
-
-    private final List<Integer> indexList;
+    private static final int DEFAULT_BEGIN_REGION_ID = 1;
+    private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
 
     private final String groupDir;
+
+    private final int beginRegionId;
+    private int endRegionId;
+
+    private final List<LogRegion> logRegions = new ArrayList<>();
 
     public LogGroup(String dir) {
         groupDir = dir;
@@ -41,103 +34,115 @@ public class LogGroup {
 
         String[] filenames = file.list();
 
-        if(filenames == null) {
-            indexList = new ArrayList<>();
-            return;
+        if(filenames != null) {
+            Integer[] logRegionIds = Arrays.stream(filenames)
+                    .map(filename -> {
+                        if(!filename.endsWith(FileUtils.LOG_SUFFIX)) {
+                            return null;
+                        }
+
+                        String name = filename.replace(FileUtils.LOG_SUFFIX, "");
+
+                        try {
+                            return Integer.parseInt(name);
+                        } catch (Exception ignore) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toArray(Integer[]::new);
+
+            if(logRegionIds.length != 0) {
+                Arrays.sort(logRegionIds);
+
+                int gap = logRegionIds[0];
+                for(int i = 0; i < logRegionIds.length; i ++) {
+                    if(logRegionIds[i] - i != gap) {
+                        throw new RuntimeException("Not found log region, id: " + (i + gap));
+                    }
+                }
+
+                beginRegionId = logRegionIds[0];
+                endRegionId = logRegionIds[logRegionIds.length - 1];
+
+                for(int id = beginRegionId; id <= endRegionId; id ++) {
+                    logRegions.add(LogRegion.open(id, groupDir));
+                }
+
+                return;
+            }
         }
 
-        List<Integer> list = Arrays.stream(filenames)
-                .map(filename -> {
-                    String[] temp = filename.split("\\.");
-                    return Integer.valueOf(temp[0]);
-                })
-                .toList();
+        beginRegionId = DEFAULT_BEGIN_REGION_ID;
+        endRegionId = DEFAULT_BEGIN_REGION_ID;
 
-        indexList = new ArrayList<>(list);
-        indexList.sort(Integer::compareTo);
-    }
-
-    public void appendKvDelete(int term, BytesListConvertible convertible) {
-        append(LogEntryMethod.DELETE, LogEntryType.KV_STORE, term, convertible);
-    }
-
-    public void appendKvSet(int term, BytesListConvertible convertible) {
-        append(LogEntryMethod.SET, LogEntryType.KV_STORE, term, convertible);
-    }
-
-    public void appendTableDelete(int term, BytesListConvertible convertible) {
-        append(LogEntryMethod.DELETE, LogEntryType.TABLE, term, convertible);
-    }
-
-    public void appendTableSet(int term, BytesListConvertible convertible) {
-        append(LogEntryMethod.SET, LogEntryType.TABLE, term, convertible);
+        LogRegion region = LogRegion.create(beginRegionId, BEGIN_GLOBAL_LOG_INDEX, groupDir);
+        logRegions.add(region);
     }
 
     /**
-     * [begin, end]
+     * [beginGlobalIndex, globalEndIndex]
      *
-     * @param begin begin index
-     * @param end end index
+     * @param beginGlobalIndex begin global index
+     * @param endGlobalIndex end global index
      */
-    public LinkedList<LogEntry> range(int begin, int end) {
+    public LinkedList<LogEntry> range(int beginGlobalIndex, int endGlobalIndex) {
         LinkedList<LogEntry> entries = new LinkedList<>();
 
-        for(int i : indexList) {
-            LogRegion region = new LogRegion(i);
-
-            if(begin > region.end()) {
+        for(LogRegion region : logRegions) {
+            if(beginGlobalIndex > region.globalIndexEnd()) {
                 continue;
             }
 
-            int minEnd = Math.min(region.end(), end);
-            for(int j = begin; j <= minEnd; j ++) {
-                LogEntry entry = region.readEntry(j);
-                entries.add(entry);
+            if(endGlobalIndex < region.globalIndexBegin()) {
+                break;
             }
 
-            if(end <= region.end()) {
-                break;
+            int begin = Math.max(region.globalIndexBegin(), beginGlobalIndex);
+            int end = Math.min(region.globalIndexEnd(), endGlobalIndex);
+            for(int globalIndex = begin; globalIndex <= end; globalIndex ++) {
+                LogEntry entry = region.readEntry(globalIndex);
+                entries.add(entry);
             }
         }
 
         return entries;
     }
 
+    public int maxGlobalIndex() {
+        return lastRegion().globalIndexEnd();
+    }
+
+    public int lastLogTerm() {
+        return lastRegion().lastTerm();
+    }
+
     public void delete() {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    private void append(byte method, byte type, int term, BytesListConvertible convertible) {
+    public void append(int term, byte[] data) {
         LogRegion region = lastRegion();
 
-        if(region.length() >= DEFAULT_FILE_THRESHOLD) {
-            region = nextRegion();
+        if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {
+            region = createNextRegion();
         }
 
-        long current = region.length();
-        byte[] data = convertible.toBytesList().toBytes();
+        region.append(term, data);
+    }
 
-        LogEntry entry = new LogEntry(method, LogEntryValid.VALID, type, current, term, data);
-        region.append(entry);
+    public void append(int term, BytesListConvertible convertible) {
+        byte[] data = convertible.toBytesList().toBytes();
+        append(term, data);
     }
 
     private LogRegion lastRegion() {
-        if(indexList.isEmpty()) {
-            return LogRegion.create(BEGIN_ID, BEGIN_INDEX);
-        }
-
-        Integer id = indexList.get(indexList.size() - 1);
-        return new LogRegion(id);
+        return logRegions.get(logRegions.size() - 1);
     }
 
-    private LogRegion nextRegion() {
-        Integer id = indexList.get(indexList.size() - 1);
-        indexList.add(++ id);
-        return new LogRegion(id);
-    }
-
-    public LogRegion lastEntry() {
-        Integer id = indexList.get(indexList.size() - 1);
-        return new LogRegion(id);
+    private LogRegion createNextRegion() {
+        LogRegion region = LogRegion.create(++ endRegionId, maxGlobalIndex() + 1, groupDir);
+        logRegions.add(region);
+        return region;
     }
 }

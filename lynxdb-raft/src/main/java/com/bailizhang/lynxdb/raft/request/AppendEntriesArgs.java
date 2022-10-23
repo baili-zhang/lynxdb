@@ -49,7 +49,7 @@ public record AppendEntriesArgs (
         int entriesSize = buffer.getInt();
         List<LogEntry> entries = new ArrayList<>();
         for(int i = 0; i < entriesSize; i ++) {
-            entries.add(LogEntry.fromSocket(buffer));
+            entries.add(null);
         }
 
         int leaderCommit = buffer.getInt();

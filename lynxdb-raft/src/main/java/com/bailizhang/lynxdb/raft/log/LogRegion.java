@@ -2,8 +2,6 @@ package com.bailizhang.lynxdb.raft.log;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
-import com.bailizhang.lynxdb.raft.state.RaftState;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +10,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.zip.CRC32C;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
@@ -25,25 +22,27 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 public class LogRegion implements AutoCloseable {
     private static final int DEFAULT_INDEX_SIZE = 200;
 
-    private static final int BEGIN_POSITION = 0;
-    private static final int END_POSITION = 4;
-    private static final int INDEX_POSITION = 8;
-    private static final int ENTRY_POSITION = 8 + DEFAULT_INDEX_SIZE * LogEntry.INDEX_BYTES_LENGTH;
+    private static final int BEGIN_FIELD_POSITION = 0;
+    private static final int END_FIELD_POSITION = 4;
+    private static final int INDEX_BEGIN_POSITION = 8;
+    private static final int DATA_BEGIN_POSITION = 8 + DEFAULT_INDEX_SIZE * LogIndex.BYTES_LENGTH;
 
     private static final int DEFAULT_NAME_LENGTH = 8;
     private static final String ZERO = "0";
 
-    private static final String groupDir = RaftState.getInstance().logDir();
+    private final String groupDir;
 
     private final File file;
 
     private final FileChannel channel;
-    private final List<LogEntry> entries = new ArrayList<>();
+    private final ArrayList<LogIndex> logIndexList = new ArrayList<>(DEFAULT_INDEX_SIZE);
 
-    private int begin;
-    private int end;
+    private int globalIndexBegin;
+    private int globalIndexEnd;
 
-    public LogRegion(int id) {
+    private LogRegion(int id, String dir) {
+        groupDir = dir;
+
         Path path = Path.of(groupDir, name(id));
 
         file = path.toFile();
@@ -53,25 +52,25 @@ public class LogRegion implements AutoCloseable {
         }
 
         try {
-            channel = FileChannel.open(path, StandardOpenOption.WRITE);
+            channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.READ);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         try {
-            if(channel.size() < ENTRY_POSITION) {
+            if(channel.size() < DATA_BEGIN_POSITION) {
                 initRegion();
             } else {
                 readBegin();
                 readEnd();
-                readIndex();
+                loadLogIndex();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static LogRegion create(int id, int begin) {
+    public static LogRegion create(int id, int begin, String groupDir) {
         Path path = Path.of(groupDir, name(id));
 
         File file = path.toFile();
@@ -85,8 +84,9 @@ public class LogRegion implements AutoCloseable {
 
         LogRegion region;
         try {
-            region = new LogRegion(id);
+            region = new LogRegion(id, groupDir);
             region.writeBegin(begin);
+            region.writeEnd(begin - 1);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -94,66 +94,80 @@ public class LogRegion implements AutoCloseable {
         return region;
     }
 
-    public int begin() {
-        return begin;
+    public static LogRegion open(int id, String groupDir) {
+        Path path = Path.of(groupDir, name(id));
+
+        File file = path.toFile();
+
+        if(!file.exists()) {
+            String template = "Region \"%d\" file not exists";
+            throw new RuntimeException(String.format(template, id));
+        }
+
+        return new LogRegion(id, groupDir);
     }
 
-    public int end() {
-        return end;
+    public int globalIndexBegin() {
+        return globalIndexBegin;
+    }
+
+    public int globalIndexEnd() {
+        return globalIndexEnd;
     }
 
     public void close() throws IOException {
         channel.close();
     }
 
-    public void append(LogEntry entry) {
-        byte[] data = entry.data();
+    public void append(int term, byte[] data) {
+        long dataBegin;
+
+        if(logIndexList.isEmpty()) {
+            dataBegin = DATA_BEGIN_POSITION;
+        } else {
+            LogIndex lastIndex = logIndexList.get(logIndexList.size() - 1);
+            dataBegin = lastIndex.dataBegin() + lastIndex.dataLength() + LONG_LENGTH;
+        }
+
+        int dataLength = data.length;
+        LogIndex index = new LogIndex(term, dataBegin, dataLength);
 
         CRC32C crc32C = new CRC32C();
         crc32C.update(data);
         long crc32CValue = crc32C.getValue();
+        long crc32CValueBegin = dataBegin + dataLength;
 
+        ByteBuffer dataBuffer = ByteBuffer.wrap(data);
         ByteBuffer crc32CBuffer = BufferUtils.longByteBuffer(crc32CValue);
-        ByteBuffer entryBuffer = ByteBuffer.wrap(data);
-        ByteBuffer[] buffers = new ByteBuffer[]{crc32CBuffer, entryBuffer};
 
         try {
-            channel.write(buffers);
-            writeIndex(entry);
-            writeEnd(++ end);
+            channel.write(dataBuffer, dataBegin);
+            channel.write(crc32CBuffer, crc32CValueBegin);
+            appendIndex(index);
+            writeEnd(++globalIndexEnd);
             channel.force(false);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public LogEntry readIndex(int idx) {
-        if(idx < begin && idx > end) {
+    public LogEntry readEntry(int globalIndex) {
+        if(globalIndex < globalIndexBegin || globalIndex > globalIndexEnd) {
             return null;
         }
 
-        int i = idx - begin;
+        int i = globalIndex - globalIndexBegin;
 
-        return entries.get(i);
-    }
+        LogIndex logIndex = logIndexList.get(i);
+        long dataBegin = logIndex.dataBegin();
+        int dataLength = logIndex.dataLength();
 
-    public LogEntry readEntry(int idx) {
-        if(idx < begin && idx > end) {
-            return null;
-        }
-
-        int i = idx - begin;
-
-        LogEntry entry = entries.get(i);
-        int dataLen = idx == end ? (int)(length() - entry.dataBegin())
-                : (int)(entries.get(i + 1).dataBegin() - entry.dataBegin());
-
+        ByteBuffer buffer = ByteBuffer.allocate(dataLength);
         ByteBuffer crc32CBuffer = BufferUtils.longByteBuffer();
-        ByteBuffer buffer = ByteBuffer.allocate(dataLen);
 
         try {
-            channel.read(crc32CBuffer, entry.dataBegin());
-            channel.read(buffer, entry.dataBegin() + LONG_LENGTH);
+            channel.read(buffer, dataBegin);
+            channel.read(crc32CBuffer, dataBegin + dataLength);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -170,13 +184,14 @@ public class LogRegion implements AutoCloseable {
         byte[] data = buffer.array();
 
         return new LogEntry(
-                entry.method(),
-                entry.invalid(),
-                entry.type(),
-                entry.dataBegin(),
-                entry.term(),
+                logIndex,
                 data
         );
+    }
+
+    public int lastTerm() {
+        LogIndex logIndex = logIndexList.get(logIndexList.size() - 1);
+        return logIndex.term();
     }
 
     public void delete() {
@@ -193,6 +208,10 @@ public class LogRegion implements AutoCloseable {
         }
     }
 
+    public boolean isFull() {
+        return logIndexList.size() >= DEFAULT_INDEX_SIZE;
+    }
+
     @Override
     public String toString() {
         return channel.toString();
@@ -206,54 +225,54 @@ public class LogRegion implements AutoCloseable {
 
     private void readBegin() throws IOException {
         ByteBuffer beginBuffer = BufferUtils.intByteBuffer();
-        channel.read(beginBuffer, BEGIN_POSITION);
-        begin = beginBuffer.rewind().getInt();
+        channel.read(beginBuffer, BEGIN_FIELD_POSITION);
+        globalIndexBegin = beginBuffer.rewind().getInt();
     }
 
     private void readEnd() throws IOException {
         ByteBuffer endBuffer = BufferUtils.intByteBuffer();
-        channel.read(endBuffer, END_POSITION);
-        end = endBuffer.rewind().getInt();
+        channel.read(endBuffer, END_FIELD_POSITION);
+        globalIndexEnd = endBuffer.rewind().getInt();
     }
 
-    private void readIndex() throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(LogEntry.INDEX_BYTES_LENGTH);
-        long p = ENTRY_POSITION;
+    private void loadLogIndex() throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(LogIndex.BYTES_LENGTH);
+        long position = INDEX_BEGIN_POSITION;
 
-        while(true) {
-            channel.read(buffer, p);
+        for(int size = globalIndexEnd - globalIndexBegin; size > 0; size --) {
+            channel.read(buffer, position);
 
-            if(buffer.get(0) == BufferUtils.EMPTY_BYTE) {
-                break;
-            }
+            buffer.rewind();
+            LogIndex index = LogIndex.from(buffer);
+            logIndexList.add(index);
 
-            LogEntry entry = LogEntry.from(buffer);
-            entries.add(entry);
-
-            p += LogEntry.INDEX_BYTES_LENGTH;
+            position += LogIndex.BYTES_LENGTH;
         }
     }
 
-    private void writeBegin(int begin) throws IOException {
-        ByteBuffer beginBuffer = BufferUtils.intByteBuffer(begin);
-        channel.write(beginBuffer, BEGIN_POSITION);
+    private void writeBegin(int val) throws IOException {
+        globalIndexBegin = val;
+        ByteBuffer beginBuffer = BufferUtils.intByteBuffer(globalIndexBegin);
+        channel.write(beginBuffer, BEGIN_FIELD_POSITION);
     }
 
-    private void writeEnd(int end) throws IOException {
-        ByteBuffer endBuffer = BufferUtils.intByteBuffer(end);
-        channel.write(endBuffer, END_POSITION);
+    private void writeEnd(int val) throws IOException {
+        globalIndexEnd = val;
+        ByteBuffer endBuffer = BufferUtils.intByteBuffer(globalIndexEnd);
+        channel.write(endBuffer, END_FIELD_POSITION);
     }
 
-    private void writeIndex(LogEntry entry) throws IOException {
-        byte[] indexBytes = entry.toBytesList().toBytes();
+    private void appendIndex(LogIndex index) throws IOException {
+        byte[] indexBytes = index.toBytes();
         ByteBuffer buffer = ByteBuffer.wrap(indexBytes);
-        long p = INDEX_POSITION + (long) entries.size() * LogEntry.INDEX_BYTES_LENGTH;
-        channel.write(buffer, p);
+        long position = INDEX_BEGIN_POSITION + (long) logIndexList.size() * LogIndex.BYTES_LENGTH;
+        channel.write(buffer, position);
+        logIndexList.add(index);
     }
 
     private void initRegion() throws IOException {
-        byte[] blank = new byte[ENTRY_POSITION];
+        byte[] blank = new byte[DATA_BEGIN_POSITION];
         ByteBuffer buffer = ByteBuffer.wrap(blank);
-        channel.write(buffer, BEGIN_POSITION);
+        channel.write(buffer, BEGIN_FIELD_POSITION);
     }
 }

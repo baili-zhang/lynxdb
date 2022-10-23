@@ -62,7 +62,8 @@ public class RpcRaftState extends CoreRaftState {
             int matched = matchedIndex.get(selectionKey);
 
             LinkedList<LogEntry> entries = raftLog.range(matched, next - 1);
-            int prevLogTerm = entries.removeFirst().term();
+            LogEntry entry = entries.removeFirst();
+            int prevLogTerm = entry.index().term();
 
             AppendEntriesArgs args = new AppendEntriesArgs(
                     currentTerm,
@@ -128,14 +129,12 @@ public class RpcRaftState extends CoreRaftState {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
         }
 
-        LogRegion region = raftLog.lastEntry();
-        int lastIndex = region.end();
+        int lastIndex = raftLog.maxGlobalIndex();
         if(lastLogIndex > lastIndex) {
             votedFor = candidate;
             return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
         } else if(lastLogIndex == lastIndex) {
-            LogEntry entry = region.readIndex(lastIndex);
-            if(lastLogTerm > entry.term()) {
+            if(lastLogTerm > raftLog.lastLogTerm()) {
                 votedFor = candidate;
                 return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
             }
@@ -162,10 +161,8 @@ public class RpcRaftState extends CoreRaftState {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
         }
 
-        LogRegion region = raftLog.lastEntry();
-        int preIndex = region.end();
-        LogEntry entry = region.readIndex(preIndex);
-        int preTerm = entry.term();
+        int preIndex = raftLog.maxGlobalIndex();
+        int preTerm = raftLog.lastLogTerm();
 
         if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
@@ -176,7 +173,6 @@ public class RpcRaftState extends CoreRaftState {
                         new AppliableLogEntry(
                                 null,
                                 0,
-                                logEntry.type(),
                                 logEntry.data()
                         )
                 )
@@ -217,11 +213,10 @@ public class RpcRaftState extends CoreRaftState {
         matchedIndex.clear();
 
         Set<SelectionKey> connected = raftClient.connectedNodes();
-        LogRegion region = raftLog.lastEntry();
-        int end = region.end();
+        int maxGlobalIndex = raftLog.maxGlobalIndex();
 
         for(SelectionKey selectionKey : connected) {
-            nextIndex.put(selectionKey, end + 1);
+            nextIndex.put(selectionKey, maxGlobalIndex + 1);
             matchedIndex.put(selectionKey, 0);
         }
     }

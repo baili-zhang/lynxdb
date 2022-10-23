@@ -5,7 +5,6 @@ import java.nio.channels.SelectionKey;
 public record AppliableLogEntry(
         SelectionKey selectionKey,
         int serial,
-        byte type,
         byte[] data
 ) {
 }

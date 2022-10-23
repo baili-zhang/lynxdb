@@ -59,23 +59,15 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     @Override
     public void apply(List<AppliableLogEntry> entries) {
         for (AppliableLogEntry entry : entries) {
-            switch (entry.type()) {
-                case CLIENT_COMMAND -> {
-                    byte[] command = entry.data();
-                    QueryParams params = QueryParams.parse(command);
-                    BytesList bytesList = storageEngine.doQuery(params);
-                    WritableSocketResponse response = new WritableSocketResponse(
-                            entry.selectionKey(),
-                            entry.serial(),
-                            bytesList
-                    );
-                    raftServer.offerInterruptibly(response);
-                }
-
-                case MEMBER_CHANGE -> {
-                    storageEngine.metaSet(C_OLD_NEW, entry.data());
-                }
-            }
+            byte[] command = entry.data();
+            QueryParams params = QueryParams.parse(command);
+            BytesList bytesList = storageEngine.doQuery(params);
+            WritableSocketResponse response = new WritableSocketResponse(
+                    entry.selectionKey(),
+                    entry.serial(),
+                    bytesList
+            );
+            raftServer.offerInterruptibly(response);
         }
     }
 
