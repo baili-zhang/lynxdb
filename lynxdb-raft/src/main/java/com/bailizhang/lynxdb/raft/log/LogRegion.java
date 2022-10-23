@@ -119,7 +119,7 @@ public class LogRegion implements AutoCloseable {
         channel.close();
     }
 
-    public void append(int term, byte[] data) {
+    public int append(int term, byte[] data) {
         long dataBegin;
 
         if(logIndexList.isEmpty()) {
@@ -149,6 +149,8 @@ public class LogRegion implements AutoCloseable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        return globalIndexEnd;
     }
 
     public LogEntry readEntry(int globalIndex) {

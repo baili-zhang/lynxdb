@@ -39,20 +39,22 @@ public class RaftServerHandler implements SocketServerHandler {
 
     @Override
     public void handleRequest(SocketRequest request) {
+        SelectionKey selectionKey = request.selectionKey();
         int serial = request.serial();
         byte[] data = request.data();
+
         ByteBuffer buffer = ByteBuffer.wrap(data);
         byte method = buffer.get();
 
         switch (method) {
             case RaftRequest.REQUEST_VOTE ->
-                    handleRequestVoteRpc(request.selectionKey(), serial, buffer);
+                    handleRequestVoteRpc(selectionKey, serial, buffer);
             case RaftRequest.APPEND_ENTRIES ->
-                    handleAppendEntriesRpc(request.selectionKey(), serial, buffer);
+                    handleAppendEntriesRpc(selectionKey, serial, buffer);
             case RaftRequest.INSTALL_SNAPSHOT ->
-                    handleInstallSnapshot(request.selectionKey(), serial, buffer);
+                    handleInstallSnapshot(selectionKey, serial, buffer);
             case RaftRequest.CLIENT_REQUEST ->
-                    handleClientRequest(request.selectionKey(), serial, buffer);
+                    handleClientRequest(selectionKey, serial, buffer);
         }
     }
 
@@ -118,7 +120,7 @@ public class RaftServerHandler implements SocketServerHandler {
     private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         if(raftState.isLeader()) {
             byte[] command = BufferUtils.getRemaining(buffer);
-            raftState.handleClientRequest(command);
+            raftState.handleClientRequest(selectionKey, serial, command);
         } else if(raftState.hasLeader()) {
             RedirectResult result = new RedirectResult(raftState.leaderNode());
             WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);

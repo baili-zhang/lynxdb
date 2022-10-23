@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.raft.state;
 
-public class RaftState extends StateMachineRaftState {
+public class RaftState extends RpcRaftState {
     public static final byte CLIENT_COMMAND = (byte) 0x01;
     public static final byte MEMBER_CHANGE = (byte) 0x02;
 

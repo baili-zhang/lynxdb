@@ -1,9 +1,7 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.common.AppliableLogEntry;
-import com.bailizhang.lynxdb.raft.common.RaftCommand;
+import com.bailizhang.lynxdb.raft.common.RaftCommend;
 import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
@@ -15,15 +13,12 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
-import static com.bailizhang.lynxdb.raft.state.RaftState.CLIENT_COMMAND;
-import static com.bailizhang.lynxdb.raft.state.RaftState.MEMBER_CHANGE;
-
 /**
  * TODO: 异步执行会不会存在数据丢失的问题？
  *
  * 客户端 -> Raft 层 -> 状态机 -> Raft 层 -> 客户端
  */
-public class LdtpStateMachine extends Executor<RaftCommand> implements StateMachine {
+public class LdtpStateMachine implements StateMachine {
     private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
 
     public static final String C_OLD_NEW = "c_old_new";
@@ -57,8 +52,8 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     }
 
     @Override
-    public void apply(List<AppliableLogEntry> entries) {
-        for (AppliableLogEntry entry : entries) {
+    public void apply(List<RaftCommend> entries) {
+        for (RaftCommend entry : entries) {
             byte[] command = entry.data();
             QueryParams params = QueryParams.parse(command);
             BytesList bytesList = storageEngine.doQuery(params);
@@ -72,7 +67,10 @@ public class LdtpStateMachine extends Executor<RaftCommand> implements StateMach
     }
 
     @Override
-    protected void execute() {
-
+    public void apply0(List<byte[]> commands) {
+        for(byte[] command : commands) {
+            QueryParams params = QueryParams.parse(command);
+            storageEngine.doQuery(params);
+        }
     }
 }

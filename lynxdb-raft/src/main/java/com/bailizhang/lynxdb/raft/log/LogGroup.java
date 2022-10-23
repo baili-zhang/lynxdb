@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 
 import java.io.File;
+import java.nio.channels.SelectionKey;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -121,14 +122,14 @@ public class LogGroup {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    public void append(int term, byte[] data) {
+    public int append(int term, byte[] data) {
         LogRegion region = lastRegion();
 
         if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {
             region = createNextRegion();
         }
 
-        region.append(term, data);
+        return region.append(term, data);
     }
 
     public void append(int term, BytesListConvertible convertible) {
