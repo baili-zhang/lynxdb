@@ -18,4 +18,8 @@ public class G {
     public byte[] toBytes(String src) {
         return converter.toBytes(src);
     }
+
+    public String toString(byte[] src) {
+        return converter.toString(src);
+    }
 }

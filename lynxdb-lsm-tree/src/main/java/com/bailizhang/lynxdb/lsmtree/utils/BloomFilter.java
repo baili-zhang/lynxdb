@@ -1,15 +1,15 @@
-package com.bailizhang.lynxdb.core.lsm;
+package com.bailizhang.lynxdb.lsmtree.utils;
 
 import java.lang.reflect.Method;
 
 public class BloomFilter {
     private static final int LIMIT_HASH_FUNC_SIZE = 7;
 
-    private final Method[] hashFunctions = new Method[LIMIT_HASH_FUNC_SIZE];
+    private static final Method[] hashFunctions = new Method[LIMIT_HASH_FUNC_SIZE];
 
-    BloomFilter(int bitCount) {
+    static {
         try {
-            Class<?> clazz = Class.forName("com.bailizhang.lynxdb.core.lsm.HashFunctions");
+            Class<?> clazz = Class.forName("com.bailizhang.lynxdb.lsmtree.utils.HashFunctions");
             Method[] methods = clazz.getDeclaredMethods();
             for (Method method : methods) {
                 HashFunction annotation = method.getAnnotation(HashFunction.class);
@@ -21,6 +21,10 @@ public class BloomFilter {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    BloomFilter(int bitCount) {
+
     }
 
 }

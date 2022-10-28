@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.core.lsm;
+package com.bailizhang.lynxdb.lsmtree.utils;
 
 /**
  * TODO: 应该用哪七个哈希函数做布隆过滤器的哈希函数
