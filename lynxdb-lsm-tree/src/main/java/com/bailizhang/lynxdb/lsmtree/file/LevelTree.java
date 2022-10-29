@@ -14,6 +14,18 @@ public class LevelTree {
     }
 
     public byte[] find(byte[] key, byte[] column, long timestamp) {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null && level.isLessThan(key, column)) {
+            byte[] value = level.find(key, column, timestamp);
+            if(value != null) {
+                return value;
+            }
+
+            level = levels.get(++ levelNo);
+        }
+
         return null;
     }
 
@@ -51,6 +63,18 @@ public class LevelTree {
     }
 
     public boolean delete(byte[] key, byte[] column, long timestamp) {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null && level.isLessThan(key, column)) {
+            boolean hasDeleted = level.delete(key, column, timestamp);
+            if(hasDeleted) {
+                return hasDeleted;
+            }
+
+            level = levels.get(++ levelNo);
+        }
+
         return false;
     }
 }

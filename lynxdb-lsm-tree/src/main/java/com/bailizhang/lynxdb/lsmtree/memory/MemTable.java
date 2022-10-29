@@ -1,6 +1,8 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-public class MemTable {
+import java.util.Iterator;
+
+public class MemTable implements Iterable<SkipListNode> {
     private static final int DEFAULT_MAX_SIZE = 2000;
 
     private volatile boolean immutable = false;
@@ -28,5 +30,10 @@ public class MemTable {
 
     public boolean delete(byte[] key, byte[] column, long timestamp) {
         return skipList.delete(key, column, timestamp);
+    }
+
+    @Override
+    public Iterator<SkipListNode> iterator() {
+        return skipList.iterator();
     }
 }

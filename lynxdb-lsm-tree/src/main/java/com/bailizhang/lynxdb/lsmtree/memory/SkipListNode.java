@@ -19,6 +19,18 @@ public class SkipListNode implements Comparable<SkipListNode> {
         column = columnBytes;
     }
 
+    public byte[] key() {
+        return key;
+    }
+
+    public byte[] column() {
+        return column;
+    }
+
+    public Deque<VersionalValue> values() {
+        return values;
+    }
+
     public SkipListNode(byte[] key, byte[] column) {
         this(key, column, random());
     }

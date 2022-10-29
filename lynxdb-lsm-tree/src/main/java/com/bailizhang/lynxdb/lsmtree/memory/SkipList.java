@@ -3,7 +3,9 @@ package com.bailizhang.lynxdb.lsmtree.memory;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
-public class SkipList {
+import java.util.Iterator;
+
+public class SkipList implements Iterable<SkipListNode> {
     public static final int MAX_LEVEL = 32;
 
     private final SkipListNode head;
@@ -99,5 +101,10 @@ public class SkipList {
         }
 
         return false;
+    }
+
+    @Override
+    public Iterator<SkipListNode> iterator() {
+        return new MemTableIterator(head);
     }
 }
