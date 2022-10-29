@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.server.context;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import lombok.ToString;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,7 +10,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
-@ToString
 public class Configuration {
     public static final String CLUSTER = "cluster";
     public static final String SINGLE = "single";

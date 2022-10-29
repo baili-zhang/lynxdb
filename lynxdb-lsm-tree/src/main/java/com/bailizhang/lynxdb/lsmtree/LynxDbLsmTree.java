@@ -1,10 +1,13 @@
 package com.bailizhang.lynxdb.lsmtree;
 
+import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.ColumnFamily;
 import com.bailizhang.lynxdb.lsmtree.common.LsmTree;
 import com.bailizhang.lynxdb.lsmtree.exception.ColumnFamilyNotFoundException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LynxDbLsmTree implements LsmTree {
@@ -12,7 +15,13 @@ public class LynxDbLsmTree implements LsmTree {
             = new ConcurrentHashMap<>();
 
     public LynxDbLsmTree(String dir) {
+        List<String> subDirs = FileUtils.findSubDirs(dir);
 
+        for(String subDir : subDirs) {
+            ColumnFamily cf = new ColumnFamily(G.I.toBytes(subDir));
+            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir);
+            regions.put(cf, region);
+        }
     }
 
     @Override
@@ -31,24 +40,10 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
-    public void delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp)
+    public boolean delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp)
             throws ColumnFamilyNotFoundException {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        region.delete(key, column, timestamp);
-    }
-
-    @Override
-    public void addColumn(byte[] columnFamily, byte[] column)
-            throws ColumnFamilyNotFoundException {
-        ColumnFamilyRegion region = findRegion(columnFamily);
-        region.addColumn(column);
-    }
-
-    @Override
-    public void removeColumn(byte[] columnFamily, byte[] column)
-            throws ColumnFamilyNotFoundException {
-        ColumnFamilyRegion region = findRegion(columnFamily);
-        region.removeColumn(column);
+        return region.delete(key, column, timestamp);
     }
 
     private ColumnFamilyRegion findRegion(byte[] columnFamily)

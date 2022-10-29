@@ -8,7 +8,5 @@ import com.bailizhang.lynxdb.lsmtree.exception.ColumnFamilyNotFoundException;
 public interface LsmTree {
     byte[] find(byte[] key, byte[] columnFamily, byte[] column, long timestamp) throws ColumnFamilyNotFoundException;
     void insert(byte[] key, byte[] columnFamily, byte[] column, long timestamp, byte[] value) throws ColumnFamilyNotFoundException;
-    void delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp) throws ColumnFamilyNotFoundException;
-    void addColumn(byte[] columnFamily, byte[] column) throws ColumnFamilyNotFoundException;
-    void removeColumn(byte[] columnFamily, byte[] column) throws ColumnFamilyNotFoundException;
+    boolean delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp) throws ColumnFamilyNotFoundException;
 }
