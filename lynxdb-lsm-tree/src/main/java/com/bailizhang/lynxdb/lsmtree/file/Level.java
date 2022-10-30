@@ -31,6 +31,16 @@ public class Level {
     }
 
     public byte[] find(byte[] key, byte[] column, long timestamp) {
+        for(SsTable ssTable : ssTables) {
+            if(ssTable.isBiggerThan(key, column)) {
+                continue;
+            }
+
+            byte[] value = ssTable.find(key, column, timestamp);
+            if(value != null) {
+                return value;
+            }
+        }
         return null;
     }
 
@@ -39,6 +49,15 @@ public class Level {
     }
 
     public boolean delete(byte[] key, byte[] column, long timestamp) {
+        for(SsTable ssTable : ssTables) {
+            if(ssTable.isBiggerThan(key, column)) {
+                continue;
+            }
+
+            if(ssTable.delete(key, column, timestamp)) {
+                return true;
+            }
+        }
         return false;
     }
 }
