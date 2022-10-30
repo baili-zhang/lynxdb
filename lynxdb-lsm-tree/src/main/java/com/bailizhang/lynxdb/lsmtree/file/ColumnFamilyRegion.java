@@ -1,9 +1,10 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.log.WriteAheadLog;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
-import java.nio.file.Path;
+import java.io.File;
 
 public class ColumnFamilyRegion {
     private final WriteAheadLog wal;
@@ -12,8 +13,8 @@ public class ColumnFamilyRegion {
     private final LevelTree levelTree;
 
     public ColumnFamilyRegion(String dir, String columnFamily) {
-        Path path = Path.of(dir, columnFamily);
-        String cfDir = path.toString();
+        File file = FileUtils.createDirIfNotExisted(dir, columnFamily);
+        String cfDir = file.getAbsolutePath();
 
         wal = new WriteAheadLog(cfDir);
         mutable = new MemTable();

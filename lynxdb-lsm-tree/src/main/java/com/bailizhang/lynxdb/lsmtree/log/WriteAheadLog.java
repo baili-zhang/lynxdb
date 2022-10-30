@@ -3,19 +3,24 @@ package com.bailizhang.lynxdb.lsmtree.log;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 
 public class WriteAheadLog implements AutoCloseable {
+    private static final String WAL_NAME = "WAL";
+
     private static final byte INSERT = (byte) 0x01;
     private static final byte DELETE = (byte) 0x02;
 
     private final FileChannel channel;
 
     public WriteAheadLog(String dir) {
-        channel = FileUtils.open(dir, StandardOpenOption.WRITE);
+        String filename = WAL_NAME + FileUtils.LOG_SUFFIX;
+        File file = FileUtils.createFileIfNotExisted(dir, filename);
+        channel = FileUtils.open(file.getPath(), StandardOpenOption.WRITE);
     }
 
     public void appendInsert(byte[] key, byte[] column, long timestamp) {

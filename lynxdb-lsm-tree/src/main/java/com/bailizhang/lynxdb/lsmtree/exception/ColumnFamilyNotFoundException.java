@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.exception;
 
-public class ColumnFamilyNotFoundException extends Exception {
+public class ColumnFamilyNotFoundException extends RuntimeException {
     public ColumnFamilyNotFoundException(byte[] columnFamily) {
 
     }

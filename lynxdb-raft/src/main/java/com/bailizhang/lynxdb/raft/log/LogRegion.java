@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.raft.log;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.core.utils.NameUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,9 +28,6 @@ public class LogRegion implements AutoCloseable {
     private static final int INDEX_BEGIN_POSITION = 8;
     private static final int DATA_BEGIN_POSITION = 8 + DEFAULT_INDEX_SIZE * LogIndex.BYTES_LENGTH;
 
-    private static final int DEFAULT_NAME_LENGTH = 8;
-    private static final String ZERO = "0";
-
     private final String groupDir;
 
     private final File file;
@@ -43,7 +41,7 @@ public class LogRegion implements AutoCloseable {
     private LogRegion(int id, String dir) {
         groupDir = dir;
 
-        Path path = Path.of(groupDir, name(id));
+        Path path = Path.of(groupDir, NameUtils.name(id));
 
         file = path.toFile();
 
@@ -71,7 +69,7 @@ public class LogRegion implements AutoCloseable {
     }
 
     public static LogRegion create(int id, int begin, String groupDir) {
-        Path path = Path.of(groupDir, name(id));
+        Path path = Path.of(groupDir, NameUtils.name(id));
 
         File file = path.toFile();
 
@@ -95,7 +93,7 @@ public class LogRegion implements AutoCloseable {
     }
 
     public static LogRegion open(int id, String groupDir) {
-        Path path = Path.of(groupDir, name(id));
+        Path path = Path.of(groupDir, NameUtils.name(id));
 
         File file = path.toFile();
 
@@ -217,12 +215,6 @@ public class LogRegion implements AutoCloseable {
     @Override
     public String toString() {
         return channel.toString();
-    }
-
-    private static String name(int id) {
-        String idStr = String.valueOf(id);
-        int zeroCount = DEFAULT_NAME_LENGTH - idStr.length();
-        return ZERO.repeat(Math.max(0, zeroCount)) + idStr + FileUtils.LOG_SUFFIX;
     }
 
     private void readBegin() throws IOException {

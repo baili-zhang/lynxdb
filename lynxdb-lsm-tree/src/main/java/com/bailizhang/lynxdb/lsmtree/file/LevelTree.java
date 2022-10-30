@@ -1,16 +1,34 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 
 public class LevelTree {
     private final static int LEVEL_BEGIN = 1;
 
     private final HashMap<Integer, Level> levels = new HashMap<>();
+    private final String baseDir;
 
     public LevelTree(String dir) {
+        baseDir = dir;
 
+        List<String> subDirs = FileUtils.findSubDirs(baseDir);
+        for(String subDir : subDirs) {
+            int levelNo;
+
+            try {
+                levelNo = Integer.parseInt(subDir);
+            } catch (NumberFormatException ignore) {
+                continue;
+            }
+
+            Path levelPath = Path.of(baseDir, subDir);
+            levels.put(levelNo, new Level(levelPath.toString()));
+        }
     }
 
     public byte[] find(byte[] key, byte[] column, long timestamp) {
@@ -36,7 +54,7 @@ public class LevelTree {
 
         Level level = levels.get(LEVEL_BEGIN);
         if(level == null) {
-            level = new Level();
+            level = new Level(baseDir);
             levels.put(LEVEL_BEGIN, level);
         }
 
@@ -54,7 +72,7 @@ public class LevelTree {
             current = levels.get(++ levelNo);
 
             if(current == null) {
-                current = new Level();
+                current = new Level(baseDir);
                 levels.put(levelNo, current);
             }
 
