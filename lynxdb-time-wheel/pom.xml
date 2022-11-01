@@ -16,4 +16,12 @@
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-core</artifactId>
+            <version>2022.0.2-alpha</version>
+        </dependency>
+    </dependencies>
+
 </project>
