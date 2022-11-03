@@ -12,5 +12,8 @@ public abstract class Shutdown {
     public boolean isNotShutdown() {
         return !shutdown;
     }
-    protected abstract void doAfterShutdown();
+
+    protected void doAfterShutdown() {
+
+    }
 }
