@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.lsmtree.log;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.lsmtree.common.Options;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +16,12 @@ public class WriteAheadLog implements AutoCloseable {
     private static final byte INSERT = (byte) 0x01;
     private static final byte DELETE = (byte) 0x02;
 
+    private final Options options;
     private final FileChannel channel;
+    private volatile int size;
 
-    public WriteAheadLog(String dir) {
+    public WriteAheadLog(String dir, Options options) {
+        this.options = options;
         String filename = WAL_NAME + FileUtils.LOG_SUFFIX;
         File file = FileUtils.createFileIfNotExisted(dir, filename);
         channel = FileUtils.open(file.getPath(), StandardOpenOption.WRITE);
@@ -29,6 +33,10 @@ public class WriteAheadLog implements AutoCloseable {
 
     public void appendDelete(byte[] key, byte[] column, long timestamp) {
         append(DELETE, key, column, timestamp);
+    }
+
+    public boolean isFull() {
+        return size >= options.memTableSize();
     }
 
     @Override
@@ -53,5 +61,6 @@ public class WriteAheadLog implements AutoCloseable {
             throw new RuntimeException(e);
         }
 
+        size ++;
     }
 }

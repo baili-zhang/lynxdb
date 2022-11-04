@@ -1,11 +1,7 @@
-package com.bailizhang.lynxdb.raft.log;
+package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
-
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 
 public record LogEntry(
         LogIndex index,

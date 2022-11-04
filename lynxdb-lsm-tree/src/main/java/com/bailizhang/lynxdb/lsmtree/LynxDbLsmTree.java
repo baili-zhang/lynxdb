@@ -28,7 +28,7 @@ public class LynxDbLsmTree implements LsmTree {
 
         for(String subDir : subDirs) {
             ColumnFamily cf = new ColumnFamily(G.I.toBytes(subDir));
-            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir);
+            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir, options);
             regions.put(cf, region);
         }
     }
@@ -44,7 +44,7 @@ public class LynxDbLsmTree implements LsmTree {
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
         if(region == null) {
-            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily));
+            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
         }
         region.insert(key, column, timestamp, value);
     }

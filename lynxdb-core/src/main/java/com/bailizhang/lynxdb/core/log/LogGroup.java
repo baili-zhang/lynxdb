@@ -1,10 +1,9 @@
-package com.bailizhang.lynxdb.raft.log;
+package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 
 import java.io.File;
-import java.nio.channels.SelectionKey;
 import java.nio.file.Path;
 import java.util.*;
 

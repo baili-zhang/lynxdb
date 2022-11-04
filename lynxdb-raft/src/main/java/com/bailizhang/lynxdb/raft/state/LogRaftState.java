@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.raft.state;
 
-import com.bailizhang.lynxdb.raft.log.LogEntry;
-import com.bailizhang.lynxdb.raft.log.LogGroup;
+import com.bailizhang.lynxdb.core.log.LogEntry;
+import com.bailizhang.lynxdb.core.log.LogGroup;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 

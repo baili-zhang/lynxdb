@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.log;
+package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.BytesConvertible;
 

@@ -1,12 +1,17 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
+import com.bailizhang.lynxdb.lsmtree.common.Options;
+
 import java.util.Iterator;
 
 public class MemTable implements Iterable<SkipListNode> {
-    private static final int DEFAULT_MAX_SIZE = 2000;
-
+    private final Options options;
     private volatile boolean immutable = false;
     private final SkipList skipList = new SkipList();
+
+    public MemTable(Options options) {
+        this.options = options;
+    }
 
     public void append(byte[] key, byte[] column, long timestamp, byte[] value) {
         if(immutable) {
@@ -21,7 +26,7 @@ public class MemTable implements Iterable<SkipListNode> {
     }
 
     public boolean full() {
-        return skipList.size() >= DEFAULT_MAX_SIZE;
+        return skipList.size() >= options.memTableSize();
     }
 
     public void transformToImmutable() {

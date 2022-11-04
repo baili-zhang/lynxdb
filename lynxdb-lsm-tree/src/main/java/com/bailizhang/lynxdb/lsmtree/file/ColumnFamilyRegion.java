@@ -1,23 +1,28 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.log.WriteAheadLog;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.io.File;
 
 public class ColumnFamilyRegion {
+    private final Options options;
+
     private final WriteAheadLog wal;
     private MemTable immutable;
     private MemTable mutable;
     private final LevelTree levelTree;
 
-    public ColumnFamilyRegion(String dir, String columnFamily) {
+    public ColumnFamilyRegion(String dir, String columnFamily, Options options) {
+        this.options = options;
+
         File file = FileUtils.createDirIfNotExisted(dir, columnFamily);
         String cfDir = file.getAbsolutePath();
 
-        wal = new WriteAheadLog(cfDir);
-        mutable = new MemTable();
+        wal = new WriteAheadLog(cfDir, options);
+        mutable = new MemTable(options);
         levelTree = new LevelTree(cfDir);
     }
 
@@ -41,7 +46,7 @@ public class ColumnFamilyRegion {
             MemTable needMerged = immutable;
             mutable.transformToImmutable();
             immutable = mutable;
-            mutable = new MemTable();
+            mutable = new MemTable(options);
             levelTree.merge(needMerged);
         }
         mutable.append(key, column, timestamp, value);

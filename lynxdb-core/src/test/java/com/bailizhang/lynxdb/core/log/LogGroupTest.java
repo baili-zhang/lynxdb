@@ -1,5 +1,8 @@
-package com.bailizhang.lynxdb.raft.log;
+package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.log.LogEntry;
+import com.bailizhang.lynxdb.core.log.LogGroup;
+import com.bailizhang.lynxdb.core.log.LogIndex;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

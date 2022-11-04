@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.raft.state;
 
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.common.RaftCommend;
-import com.bailizhang.lynxdb.raft.log.LogEntry;
+import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
@@ -21,7 +21,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RpcRaftState extends CoreRaftState {
