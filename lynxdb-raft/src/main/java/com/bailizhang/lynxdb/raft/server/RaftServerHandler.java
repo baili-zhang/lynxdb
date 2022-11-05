@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.raft.server;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.log.LogEntry;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
 import com.bailizhang.lynxdb.raft.request.RaftRequest;

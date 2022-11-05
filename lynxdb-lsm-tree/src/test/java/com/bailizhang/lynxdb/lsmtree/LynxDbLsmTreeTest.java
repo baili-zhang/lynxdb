@@ -7,10 +7,7 @@ import com.bailizhang.lynxdb.lsmtree.common.Options;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.awt.desktop.OpenFilesEvent;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";

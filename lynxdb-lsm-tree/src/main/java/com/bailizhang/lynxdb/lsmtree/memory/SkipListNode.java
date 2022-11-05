@@ -1,9 +1,11 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.lsmtree.common.KcItem;
 
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.Random;
 
 import static com.bailizhang.lynxdb.lsmtree.common.Version.LATEST_VERSION;
 import static com.bailizhang.lynxdb.lsmtree.memory.SkipList.MAX_LEVEL;
