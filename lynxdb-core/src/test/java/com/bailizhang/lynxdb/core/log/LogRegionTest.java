@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,10 +18,11 @@ class LogRegionTest {
 
     @BeforeEach
     void setUp() {
+        LogOptions options = new LogOptions(4);
         try {
-            logRegion = LogRegion.create(1, 30, BASE_DIR);
+            logRegion = LogRegion.create(1, 30, BASE_DIR, options);
         } catch (Exception ignore) {
-            logRegion = LogRegion.open(1, BASE_DIR);
+            logRegion = LogRegion.open(1, BASE_DIR, options);
         }
     }
 
@@ -41,12 +43,13 @@ class LogRegionTest {
 
     @Test
     void append() {
-        logRegion.append(TERM, COMMAND);
+        byte[] extraData = BufferUtils.toBytes(TERM);
+        logRegion.append(extraData, COMMAND);
         assert logRegion.globalIndexBegin() == 30;
         assert logRegion.globalIndexEnd() == 30;
 
         LogEntry entry = logRegion.readEntry(30);
-        assert entry.index().term() == TERM;
+        assert Arrays.equals(entry.index().extraData(), extraData);
         assert Arrays.equals(entry.data(), COMMAND);
     }
 }

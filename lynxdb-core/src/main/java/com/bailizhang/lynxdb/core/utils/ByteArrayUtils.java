@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.core.utils;
 
+import java.nio.ByteBuffer;
+
 public interface ByteArrayUtils {
     static int compare(byte[] origin, byte[] target) {
         int minLen = Math.min(origin.length, target.length);
@@ -17,5 +19,10 @@ public interface ByteArrayUtils {
 
     static boolean isEmpty(byte[] src) {
         return src == null || src.length == 0;
+    }
+
+    static int toInt(byte[] extraData) {
+        ByteBuffer buffer = ByteBuffer.wrap(extraData);
+        return buffer.getInt();
     }
 }

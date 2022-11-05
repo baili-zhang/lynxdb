@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.raft.state;
 
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.common.RaftCommend;
 import com.bailizhang.lynxdb.core.log.LogEntry;
@@ -17,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.*;
@@ -61,7 +64,7 @@ public class RpcRaftState extends CoreRaftState {
 
             LinkedList<LogEntry> entries = raftLog.range(matched, next - 1);
             LogEntry entry = entries.removeFirst();
-            int prevLogTerm = entry.index().term();
+            int prevLogTerm = ByteArrayUtils.toInt(entry.index().extraData());
 
             AppendEntriesArgs args = new AppendEntriesArgs(
                     currentTerm,
@@ -132,7 +135,8 @@ public class RpcRaftState extends CoreRaftState {
             votedFor = candidate;
             return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
         } else if(lastLogIndex == lastIndex) {
-            if(lastLogTerm > raftLog.lastLogTerm()) {
+            int currentLastLogTerm = ByteArrayUtils.toInt(raftLog.lastLogExtraData());
+            if(lastLogTerm > currentLastLogTerm) {
                 votedFor = candidate;
                 return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
             }
@@ -160,7 +164,7 @@ public class RpcRaftState extends CoreRaftState {
         }
 
         int preIndex = raftLog.maxGlobalIndex();
-        int preTerm = raftLog.lastLogTerm();
+        int preTerm = ByteArrayUtils.toInt(raftLog.lastLogExtraData());
 
         if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
@@ -188,7 +192,7 @@ public class RpcRaftState extends CoreRaftState {
         resetElectionTimeout();
 
         synchronized (this) {
-            int index = raftLog.append(currentTerm, command);
+            int index = raftLog.append(BufferUtils.toBytes(currentTerm), command);
             RaftCommend raftCommend = new RaftCommend(selectionKey, serial, index, command);
             commendQueue.offer(raftCommend);
         }

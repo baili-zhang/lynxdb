@@ -1,8 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.log.LogEntry;
-import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogIndex;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +19,8 @@ class LogGroupTest {
 
     @BeforeEach
     void setUp() {
-        logGroup = new LogGroup(BASE_DIR);
+        LogOptions options = new LogOptions(4);
+        logGroup = new LogGroup(BASE_DIR, options);
     }
 
     @AfterEach
@@ -32,7 +31,8 @@ class LogGroupTest {
     @Test
     void append() {
         for(int i = 1; i <= 450; i ++) {
-            logGroup.append(TERM + i, (COMMAND + i).getBytes(StandardCharsets.UTF_8));
+            byte[] extraData = BufferUtils.toBytes(TERM + i);
+            logGroup.append(extraData, (COMMAND + i).getBytes(StandardCharsets.UTF_8));
         }
 
         int begin = 106, end = 406;
@@ -43,8 +43,15 @@ class LogGroupTest {
             LogEntry entry = entries.get(i);
             LogIndex index = entry.index();
 
-            assert index.term() == TERM + begin + i;
-            assert Arrays.equals(entry.data(), (COMMAND + (begin + i)).getBytes(StandardCharsets.UTF_8));
+            assert Arrays.equals(
+                    index.extraData(),
+                    BufferUtils.toBytes(TERM + begin + i)
+            );
+
+            assert Arrays.equals(
+                    entry.data(),
+                    (COMMAND + (begin + i)).getBytes(StandardCharsets.UTF_8)
+            );
         }
     }
 }

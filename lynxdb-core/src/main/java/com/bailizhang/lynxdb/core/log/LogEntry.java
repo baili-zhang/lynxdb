@@ -11,7 +11,7 @@ public record LogEntry(
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
 
-        bytesList.appendRawInt(index.term());
+        bytesList.appendRawBytes(index.extraData());
         bytesList.appendRawLong(index.dataBegin());
 
         return bytesList;

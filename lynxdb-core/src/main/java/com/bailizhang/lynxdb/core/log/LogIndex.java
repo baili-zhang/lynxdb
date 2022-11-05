@@ -4,22 +4,27 @@ import com.bailizhang.lynxdb.core.common.BytesConvertible;
 
 import java.nio.ByteBuffer;
 
-public record LogIndex(int term, long dataBegin, int dataLength)
-        implements BytesConvertible {
+public record LogIndex(
+        int extraDataLength,
+        byte[] extraData,
+        long dataBegin,
+        int dataLength
+) implements BytesConvertible {
 
-    public static final int BYTES_LENGTH = 16;
+    public static final int FIXED_LENGTH = 12;
 
-    public static LogIndex from(ByteBuffer buffer) {
-        int term = buffer.getInt();
+    public static LogIndex from(ByteBuffer buffer, int extraDataLength) {
+        byte[] extraData = new byte[extraDataLength];
+        buffer.get(extraData);
         long dataBegin = buffer.getLong();
         int dataLength = buffer.getInt();
 
-        return new LogIndex(term, dataBegin, dataLength);
+        return new LogIndex(extraDataLength, extraData, dataBegin, dataLength);
     }
 
     @Override
     public byte[] toBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(BYTES_LENGTH);
-        return buffer.putInt(term).putLong(dataBegin).putInt(dataLength).array();
+        ByteBuffer buffer = ByteBuffer.allocate(extraDataLength + FIXED_LENGTH);
+        return buffer.put(extraData).putLong(dataBegin).putInt(dataLength).array();
     }
 }

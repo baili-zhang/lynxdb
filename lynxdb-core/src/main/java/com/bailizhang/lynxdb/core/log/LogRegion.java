@@ -26,9 +26,12 @@ public class LogRegion implements AutoCloseable {
     private static final int BEGIN_FIELD_POSITION = 0;
     private static final int END_FIELD_POSITION = 4;
     private static final int INDEX_BEGIN_POSITION = 8;
-    private static final int DATA_BEGIN_POSITION = 8 + DEFAULT_INDEX_SIZE * LogIndex.BYTES_LENGTH;
+
+    private final int dataBeginPosition;
+    private final int logIndexLength;
 
     private final String groupDir;
+    private final LogOptions options;
 
     private final File file;
 
@@ -38,8 +41,12 @@ public class LogRegion implements AutoCloseable {
     private int globalIndexBegin;
     private int globalIndexEnd;
 
-    private LogRegion(int id, String dir) {
+    private LogRegion(int id, String dir, LogOptions options) {
+        logIndexLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
+        dataBeginPosition = INDEX_BEGIN_POSITION + DEFAULT_INDEX_SIZE * logIndexLength;
+
         groupDir = dir;
+        this.options = options;
 
         Path path = Path.of(groupDir, NameUtils.name(id));
 
@@ -56,7 +63,7 @@ public class LogRegion implements AutoCloseable {
         }
 
         try {
-            if(channel.size() < DATA_BEGIN_POSITION) {
+            if(channel.size() < dataBeginPosition) {
                 initRegion();
             } else {
                 readBegin();
@@ -68,9 +75,10 @@ public class LogRegion implements AutoCloseable {
         }
     }
 
-    public static LogRegion create(int id, int begin, String groupDir) {
-        Path path = Path.of(groupDir, NameUtils.name(id));
+    public static LogRegion create(int id, int begin, String groupDir, LogOptions options) {
+        FileUtils.createDirIfNotExisted(groupDir);
 
+        Path path = Path.of(groupDir, NameUtils.name(id));
         File file = path.toFile();
 
         if(file.exists()) {
@@ -82,7 +90,7 @@ public class LogRegion implements AutoCloseable {
 
         LogRegion region;
         try {
-            region = new LogRegion(id, groupDir);
+            region = new LogRegion(id, groupDir, options);
             region.writeBegin(begin);
             region.writeEnd(begin - 1);
         } catch (IOException e) {
@@ -92,7 +100,7 @@ public class LogRegion implements AutoCloseable {
         return region;
     }
 
-    public static LogRegion open(int id, String groupDir) {
+    public static LogRegion open(int id, String groupDir, LogOptions options) {
         Path path = Path.of(groupDir, NameUtils.name(id));
 
         File file = path.toFile();
@@ -102,7 +110,7 @@ public class LogRegion implements AutoCloseable {
             throw new RuntimeException(String.format(template, id));
         }
 
-        return new LogRegion(id, groupDir);
+        return new LogRegion(id, groupDir, options);
     }
 
     public int globalIndexBegin() {
@@ -113,22 +121,31 @@ public class LogRegion implements AutoCloseable {
         return globalIndexEnd;
     }
 
+    public String groupDir() {
+        return groupDir;
+    }
+
     public void close() throws IOException {
         channel.close();
     }
 
-    public int append(int term, byte[] data) {
+    public int append(byte[] extraData, byte[] data) {
         long dataBegin;
 
         if(logIndexList.isEmpty()) {
-            dataBegin = DATA_BEGIN_POSITION;
+            dataBegin = dataBeginPosition;
         } else {
             LogIndex lastIndex = logIndexList.get(logIndexList.size() - 1);
             dataBegin = lastIndex.dataBegin() + lastIndex.dataLength() + LONG_LENGTH;
         }
 
         int dataLength = data.length;
-        LogIndex index = new LogIndex(term, dataBegin, dataLength);
+        LogIndex index = new LogIndex(
+                options.extraDataLength(),
+                extraData,
+                dataBegin,
+                dataLength
+        );
 
         CRC32C crc32C = new CRC32C();
         crc32C.update(data);
@@ -172,7 +189,6 @@ public class LogRegion implements AutoCloseable {
             throw new RuntimeException(e);
         }
 
-
         long originCrc32C = crc32CBuffer.rewind().getLong();
         CRC32C crc32C = new CRC32C();
         crc32C.update(buffer.rewind());
@@ -189,9 +205,9 @@ public class LogRegion implements AutoCloseable {
         );
     }
 
-    public int lastTerm() {
+    public byte[] extraData() {
         LogIndex logIndex = logIndexList.get(logIndexList.size() - 1);
-        return logIndex.term();
+        return logIndex.extraData();
     }
 
     public void delete() {
@@ -230,17 +246,17 @@ public class LogRegion implements AutoCloseable {
     }
 
     private void loadLogIndex() throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(LogIndex.BYTES_LENGTH);
+        ByteBuffer buffer = ByteBuffer.allocate(logIndexLength);
         long position = INDEX_BEGIN_POSITION;
 
         for(int size = globalIndexEnd - globalIndexBegin; size > 0; size --) {
             channel.read(buffer, position);
 
             buffer.rewind();
-            LogIndex index = LogIndex.from(buffer);
+            LogIndex index = LogIndex.from(buffer, options.extraDataLength());
             logIndexList.add(index);
 
-            position += LogIndex.BYTES_LENGTH;
+            position += logIndexLength;
         }
     }
 
@@ -259,13 +275,13 @@ public class LogRegion implements AutoCloseable {
     private void appendIndex(LogIndex index) throws IOException {
         byte[] indexBytes = index.toBytes();
         ByteBuffer buffer = ByteBuffer.wrap(indexBytes);
-        long position = INDEX_BEGIN_POSITION + (long) logIndexList.size() * LogIndex.BYTES_LENGTH;
+        long position = INDEX_BEGIN_POSITION + (long) logIndexList.size() * logIndexLength;
         channel.write(buffer, position);
         logIndexList.add(index);
     }
 
     private void initRegion() throws IOException {
-        byte[] blank = new byte[DATA_BEGIN_POSITION];
+        byte[] blank = new byte[dataBeginPosition];
         ByteBuffer buffer = ByteBuffer.wrap(blank);
         channel.write(buffer, BEGIN_FIELD_POSITION);
     }
