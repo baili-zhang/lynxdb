@@ -1,16 +1,25 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.log.LogGroup;
+import com.bailizhang.lynxdb.core.log.LogOptions;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
-import com.bailizhang.lynxdb.lsmtree.log.WriteAheadLog;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.io.File;
 
 public class ColumnFamilyRegion {
+    private static final int EXTRA_DATA_LENGTH = 0;
+
+    private static final byte INSERT = (byte) 0x01;
+    private static final byte DELETE = (byte) 0x02;
+
+
     private final Options options;
 
-    private final WriteAheadLog wal;
+    private final LogGroup walLog;
     private MemTable immutable;
     private MemTable mutable;
     private final LevelTree levelTree;
@@ -21,7 +30,8 @@ public class ColumnFamilyRegion {
         File file = FileUtils.createDirIfNotExisted(dir, columnFamily);
         String cfDir = file.getAbsolutePath();
 
-        wal = new WriteAheadLog(cfDir, options);
+        LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
+        walLog = new LogGroup(cfDir, logOptions);
         mutable = new MemTable(options);
         levelTree = new LevelTree(cfDir);
     }
@@ -41,7 +51,16 @@ public class ColumnFamilyRegion {
     }
 
     public void insert(byte[] key, byte[] column, long timestamp, byte[] value) {
-        wal.appendInsert(key, column, timestamp);
+        BytesList bytesList = new BytesList();
+
+        bytesList.appendRawByte(INSERT);
+        bytesList.appendVarBytes(key);
+        bytesList.appendVarBytes(column);
+        bytesList.appendRawLong(timestamp);
+        bytesList.appendRawBytes(value);
+
+        walLog.append(BufferUtils.EMPTY_BYTES, bytesList.toBytes());
+
         if(mutable.full()) {
             MemTable needMerged = immutable;
             mutable.transformToImmutable();
@@ -53,7 +72,15 @@ public class ColumnFamilyRegion {
     }
 
     public boolean delete(byte[] key, byte[] column, long timestamp) {
-        wal.appendDelete(key, column, timestamp);
+        BytesList bytesList = new BytesList();
+
+        bytesList.appendRawByte(DELETE);
+        bytesList.appendVarBytes(key);
+        bytesList.appendVarBytes(column);
+        bytesList.appendRawLong(timestamp);
+
+        walLog.append(BufferUtils.EMPTY_BYTES, bytesList.toBytes());
+
         return mutable.delete(key, column, timestamp)
                 || immutable.delete(key, column, timestamp)
                 || levelTree.delete(key, column, timestamp);

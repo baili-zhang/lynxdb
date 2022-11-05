@@ -41,7 +41,7 @@ public class LogRegion implements AutoCloseable {
     private int globalIndexBegin;
     private int globalIndexEnd;
 
-    private LogRegion(int id, String dir, LogOptions options) {
+    public LogRegion(int id, String dir, LogOptions options) {
         logIndexLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
         dataBeginPosition = INDEX_BEGIN_POSITION + DEFAULT_INDEX_SIZE * logIndexLength;
 
