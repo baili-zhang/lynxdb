@@ -24,8 +24,6 @@ public class SkipList implements Iterable<SkipListNode> {
             throw new RuntimeException();
         }
 
-        size ++;
-
         SkipListNode node = new SkipListNode(key, column);
         SkipListNode[] prev = new SkipListNode[MAX_LEVEL];
 
@@ -43,6 +41,8 @@ public class SkipList implements Iterable<SkipListNode> {
                 return;
             }
         }
+
+        size ++;
 
         for(int i = node.next().length - 1; i >= 0; i --) {
             SkipListNode next = prev[i].next()[i];

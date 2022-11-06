@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 
-public class LogGroup {
+public class LogGroup implements Iterable<LogEntry> {
     private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
@@ -145,6 +145,19 @@ public class LogGroup {
         append(extraData, data);
     }
 
+    @Override
+    public Iterator<LogEntry> iterator() {
+        return new LogGroupIterator(this);
+    }
+
+    private LogRegion getRegion(int id) {
+        return logRegions.get(id - beginRegionId);
+    }
+
+    private LogRegion beginRegion() {
+        return logRegions.get(0);
+    }
+
     private LogRegion lastRegion() {
         return logRegions.get(logRegions.size() - 1);
     }
@@ -159,5 +172,43 @@ public class LogGroup {
 
         logRegions.add(region);
         return region;
+    }
+
+    private static class LogGroupIterator implements Iterator<LogEntry> {
+        private final LogGroup logGroup;
+
+        private int regionId;
+        private int globalIndex;
+
+        public LogGroupIterator(LogGroup logGroup) {
+            this.logGroup = logGroup;
+            LogRegion region = logGroup.beginRegion();
+            regionId = region.id();
+            globalIndex = region.globalIndexBegin();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return globalIndex <= logGroup.maxGlobalIndex();
+        }
+
+        @Override
+        public LogEntry next() {
+            if(!hasNext()) {
+                return null;
+            }
+
+            LogEntry logEntry;
+            LogRegion region = logGroup.getRegion(regionId);
+            if(globalIndex <= region.globalIndexEnd()) {
+                logEntry = region.readEntry(globalIndex);
+            } else {
+                region = logGroup.getRegion(++ regionId);
+                logEntry = region.readEntry(globalIndex);
+            }
+
+            globalIndex ++;
+            return logEntry;
+        }
     }
 }

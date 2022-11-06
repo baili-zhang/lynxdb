@@ -30,6 +30,7 @@ public class LogRegion implements AutoCloseable {
     private final int dataBeginPosition;
     private final int logIndexLength;
 
+    private final int id;
     private final String groupDir;
     private final LogOptions options;
 
@@ -42,6 +43,7 @@ public class LogRegion implements AutoCloseable {
     private int globalIndexEnd;
 
     public LogRegion(int id, String dir, LogOptions options) {
+        this.id = id;
         logIndexLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
         dataBeginPosition = INDEX_BEGIN_POSITION + DEFAULT_INDEX_SIZE * logIndexLength;
 
@@ -119,6 +121,10 @@ public class LogRegion implements AutoCloseable {
 
     public int globalIndexEnd() {
         return globalIndexEnd;
+    }
+
+    public int id() {
+        return id;
     }
 
     public String groupDir() {
@@ -249,7 +255,7 @@ public class LogRegion implements AutoCloseable {
         ByteBuffer buffer = ByteBuffer.allocate(logIndexLength);
         long position = INDEX_BEGIN_POSITION;
 
-        for(int size = globalIndexEnd - globalIndexBegin; size > 0; size --) {
+        for(int size = globalIndexEnd - globalIndexBegin; size >= 0; size --) {
             channel.read(buffer, position);
 
             buffer.rewind();
