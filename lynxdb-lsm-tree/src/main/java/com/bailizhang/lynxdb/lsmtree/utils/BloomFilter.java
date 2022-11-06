@@ -1,7 +1,12 @@
 package com.bailizhang.lynxdb.lsmtree.utils;
 
 import java.lang.reflect.Method;
+import java.nio.channels.FileChannel;
 
+/**
+ * 7 个 hash 函数，bit 位应该是插入元素的 10 倍
+ * 误判率约等于 0.008
+ */
 public class BloomFilter {
     private static final int LIMIT_HASH_FUNC_SIZE = 7;
 
@@ -23,8 +28,7 @@ public class BloomFilter {
         }
     }
 
-    BloomFilter(int bitCount) {
+    public BloomFilter(FileChannel fileChannel, int bitCount) {
 
     }
-
 }

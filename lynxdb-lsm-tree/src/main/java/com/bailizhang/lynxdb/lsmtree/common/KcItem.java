@@ -1,10 +1,15 @@
 package com.bailizhang.lynxdb.lsmtree.common;
 
+import com.bailizhang.lynxdb.core.common.BytesConvertible;
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
 import java.util.Arrays;
 
-public class KcItem implements Comparable<KcItem> {
+/**
+ * KC: (key, column) pair
+ */
+public class KcItem implements Comparable<KcItem>, BytesConvertible {
     private final byte[] key;
     private final byte[] column;
 
@@ -27,5 +32,13 @@ public class KcItem implements Comparable<KcItem> {
             return ByteArrayUtils.compare(column, o.column);
         }
         return ByteArrayUtils.compare(key, o.key);
+    }
+
+    @Override
+    public byte[] toBytes() {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendVarBytes(key);
+        bytesList.appendVarBytes(column);
+        return bytesList.toBytes();
     }
 }

@@ -121,10 +121,13 @@ public interface FileUtils {
         return subFiles;
     }
 
-    static FileChannel open(String dir, OpenOption... options) {
-        Path path = Path.of(dir);
+    static FileChannel open(String filePath, OpenOption... options) {
+        return open(Path.of(filePath), options);
+    }
+
+    static FileChannel open(Path filePath, OpenOption... options) {
         try {
-            return FileChannel.open(path, options);
+            return FileChannel.open(filePath, options);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

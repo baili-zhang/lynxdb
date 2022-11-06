@@ -4,17 +4,26 @@ import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.KcItem;
 import com.bailizhang.lynxdb.lsmtree.memory.VersionalValue;
+import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
-import java.io.File;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.util.Deque;
 
 public class SsTable {
+    private static final int BLOOM_FILTER_BIT_COUNT = 10000;
+
+    private final FileChannel channel;
+    private final BloomFilter bloomFilter;
+
     private KcItem minKc;
     private KcItem maxKc;
 
     public SsTable(String dir, int id) {
         String filename = NameUtils.name(id);
-        File file = FileUtils.createFileIfNotExisted(dir, filename);
+        FileUtils.createFileIfNotExisted(dir, filename);
+        channel = FileUtils.open(Path.of(dir, filename));
+        bloomFilter = new BloomFilter(channel, BLOOM_FILTER_BIT_COUNT);
     }
 
     public void append(byte[] key, byte[] column, Deque<VersionalValue> values) {
