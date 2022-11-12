@@ -1,11 +1,27 @@
 package com.bailizhang.lynxdb.springcloud.starter;
 
+import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.serviceregistry.ServiceRegistry;
 
+import java.util.List;
+
 public class LynxDbServiceRegistry implements ServiceRegistry<LynxDbRegistration> {
+    private static final String KVSTORE_NAME = "lynxdb-registry";
+    private static final String URL_TEMPLATE = "%s:%d";
+
+    @Autowired
+    private LynxDbTemplate lynxDbTemplate;
+
     @Override
     public void register(LynxDbRegistration registration) {
+        String serviceId = registration.getServiceId();
 
+        String host = registration.getHost();
+        int port = registration.getPort();
+        String url = String.format(URL_TEMPLATE, host, port);
+
+        lynxDbTemplate.kvValueInsert(KVSTORE_NAME, serviceId, List.of(url));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.client.async.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.exception.LynxDbException;
 import com.bailizhang.lynxdb.client.utils.LynxDbUtils;
 import com.bailizhang.lynxdb.core.common.G;
@@ -44,8 +45,8 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public void createTableColumnByBytesList(SelectionKey selectionKey,
-                                   String table,
-                                   List<byte[]> columns) {
+                                             String table,
+                                             List<byte[]> columns) {
         LynxDbFuture future = asyncCreateTableColumnByBytesList(selectionKey, table, columns);
         byte[] value = future.get();
 
@@ -57,8 +58,8 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public void createTableColumnByStrList(SelectionKey selectionKey,
-                                   String table,
-                                   List<String> columns) {
+                                           String table,
+                                           List<String> columns) {
         LynxDbFuture future = asyncCreateTableColumn(selectionKey, table, columns);
         byte[] value = future.get();
 
@@ -107,8 +108,8 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public void kvDeleteByBytesList(SelectionKey selectionKey,
-                          String kvstore,
-                          List<byte[]> keys) {
+                                    String kvstore,
+                                    List<byte[]> keys) {
         LynxDbFuture future = asyncKvDeleteByBytesList(selectionKey, kvstore, keys);
         byte[] value = future.get();
 
@@ -120,14 +121,14 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public void kvDeleteByStrList(SelectionKey selectionKey,
-                          String kvstore,
-                          List<String> keys) {
+                                  String kvstore,
+                                  List<String> keys) {
         List<byte[]> keyList = keys.stream().map(G.I::toBytes).toList();
         kvDeleteByBytesList(selectionKey, kvstore, keyList);
     }
 
     public byte[] kvGetByBytesList(SelectionKey selectionKey,
-                         String kvstore, List<byte[]> keys) {
+                                   String kvstore, List<byte[]> keys) {
         LynxDbFuture future = asyncKvGetByBytesList(selectionKey, kvstore, keys);
         return future.get();
     }
@@ -177,29 +178,29 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public byte[] tableDelete0(SelectionKey selectionKey,
-                                    String table,
-                                    List<byte[]> keys) {
+                               String table,
+                               List<byte[]> keys) {
         LynxDbFuture future = asyncTableDelete0(selectionKey, table, keys);
         return future.get();
     }
 
     public byte[] tableDelete1(SelectionKey selectionKey,
-                                     String table,
-                                     List<String> keys) {
+                               String table,
+                               List<String> keys) {
         LynxDbFuture future = asyncTableDelete1(selectionKey, table, keys);
         return future.get();
     }
 
     public byte[] tableInsert(SelectionKey selectionKey,
-                                         String table,
-                                         MultiTableRows rows) {
+                              String table,
+                              MultiTableRows rows) {
         LynxDbFuture future = asyncTableInsert(selectionKey, table, rows);
         return future.get();
     }
 
     public byte[] tableSelect(SelectionKey selectionKey,
-                                         String table,
-                                         MultiTableKeys keys) {
+                              String table,
+                              MultiTableKeys keys) {
         LynxDbFuture future = asyncTableSelect(selectionKey, table, keys);
         return future.get();
     }
@@ -215,8 +216,26 @@ public class LynxDbClient extends AsyncLynxDbClient {
     }
 
     public byte[] showTableColumn(SelectionKey selectionKey,
-                                        String table) {
+                                  String table) {
         LynxDbFuture future = asyncShowTableColumn(selectionKey, table);
         return future.get();
+    }
+
+    public void kvValueInsert(SelectionKey selectionKey,
+                                String kvstore,
+                                String key,
+                                List<String> values) {
+        LynxDbFuture future = asyncKvValueInsert(
+                selectionKey,
+                kvstore,
+                key,
+                values
+        );
+
+        LynxDbResult result = new LynxDbResult(future.get());
+        if(result.isSuccessful()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
     }
 }

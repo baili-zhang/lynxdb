@@ -1,8 +1,8 @@
-package com.bailizhang.lynxdb.lsmtree.common;
+package com.bailizhang.lynxdb.core.common;
 
 import java.util.Arrays;
 
-public abstract class WrappedBytes implements Comparable<WrappedBytes>{
+public class WrappedBytes implements Comparable<WrappedBytes>{
     private final byte[] bytes;
 
     public WrappedBytes(byte[] val) {

@@ -1,6 +1,6 @@
 package zbl.moonlight.client;
 
-import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
+import com.bailizhang.lynxdb.client.async.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;

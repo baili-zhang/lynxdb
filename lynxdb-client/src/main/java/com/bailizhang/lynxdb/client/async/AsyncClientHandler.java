@@ -1,5 +1,6 @@
-package com.bailizhang.lynxdb.client;
+package com.bailizhang.lynxdb.client.async;
 
+import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 

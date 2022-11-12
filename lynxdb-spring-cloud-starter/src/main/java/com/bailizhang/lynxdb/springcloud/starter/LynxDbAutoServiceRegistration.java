@@ -1,12 +1,22 @@
 package com.bailizhang.lynxdb.springcloud.starter;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.serviceregistry.AbstractAutoServiceRegistration;
 import org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationProperties;
 import org.springframework.cloud.client.serviceregistry.ServiceRegistry;
 
 public class LynxDbAutoServiceRegistration
         extends AbstractAutoServiceRegistration<LynxDbRegistration> {
-    protected LynxDbAutoServiceRegistration(ServiceRegistry<LynxDbRegistration> serviceRegistry, AutoServiceRegistrationProperties properties) {
+
+    @Autowired
+    private LynxDbRegistration lynxDbRegistration;
+
+    @Autowired
+    private AutoServiceRegistrationProperties autoServiceRegistrationProperties;
+
+    protected LynxDbAutoServiceRegistration(ServiceRegistry<LynxDbRegistration> serviceRegistry,
+                                            AutoServiceRegistrationProperties properties) {
         super(serviceRegistry, properties);
     }
 
@@ -17,12 +27,12 @@ public class LynxDbAutoServiceRegistration
 
     @Override
     protected boolean isEnabled() {
-        return false;
+        return autoServiceRegistrationProperties.isEnabled();
     }
 
     @Override
     protected LynxDbRegistration getRegistration() {
-        return null;
+        return lynxDbRegistration;
     }
 
     @Override

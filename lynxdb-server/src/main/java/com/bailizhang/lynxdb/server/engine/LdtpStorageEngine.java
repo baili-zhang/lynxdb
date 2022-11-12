@@ -342,4 +342,17 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         return bytesList;
     }
+
+    @LdtpMethod(KV_VALUE_APPEND)
+    public BytesList doKvValueInsert(QueryParams params) {
+        KvValueInsertContent content = new KvValueInsertContent(params);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS);
+
+        KvAdapter db = kvDbMap.get(content.kvstore());
+        db.ValueInsert(content.key(), content.values());
+
+        return bytesList;
+    }
 }
