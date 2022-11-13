@@ -7,7 +7,7 @@
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>2022.0.2-alpha</version>
+    <version>2022.11.13-alpha</version>
 
     <modules>
         <module>lynxdb-server</module>
