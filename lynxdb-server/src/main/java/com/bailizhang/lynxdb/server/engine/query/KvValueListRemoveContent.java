@@ -50,7 +50,7 @@ public class KvValueListRemoveContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(LdtpMethod.KV_VALUE_LIST_INSERT);
+        bytesList.appendRawByte(LdtpMethod.KV_VALUE_LIST_REMOVE);
         bytesList.appendVarBytes(G.I.toBytes(kvstore));
         bytesList.appendVarBytes(key);
 
