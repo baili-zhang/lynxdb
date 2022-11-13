@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2022.11.13-alpha</version>
+        <version>2022.11.13-beta</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-spring-boot-starter</artifactId>
-            <version>2022.11.13-alpha</version>
+            <version>2022.11.13-beta</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
