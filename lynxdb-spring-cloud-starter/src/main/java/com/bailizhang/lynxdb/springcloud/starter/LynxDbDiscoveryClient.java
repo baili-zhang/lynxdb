@@ -18,7 +18,19 @@ public class LynxDbDiscoveryClient implements DiscoveryClient {
 
     @Override
     public List<ServiceInstance> getInstances(String serviceId) {
-        return null;
+        List<String> instances = lynxDbTemplate.kvValueListGet(
+                LynxDbServiceRegistry.KVSTORE_NAME,
+                serviceId
+        );
+
+        return instances.stream().map(instance -> {
+            String[] arr = instance.split(":");
+            return (ServiceInstance) new LynxDbRegistration(
+                    serviceId,
+                    arr[0],
+                    Integer.parseInt(arr[1])
+            );
+        }).toList();
     }
 
     @Override

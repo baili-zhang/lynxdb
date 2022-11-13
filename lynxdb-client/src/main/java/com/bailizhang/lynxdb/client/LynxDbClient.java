@@ -221,11 +221,29 @@ public class LynxDbClient extends AsyncLynxDbClient {
         return future.get();
     }
 
-    public void kvValueInsert(SelectionKey selectionKey,
-                                String kvstore,
-                                String key,
-                                List<String> values) {
-        LynxDbFuture future = asyncKvValueInsert(
+    public void kvValueListInsert(SelectionKey selectionKey,
+                                  String kvstore,
+                                  String key,
+                                  List<String> values) {
+        LynxDbFuture future = asyncKvValueListInsert(
+                selectionKey,
+                kvstore,
+                key,
+                values
+        );
+
+        LynxDbResult result = new LynxDbResult(future.get());
+        if(result.isSuccessful()) {
+            return;
+        }
+        throw new LynxDbException(result.message());
+    }
+
+    public void kvValueListRemove(SelectionKey selectionKey,
+                                  String kvstore,
+                                  String key,
+                                  List<String> values) {
+        LynxDbFuture future = asyncKvValueListRemove(
                 selectionKey,
                 kvstore,
                 key,

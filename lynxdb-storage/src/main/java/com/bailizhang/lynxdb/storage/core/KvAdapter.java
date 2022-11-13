@@ -12,7 +12,8 @@ public interface KvAdapter extends AutoCloseable {
     void delete(byte[] key);
     void delete(List<byte[]> keys);
 
-    void ValueInsert(byte[] key, List<byte[]> values);
+    void ValueListInsert(byte[] key, List<byte[]> values);
+    void ValueListRemove(byte[] key, List<byte[]> values);
 
     Snapshot snapshot();
 }

@@ -343,9 +343,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return bytesList;
     }
 
-    @LdtpMethod(KV_VALUE_APPEND)
-    public BytesList doKvValueInsert(QueryParams params) {
-        KvValueInsertContent content = new KvValueInsertContent(params);
+    @LdtpMethod(KV_VALUE_LIST_INSERT)
+    public BytesList doKvValueListInsert(QueryParams params) {
+        KvValueListInsertContent content = new KvValueListInsertContent(params);
 
         String kvstore = content.kvstore();
 
@@ -360,7 +360,29 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             return Result.invalidArgument(errorMsg);
         }
 
-        db.ValueInsert(content.key(), content.values());
+        db.ValueListInsert(content.key(), content.values());
+
+        return bytesList;
+    }
+
+    @LdtpMethod(KV_VALUE_LIST_REMOVE)
+    public BytesList doKvValueListRemove(QueryParams params) {
+        KvValueListRemoveContent content = new KvValueListRemoveContent(params);
+
+        String kvstore = content.kvstore();
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(Result.SUCCESS);
+
+        KvAdapter db = kvDbMap.get(kvstore);
+
+        if(db == null) {
+            String template = "Kvstore \"%s\" is not existed.";
+            String errorMsg = String.format(template, kvstore);
+            return Result.invalidArgument(errorMsg);
+        }
+
+        db.ValueListRemove(content.key(), content.values());
 
         return bytesList;
     }

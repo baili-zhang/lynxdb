@@ -13,9 +13,9 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
 
-public class KvValueInsertQuery extends Query<Pair<byte[], List<byte[]>>, Void> {
-    public KvValueInsertQuery(Pair<byte[], List<byte[]>> queryData,
-                                 ResultSet<Void> resultSet) {
+public class KvValueListRemoveQuery extends Query<Pair<byte[], List<byte[]>>, Void> {
+    public KvValueListRemoveQuery(Pair<byte[], List<byte[]>> queryData,
+                                  ResultSet<Void> resultSet) {
         super(queryData, resultSet);
     }
 
@@ -38,7 +38,7 @@ public class KvValueInsertQuery extends Query<Pair<byte[], List<byte[]>>, Void> 
         }
 
         List<byte[]> appendValues = queryData.right();
-        appendValues.forEach(bytes -> set.add(new WrappedBytes(bytes)));
+        appendValues.forEach(bytes -> set.remove(new WrappedBytes(bytes)));
 
         BytesList bytesList = new BytesList(false);
         set.forEach(item -> bytesList.appendVarBytes(item.bytes()));

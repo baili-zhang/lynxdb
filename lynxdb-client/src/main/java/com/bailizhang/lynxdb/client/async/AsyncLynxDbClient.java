@@ -246,16 +246,39 @@ public class AsyncLynxDbClient extends SocketClient {
         return future;
     }
 
-    public LynxDbFuture asyncKvValueInsert(SelectionKey selectionKey,
-                                           String kvstore,
-                                           String key,
-                                           List<String> values) {
+    public LynxDbFuture asyncKvValueListInsert(SelectionKey selectionKey,
+                                               String kvstore,
+                                               String key,
+                                               List<String> values) {
         LynxDbFuture future = new LynxDbFuture();
 
         byte[] keyBytes = G.I.toBytes(key);
         List<byte[]> valuesBytes = values.stream().map(G.I::toBytes).toList();
 
-        KvValueInsertContent content = new KvValueInsertContent(
+        KvValueListInsertContent content = new KvValueListInsertContent(
+                kvstore,
+                keyBytes,
+                valuesBytes
+        );
+
+        ClientRequest request = new ClientRequest(selectionKey, content);
+
+        int serial = send(request);
+        futureMap.get(selectionKey).put(serial, future);
+
+        return future;
+    }
+
+    public LynxDbFuture asyncKvValueListRemove(SelectionKey selectionKey,
+                                                String kvstore,
+                                                String key,
+                                                List<String> values) {
+        LynxDbFuture future = new LynxDbFuture();
+
+        byte[] keyBytes = G.I.toBytes(key);
+        List<byte[]> valuesBytes = values.stream().map(G.I::toBytes).toList();
+
+        KvValueListRemoveContent content = new KvValueListRemoveContent(
                 kvstore,
                 keyBytes,
                 valuesBytes

@@ -8,11 +8,28 @@ import java.util.Map;
 
 public class LynxDbRegistration implements Registration {
 
+    private final String host;
+
     @Value("${spring.application.name}")
     private String serviceId;
 
     @Value("${server.port}")
     private int port;
+
+    public LynxDbRegistration() {
+        try {
+            InetAddress inetAddress = InetAddress.getLocalHost();
+            host = inetAddress.getHostAddress();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public LynxDbRegistration(String serviceId, String host, int port) {
+        this.serviceId = serviceId;
+        this.host = host;
+        this.port = port;
+    }
 
     @Override
     public String getServiceId() {
@@ -21,12 +38,7 @@ public class LynxDbRegistration implements Registration {
 
     @Override
     public String getHost() {
-        try {
-            InetAddress inetAddress = InetAddress.getLocalHost();
-            return inetAddress.getHostAddress();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-        }
+        return host;
     }
 
     @Override

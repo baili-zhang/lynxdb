@@ -11,12 +11,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class KvValueInsertContent implements BytesListConvertible {
+public class KvValueListRemoveContent implements BytesListConvertible {
     private final String kvstore;
     private final byte[] key;
     private final List<byte[]> values;
 
-    public KvValueInsertContent(QueryParams params) {
+    public KvValueListRemoveContent(QueryParams params) {
         values = new ArrayList<>();
 
         ByteBuffer buffer = ByteBuffer.wrap(params.content());
@@ -28,7 +28,7 @@ public class KvValueInsertContent implements BytesListConvertible {
         }
     }
 
-    public KvValueInsertContent(String kvstore, byte[] key, List<byte[]> values) {
+    public KvValueListRemoveContent(String kvstore, byte[] key, List<byte[]> values) {
         this.kvstore = kvstore;
         this.key = key;
         this.values = values;
@@ -50,7 +50,7 @@ public class KvValueInsertContent implements BytesListConvertible {
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(LdtpMethod.KV_VALUE_APPEND);
+        bytesList.appendRawByte(LdtpMethod.KV_VALUE_LIST_INSERT);
         bytesList.appendVarBytes(G.I.toBytes(kvstore));
         bytesList.appendVarBytes(key);
 

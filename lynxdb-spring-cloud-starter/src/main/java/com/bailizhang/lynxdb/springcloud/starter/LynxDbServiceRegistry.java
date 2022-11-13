@@ -7,7 +7,8 @@ import org.springframework.cloud.client.serviceregistry.ServiceRegistry;
 import java.util.List;
 
 public class LynxDbServiceRegistry implements ServiceRegistry<LynxDbRegistration> {
-    private static final String KVSTORE_NAME = "lynxdb-registry";
+    public static final String KVSTORE_NAME = "lynxdb-registry";
+
     private static final String URL_TEMPLATE = "%s:%d";
 
     @Autowired
@@ -21,12 +22,18 @@ public class LynxDbServiceRegistry implements ServiceRegistry<LynxDbRegistration
         int port = registration.getPort();
         String url = String.format(URL_TEMPLATE, host, port);
 
-        lynxDbTemplate.kvValueInsert(KVSTORE_NAME, serviceId, List.of(url));
+        lynxDbTemplate.kvValueListInsert(KVSTORE_NAME, serviceId, List.of(url));
     }
 
     @Override
     public void deregister(LynxDbRegistration registration) {
+        String serviceId = registration.getServiceId();
 
+        String host = registration.getHost();
+        int port = registration.getPort();
+        String url = String.format(URL_TEMPLATE, host, port);
+
+        lynxDbTemplate.kvValueListRemove(KVSTORE_NAME, serviceId, List.of(url));
     }
 
     @Override

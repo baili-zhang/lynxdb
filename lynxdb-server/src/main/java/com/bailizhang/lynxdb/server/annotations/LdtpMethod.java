@@ -28,7 +28,8 @@ public @interface LdtpMethod {
     byte SHOW_TABLE             = (byte) 0x0e;
     byte SHOW_TABLE_COLUMN      = (byte) 0x0f;
 
-    byte KV_VALUE_APPEND = (byte) 0x10;
+    byte KV_VALUE_LIST_INSERT   = (byte) 0x10;
+    byte KV_VALUE_LIST_REMOVE   = (byte) 0x11;
 
     byte value();
 }

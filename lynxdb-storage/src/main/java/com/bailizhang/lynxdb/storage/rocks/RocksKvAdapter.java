@@ -83,10 +83,20 @@ public class RocksKvAdapter implements KvAdapter {
     }
 
     @Override
-    public void ValueInsert(byte[] key, List<byte[]> values) {
+    public void ValueListInsert(byte[] key, List<byte[]> values) {
         try {
             ResultSet<Void> resultSet = new ResultSet<>();
-            db.doQuery(new KvValueInsertQuery(new Pair<>(key, values), resultSet));
+            db.doQuery(new KvValueListInsertQuery(new Pair<>(key, values), resultSet));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void ValueListRemove(byte[] key, List<byte[]> values) {
+        try {
+            ResultSet<Void> resultSet = new ResultSet<>();
+            db.doQuery(new KvValueListRemoveQuery(new Pair<>(key, values), resultSet));
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
