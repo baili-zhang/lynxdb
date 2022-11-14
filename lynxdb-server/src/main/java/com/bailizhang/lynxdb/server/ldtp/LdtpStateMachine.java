@@ -6,11 +6,13 @@ import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.QueryParams;
+import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.channels.SelectionKey;
 import java.util.List;
 
 /**
@@ -56,11 +58,12 @@ public class LdtpStateMachine implements StateMachine {
         for (RaftCommend entry : entries) {
             byte[] command = entry.data();
             QueryParams params = QueryParams.parse(command);
-            BytesList bytesList = storageEngine.doQuery(params);
+            QueryResult result = storageEngine.doQuery(params);
             WritableSocketResponse response = new WritableSocketResponse(
                     entry.selectionKey(),
                     entry.serial(),
-                    bytesList
+                    result.data(),
+                    result.affectKeys()
             );
             raftServer.offerInterruptibly(response);
         }

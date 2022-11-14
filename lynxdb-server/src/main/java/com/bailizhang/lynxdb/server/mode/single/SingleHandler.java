@@ -1,9 +1,10 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
+import com.bailizhang.lynxdb.socket.register.RegisterableEventHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 
-public class SingleHandler implements SocketServerHandler {
+public class SingleHandler extends RegisterableEventHandler {
     private final SingleLdtpEngine engine;
 
     public SingleHandler(SingleLdtpEngine singleLdtpEngine) {
@@ -11,7 +12,12 @@ public class SingleHandler implements SocketServerHandler {
     }
 
     @Override
-    public void handleRequest(SocketRequest request) {
+    protected void handleClientRequest(SocketRequest request) {
         engine.offerInterruptibly(request);
+    }
+
+    @Override
+    protected void handleEventRegister(SocketRequest request) {
+
     }
 }

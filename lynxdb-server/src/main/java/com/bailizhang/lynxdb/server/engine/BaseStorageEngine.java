@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
+import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.storage.core.KvAdapter;
 import com.bailizhang.lynxdb.storage.core.TableAdapter;
 import com.bailizhang.lynxdb.storage.rocks.RocksKvAdapter;
@@ -53,14 +54,14 @@ public abstract class BaseStorageEngine {
         initMethod(clazz);
     }
 
-    public synchronized BytesList doQuery(QueryParams params) {
+    public synchronized QueryResult doQuery(QueryParams params) {
         Method doQueryMethod = methodMap.get(params.method());
         if(doQueryMethod == null) {
             throw new RuntimeException("Not Supported mdtp method.");
         }
 
         try {
-            return (BytesList) doQueryMethod.invoke(this, params);
+            return (QueryResult) doQueryMethod.invoke(this, params);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
