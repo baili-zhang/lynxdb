@@ -1,6 +1,10 @@
 package com.bailizhang.lynxdb.server.engine.result;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.server.engine.AffectKey;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.bailizhang.lynxdb.server.engine.result.Result.Error.INVALID_ARGUMENT;
 
@@ -14,17 +18,25 @@ public interface Result {
         byte INVALID_ARGUMENT = (byte) 0x70;
     }
 
-    static BytesList invalidArgument(String message) {
+    static QueryResult invalidArgument(String message) {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(INVALID_ARGUMENT);
         bytesList.appendRawStr(message);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 
-    static BytesList success() {
+    static QueryResult success() {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(SUCCESS);
-        return bytesList;
+
+        return new QueryResult(bytesList, new ArrayList<>());
+    }
+
+    static QueryResult success(List<AffectKey> affectKeys) {
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(SUCCESS);
+
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 }
