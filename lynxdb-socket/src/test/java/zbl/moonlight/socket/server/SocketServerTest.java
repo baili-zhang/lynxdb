@@ -45,7 +45,8 @@ class SocketServerTest {
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),
                         responseSerial,
-                        bytesList));
+                        bytesList,
+                        null));
             }
         });
         Executor.start(server);
