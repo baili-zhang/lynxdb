@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.bailizhang.lynxdb.server.engine.result.Result.*;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.*;
 
 /**
  * 解析不同结构的返回数据

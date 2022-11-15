@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.raft.common.RaftCommend;
 import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
@@ -12,7 +11,6 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.channels.SelectionKey;
 import java.util.List;
 
 /**
@@ -63,7 +61,7 @@ public class LdtpStateMachine implements StateMachine {
                     entry.selectionKey(),
                     entry.serial(),
                     result.data(),
-                    result.affectKeys()
+                    result.affectValues()
             );
             raftServer.offerInterruptibly(response);
         }

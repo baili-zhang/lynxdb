@@ -14,6 +14,7 @@ import org.rocksdb.RocksDB;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
 public class LdtpStorageEngine extends BaseStorageEngine {
@@ -108,7 +109,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         });
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_KV_PAIRS);
+        bytesList.appendRawByte(SUCCESS_WITH_KV_PAIRS);
         total.forEach(bytesList::appendVarBytes);
 
         return new QueryResult(bytesList, new ArrayList<>());
@@ -247,7 +248,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_TABLE);
+        bytesList.appendRawByte(SUCCESS_WITH_TABLE);
         bytesList.appendRawInt(columnSize);
         table.forEach(bytesList::appendVarBytes);
 
@@ -298,7 +299,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         total.forEach(bytesList::appendVarBytes);
 
         return new QueryResult(bytesList, new ArrayList<>());
@@ -313,7 +314,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         total.forEach(bytesList::appendVarBytes);
 
         return new QueryResult(bytesList, new ArrayList<>());
@@ -338,7 +339,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         columns.forEach(bytesList::appendVarBytes);
 
         return new QueryResult(bytesList, new ArrayList<>());
@@ -351,7 +352,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String kvstore = content.kvstore();
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS);
+        bytesList.appendRawByte(SUCCESS);
 
         KvAdapter db = kvDbMap.get(kvstore);
 
@@ -373,7 +374,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String kvstore = content.kvstore();
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS);
+        bytesList.appendRawByte(SUCCESS);
 
         KvAdapter db = kvDbMap.get(kvstore);
 

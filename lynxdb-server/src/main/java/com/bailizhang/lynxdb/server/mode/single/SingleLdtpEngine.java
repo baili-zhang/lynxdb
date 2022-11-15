@@ -41,7 +41,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                 request.selectionKey(),
                 request.serial(),
                 result.data(),
-                result.affectKeys()
+                result.affectValues()
         );
 
         server.offerInterruptibly(response);

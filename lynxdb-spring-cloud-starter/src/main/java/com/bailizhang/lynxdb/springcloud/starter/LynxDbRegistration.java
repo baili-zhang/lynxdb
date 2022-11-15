@@ -3,7 +3,9 @@ package com.bailizhang.lynxdb.springcloud.starter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.serviceregistry.Registration;
 
-import java.net.*;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 public class LynxDbRegistration implements Registration {

@@ -3,8 +3,7 @@ package com.bailizhang.lynxdb.socket.register;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 
-import static com.bailizhang.lynxdb.socket.code.Request.CLIENT_REQUEST;
-import static com.bailizhang.lynxdb.socket.code.Request.EVENT_REGISTER;
+import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public abstract class RegisterableEventHandler implements SocketServerHandler {
     public final void handleRequest(SocketRequest request) {
@@ -15,7 +14,8 @@ public abstract class RegisterableEventHandler implements SocketServerHandler {
 
         switch (data[0]) {
             case CLIENT_REQUEST -> handleClientRequest(request);
-            case EVENT_REGISTER -> handleEventRegister(request);
+            case REGISTER_KEY -> handleRegisterKey(request);
+            case DEREGISTER_KEY -> handleDeregisterKey(request);
         }
     }
 
@@ -23,7 +23,10 @@ public abstract class RegisterableEventHandler implements SocketServerHandler {
 
     }
 
-    protected void handleEventRegister(SocketRequest request) {
+    protected void handleRegisterKey(SocketRequest request) {
 
+    }
+
+    protected void handleDeregisterKey(SocketRequest request) {
     }
 }

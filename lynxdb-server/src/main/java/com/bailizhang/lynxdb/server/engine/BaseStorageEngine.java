@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
