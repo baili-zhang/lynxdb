@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Deque;
 
 public class SsTable {
+    private static final int BLOOM_FILTER_BEGIN_POSITION = 0;
     private static final int BLOOM_FILTER_BIT_COUNT = 10000;
 
     private final FileChannel channel;
@@ -23,7 +24,7 @@ public class SsTable {
         String filename = NameUtils.name(id);
         FileUtils.createFileIfNotExisted(dir, filename);
         channel = FileUtils.open(Path.of(dir, filename));
-        bloomFilter = new BloomFilter(channel, BLOOM_FILTER_BIT_COUNT);
+        bloomFilter = new BloomFilter(channel, BLOOM_FILTER_BEGIN_POSITION, BLOOM_FILTER_BIT_COUNT);
     }
 
     public void append(byte[] key, byte[] column, Deque<VersionalValue> values) {
@@ -40,6 +41,8 @@ public class SsTable {
     }
 
     public byte[] find(byte[] key, byte[] column, long timestamp) {
+        KcItem item = new KcItem(key, column);
+
         return null;
     }
 
