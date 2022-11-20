@@ -2,7 +2,6 @@ package com.bailizhang.lynxdb.cmd.printer;
 
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.engine.result.Result;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.cmd.LynxDbCmdClient.KEY_HEADER;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.*;
 
 public interface Printer {
     static void printPrompt(SelectionKey current) {
@@ -70,9 +70,9 @@ public interface Printer {
         byte code = buffer.get();
 
         switch (code) {
-            case Result.SUCCESS -> Printer.printOK();
-            case Result.SUCCESS_WITH_TABLE -> handleShowTable(buffer);
-            case Result.Error.INVALID_ARGUMENT -> {
+            case SUCCESS -> Printer.printOK();
+            case SUCCESS_WITH_TABLE -> handleShowTable(buffer);
+            case INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
             }
@@ -86,7 +86,7 @@ public interface Printer {
         byte code = buffer.get();
 
         switch (code) {
-            case Result.SUCCESS_WITH_KV_PAIRS -> {
+            case SUCCESS_WITH_KV_PAIRS -> {
                 int columnSize = 2;
                 List<List<String>> table = new ArrayList<>();
                 table.add(header);
@@ -102,7 +102,7 @@ public interface Printer {
                 Printer.printTable(table);
             }
 
-            case Result.Error.INVALID_ARGUMENT -> {
+            case INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
             }
@@ -140,7 +140,7 @@ public interface Printer {
         byte code = buffer.get();
 
         switch (code) {
-            case Result.SUCCESS_WITH_LIST -> {
+            case SUCCESS_WITH_LIST -> {
                 List<String> total = BufferUtils.toStringList(buffer);
                 List<List<String>> table = new ArrayList<>();
                 List<List<String>> body = total.stream().map(List::of).toList();
@@ -150,7 +150,7 @@ public interface Printer {
                 Printer.printTable(table);
             }
 
-            case Result.Error.INVALID_ARGUMENT -> {
+            case INVALID_ARGUMENT -> {
                 String message = BufferUtils.getRemainingString(buffer);
                 Printer.printError(message);
             }

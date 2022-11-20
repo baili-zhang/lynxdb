@@ -5,6 +5,7 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.query.*;
+import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.server.engine.result.Result;
 import com.bailizhang.lynxdb.storage.core.*;
 import com.bailizhang.lynxdb.storage.core.exception.ColumnsNotExistedException;
@@ -13,6 +14,7 @@ import org.rocksdb.RocksDB;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
 public class LdtpStorageEngine extends BaseStorageEngine {
@@ -39,7 +41,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(CREATE_KV_STORE)
-    public BytesList doCreateKvStore(QueryParams params) {
+    public QueryResult doCreateKvStore(QueryParams params) {
         CreateKvStoreContent content = new CreateKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -57,7 +59,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(DROP_KV_STORE)
-    public BytesList doDropKvStore(QueryParams params) {
+    public QueryResult doDropKvStore(QueryParams params) {
         DropKvStoreContent content = new DropKvStoreContent(params);
         List<String> kvstores = content.kvstores();
 
@@ -75,7 +77,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(KV_SET)
-    public BytesList doKvSet(QueryParams params) {
+    public QueryResult doKvSet(QueryParams params) {
         KvSetContent content = new KvSetContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
@@ -85,7 +87,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(KV_GET)
-    public BytesList doKvGet(QueryParams params) {
+    public QueryResult doKvGet(QueryParams params) {
         KvGetContent content = new KvGetContent(params);
 
         String kvstore = content.kvstore();
@@ -107,14 +109,14 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         });
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_KV_PAIRS);
+        bytesList.appendRawByte(SUCCESS_WITH_KV_PAIRS);
         total.forEach(bytesList::appendVarBytes);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 
     @LdtpMethod(KV_DELETE)
-    public BytesList doKvDelete(QueryParams params) {
+    public QueryResult doKvDelete(QueryParams params) {
         KvDeleteContent content = new KvDeleteContent(params);
 
         KvAdapter db = kvDbMap.get(content.kvstore());
@@ -124,7 +126,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(CREATE_TABLE)
-    public BytesList doCreateTable(QueryParams params) {
+    public QueryResult doCreateTable(QueryParams params) {
         CreateTableContent content = new CreateTableContent(params);
         List<String> tables = content.tables();
 
@@ -142,7 +144,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(DROP_TABLE)
-    public BytesList doDropTable(QueryParams params) {
+    public QueryResult doDropTable(QueryParams params) {
         DropTableContent content = new DropTableContent(params);
         List<String> tables = content.tables();
 
@@ -160,7 +162,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(CREATE_TABLE_COLUMN)
-    public BytesList doCreateTableColumn(QueryParams params) {
+    public QueryResult doCreateTableColumn(QueryParams params) {
         CreateTableColumnContent content = new CreateTableColumnContent(params);
         List<byte[]> columns = content.columns();
 
@@ -194,7 +196,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(DROP_TABLE_COLUMN)
-    public BytesList doDropTableColumn(QueryParams params) {
+    public QueryResult doDropTableColumn(QueryParams params) {
         DropTableColumnContent content = new DropTableColumnContent(params);
         HashSet<Column> columns = content.columns();
 
@@ -214,7 +216,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(TABLE_SELECT)
-    public BytesList doTableSelect(QueryParams params) {
+    public QueryResult doTableSelect(QueryParams params) {
         TableSelectContent content = new TableSelectContent(params);
 
         TableAdapter db = tableMap.get(content.table());
@@ -246,15 +248,15 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_TABLE);
+        bytesList.appendRawByte(SUCCESS_WITH_TABLE);
         bytesList.appendRawInt(columnSize);
         table.forEach(bytesList::appendVarBytes);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 
     @LdtpMethod(TABLE_INSERT)
-    public BytesList doTableInsert(QueryParams params) {
+    public QueryResult doTableInsert(QueryParams params) {
         TableInsertContent content = new TableInsertContent(params);
         TableAdapter db = tableMap.get(content.table());
 
@@ -279,7 +281,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(TABLE_DELETE)
-    public BytesList doTableDelete(QueryParams params) {
+    public QueryResult doTableDelete(QueryParams params) {
         TableDeleteContent content = new TableDeleteContent(params);
         TableAdapter db = tableMap.get(content.table());
 
@@ -289,7 +291,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(SHOW_KVSTORE)
-    public BytesList doShowKvstore(QueryParams params) {
+    public QueryResult doShowKvstore(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
 
         for (String kvstore : kvDbMap.keySet()) {
@@ -297,14 +299,14 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         total.forEach(bytesList::appendVarBytes);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 
     @LdtpMethod(SHOW_TABLE)
-    public BytesList doShowTable(QueryParams params) {
+    public QueryResult doShowTable(QueryParams params) {
         List<byte[]> total = new ArrayList<>();
 
         for (String table : tableMap.keySet()) {
@@ -312,14 +314,14 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         }
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         total.forEach(bytesList::appendVarBytes);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 
     @LdtpMethod(SHOW_TABLE_COLUMN)
-    public BytesList doShowTableColumn(QueryParams params) {
+    public QueryResult doShowTableColumn(QueryParams params) {
         String table = new String(params.content());
 
         TableAdapter db = tableMap.get(table);
@@ -337,9 +339,53 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(Result.SUCCESS_WITH_LIST);
+        bytesList.appendRawByte(SUCCESS_WITH_LIST);
         columns.forEach(bytesList::appendVarBytes);
 
-        return bytesList;
+        return new QueryResult(bytesList, new ArrayList<>());
+    }
+
+    @LdtpMethod(KV_VALUE_LIST_INSERT)
+    public QueryResult doKvValueListInsert(QueryParams params) {
+        KvValueListInsertContent content = new KvValueListInsertContent(params);
+
+        String kvstore = content.kvstore();
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(SUCCESS);
+
+        KvAdapter db = kvDbMap.get(kvstore);
+
+        if(db == null) {
+            String template = "Kvstore \"%s\" is not existed.";
+            String errorMsg = String.format(template, kvstore);
+            return Result.invalidArgument(errorMsg);
+        }
+
+        db.ValueListInsert(content.key(), content.values());
+
+        return new QueryResult(bytesList, new ArrayList<>());
+    }
+
+    @LdtpMethod(KV_VALUE_LIST_REMOVE)
+    public QueryResult doKvValueListRemove(QueryParams params) {
+        KvValueListRemoveContent content = new KvValueListRemoveContent(params);
+
+        String kvstore = content.kvstore();
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(SUCCESS);
+
+        KvAdapter db = kvDbMap.get(kvstore);
+
+        if(db == null) {
+            String template = "Kvstore \"%s\" is not existed.";
+            String errorMsg = String.format(template, kvstore);
+            return Result.invalidArgument(errorMsg);
+        }
+
+        db.ValueListRemove(content.key(), content.values());
+
+        return new QueryResult(bytesList, new ArrayList<>());
     }
 }

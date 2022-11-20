@@ -1,7 +1,7 @@
 package zbl.moonlight.client;
 
-import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.LynxDbFuture;
+import com.bailizhang.lynxdb.client.async.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.server.LynxDbMainServer;
@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.bailizhang.lynxdb.server.engine.result.Result.SUCCESS;
-import static com.bailizhang.lynxdb.server.engine.result.Result.SUCCESS_WITH_KV_PAIRS;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.SUCCESS;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.SUCCESS_WITH_KV_PAIRS;
 
 class AsyncLynxDbClientTest {
     public static final String HOST = "127.0.0.1";

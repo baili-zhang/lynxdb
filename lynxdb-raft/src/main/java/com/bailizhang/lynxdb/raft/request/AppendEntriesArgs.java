@@ -2,8 +2,8 @@ package com.bailizhang.lynxdb.raft.request;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.raft.log.LogEntry;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
@@ -49,7 +49,7 @@ public record AppendEntriesArgs (
         int entriesSize = buffer.getInt();
         List<LogEntry> entries = new ArrayList<>();
         for(int i = 0; i < entriesSize; i ++) {
-            entries.add(LogEntry.fromSocket(buffer));
+            entries.add(null);
         }
 
         int leaderCommit = buffer.getInt();

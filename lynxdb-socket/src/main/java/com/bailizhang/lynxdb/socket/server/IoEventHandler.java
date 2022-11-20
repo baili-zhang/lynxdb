@@ -78,7 +78,7 @@ public class IoEventHandler implements Runnable {
     }
 
     /* 每次写多个请求 */
-    private void doWrite() throws IOException {
+    private void doWrite() throws Exception {
         while (!context.responseQueueIsEmpty()) {
             WritableSocketResponse response = context.peekResponse();
             response.write();
@@ -87,6 +87,9 @@ public class IoEventHandler implements Runnable {
                 /* 从队列首部移除已经写完的响应 */
                 context.pollResponse();
                 context.decreaseRequestCount();
+
+                handler.handleResponse(response);
+
                 logger.debug("Send socket response: {} to client.", response);
             } else {
                 /* 如果mdtpResponse没写完，说明写缓存已经写满了 */

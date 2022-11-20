@@ -8,4 +8,6 @@ public interface PrimitiveTypeUtils {
     int FLOAT_LENGTH = 4;
     int LONG_LENGTH = 8;
     int DOUBLE_LENGTH = 8;
+
+    int BYTE_BIT_COUNT = 8;
 }

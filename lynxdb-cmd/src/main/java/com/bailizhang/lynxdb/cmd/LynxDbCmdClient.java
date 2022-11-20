@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.cmd;
 
-import com.bailizhang.lynxdb.client.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.client.LynxDbFuture;
+import com.bailizhang.lynxdb.client.async.AsyncLynxDbClient;
 import com.bailizhang.lynxdb.cmd.exception.SyntaxException;
 import com.bailizhang.lynxdb.cmd.lql.LQL;
 import com.bailizhang.lynxdb.cmd.lql.LqlQuery;

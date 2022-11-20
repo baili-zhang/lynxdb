@@ -3,16 +3,26 @@ package com.bailizhang.lynxdb.core.utils;
 import java.nio.ByteBuffer;
 
 public interface ByteArrayUtils {
-    public static int toInt(byte[] data) {
-        if(data.length != 4) {
-            throw new IllegalStateException("Byte array length must be 4.");
+    static int compare(byte[] origin, byte[] target) {
+        int minLen = Math.min(origin.length, target.length);
+
+        for(int i = 0; i < minLen; i ++) {
+            if(origin[i] > target[i]) {
+                return 1;
+            } else if(origin[i] < target[i]) {
+                return -1;
+            }
         }
-        return ByteBuffer.wrap(data).getInt();
+
+        return origin.length - target.length;
     }
 
-    public static byte[] fromInt(int i) {
-        ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.putInt(i);
-        return buffer.array();
+    static boolean isEmpty(byte[] src) {
+        return src == null || src.length == 0;
+    }
+
+    static int toInt(byte[] extraData) {
+        ByteBuffer buffer = ByteBuffer.wrap(extraData);
+        return buffer.getInt();
     }
 }

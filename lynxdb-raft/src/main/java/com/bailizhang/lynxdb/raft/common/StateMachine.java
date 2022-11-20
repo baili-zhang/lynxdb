@@ -23,7 +23,9 @@ public interface StateMachine {
      * 应用日志条目
      * @param entries 日志条目
      */
-    void apply(List<AppliableLogEntry> entries);
+    void apply(List<RaftCommend> entries);
+
+    void apply0(List<byte[]> commands);
 
     void raftServer(RaftServer server);
 
