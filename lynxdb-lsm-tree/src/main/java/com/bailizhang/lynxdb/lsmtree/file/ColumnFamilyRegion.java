@@ -6,6 +6,8 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
@@ -14,12 +16,14 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
 public class ColumnFamilyRegion {
+    public static final byte EXISTED = (byte) 0x01;
+    public static final byte DELETED = (byte) 0x02;
+
+    public static final byte[] EXISTED_ARRAY = new byte[]{EXISTED};
+    public static final byte[] DELETED_ARRAY = new byte[]{DELETED};
+
     private static final String WAL_DIR = "wal";
-    private static final int EXTRA_DATA_LENGTH = 0;
-
-    private static final byte INSERT = (byte) 0x01;
-    private static final byte DELETE = (byte) 0x02;
-
+    private static final int EXTRA_DATA_LENGTH = 1;
 
     private final Options options;
 
@@ -38,53 +42,38 @@ public class ColumnFamilyRegion {
         String walDir = Path.of(cfDir, WAL_DIR).toString();
         walLog = new LogGroup(walDir, logOptions);
         mutable = new MemTable(options);
-        levelTree = new LevelTree(cfDir);
+        levelTree = new LevelTree(cfDir, options);
 
         recoverFromWal();
     }
 
-    public byte[] find(byte[] key, byte[] column, long timestamp) {
-        byte[] value = mutable.find(key, column, timestamp);
+    public byte[] find(DbKey dbKey) {
+        byte[] value = mutable.find(dbKey);
         if(value != null) {
             return value;
         }
 
         if(immutable != null) {
-            value = immutable.find(key, column, timestamp);
+            value = immutable.find(dbKey);
             if(value != null) {
                 return value;
             }
         }
 
-        return levelTree.find(key, column, timestamp);
+        return levelTree.find(dbKey);
     }
 
-    public void insert(byte[] key, byte[] column, long timestamp, byte[] value) {
-        BytesList bytesList = new BytesList(false);
-
-        bytesList.appendRawByte(INSERT);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(column);
-        bytesList.appendRawLong(timestamp);
-        bytesList.appendRawBytes(value);
-
-        walLog.append(BufferUtils.EMPTY_BYTES, bytesList.toBytes());
-        insertIntoMemTableAndMerge(key, column, timestamp, value);
+    public void insert(DbEntry dbEntry) {
+        walLog.append(EXISTED_ARRAY, dbEntry);
+        insertIntoMemTableAndMerge(dbEntry);
     }
 
-    public boolean delete(byte[] key, byte[] column, long timestamp) {
-        BytesList bytesList = new BytesList(false);
-
-        bytesList.appendRawByte(DELETE);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(column);
-        bytesList.appendRawLong(timestamp);
-
-        walLog.append(BufferUtils.EMPTY_BYTES, bytesList.toBytes());
-        return deleteFromMemTableAndLevelTree(key, column, timestamp);
+    public boolean delete(DbKey dbKey) {
+        walLog.append(DELETED_ARRAY, dbKey.toBytes());
+        return deleteFromMemTableAndLevelTree(dbKey);
     }
 
-    private void insertIntoMemTableAndMerge(byte[] key, byte[] column, long timestamp, byte[] value) {
+    private void insertIntoMemTableAndMerge(DbEntry dbEntry) {
         if(mutable.full()) {
             MemTable needMerged = immutable;
             mutable.transformToImmutable();
@@ -92,13 +81,13 @@ public class ColumnFamilyRegion {
             mutable = new MemTable(options);
             levelTree.merge(needMerged);
         }
-        mutable.append(key, column, timestamp, value);
+        mutable.append(dbEntry);
     }
 
-    private boolean deleteFromMemTableAndLevelTree(byte[] key, byte[] column, long timestamp) {
-        return mutable.delete(key, column, timestamp)
-                || immutable.delete(key, column, timestamp)
-                || levelTree.delete(key, column, timestamp);
+    private boolean deleteFromMemTableAndLevelTree(DbKey dbKey) {
+        return mutable.delete(dbKey)
+                || immutable.delete(dbKey)
+                || levelTree.delete(dbKey);
     }
 
     private void recoverFromWal() {
@@ -111,9 +100,12 @@ public class ColumnFamilyRegion {
             long timestamp = buffer.getLong();
             byte[] value = BufferUtils.getRemaining(buffer);
 
+            DbKey dbKey = new DbKey(key, column, timestamp);
+            DbEntry dbEntry = new DbEntry(dbKey, value);
+
             switch (flag) {
-                case INSERT -> insertIntoMemTableAndMerge(key, column, timestamp, value);
-                case DELETE -> deleteFromMemTableAndLevelTree(key, column, timestamp);
+                case EXISTED -> insertIntoMemTableAndMerge(dbEntry);
+                case DELETED -> deleteFromMemTableAndLevelTree(dbKey);
                 default -> throw new RuntimeException();
             }
         }

@@ -1,6 +1,10 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.log.LogGroup;
+import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
@@ -9,12 +13,23 @@ import java.util.List;
 
 public class LevelTree {
     private final static int LEVEL_BEGIN = 1;
+    private final static int EXTRA_DATA_LENGTH = 1;
+    private final static String VALUE_GROUP_NAME = "value";
 
     private final HashMap<Integer, Level> levels = new HashMap<>();
     private final String baseDir;
+    private final LogGroup valueFileGroup;
+    private final Options options;
 
-    public LevelTree(String dir) {
+    public LevelTree(String dir, Options lsmOptions) {
         baseDir = dir;
+        options = lsmOptions;
+
+        // 初始化 valueFileGroup
+        String valueFileGroupPath = Path.of(baseDir, VALUE_GROUP_NAME).toString();
+        LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
+
+        valueFileGroup = new LogGroup(valueFileGroupPath, logOptions);
 
         List<String> subDirs = FileUtils.findSubDirs(baseDir);
         for(String subDir : subDirs) {
@@ -26,17 +41,19 @@ public class LevelTree {
                 continue;
             }
 
-            Path levelPath = Path.of(baseDir, subDir);
-            levels.put(levelNo, new Level(levelPath.toString()));
+            String levelPath = Path.of(baseDir, subDir).toString();
+            Level level = new Level(levelPath, levelNo, valueFileGroup, options);
+
+            levels.put(levelNo, level);
         }
     }
 
-    public byte[] find(byte[] key, byte[] column, long timestamp) {
+    public byte[] find(DbKey dbKey) {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
-        while(level != null && level.isLessThan(key, column)) {
-            byte[] value = level.find(key, column, timestamp);
+        while(level != null && level.contains(dbKey)) {
+            byte[] value = level.find(dbKey);
             if(value != null) {
                 return value;
             }
@@ -54,7 +71,7 @@ public class LevelTree {
 
         Level level = levels.get(LEVEL_BEGIN);
         if(level == null) {
-            level = new Level(baseDir);
+            level = new Level(baseDir, LEVEL_BEGIN, valueFileGroup, options);
             levels.put(LEVEL_BEGIN, level);
         }
 
@@ -72,7 +89,7 @@ public class LevelTree {
             current = levels.get(++ levelNo);
 
             if(current == null) {
-                current = new Level(baseDir);
+                current = new Level(baseDir, levelNo, valueFileGroup, options);
                 levels.put(levelNo, current);
             }
 
@@ -80,12 +97,12 @@ public class LevelTree {
         }
     }
 
-    public boolean delete(byte[] key, byte[] column, long timestamp) {
+    public boolean delete(DbKey dbKey) {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
-        while(level != null && level.isLessThan(key, column)) {
-            boolean hasDeleted = level.delete(key, column, timestamp);
+        while(level != null && level.contains(dbKey)) {
+            boolean hasDeleted = level.delete(dbKey);
             if(hasDeleted) {
                 return hasDeleted;
             }

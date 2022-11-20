@@ -49,24 +49,6 @@ public class HashFunctions {
     }
 
     @HashFunction(4)
-    public static int PJWHash(String str) {
-        int BitsInUnsignedInt = 32;
-        int ThreeQuarters = (BitsInUnsignedInt * 3) / 4;
-        int OneEighth = BitsInUnsignedInt / 8;
-        int HighBits = 0xFFFFFFFF << (BitsInUnsignedInt - OneEighth);
-        int hash = 0;
-        int test;
-        for (int i = 0; i < str.length(); i++) {
-            hash = (hash << OneEighth) + str.charAt(i);
-
-            if ((test = hash & HighBits) != 0) {
-                hash = ((hash ^ (test >> ThreeQuarters)) & (~HighBits));
-            }
-        }
-        return (hash & 0x7FFFFFFF);
-    }
-
-    @HashFunction(5)
     public static int ELFHash(String str) {
         int hash = 0;
         int x;
@@ -80,7 +62,7 @@ public class HashFunctions {
         return (hash & 0x7FFFFFFF);
     }
 
-    @HashFunction(6)
+    @HashFunction(5)
     public static int BKDRHash(String str) {
         int seed = 131;
         int hash = 0;
@@ -90,7 +72,7 @@ public class HashFunctions {
         return (hash & 0x7FFFFFFF);
     }
 
-    @HashFunction(7)
+    @HashFunction(6)
     public static int SDBMHash(String str) {
         int hash = 0;
         for (int i = 0; i < str.length(); i++) {
@@ -98,7 +80,8 @@ public class HashFunctions {
         }
         return (hash & 0x7FFFFFFF);
     }
-    @HashFunction(8)
+
+    @HashFunction(7)
     public static int DJBHash(String str) {
         int hash = 5381;
         for (int i = 0; i < str.length(); i++) {
@@ -107,7 +90,7 @@ public class HashFunctions {
         return (hash & 0x7FFFFFFF);
     }
 
-    @HashFunction(9)
+    @HashFunction(8)
     public static int DEKHash(String str) {
         int hash = str.length();
         for (int i = 0; i < str.length(); i++) {
@@ -116,7 +99,7 @@ public class HashFunctions {
         return (hash & 0x7FFFFFFF);
     }
 
-    @HashFunction(10)
+    @HashFunction(9)
     public static int APHash(String str) {
         int hash = 0;
         for (int i = 0; i < str.length(); i++) {

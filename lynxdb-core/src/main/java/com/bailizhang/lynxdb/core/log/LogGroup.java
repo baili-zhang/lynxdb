@@ -7,7 +7,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 
-
+/**
+ * TODO: 应该保证多线程安全
+ */
 public class LogGroup implements Iterable<LogEntry> {
     private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
@@ -89,6 +91,11 @@ public class LogGroup implements Iterable<LogEntry> {
         logRegions.add(region);
     }
 
+    public LogEntry find(int globalIndex) {
+        LinkedList<LogEntry> logEntries = range(globalIndex, globalIndex);
+        return logEntries.isEmpty() ? null : logEntries.getFirst();
+    }
+
     /**
      * [beginGlobalIndex, globalEndIndex]
      *
@@ -130,7 +137,20 @@ public class LogGroup implements Iterable<LogEntry> {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    public int append(byte[] extraData, byte[] data) {
+    public void setExtraData(int globalIndex, byte[] extraData) {
+
+    }
+
+    /**
+     * 需要保证多线程同步
+     *
+     * TODO：加读写锁同步
+     *
+     * @param extraData extra data
+     * @param data data
+     * @return global index
+     */
+    public synchronized int append(byte[] extraData, byte[] data) {
         LogRegion region = lastRegion();
 
         if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {

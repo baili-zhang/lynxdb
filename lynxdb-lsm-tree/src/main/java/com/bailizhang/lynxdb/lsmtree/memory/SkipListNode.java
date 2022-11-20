@@ -1,22 +1,32 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-import com.bailizhang.lynxdb.lsmtree.common.KcItem;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 import static com.bailizhang.lynxdb.lsmtree.common.Version.LATEST_VERSION;
 import static com.bailizhang.lynxdb.lsmtree.memory.SkipList.MAX_LEVEL;
 
-public class SkipListNode extends KcItem {
+public class SkipListNode implements Comparable<SkipListNode> {
     private final Deque<VersionalValue> values = new LinkedList<>();
     private final SkipListNode[] next;
 
+    private final byte[] key;
+    private final byte[] column;
+
     public SkipListNode(byte[] key, byte[] column, int level) {
-        super(key, column);
+        this.key = key;
+        this.column = column;
+
         next = new SkipListNode[level];
+    }
+
+    public byte[] key() {
+        return key;
+    }
+
+    public byte[] column() {
+        return column;
     }
 
     public Deque<VersionalValue> values() {
@@ -64,5 +74,14 @@ public class SkipListNode extends KcItem {
         }
 
         return level;
+    }
+
+    @Override
+    public int compareTo(SkipListNode o) {
+        if(!Arrays.equals(key, o.key)) {
+            return ByteArrayUtils.compare(key, o.key);
+        }
+
+        return ByteArrayUtils.compare(column, o.column);
     }
 }

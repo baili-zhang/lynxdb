@@ -1,5 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree.common;
 
 public interface Version {
-    long LATEST_VERSION = -1;
+    long LATEST_VERSION = Long.MAX_VALUE;
 }

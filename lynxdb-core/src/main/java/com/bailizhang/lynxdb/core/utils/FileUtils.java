@@ -120,16 +120,4 @@ public interface FileUtils {
 
         return subFiles;
     }
-
-    static FileChannel open(String filePath, OpenOption... options) {
-        return open(Path.of(filePath), options);
-    }
-
-    static FileChannel open(Path filePath, OpenOption... options) {
-        try {
-            return FileChannel.open(filePath, options);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

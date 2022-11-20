@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
+import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 
 import java.util.Iterator;
@@ -13,16 +15,27 @@ public class MemTable implements Iterable<SkipListNode> {
         this.options = options;
     }
 
-    public void append(byte[] key, byte[] column, long timestamp, byte[] value) {
+    public void append(DbEntry dbEntry) {
         if(immutable) {
             return;
         }
 
-        skipList.insert(key, column, timestamp, value);
+        DbKey dbKey = dbEntry.key();
+
+        skipList.insert(
+                dbKey.key(),
+                dbKey.column(),
+                dbKey.timestamp(),
+                dbEntry.value()
+        );
     }
 
-    public byte[] find(byte[] key, byte[] column, long timestamp) {
-        return skipList.find(key, column, timestamp);
+    public byte[] find(DbKey dbKey) {
+        return skipList.find(
+                dbKey.key(),
+                dbKey.column(),
+                dbKey.timestamp()
+        );
     }
 
     public boolean full() {
@@ -33,8 +46,12 @@ public class MemTable implements Iterable<SkipListNode> {
         immutable = true;
     }
 
-    public boolean delete(byte[] key, byte[] column, long timestamp) {
-        return skipList.delete(key, column, timestamp);
+    public boolean delete(DbKey dbKey) {
+        return skipList.delete(
+                dbKey.key(),
+                dbKey.column(),
+                dbKey.timestamp()
+        );
     }
 
     @Override

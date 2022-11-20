@@ -1,9 +1,12 @@
 package com.bailizhang.lynxdb.lsmtree.utils;
 
+import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.MethodUtils;
 
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_BIT_COUNT;
 
@@ -13,42 +16,58 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_BIT_COUNT
  */
 public class BloomFilter {
     private static final int LIMIT_HASH_FUNC_SIZE = 7;
+    private static final int TEN_TIMES = 10;
 
-    private static final Method[] hashFunctions = new Method[LIMIT_HASH_FUNC_SIZE];
+    private static final Method[] hashFunctions;
 
     private final FileChannel fileChannel;
     private final int byteBegin;
+    private final int byteCount;
     private final int bitCount;
 
     static {
         try {
             Class<?> clazz = Class.forName("com.bailizhang.lynxdb.lsmtree.utils.HashFunctions");
             Method[] methods = clazz.getDeclaredMethods();
-            for (Method method : methods) {
-                HashFunction annotation = method.getAnnotation(HashFunction.class);
-                int i = annotation.value();
-                if(i < LIMIT_HASH_FUNC_SIZE) {
-                    hashFunctions[i] = method;
-                }
-            }
+
+            hashFunctions = Arrays
+                    .stream(methods)
+                    .sorted((m1, m2) -> {
+                        HashFunction anno1 = m1.getAnnotation(HashFunction.class);
+                        HashFunction anno2 = m2.getAnnotation(HashFunction.class);
+                        return Integer.compare(anno1.value(), anno2.value());
+                    })
+                    .limit(LIMIT_HASH_FUNC_SIZE)
+                    .toArray(Method[]::new);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public BloomFilter(FileChannel fileChannel, int byteBegin, int bitCount) {
+    public BloomFilter(FileChannel fileChannel, int byteBegin, int count) {
         this.fileChannel = fileChannel;
         this.byteBegin = byteBegin;
-        this.bitCount = bitCount;
+        this.bitCount = count * TEN_TIMES;
+
+        byteCount = bitCount / BYTE_BIT_COUNT;
+
+        if(FileChannelUtils.sizeLessThan(fileChannel, byteBegin + byteCount)) {
+            ByteBuffer buffer = ByteBuffer.allocate(byteCount);
+            FileChannelUtils.write(fileChannel, buffer, byteBegin);
+        }
+    }
+
+    public BloomFilter(FileChannel fileChannel, int count) {
+        this(fileChannel, 0, count);
+    }
+
+    public int byteCount() {
+        return byteCount;
     }
 
     public boolean isExist(Object o) {
-        return false;
-    }
-
-    public void setObj(Object o) {
         for(Method hashFunction : hashFunctions) {
-            int hash = (int) MethodUtils.invoke(hashFunction, o.toString());
+            int hash = (int) MethodUtils.invoke(hashFunction, this, o.toString());
             int remainder = hash % bitCount;
 
             // 第几个 byte
@@ -56,6 +75,33 @@ public class BloomFilter {
             // byte 中的第几个 bit 位
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
+            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            if((current & ((byte) 0x01 << bitIndex)) == 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public boolean isNotExist(Object o) {
+        return !isExist(o);
+    }
+
+    public void setObj(Object o) {
+        for(Method hashFunction : hashFunctions) {
+            int hash = (int) MethodUtils.invoke(hashFunction, this, o.toString());
+            int remainder = hash % bitCount;
+
+            // 第几个 byte
+            int byteIndex = remainder / BYTE_BIT_COUNT;
+            // byte 中的第几个 bit 位
+            int bitIndex = remainder % BYTE_BIT_COUNT;
+
+            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            current |= (byte) 0x01 << bitIndex;
+
+            FileChannelUtils.write(fileChannel, current, byteIndex);
         }
     }
 }

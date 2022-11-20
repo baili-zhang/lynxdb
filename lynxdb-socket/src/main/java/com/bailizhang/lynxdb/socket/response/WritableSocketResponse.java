@@ -18,6 +18,22 @@ public class WritableSocketResponse extends NioMessage implements Writable {
     public WritableSocketResponse(
             SelectionKey selectionKey,
             int serial,
+            BytesList list
+    ) {
+        this(selectionKey, serial, list, null);
+    }
+
+    public WritableSocketResponse(
+            SelectionKey selectionKey,
+            int serial,
+            BytesListConvertible convertible
+    ) {
+        this(selectionKey, serial, convertible.toBytesList(), null);
+    }
+
+    public WritableSocketResponse(
+            SelectionKey selectionKey,
+            int serial,
             BytesListConvertible convertible,
             Object extraData
     ) {

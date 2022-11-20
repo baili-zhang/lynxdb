@@ -2,9 +2,7 @@ package com.bailizhang.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.ColumnFamily;
-import com.bailizhang.lynxdb.lsmtree.common.LsmTree;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.lsmtree.common.*;
 import com.bailizhang.lynxdb.lsmtree.exception.ColumnFamilyNotFoundException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 
@@ -36,7 +34,8 @@ public class LynxDbLsmTree implements LsmTree {
     @Override
     public byte[] find(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        return region.find(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column, timestamp);
+        return region.find(dbKey);
     }
 
     @Override
@@ -46,13 +45,17 @@ public class LynxDbLsmTree implements LsmTree {
         if(region == null) {
             region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
         }
-        region.insert(key, column, timestamp, value);
+
+        DbKey dbKey = new DbKey(key, column, timestamp);
+        DbEntry dbEntry = new DbEntry(dbKey, value);
+        region.insert(dbEntry);
     }
 
     @Override
     public boolean delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        return region.delete(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column, timestamp);
+        return region.delete(dbKey);
     }
 
     private ColumnFamilyRegion findRegion(byte[] columnFamily) {
