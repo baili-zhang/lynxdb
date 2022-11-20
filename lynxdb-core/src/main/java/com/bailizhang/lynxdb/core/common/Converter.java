@@ -12,4 +12,8 @@ public record Converter(Charset charset) {
 
         return src.getBytes(charset);
     }
+
+    public String toString(byte[] src) {
+        return new String(src, charset);
+    }
 }

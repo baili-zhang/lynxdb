@@ -1,9 +1,10 @@
 package com.bailizhang.lynxdb.raft.state;
 
+import com.bailizhang.lynxdb.core.log.LogEntry;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
-import com.bailizhang.lynxdb.raft.common.AppliableLogEntry;
-import com.bailizhang.lynxdb.raft.log.LogEntry;
-import com.bailizhang.lynxdb.raft.log.LogRegion;
+import com.bailizhang.lynxdb.raft.common.RaftCommend;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
@@ -20,10 +21,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,6 +34,8 @@ public class RpcRaftState extends CoreRaftState {
 
     private final ConcurrentHashMap<SelectionKey, Integer> nextIndex = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SelectionKey, Integer> matchedIndex = new ConcurrentHashMap<>();
+
+    private final Queue<RaftCommend> commendQueue = new LinkedList<>();
 
     private volatile ServerNode votedFor = null;
 
@@ -62,7 +62,8 @@ public class RpcRaftState extends CoreRaftState {
             int matched = matchedIndex.get(selectionKey);
 
             LinkedList<LogEntry> entries = raftLog.range(matched, next - 1);
-            int prevLogTerm = entries.removeFirst().term();
+            LogEntry entry = entries.removeFirst();
+            int prevLogTerm = ByteArrayUtils.toInt(entry.index().extraData());
 
             AppendEntriesArgs args = new AppendEntriesArgs(
                     currentTerm,
@@ -128,14 +129,13 @@ public class RpcRaftState extends CoreRaftState {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
         }
 
-        LogRegion region = raftLog.lastEntry();
-        int lastIndex = region.end();
+        int lastIndex = raftLog.maxGlobalIndex();
         if(lastLogIndex > lastIndex) {
             votedFor = candidate;
             return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
         } else if(lastLogIndex == lastIndex) {
-            LogEntry entry = region.readIndex(lastIndex);
-            if(lastLogTerm > entry.term()) {
+            int currentLastLogTerm = ByteArrayUtils.toInt(raftLog.lastLogExtraData());
+            if(lastLogTerm > currentLastLogTerm) {
                 votedFor = candidate;
                 return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
             }
@@ -162,27 +162,16 @@ public class RpcRaftState extends CoreRaftState {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
         }
 
-        LogRegion region = raftLog.lastEntry();
-        int preIndex = region.end();
-        LogEntry entry = region.readIndex(preIndex);
-        int preTerm = entry.term();
+        int preIndex = raftLog.maxGlobalIndex();
+        int preTerm = ByteArrayUtils.toInt(raftLog.lastLogExtraData());
 
         if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
         }
 
-        List<AppliableLogEntry> appliableLogEntries = entries.stream()
-                .map(logEntry ->
-                        new AppliableLogEntry(
-                                null,
-                                0,
-                                logEntry.type(),
-                                logEntry.data()
-                        )
-                )
-                .toList();
+        List<byte[]> commends = entries.stream().map(LogEntry::data).toList();
 
-        stateMachine.apply(appliableLogEntries);
+        stateMachine.apply0(commends);
         commitIndex.set(leaderCommit);
 
         return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
@@ -196,7 +185,18 @@ public class RpcRaftState extends CoreRaftState {
         return null;
     }
 
-    public void handleClientRequest(byte[] command) {
+    public void handleClientRequest(SelectionKey selectionKey,
+                                                 int serial,
+                                                 byte[] command) {
+        resetElectionTimeout();
+
+        synchronized (this) {
+            int index = raftLog.append(BufferUtils.toBytes(currentTerm), command);
+            RaftCommend raftCommend = new RaftCommend(selectionKey, serial, index, command);
+            commendQueue.offer(raftCommend);
+        }
+
+        sendAppendEntries();
     }
 
     public void raftClient(RaftClient client) {
@@ -217,11 +217,10 @@ public class RpcRaftState extends CoreRaftState {
         matchedIndex.clear();
 
         Set<SelectionKey> connected = raftClient.connectedNodes();
-        LogRegion region = raftLog.lastEntry();
-        int end = region.end();
+        int maxGlobalIndex = raftLog.maxGlobalIndex();
 
         for(SelectionKey selectionKey : connected) {
-            nextIndex.put(selectionKey, end + 1);
+            nextIndex.put(selectionKey, maxGlobalIndex + 1);
             matchedIndex.put(selectionKey, 0);
         }
     }
