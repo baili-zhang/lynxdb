@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
@@ -61,6 +62,10 @@ public class LevelTree {
             level = levels.get(++ levelNo);
         }
 
+        return null;
+    }
+
+    public List<DbValue> find(byte[] key) {
         return null;
     }
 

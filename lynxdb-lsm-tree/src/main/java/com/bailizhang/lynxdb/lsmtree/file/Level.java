@@ -5,7 +5,6 @@ import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
-import com.bailizhang.lynxdb.lsmtree.memory.SkipListNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,11 +49,6 @@ public class Level {
                 valueFileGroup,
                 options
         );
-
-        for(SkipListNode node : immutable) {
-            ssTable.append(node.key(), node.column(), node.value());
-        }
-
         ssTables.add(ssTable);
     }
 

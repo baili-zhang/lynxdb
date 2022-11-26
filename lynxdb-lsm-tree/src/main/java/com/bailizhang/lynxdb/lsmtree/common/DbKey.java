@@ -7,28 +7,12 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
 import java.util.Arrays;
 
-public class DbKey implements Comparable<DbKey>, BytesListConvertible {
-    private final byte[] key;
-    private final byte[] column;
-
+public record DbKey(byte[] key, byte[] column) implements Comparable<DbKey>, BytesListConvertible {
     // TODO: 补充 CRC 校验
-
-    public DbKey(byte[] key, byte[] column) {
-        this.key = key;
-        this.column = column;
-    }
-
-    public byte[] key() {
-        return key;
-    }
-
-    public byte[] column() {
-        return column;
-    }
 
     @Override
     public int compareTo(DbKey o) {
-        if(!Arrays.equals(key, o.key)) {
+        if (!Arrays.equals(key, o.key)) {
             return ByteArrayUtils.compare(key, o.key);
         }
 

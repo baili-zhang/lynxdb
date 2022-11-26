@@ -1,15 +1,21 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.core.common.WrappedBytes;
+import com.bailizhang.lynxdb.lsmtree.common.*;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ConcurrentSkipListMap;
 
-public class MemTable implements Iterable<SkipListNode> {
+public class MemTable {
     private final Options options;
     private volatile boolean immutable = false;
-    private final SkipList skipList = new SkipList();
+
+    private final ConcurrentSkipListMap<Key, ConcurrentSkipListMap<Column, byte[]>> skipListMap
+            = new ConcurrentSkipListMap<>();
+
+    private int size;
 
     public MemTable(Options options) {
         this.options = options;
@@ -21,23 +27,47 @@ public class MemTable implements Iterable<SkipListNode> {
         }
 
         DbKey dbKey = dbEntry.key();
+        Key key = new Key(dbKey.key());
+        Column column = new Column(dbKey.column());
 
-        skipList.insert(
-                dbKey.key(),
-                dbKey.column(),
-                dbEntry.value()
-        );
+        ConcurrentSkipListMap<Column, byte[]> columnMap = skipListMap.get(key);
+        if(columnMap == null) {
+            columnMap = new ConcurrentSkipListMap<>();
+            skipListMap.put(key, columnMap);
+        }
+
+        if(columnMap.put(column, dbEntry.value()) == null) {
+            size ++;
+        }
     }
 
     public byte[] find(DbKey dbKey) {
-        return skipList.find(
-                dbKey.key(),
-                dbKey.column()
-        );
+        Key key = new Key(dbKey.key());
+        Column column = new Column(dbKey.column());
+
+        ConcurrentSkipListMap<Column, byte[]> columnMap = skipListMap.get(key);
+        if(columnMap == null) {
+            return null;
+        }
+
+        return columnMap.get(column);
+    }
+
+    public List<DbValue> find(byte[] key) {
+        List<DbValue> values = new ArrayList<>();
+
+        ConcurrentSkipListMap<Column, byte[]> columnMap = skipListMap.get(new Key(key));
+        if(columnMap == null) {
+            return values;
+        }
+
+        columnMap.forEach((column, value) -> values.add(new DbValue(column.bytes(), value)));
+
+        return values;
     }
 
     public boolean full() {
-        return skipList.size() >= options.memTableSize();
+        return size >= options.memTableSize();
     }
 
     public void transformToImmutable() {
@@ -45,14 +75,14 @@ public class MemTable implements Iterable<SkipListNode> {
     }
 
     public boolean delete(DbKey dbKey) {
-        return skipList.delete(
-                dbKey.key(),
-                dbKey.column()
-        );
-    }
+        Key key = new Key(dbKey.key());
+        Column column = new Column(dbKey.column());
 
-    @Override
-    public Iterator<SkipListNode> iterator() {
-        return skipList.iterator();
+        ConcurrentSkipListMap<Column, byte[]> columnMap = skipListMap.get(key);
+        if(columnMap == null) {
+            return false;
+        }
+
+        return columnMap.remove(column) != null;
     }
 }

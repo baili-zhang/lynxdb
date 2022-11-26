@@ -39,6 +39,12 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
+    public List<DbValue> find(byte[] key, byte[] columnFamily) {
+        ColumnFamilyRegion region = findRegion(columnFamily);
+        return region.find(key);
+    }
+
+    @Override
     public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
@@ -56,11 +62,6 @@ public class LynxDbLsmTree implements LsmTree {
         ColumnFamilyRegion region = findRegion(columnFamily);
         DbKey dbKey = new DbKey(key, column);
         return region.delete(dbKey);
-    }
-
-    @Override
-    public List<byte[]> range(byte[] begin, byte[] end, byte[] columnFamily) {
-        return null;
     }
 
     private ColumnFamilyRegion findRegion(byte[] columnFamily) {

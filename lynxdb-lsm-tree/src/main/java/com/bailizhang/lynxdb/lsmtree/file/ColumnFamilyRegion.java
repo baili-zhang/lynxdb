@@ -8,12 +8,15 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ColumnFamilyRegion {
     public static final byte EXISTED = (byte) 0x01;
@@ -61,6 +64,16 @@ public class ColumnFamilyRegion {
         }
 
         return levelTree.find(dbKey);
+    }
+
+    public List<DbValue> find(byte[] key) {
+        List<DbValue> dbValues = new ArrayList<>();
+
+        dbValues.addAll(mutable.find(key));
+        dbValues.addAll(immutable.find(key));
+        dbValues.addAll(levelTree.find(key));
+
+        return dbValues;
     }
 
     public void insert(DbEntry dbEntry) {
