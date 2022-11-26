@@ -4,21 +4,30 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
 import java.util.*;
 
-import static com.bailizhang.lynxdb.lsmtree.common.Version.LATEST_VERSION;
 import static com.bailizhang.lynxdb.lsmtree.memory.SkipList.MAX_LEVEL;
 
 public class SkipListNode implements Comparable<SkipListNode> {
-    private final Deque<VersionalValue> values = new LinkedList<>();
     private final SkipListNode[] next;
 
     private final byte[] key;
     private final byte[] column;
 
-    public SkipListNode(byte[] key, byte[] column, int level) {
+    private byte[] value;
+
+    public SkipListNode(byte[] key, byte[] column, byte[] value, int level) {
         this.key = key;
         this.column = column;
+        this.value = value;
 
         next = new SkipListNode[level];
+    }
+
+    public SkipListNode(byte[] key, byte[] column) {
+        this(key, column, null, random());
+    }
+
+    public SkipListNode(byte[] key, byte[] column, byte[] value) {
+        this(key, column, value, random());
     }
 
     public byte[] key() {
@@ -29,37 +38,16 @@ public class SkipListNode implements Comparable<SkipListNode> {
         return column;
     }
 
-    public Deque<VersionalValue> values() {
-        return values;
+    public void value(byte[] val) {
+        value = val;
     }
 
-    public SkipListNode(byte[] key, byte[] column) {
-        this(key, column, random());
+    public byte[] value() {
+        return value;
     }
 
     public SkipListNode[] next() {
         return next;
-    }
-
-    public void insertValue(long timestamp, byte[] value) {
-        values.offerLast(new VersionalValue(timestamp, value));
-    }
-
-    public byte[] findValue(long timestamp) {
-        if(timestamp == LATEST_VERSION) {
-            VersionalValue node = values.peekLast();
-            return node == null ? null : node.value();
-        }
-
-        Optional<VersionalValue> optional = values.stream()
-                .filter(node -> node.timestamp() == timestamp)
-                .findFirst();
-
-        return optional.map(VersionalValue::value).orElse(null);
-    }
-
-    public boolean deleteValue(long timestamp) {
-        return values.removeIf(node -> node.timestamp() == timestamp);
     }
 
     private static int random() {

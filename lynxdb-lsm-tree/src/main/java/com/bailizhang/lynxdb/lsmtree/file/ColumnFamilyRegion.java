@@ -97,10 +97,9 @@ public class ColumnFamilyRegion {
             byte flag = buffer.get();
             byte[] key = BufferUtils.getBytes(buffer);
             byte[] column = BufferUtils.getBytes(buffer);
-            long timestamp = buffer.getLong();
             byte[] value = BufferUtils.getRemaining(buffer);
 
-            DbKey dbKey = new DbKey(key, column, timestamp);
+            DbKey dbKey = new DbKey(key, column);
             DbEntry dbEntry = new DbEntry(dbKey, value);
 
             switch (flag) {

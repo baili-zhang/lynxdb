@@ -10,14 +10,12 @@ import java.util.Arrays;
 public class DbKey implements Comparable<DbKey>, BytesListConvertible {
     private final byte[] key;
     private final byte[] column;
-    private final long timestamp;
 
     // TODO: 补充 CRC 校验
 
-    public DbKey(byte[] key, byte[] column, long timestamp) {
+    public DbKey(byte[] key, byte[] column) {
         this.key = key;
         this.column = column;
-        this.timestamp = timestamp;
     }
 
     public byte[] key() {
@@ -28,21 +26,13 @@ public class DbKey implements Comparable<DbKey>, BytesListConvertible {
         return column;
     }
 
-    public long timestamp() {
-        return timestamp;
-    }
-
     @Override
     public int compareTo(DbKey o) {
         if(!Arrays.equals(key, o.key)) {
             return ByteArrayUtils.compare(key, o.key);
         }
 
-        if(!Arrays.equals(column, o.column)) {
-            return ByteArrayUtils.compare(column, o.column);
-        }
-
-        return Long.compare(timestamp, o.timestamp);
+        return ByteArrayUtils.compare(column, o.column);
     }
 
     @Override
@@ -50,7 +40,6 @@ public class DbKey implements Comparable<DbKey>, BytesListConvertible {
         BytesList bytesList = new BytesList(false);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(column);
-        bytesList.appendRawLong(timestamp);
         return bytesList;
     }
 

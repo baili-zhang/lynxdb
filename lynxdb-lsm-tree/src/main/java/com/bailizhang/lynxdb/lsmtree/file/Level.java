@@ -52,7 +52,7 @@ public class Level {
         );
 
         for(SkipListNode node : immutable) {
-            ssTable.append(node.key(), node.column(), node.values());
+            ssTable.append(node.key(), node.column(), node.value());
         }
 
         ssTables.add(ssTable);

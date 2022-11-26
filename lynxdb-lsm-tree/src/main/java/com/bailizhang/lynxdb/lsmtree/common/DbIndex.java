@@ -24,10 +24,9 @@ public record DbIndex(
         ByteBuffer buffer = ByteBuffer.wrap(data);
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
-        long version = buffer.getLong();
         int valueGlobalIndex = buffer.getInt();
 
-        DbKey dbKey = new DbKey(key, column, version);
+        DbKey dbKey = new DbKey(key, column);
 
         return new DbIndex(dbKey, dataBegin, valueGlobalIndex);
     }

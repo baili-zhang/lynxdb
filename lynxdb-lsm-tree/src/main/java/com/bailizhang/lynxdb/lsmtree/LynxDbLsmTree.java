@@ -32,30 +32,35 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
-    public byte[] find(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
+    public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column);
         return region.find(dbKey);
     }
 
     @Override
-    public void insert(byte[] key, byte[] columnFamily, byte[] column, long timestamp,
+    public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
         if(region == null) {
             region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
         }
 
-        DbKey dbKey = new DbKey(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column);
         DbEntry dbEntry = new DbEntry(dbKey, value);
         region.insert(dbEntry);
     }
 
     @Override
-    public boolean delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
+    public boolean delete(byte[] key, byte[] columnFamily, byte[] column) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column);
         return region.delete(dbKey);
+    }
+
+    @Override
+    public List<byte[]> range(byte[] begin, byte[] end, byte[] columnFamily) {
+        return null;
     }
 
     private ColumnFamilyRegion findRegion(byte[] columnFamily) {

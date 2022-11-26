@@ -25,7 +25,6 @@ public class MemTable implements Iterable<SkipListNode> {
         skipList.insert(
                 dbKey.key(),
                 dbKey.column(),
-                dbKey.timestamp(),
                 dbEntry.value()
         );
     }
@@ -33,8 +32,7 @@ public class MemTable implements Iterable<SkipListNode> {
     public byte[] find(DbKey dbKey) {
         return skipList.find(
                 dbKey.key(),
-                dbKey.column(),
-                dbKey.timestamp()
+                dbKey.column()
         );
     }
 
@@ -49,8 +47,7 @@ public class MemTable implements Iterable<SkipListNode> {
     public boolean delete(DbKey dbKey) {
         return skipList.delete(
                 dbKey.key(),
-                dbKey.column(),
-                dbKey.timestamp()
+                dbKey.column()
         );
     }
 

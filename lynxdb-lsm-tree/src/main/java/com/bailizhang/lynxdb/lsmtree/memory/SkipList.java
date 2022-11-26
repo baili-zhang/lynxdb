@@ -12,19 +12,19 @@ public class SkipList implements Iterable<SkipListNode> {
     private int size;
 
     public SkipList() {
-        head = new SkipListNode(BufferUtils.EMPTY_BYTES, BufferUtils.EMPTY_BYTES, MAX_LEVEL);
+        head = new SkipListNode(BufferUtils.EMPTY_BYTES, BufferUtils.EMPTY_BYTES, null, MAX_LEVEL);
     }
 
     public int size() {
         return size;
     }
 
-    public void insert(byte[] key, byte[] column, long timestamp, byte[] value) {
+    public void insert(byte[] key, byte[] column, byte[] value) {
         if(ByteArrayUtils.isEmpty(key) || ByteArrayUtils.isEmpty(column)) {
             throw new RuntimeException();
         }
 
-        SkipListNode node = new SkipListNode(key, column);
+        SkipListNode node = new SkipListNode(key, column, value);
         SkipListNode[] prev = new SkipListNode[MAX_LEVEL];
 
         for(int i = MAX_LEVEL - 1; i >= 0; i --) {
@@ -37,7 +37,7 @@ public class SkipList implements Iterable<SkipListNode> {
             }
 
             if(prev[i].compareTo(node) == 0) {
-                prev[i].insertValue(timestamp, value);
+                prev[i].value(value);
                 return;
             }
         }
@@ -49,11 +49,9 @@ public class SkipList implements Iterable<SkipListNode> {
             prev[i].next()[i] = node;
             node.next()[i] = next;
         }
-
-        node.insertValue(timestamp, value);
     }
 
-    public byte[] find(byte[] key, byte[] column, long timestamp) {
+    public byte[] find(byte[] key, byte[] column) {
         if(ByteArrayUtils.isEmpty(key) || ByteArrayUtils.isEmpty(column)) {
             throw new RuntimeException();
         }
@@ -71,14 +69,14 @@ public class SkipList implements Iterable<SkipListNode> {
             }
 
             if(prev[i].compareTo(node) == 0) {
-                return prev[i].findValue(timestamp);
+                return prev[i].value();
             }
         }
 
         return null;
     }
 
-    public boolean delete(byte[] key, byte[] column, long timestamp) {
+    public boolean delete(byte[] key, byte[] column) {
         if(ByteArrayUtils.isEmpty(key) || ByteArrayUtils.isEmpty(column)) {
             throw new RuntimeException();
         }
@@ -96,7 +94,7 @@ public class SkipList implements Iterable<SkipListNode> {
             }
 
             if(prev[i].compareTo(node) == 0) {
-                return prev[i].deleteValue(timestamp);
+                return true;
             }
         }
 

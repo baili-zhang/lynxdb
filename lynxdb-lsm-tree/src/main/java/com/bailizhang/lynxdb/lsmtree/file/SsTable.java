@@ -6,7 +6,6 @@ import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.*;
-import com.bailizhang.lynxdb.lsmtree.memory.VersionalValue;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
 import java.nio.channels.FileChannel;
@@ -59,12 +58,10 @@ public class SsTable {
         }
     }
 
-    public void append(byte[] key, byte[] column, Deque<VersionalValue> values) {
-        for(VersionalValue value : values) {
-            DbKey dbKey = new DbKey(key, column, value.timestamp());
-            DbEntry dbEntry = new DbEntry(dbKey, value.value());
-            append(dbEntry);
-        }
+    public void append(byte[] key, byte[] column, byte[] value) {
+        DbKey dbKey = new DbKey(key, column);
+        DbEntry dbEntry = new DbEntry(dbKey, value);
+        append(dbEntry);
     }
 
     public boolean contains(DbKey dbKey) {
@@ -122,27 +119,17 @@ public class SsTable {
             return null;
         }
 
-        List<DbIndex> values = dbIndexList.stream()
+        Optional<DbIndex> optional = dbIndexList.stream()
                 .filter(dbIndex -> {
                     DbKey dbIndexKey = dbIndex.key();
                     return Arrays.equals(dbIndexKey.key(), dbKey.key())
                             && Arrays.equals(dbIndexKey.column(), dbKey.column());
-                }).sorted(Comparator.comparingLong(o -> o.key().timestamp()))
-                .toList();
+                }).findFirst();
 
         int globalIndex = 0;
-        long timestamp = dbKey.timestamp();
 
-        if(timestamp == Version.LATEST_VERSION) {
-            globalIndex = values.get(values.size() - 1).valueGlobalIndex();
-        } else {
-            Optional<DbIndex> optional = values.stream()
-                    .filter(dbIndex -> timestamp == dbIndex.key().timestamp())
-                    .findFirst();
-
-            if(optional.isPresent()) {
-                globalIndex = optional.get().valueGlobalIndex();
-            }
+        if(optional.isPresent()) {
+            globalIndex = optional.get().valueGlobalIndex();
         }
 
         return globalIndex;
