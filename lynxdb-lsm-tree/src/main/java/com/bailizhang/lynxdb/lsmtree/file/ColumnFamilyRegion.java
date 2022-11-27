@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogOptions;
@@ -43,11 +42,15 @@ public class ColumnFamilyRegion {
 
         LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
         String walDir = Path.of(cfDir, WAL_DIR).toString();
-        walLog = new LogGroup(walDir, logOptions);
         mutable = new MemTable(options);
         levelTree = new LevelTree(cfDir, options);
 
-        recoverFromWal();
+        if(options.wal()) {
+            walLog = new LogGroup(walDir, logOptions);
+            recoverFromWal();
+        } else {
+            walLog = null;
+        }
     }
 
     public byte[] find(DbKey dbKey) {
@@ -77,12 +80,18 @@ public class ColumnFamilyRegion {
     }
 
     public void insert(DbEntry dbEntry) {
-        walLog.append(EXISTED_ARRAY, dbEntry);
+        if(options.wal()) {
+            walLog.append(EXISTED_ARRAY, dbEntry);
+        }
+
         insertIntoMemTableAndMerge(dbEntry);
     }
 
     public boolean delete(DbKey dbKey) {
-        walLog.append(DELETED_ARRAY, dbKey.toBytes());
+        if(options.wal()) {
+            walLog.append(DELETED_ARRAY, dbKey.toBytes());
+        }
+
         return deleteFromMemTableAndLevelTree(dbKey);
     }
 

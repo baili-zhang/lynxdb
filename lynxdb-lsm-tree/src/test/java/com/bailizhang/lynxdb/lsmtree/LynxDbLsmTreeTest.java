@@ -17,6 +17,10 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
+    private static final int KEY_COUNT = 1000;
+    private static final int COLUMN_COUNT = 400;
+    private static final int MEM_TABLE_SIZE = 4000;
+
     private static final byte[] COLUMN_FAMILY;
 
     static {
@@ -28,7 +32,8 @@ class LynxDbLsmTreeTest {
 
     @BeforeEach
     void setUp() {
-        Options options = new Options(4000);
+        Options options = new Options(MEM_TABLE_SIZE);
+        options.wal(false);
         lsmTree = new LynxDbLsmTree(BASE_DIR, options);
     }
 
@@ -39,8 +44,8 @@ class LynxDbLsmTreeTest {
 
     @Test
     void testFunc01() {
-        for(int keyCount = 0; keyCount < 11000; keyCount ++) {
-            for(int columnCount = 0; columnCount < 400; columnCount ++) {
+        for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+            for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
                 String key = KEY + keyCount;
                 String column = COLUMN + columnCount;
                 String value = key + column;
@@ -54,8 +59,8 @@ class LynxDbLsmTreeTest {
             }
         }
 
-        for(int keyCount = 0; keyCount < 200; keyCount ++) {
-            for(int columnCount = 0; columnCount < 10; columnCount ++) {
+        for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+            for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
                 String key = KEY + keyCount;
                 String column = COLUMN + columnCount;
                 byte[] value = G.I.toBytes(key + column);

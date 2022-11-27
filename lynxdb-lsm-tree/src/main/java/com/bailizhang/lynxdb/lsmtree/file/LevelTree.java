@@ -14,7 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public class LevelTree {
-    private final static int LEVEL_BEGIN = 1;
+    public final static int LEVEL_BEGIN = 1;
+
     private final static int EXTRA_DATA_LENGTH = 1;
     private final static String VALUE_GROUP_NAME = "value";
 
@@ -43,8 +44,7 @@ public class LevelTree {
                 continue;
             }
 
-            String levelPath = Path.of(baseDir, subDir).toString();
-            Level level = new Level(levelPath, levelNo, this, valueFileGroup, options);
+            Level level = new Level(baseDir, levelNo, this, valueFileGroup, options);
 
             levels.put(levelNo, level);
         }

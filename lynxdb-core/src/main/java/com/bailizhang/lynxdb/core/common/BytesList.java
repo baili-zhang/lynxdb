@@ -1,11 +1,17 @@
 package com.bailizhang.lynxdb.core.common;
 
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
-public class BytesList implements BytesConvertible{
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
+
+public class BytesList implements BytesConvertible, BytesArrayConvertible {
     public static final byte RAW = (byte) 0x01;
     public static final byte VAR = (byte) 0x02;
 
@@ -75,7 +81,7 @@ public class BytesList implements BytesConvertible{
             } else if (node.value instanceof Long) {
                 length += PrimitiveTypeUtils.LONG_LENGTH;
             } else if(node.value instanceof Byte) {
-                length += PrimitiveTypeUtils.BYTE_LENGTH;
+                length += BYTE_LENGTH;
             } else if (node.value instanceof byte[] bytes) {
                 length += bytes.length;
             } else {
@@ -112,6 +118,40 @@ public class BytesList implements BytesConvertible{
         }
 
         return buffer.array();
+    }
+
+    @Override
+    public List<byte[]> toBytesList() {
+        LinkedList<byte[]> bytesList = new LinkedList<>();
+
+        for(BytesNode<?> node : bytesNodes) {
+            if(node.type == VAR) {
+                if(node.value instanceof byte[] bytes) {
+                    bytesList.add(BufferUtils.toBytes(bytes.length));
+                } else {
+                    throw new RuntimeException("Undefined value type");
+                }
+            }
+
+            if(node.value instanceof Integer i) {
+                bytesList.add(BufferUtils.toBytes(i));
+            } else if (node.value instanceof Long l) {
+                bytesList.add(BufferUtils.toBytes(l));
+            } else if(node.value instanceof Byte b) {
+                bytesList.add(BufferUtils.toBytes(b));
+            } else if (node.value instanceof byte[] bytes) {
+                bytesList.add(bytes);
+            } else {
+                throw new RuntimeException("Undefined value type");
+            }
+        }
+
+        if(withLength) {
+            int length = bytesList.stream().mapToInt(bytes -> bytes.length).sum();
+            bytesList.addFirst(BufferUtils.toBytes(length));
+        }
+
+        return bytesList;
     }
 
     private static class BytesNode<V> {

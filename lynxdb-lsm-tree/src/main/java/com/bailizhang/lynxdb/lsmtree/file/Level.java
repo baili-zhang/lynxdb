@@ -55,20 +55,17 @@ public class Level {
             mergeToNextLevel();
         }
 
-        SsTable ssTable = new SsTable(
-                baseDir.toString(),
-                ssTables.size(),
-                levelNo,
-                valueFileGroup,
-                options
-        );
+        List<DbIndex> indexList = immutable.all()
+                .stream()
+                .map(entry -> {
+                    int globalIndex = valueFileGroup.append(
+                            ColumnFamilyRegion.EXISTED_ARRAY,
+                            entry.value()
+                    );
+                    return new DbIndex(entry.key(), globalIndex);
+                }).toList();
 
-        immutable.all().forEach(entry -> {
-            DbKey dbKey = entry.key();
-            ssTable.append(dbKey.key(), dbKey.column(), entry.value());
-        });
-
-        ssTables.add(ssTable);
+        createNextSsTable(indexList);
     }
 
     public void merge(Level level) {
@@ -76,19 +73,7 @@ public class Level {
             mergeToNextLevel();
         }
 
-        SsTable ssTable = new SsTable(
-                baseDir.toString(),
-                ssTables.size(),
-                levelNo,
-                valueFileGroup,
-                options
-        );
-
-        level.all().forEach(dbIndex ->
-                ssTable.append(dbIndex.key(), dbIndex.valueGlobalIndex())
-        );
-
-        ssTables.add(ssTable);
+        createNextSsTable(level.all());
     }
 
     public List<DbIndex> all() {
@@ -158,5 +143,21 @@ public class Level {
 
         FileUtils.deleteSubs(baseDir);
         ssTables = new ArrayList<>(LEVEL_SSTABLE_COUNT);
+    }
+
+    private void createNextSsTable(List<DbIndex> indexList) {
+        int nextSsTableNo = ssTables.size();
+        Path nextSsTablePath = Path.of(baseDir.toString(), NameUtils.name(nextSsTableNo));
+        SsTable.create(nextSsTablePath, indexList);
+
+        SsTable ssTable = new SsTable(
+                baseDir.toString(),
+                nextSsTableNo,
+                levelNo,
+                valueFileGroup,
+                options
+        );
+
+        ssTables.add(ssTable);
     }
 }

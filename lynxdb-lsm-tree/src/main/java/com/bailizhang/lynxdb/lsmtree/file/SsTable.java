@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
@@ -8,73 +9,77 @@ import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.*;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRAY;
-import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.EXISTED_ARRAY;
 
 public class SsTable {
-    private final FileChannel fileChannel;
+    private static final int BLOOM_FILTER_BEGIN = 0;
+
     private final BloomFilter bloomFilter;
     private final LogGroup valueLogGroup;
     private final List<DbIndex> dbIndexList;
 
     public SsTable(String dir, int id, int levelNo, LogGroup logGroup, Options options) {
-        int ssTableSize = options.memTableSize() * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, levelNo);
+        // 构造函数，从文件中恢复数据
+        int ssTableSize = options.memTableSize()
+                * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
 
         String filename = NameUtils.name(id);
         FileUtils.createFileIfNotExisted(dir, filename);
 
         Path filePath = Path.of(dir, filename);
 
-        fileChannel = FileChannelUtils.open(
-                filePath,
-                StandardOpenOption.APPEND
-        );
-
         FileChannel readChannel = FileChannelUtils.open(
                 filePath,
                 StandardOpenOption.READ
         );
 
-        bloomFilter = new BloomFilter(filePath, ssTableSize);
+        bloomFilter = BloomFilter.from(filePath, BLOOM_FILTER_BEGIN, ssTableSize);
 
         valueLogGroup = logGroup;
-        dbIndexList = new ArrayList<>(ssTableSize);
 
         // 从持久化的文件中恢复数据
         int dataBegin = bloomFilter.byteCount();
-        long fileSize = FileChannelUtils.size(fileChannel);
-
-        while (dataBegin < fileSize - 1) {
-            int len = FileChannelUtils.readInt(readChannel, dataBegin);
-            byte[] indexData = FileChannelUtils.read(readChannel, dataBegin + INT_LENGTH, len);
-            dbIndexList.add(DbIndex.from(indexData, dataBegin));
-            dataBegin += INT_LENGTH + len;
-        }
+        dbIndexList = DbIndex.listFrom(readChannel, dataBegin);
     }
 
-    public void append(byte[] key, byte[] column, byte[] value) {
-        DbKey dbKey = new DbKey(key, column);
-        DbEntry dbEntry = new DbEntry(dbKey, value);
+    public static void create(Path filePath, List<DbIndex> dbIndexList) {
+        int count = dbIndexList.size();
 
-        int globalIndex = valueLogGroup.append(EXISTED_ARRAY, dbEntry.value());
+        FileUtils.createFileIfNotExisted(filePath.toFile());
+        FileChannel channel = FileChannelUtils.open(
+                filePath,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ
+        );
 
-        append(dbKey, globalIndex);
-    }
+        BloomFilter bloomFilter = new BloomFilter(count);
+        dbIndexList.forEach(dbIndex -> bloomFilter.setObj(dbIndex.key()));
 
-    public void append(DbKey dbKey, int globalIndex) {
-        bloomFilter.setObj(dbKey);
-        long dataBegin = FileChannelUtils.size(fileChannel);
-        DbIndex index = new DbIndex(dbKey, dataBegin, globalIndex);
-        FileChannelUtils.write(fileChannel, index.toBytes());
-        FileChannelUtils.force(fileChannel, false);
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawBytes(bloomFilter.data());
+        dbIndexList.forEach(bytesList::append);
 
-        dbIndexList.add(index);
+        List<byte[]> list = bytesList.toBytesList();
+
+        int length = list.stream().mapToInt(bytes -> bytes.length).sum();
+
+        MappedByteBuffer mappedBuffer = FileChannelUtils.map(
+                channel,
+                FileChannel.MapMode.READ_WRITE,
+                BLOOM_FILTER_BEGIN,
+                length
+        );
+
+        list.forEach(mappedBuffer::put);
+        mappedBuffer.force();
     }
 
     public List<DbIndex> dbIndexList() {
@@ -139,7 +144,7 @@ public class SsTable {
                             && Arrays.equals(dbIndexKey.column(), dbKey.column());
                 }).findFirst();
 
-        int globalIndex = 0;
+        Integer globalIndex = null;
 
         if(optional.isPresent()) {
             globalIndex = optional.get().valueGlobalIndex();

@@ -4,7 +4,6 @@ import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.MethodUtils;
 
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -22,10 +21,8 @@ public class BloomFilter {
 
     private static final Method[] hashFunctions;
 
-    private final FileChannel fileChannel;
-    private final int byteBegin;
-    private final int byteCount;
     private final int bitCount;
+    private final byte[] data;
 
     static {
         try {
@@ -46,30 +43,29 @@ public class BloomFilter {
         }
     }
 
-    public BloomFilter(Path path, int byteBegin, int count) {
-        this.fileChannel = FileChannelUtils.open(
-                path,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ
-        );
-
-        this.byteBegin = byteBegin;
+    public BloomFilter(int count) {
         this.bitCount = count * TEN_TIMES;
 
-        byteCount = bitCount / BYTE_BIT_COUNT;
-
-        if(FileChannelUtils.sizeLessThan(fileChannel, byteBegin + byteCount)) {
-            ByteBuffer buffer = ByteBuffer.allocate(byteCount);
-            FileChannelUtils.write(fileChannel, buffer, byteBegin);
-        }
+        int byteCount = bitCount / BYTE_BIT_COUNT;
+        data = new byte[byteCount];
     }
 
-    public BloomFilter(Path path, int count) {
-        this(path, 0, count);
+    public BloomFilter(byte[] bits) {
+        data = bits;
+        bitCount = data.length * BYTE_BIT_COUNT;
+    }
+
+    public static BloomFilter from(Path filePath, int begin, int count) {
+        FileChannel channel = FileChannelUtils.open(filePath, StandardOpenOption.READ);
+
+        int length = (count * TEN_TIMES) / BYTE_BIT_COUNT;
+        byte[] data = FileChannelUtils.read(channel, begin, length);
+
+        return new BloomFilter(data);
     }
 
     public int byteCount() {
-        return byteCount;
+        return bitCount / BYTE_BIT_COUNT;
     }
 
     public boolean isExist(Object o) {
@@ -82,7 +78,7 @@ public class BloomFilter {
             // byte 中的第几个 bit 位
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
-            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            byte current = data[byteIndex];
             if((current & ((byte) 0x01 << bitIndex)) == 0) {
                 return false;
             }
@@ -105,10 +101,13 @@ public class BloomFilter {
             // byte 中的第几个 bit 位
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
-            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            byte current = data[byteIndex];
             current |= (byte) 0x01 << bitIndex;
-
-            FileChannelUtils.write(fileChannel, current, byteIndex);
+            data[byteIndex] = current;
         }
+    }
+
+    public byte[] data() {
+        return data;
     }
 }
