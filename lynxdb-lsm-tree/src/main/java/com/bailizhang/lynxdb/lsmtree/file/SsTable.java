@@ -83,6 +83,22 @@ public class SsTable {
         return entry.data();
     }
 
+    public List<DbValue> find(byte[] key) {
+        List<DbValue> values = new ArrayList<>();
+
+        for(DbIndex dbIndex : dbIndexList) {
+            DbKey dbKey = dbIndex.key();
+            if(Arrays.equals(dbKey.key(), key)) {
+                LogEntry logEntry = valueLogGroup.find(dbIndex.valueGlobalIndex());
+                byte[] value = logEntry.data();
+
+                values.add(new DbValue(dbKey.column(), value));
+            }
+        }
+
+        return values;
+    }
+
     public boolean delete(DbKey dbKey) {
         Integer globalIndex = findValueGlobalIndex(dbKey);
         if(globalIndex == null) {

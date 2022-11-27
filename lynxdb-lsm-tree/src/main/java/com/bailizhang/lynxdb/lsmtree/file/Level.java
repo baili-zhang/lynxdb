@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
@@ -74,6 +75,16 @@ public class Level {
             }
         }
         return null;
+    }
+
+    public List<DbValue> find(byte[] key) {
+        List<DbValue> values = new ArrayList<>();
+
+        for(SsTable ssTable : ssTables) {
+            values.addAll(ssTable.find(key));
+        }
+
+        return values;
     }
 
     public boolean contains(DbKey dbKey) {

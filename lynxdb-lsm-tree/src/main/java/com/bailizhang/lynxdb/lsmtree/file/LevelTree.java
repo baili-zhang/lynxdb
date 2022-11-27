@@ -9,6 +9,7 @@ import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -66,7 +67,17 @@ public class LevelTree {
     }
 
     public List<DbValue> find(byte[] key) {
-        return null;
+        List<DbValue> values = new ArrayList<>();
+
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null) {
+            values.addAll(level.find(key));
+            level = levels.get(++ levelNo);
+        }
+
+        return values;
     }
 
     public void merge(MemTable immutable) {
