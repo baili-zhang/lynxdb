@@ -13,8 +13,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class SsTableTest {
 
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";

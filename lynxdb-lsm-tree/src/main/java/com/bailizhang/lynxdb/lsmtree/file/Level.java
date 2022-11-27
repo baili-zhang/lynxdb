@@ -1,19 +1,24 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
-import com.bailizhang.lynxdb.lsmtree.common.*;
+import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Queue;
 
 public class Level {
     public static final int LEVEL_SSTABLE_COUNT = 10;
+
+    private static final String INSERT_VALUE = "Insert Value";
 
     private final LogGroup valueFileGroup;
     private final String parentDir;
@@ -55,6 +60,8 @@ public class Level {
             mergeToNextLevel();
         }
 
+        long beginTime = System.currentTimeMillis();
+
         List<DbIndex> indexList = immutable.all()
                 .stream()
                 .map(entry -> {
@@ -64,6 +71,9 @@ public class Level {
                     );
                     return new DbIndex(entry.key(), globalIndex);
                 }).toList();
+
+        long endTime = System.currentTimeMillis();
+        G.I.incrementRecord(INSERT_VALUE, endTime - beginTime);
 
         createNextSsTable(indexList);
     }

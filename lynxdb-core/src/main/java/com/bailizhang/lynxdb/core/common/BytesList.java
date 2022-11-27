@@ -1,15 +1,13 @@
 package com.bailizhang.lynxdb.core.common;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
 
 public class BytesList implements BytesConvertible, BytesArrayConvertible {
     public static final byte RAW = (byte) 0x01;

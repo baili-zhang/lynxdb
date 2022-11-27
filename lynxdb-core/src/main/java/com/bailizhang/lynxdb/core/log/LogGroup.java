@@ -7,11 +7,14 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 
+import static com.bailizhang.lynxdb.core.utils.BufferUtils.EMPTY_BYTES;
+
 /**
  * TODO: 应该保证多线程安全
  */
 public class LogGroup implements Iterable<LogEntry> {
-    private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
+    public static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
+
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
 
@@ -71,7 +74,7 @@ public class LogGroup implements Iterable<LogEntry> {
                 endRegionId = logRegionIds[logRegionIds.length - 1];
 
                 for(int id = beginRegionId; id <= endRegionId; id ++) {
-                    logRegions.add(LogRegion.open(id, groupDir, options));
+                    logRegions.add(new LogRegion(id, groupDir, options));
                 }
 
                 return;
@@ -81,12 +84,14 @@ public class LogGroup implements Iterable<LogEntry> {
         beginRegionId = DEFAULT_BEGIN_REGION_ID;
         endRegionId = DEFAULT_BEGIN_REGION_ID;
 
-        LogRegion region = LogRegion.create(
+        LogRegion region = new LogRegion(
                 beginRegionId,
-                BEGIN_GLOBAL_LOG_INDEX,
                 groupDir,
                 options
         );
+
+        region.globalIndexBegin(BEGIN_GLOBAL_LOG_INDEX);
+        region.globalIndexEnd(BEGIN_GLOBAL_LOG_INDEX - 1);
 
         logRegions.add(region);
     }
@@ -130,7 +135,7 @@ public class LogGroup implements Iterable<LogEntry> {
     }
 
     public byte[] lastLogExtraData() {
-        return lastRegion().extraData();
+        return EMPTY_BYTES;
     }
 
     public void delete() {
@@ -154,6 +159,9 @@ public class LogGroup implements Iterable<LogEntry> {
         LogRegion region = lastRegion();
 
         if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {
+            if(options.forceAfterRegionFull()) {
+                region.force();
+            }
             region = createNextRegion();
         }
 
@@ -183,12 +191,14 @@ public class LogGroup implements Iterable<LogEntry> {
     }
 
     private LogRegion createNextRegion() {
-        LogRegion region = LogRegion.create(
+        LogRegion region = new LogRegion(
                 ++ endRegionId,
-                maxGlobalIndex() + 1,
                 groupDir,
                 options
         );
+
+        region.globalIndexBegin(maxGlobalIndex() + 1);
+        region.globalIndexEnd(maxGlobalIndex());
 
         logRegions.add(region);
         return region;

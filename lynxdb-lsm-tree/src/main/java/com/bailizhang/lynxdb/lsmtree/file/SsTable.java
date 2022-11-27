@@ -1,25 +1,33 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
-import com.bailizhang.lynxdb.lsmtree.common.*;
+import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRAY;
 
 public class SsTable {
+    private static final String CREATE_SSTABLE = "Create SsTable";
+    private static final String SSTABLE_FIND = "SsTable Find";
+
     private static final int BLOOM_FILTER_BEGIN = 0;
 
     private final BloomFilter bloomFilter;
@@ -51,6 +59,8 @@ public class SsTable {
     }
 
     public static void create(Path filePath, List<DbIndex> dbIndexList) {
+        long beginTime = System.currentTimeMillis();
+
         int count = dbIndexList.size();
 
         FileUtils.createFileIfNotExisted(filePath.toFile());
@@ -80,6 +90,9 @@ public class SsTable {
 
         list.forEach(mappedBuffer::put);
         mappedBuffer.force();
+
+        long endTime = System.currentTimeMillis();
+        G.I.incrementRecord(CREATE_SSTABLE, endTime - beginTime);
     }
 
     public List<DbIndex> dbIndexList() {
@@ -91,6 +104,8 @@ public class SsTable {
     }
 
     public byte[] find(DbKey dbKey) {
+        long beginTime = System.currentTimeMillis();
+
         Integer globalIndex = findValueGlobalIndex(dbKey);
         if(globalIndex == null) {
             return null;
@@ -101,6 +116,9 @@ public class SsTable {
         if(Arrays.equals(entry.index().extraData(), DELETED_ARRAY)) {
             return null;
         }
+
+        long endTime = System.currentTimeMillis();
+        G.I.incrementRecord(SSTABLE_FIND, endTime - beginTime);
 
         return entry.data();
     }

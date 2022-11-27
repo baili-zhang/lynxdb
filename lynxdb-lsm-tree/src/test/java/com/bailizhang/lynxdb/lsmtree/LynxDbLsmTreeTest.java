@@ -17,9 +17,9 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 1000;
+    private static final int KEY_COUNT = 10000;
     private static final int COLUMN_COUNT = 400;
-    private static final int MEM_TABLE_SIZE = 4000;
+    private static final int MEM_TABLE_SIZE = 3000;
 
     private static final byte[] COLUMN_FAMILY;
 
@@ -39,11 +39,14 @@ class LynxDbLsmTreeTest {
 
     @AfterEach
     void tearDown() {
-        // lsmTree.clear();
+        G.I.printRecord();
+        lsmTree.clear();
     }
 
     @Test
     void testFunc01() {
+        long insertStartTime = System.currentTimeMillis();
+
         for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
                 String key = KEY + keyCount;
@@ -58,6 +61,8 @@ class LynxDbLsmTreeTest {
                 );
             }
         }
+
+        long findStartTime = System.currentTimeMillis();
 
         for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
@@ -74,5 +79,14 @@ class LynxDbLsmTreeTest {
                 assert Arrays.equals(value, findValue);
             }
         }
+
+        long findEndTime = System.currentTimeMillis();
+
+        int total = KEY_COUNT * COLUMN_COUNT;
+        long insertTime = findStartTime - insertStartTime;
+        long findTime = findEndTime - findStartTime;
+
+        System.out.println("Insert Records: " + (double) total / (double) insertTime * 1000 + "Ops");
+        System.out.println("Find Records: " + (double) total / (double) findTime * 1000 + "Ops");
     }
 }
