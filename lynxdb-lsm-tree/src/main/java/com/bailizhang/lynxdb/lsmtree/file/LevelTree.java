@@ -44,7 +44,7 @@ public class LevelTree {
             }
 
             String levelPath = Path.of(baseDir, subDir).toString();
-            Level level = new Level(levelPath, levelNo, valueFileGroup, options);
+            Level level = new Level(levelPath, levelNo, this, valueFileGroup, options);
 
             levels.put(levelNo, level);
         }
@@ -54,10 +54,12 @@ public class LevelTree {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
-        while(level != null && level.contains(dbKey)) {
-            byte[] value = level.find(dbKey);
-            if(value != null) {
-                return value;
+        while(level != null) {
+            if(level.contains(dbKey)) {
+                byte[] value = level.find(dbKey);
+                if(value != null) {
+                    return value;
+                }
             }
 
             level = levels.get(++ levelNo);
@@ -86,31 +88,13 @@ public class LevelTree {
         }
 
         Level level = levels.get(LEVEL_BEGIN);
+
         if(level == null) {
-            level = new Level(baseDir, LEVEL_BEGIN, valueFileGroup, options);
+            level = new Level(baseDir, LEVEL_BEGIN, this, valueFileGroup, options);
             levels.put(LEVEL_BEGIN, level);
         }
 
         level.merge(immutable);
-
-        if(level.isNotFull()) {
-            return;
-        }
-
-        int levelNo = LEVEL_BEGIN;
-        Level current = levels.get(levelNo);
-
-        while (current.isFull()) {
-            Level needMerge = current;
-            current = levels.get(++ levelNo);
-
-            if(current == null) {
-                current = new Level(baseDir, levelNo, valueFileGroup, options);
-                levels.put(levelNo, current);
-            }
-
-            current.merge(needMerge);
-        }
     }
 
     public boolean delete(DbKey dbKey) {
@@ -127,5 +111,13 @@ public class LevelTree {
         }
 
         return false;
+    }
+
+    Level get(int levelNo) {
+        return levels.get(levelNo);
+    }
+
+    void put(int levelNo, Level level) {
+        levels.put(levelNo, level);
     }
 }

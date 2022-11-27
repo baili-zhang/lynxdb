@@ -6,6 +6,8 @@ import com.bailizhang.lynxdb.core.utils.MethodUtils;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_BIT_COUNT;
@@ -44,8 +46,13 @@ public class BloomFilter {
         }
     }
 
-    public BloomFilter(FileChannel fileChannel, int byteBegin, int count) {
-        this.fileChannel = fileChannel;
+    public BloomFilter(Path path, int byteBegin, int count) {
+        this.fileChannel = FileChannelUtils.open(
+                path,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ
+        );
+
         this.byteBegin = byteBegin;
         this.bitCount = count * TEN_TIMES;
 
@@ -57,8 +64,8 @@ public class BloomFilter {
         }
     }
 
-    public BloomFilter(FileChannel fileChannel, int count) {
-        this(fileChannel, 0, count);
+    public BloomFilter(Path path, int count) {
+        this(path, 0, count);
     }
 
     public int byteCount() {

@@ -18,15 +18,10 @@ import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRA
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.EXISTED_ARRAY;
 
 public class SsTable {
-    private final FileChannel indexChannel;
+    private final FileChannel fileChannel;
     private final BloomFilter bloomFilter;
-
     private final LogGroup valueLogGroup;
-
     private final List<DbIndex> dbIndexList;
-
-    private DbKey minDbKey;
-    private DbKey maxDbKey;
 
     public SsTable(String dir, int id, int levelNo, LogGroup logGroup, Options options) {
         int ssTableSize = options.memTableSize() * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, levelNo);
@@ -34,25 +29,30 @@ public class SsTable {
         String filename = NameUtils.name(id);
         FileUtils.createFileIfNotExisted(dir, filename);
 
-        indexChannel = FileChannelUtils.open(
-                Path.of(dir, filename),
-                StandardOpenOption.APPEND,
-                StandardOpenOption.WRITE,
+        Path filePath = Path.of(dir, filename);
+
+        fileChannel = FileChannelUtils.open(
+                filePath,
+                StandardOpenOption.APPEND
+        );
+
+        FileChannel readChannel = FileChannelUtils.open(
+                filePath,
                 StandardOpenOption.READ
         );
 
-        bloomFilter = new BloomFilter(indexChannel, ssTableSize);
+        bloomFilter = new BloomFilter(filePath, ssTableSize);
 
         valueLogGroup = logGroup;
         dbIndexList = new ArrayList<>(ssTableSize);
 
         // 从持久化的文件中恢复数据
         int dataBegin = bloomFilter.byteCount();
-        long fileSize = FileChannelUtils.size(indexChannel);
+        long fileSize = FileChannelUtils.size(fileChannel);
 
         while (dataBegin < fileSize - 1) {
-            int len = FileChannelUtils.readInt(indexChannel, dataBegin);
-            byte[] indexData = FileChannelUtils.read(indexChannel, dataBegin + INT_LENGTH, len);
+            int len = FileChannelUtils.readInt(readChannel, dataBegin);
+            byte[] indexData = FileChannelUtils.read(readChannel, dataBegin + INT_LENGTH, len);
             dbIndexList.add(DbIndex.from(indexData, dataBegin));
             dataBegin += INT_LENGTH + len;
         }
@@ -61,7 +61,24 @@ public class SsTable {
     public void append(byte[] key, byte[] column, byte[] value) {
         DbKey dbKey = new DbKey(key, column);
         DbEntry dbEntry = new DbEntry(dbKey, value);
-        append(dbEntry);
+
+        int globalIndex = valueLogGroup.append(EXISTED_ARRAY, dbEntry.value());
+
+        append(dbKey, globalIndex);
+    }
+
+    public void append(DbKey dbKey, int globalIndex) {
+        bloomFilter.setObj(dbKey);
+        long dataBegin = FileChannelUtils.size(fileChannel);
+        DbIndex index = new DbIndex(dbKey, dataBegin, globalIndex);
+        FileChannelUtils.write(fileChannel, index.toBytes());
+        FileChannelUtils.force(fileChannel, false);
+
+        dbIndexList.add(index);
+    }
+
+    public List<DbIndex> dbIndexList() {
+        return dbIndexList;
     }
 
     public boolean contains(DbKey dbKey) {
@@ -110,27 +127,7 @@ public class SsTable {
         return false;
     }
 
-    private void append(DbEntry entry) {
-        DbKey dbKey = entry.key();
-        bloomFilter.setObj(dbKey);
-
-        long dataBegin = FileChannelUtils.size(indexChannel);
-        int globalIndex = valueLogGroup.append(EXISTED_ARRAY, entry.value());
-        DbIndex index = new DbIndex(dbKey, dataBegin, globalIndex);
-        FileChannelUtils.write(indexChannel, index.toBytes());
-        FileChannelUtils.force(indexChannel, false);
-
-        dbIndexList.add(index);
-
-        minDbKey = minDbKey == null ? dbKey : minDbKey.compareTo(dbKey) > 0 ? dbKey : minDbKey;
-        maxDbKey = maxDbKey == null ? dbKey : maxDbKey.compareTo(dbKey) < 0 ? dbKey : maxDbKey;
-    }
-
     private Integer findValueGlobalIndex(DbKey dbKey) {
-        if(dbKey.compareTo(minDbKey) < 0 || dbKey.compareTo(maxDbKey) > 0) {
-            return null;
-        }
-
         if(bloomFilter.isNotExist(dbKey)) {
             return null;
         }

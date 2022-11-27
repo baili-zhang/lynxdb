@@ -10,4 +10,5 @@ public interface LsmTree {
     List<DbValue> find(byte[] key, byte[] columnFamily);
     void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value);
     boolean delete(byte[] key, byte[] columnFamily, byte[] column);
+    void clear();
 }

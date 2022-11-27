@@ -107,10 +107,10 @@ public class ColumnFamilyRegion {
         for(LogEntry entry : walLog) {
             ByteBuffer buffer = ByteBuffer.wrap(entry.data());
 
-            byte flag = buffer.get();
+            byte flag = entry.index().extraData()[0];
             byte[] key = BufferUtils.getBytes(buffer);
             byte[] column = BufferUtils.getBytes(buffer);
-            byte[] value = BufferUtils.getRemaining(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
 
             DbKey dbKey = new DbKey(key, column);
             DbEntry dbEntry = new DbEntry(dbKey, value);

@@ -1,10 +1,8 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-import com.bailizhang.lynxdb.core.common.WrappedBytes;
 import com.bailizhang.lynxdb.lsmtree.common.*;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -84,5 +82,16 @@ public class MemTable {
         }
 
         return columnMap.remove(column) != null;
+    }
+
+    public List<DbEntry> all() {
+        List<DbEntry> entries = new ArrayList<>();
+
+        skipListMap.forEach((key, columnMap) -> columnMap.forEach((column, value) -> {
+            DbKey dbKey = new DbKey(key.bytes(), column.bytes());
+            entries.add(new DbEntry(dbKey, value));
+        }));
+
+        return entries;
     }
 }

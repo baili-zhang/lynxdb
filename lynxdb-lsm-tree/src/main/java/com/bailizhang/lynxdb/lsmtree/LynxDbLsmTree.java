@@ -3,9 +3,9 @@ package com.bailizhang.lynxdb.lsmtree;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.*;
-import com.bailizhang.lynxdb.lsmtree.exception.ColumnFamilyNotFoundException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,9 +48,6 @@ public class LynxDbLsmTree implements LsmTree {
     public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        if(region == null) {
-            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
-        }
 
         DbKey dbKey = new DbKey(key, column);
         DbEntry dbEntry = new DbEntry(dbKey, value);
@@ -64,12 +61,18 @@ public class LynxDbLsmTree implements LsmTree {
         return region.delete(dbKey);
     }
 
+    @Override
+    public void clear() {
+        FileUtils.delete(Path.of(baseDir));
+    }
+
     private ColumnFamilyRegion findRegion(byte[] columnFamily) {
         ColumnFamily cf = new ColumnFamily(columnFamily);
         ColumnFamilyRegion region = regions.get(cf);
 
-        if(region == null && !options.createColumnFamilyIfNotExisted()) {
-            throw new ColumnFamilyNotFoundException(columnFamily);
+        if(region == null) {
+            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
+            regions.put(cf, region);
         }
 
         return region;

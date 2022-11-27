@@ -20,25 +20,17 @@ class BloomFilterTest {
 
 
     private BloomFilter bloomFilter;
-    private FileChannel fileChannel;
 
     @BeforeEach
     void setUp() {
         FileUtils.createDirIfNotExisted(DIR);
         FileUtils.createFileIfNotExisted(BLOOM_FILTER_PATH.toFile());
 
-        fileChannel = FileChannelUtils.open(
-                BLOOM_FILTER_PATH,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ
-        );
-
-        bloomFilter = new BloomFilter(fileChannel, 2000);
+        bloomFilter = new BloomFilter(BLOOM_FILTER_PATH, 2000);
     }
 
     @AfterEach
-    void tearDown() throws IOException {
-        fileChannel.close();
+    void tearDown() {
         FileUtils.delete(BLOOM_FILTER_PATH);
     }
 
