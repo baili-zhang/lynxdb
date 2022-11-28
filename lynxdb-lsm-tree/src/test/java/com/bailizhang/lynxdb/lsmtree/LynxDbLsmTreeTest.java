@@ -17,9 +17,9 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 10000;
-    private static final int COLUMN_COUNT = 400;
-    private static final int MEM_TABLE_SIZE = 3000;
+    private static final int KEY_COUNT = 1000;
+    private static final int COLUMN_COUNT = 80;
+    private static final int MEM_TABLE_SIZE = 1000;
 
     private static final byte[] COLUMN_FAMILY;
 
@@ -86,7 +86,9 @@ class LynxDbLsmTreeTest {
         long insertTime = findStartTime - insertStartTime;
         long findTime = findEndTime - findStartTime;
 
-        System.out.println("Insert Records: " + (double) total / (double) insertTime * 1000 + "Ops");
-        System.out.println("Find Records: " + (double) total / (double) findTime * 1000 + "Ops");
+        System.out.println("Insert Time: " + insertTime);
+        System.out.println("Find Time: " + findTime);
+        System.out.println("Insert Records: " + (double) total / (double) insertTime * 1000 + " Ops");
+        System.out.println("Find Records: " + (double) total / (double) findTime * 1000 + " Ops");
     }
 }

@@ -24,7 +24,11 @@ import java.util.Optional;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRAY;
 
+/**
+ * TODO: 支持二分查找，内存映射
+ */
 public class SsTable {
+    private static final String LOAD_SSTABLE = "Load SsTable";
     private static final String CREATE_SSTABLE = "Create SsTable";
     private static final String SSTABLE_FIND = "SsTable Find";
 
@@ -35,6 +39,8 @@ public class SsTable {
     private final List<DbIndex> dbIndexList;
 
     public SsTable(String dir, int id, int levelNo, LogGroup logGroup, Options options) {
+        long startTime = System.currentTimeMillis();
+
         // 构造函数，从文件中恢复数据
         int ssTableSize = options.memTableSize()
                 * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
@@ -56,6 +62,9 @@ public class SsTable {
         // 从持久化的文件中恢复数据
         int dataBegin = bloomFilter.byteCount();
         dbIndexList = DbIndex.listFrom(readChannel, dataBegin);
+
+        long endTime = System.currentTimeMillis();
+        G.I.incrementRecord(LOAD_SSTABLE, endTime - startTime);
     }
 
     public static void create(Path filePath, List<DbIndex> dbIndexList) {
@@ -71,7 +80,7 @@ public class SsTable {
         );
 
         BloomFilter bloomFilter = new BloomFilter(count);
-        dbIndexList.forEach(dbIndex -> bloomFilter.setObj(dbIndex.key()));
+        dbIndexList.forEach(dbIndex -> bloomFilter.setObj(dbIndex.key().toBytes()));
 
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawBytes(bloomFilter.data());
@@ -100,7 +109,7 @@ public class SsTable {
     }
 
     public boolean contains(DbKey dbKey) {
-        return bloomFilter.isExist(dbKey);
+        return bloomFilter.isExist(dbKey.toBytes());
     }
 
     public byte[] find(DbKey dbKey) {
@@ -151,7 +160,7 @@ public class SsTable {
     }
 
     private Integer findValueGlobalIndex(DbKey dbKey) {
-        if(bloomFilter.isNotExist(dbKey)) {
+        if(bloomFilter.isNotExist(dbKey.toBytes())) {
             return null;
         }
 
