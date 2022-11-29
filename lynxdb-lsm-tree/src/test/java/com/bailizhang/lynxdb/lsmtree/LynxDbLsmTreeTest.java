@@ -17,8 +17,8 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 1000;
-    private static final int COLUMN_COUNT = 80;
+    private static final int KEY_COUNT = 2000;
+    private static final int COLUMN_COUNT = 100;
     private static final int MEM_TABLE_SIZE = 1000;
 
     private static final byte[] COLUMN_FAMILY;
