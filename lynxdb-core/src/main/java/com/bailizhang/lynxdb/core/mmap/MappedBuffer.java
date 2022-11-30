@@ -12,11 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MappedBuffer {
+
+    private static final int THRESHOLD = 10;
     private static final List<MappedBuffer> mappedBuffers = new ArrayList<>();
 
     private final Path filePath;
     private final long position;
     private final long length;
+
+    private int count = 0;
 
     private FileChannel channel;
 
@@ -49,7 +53,16 @@ public class MappedBuffer {
         mappedBuffers.add(this);
     }
 
-    public MappedByteBuffer mappedBuffer() {
+    public MappedByteBuffer get() {
+        mappedBuffers.forEach(mappedBuffer -> {
+            if(mappedBuffer == this) {
+                count = 0;
+                return;
+            }
+
+            mappedBuffer.check();
+        });
+
         MappedByteBuffer mappedBuffer = null;
 
         while (mappedBuffer == null) {
@@ -79,9 +92,11 @@ public class MappedBuffer {
         return mappedBuffer;
     }
 
-    private void moveToWeak() {
-        MappedByteBuffer mappedBuffer = softBuffer.get();
-        softBuffer = new SoftReference<>(null);
-        weakBuffer = new WeakReference<>(mappedBuffer);
+    private void check() {
+        if(++ count > THRESHOLD && !softBuffer.refersTo(null)) {
+            MappedByteBuffer mappedBuffer = softBuffer.get();
+            softBuffer = new SoftReference<>(null);
+            weakBuffer = new WeakReference<>(mappedBuffer);
+        }
     }
 }
