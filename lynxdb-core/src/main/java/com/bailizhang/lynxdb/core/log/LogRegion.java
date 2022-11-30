@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
@@ -37,8 +38,7 @@ public class LogRegion {
     private final Path path;
     private final LogOptions options;
 
-    // 使用软引用或者弱引用
-    private final MappedByteBuffer mappedBuffer;
+    private final MappedBuffer mappedBuffer;
 
     public LogRegion(int id, String dir, LogOptions options) {
         this.id = id;
@@ -50,15 +50,8 @@ public class LogRegion {
         path = Path.of(dir, NameUtils.name(id));
         FileUtils.createFileIfNotExisted(path.toFile());
 
-        FileChannel channel = FileChannelUtils.open(
+        mappedBuffer = new MappedBuffer(
                 path,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ
-        );
-
-        mappedBuffer = FileChannelUtils.map(
-                channel,
-                FileChannel.MapMode.READ_WRITE,
                 BEGIN_FIELD_POSITION,
                 LogGroup.DEFAULT_FILE_THRESHOLD
         );
@@ -188,7 +181,6 @@ public class LogRegion {
     }
 
     private MappedByteBuffer mappedBuffer() {
-        // 处理软引用或者弱引用失效
-        return mappedBuffer;
+        return mappedBuffer.get();
     }
 }
