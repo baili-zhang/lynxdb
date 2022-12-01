@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.core.mmap;
 
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 
 import java.lang.ref.SoftReference;
@@ -12,8 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MappedBuffer {
-    private static final int THRESHOLD = 20;
-    private static final List<MappedBuffer> mappedBuffers = new ArrayList<>();
+    private static final String GET_BUFFER = "Get Buffer";
 
     private final Path filePath;
     private final long position;
@@ -25,8 +25,6 @@ public class MappedBuffer {
 
     // 内存溢出前，则会被回收
     private SoftReference<MappedByteBuffer> softBuffer;
-    // 触发 GC，则会被回收
-    private WeakReference<MappedByteBuffer> weakBuffer;
 
     public MappedBuffer(Path filePath, long position, int length) {
         this.filePath = filePath;
@@ -47,25 +45,15 @@ public class MappedBuffer {
         );
 
         softBuffer = new SoftReference<>(mappedBuffer);
-        weakBuffer = new WeakReference<>(null);
-
-        mappedBuffers.add(this);
     }
 
     public MappedByteBuffer getBuffer() {
-        mappedBuffers.forEach(mappedBuffer -> {
-            if(mappedBuffer == this) {
-                count = 0;
-                return;
-            }
+        long startTime = System.nanoTime();
 
-            mappedBuffer.check();
-        });
-
-        MappedByteBuffer mappedBuffer = null;
+        MappedByteBuffer mappedBuffer = softBuffer.get();
 
         while (mappedBuffer == null) {
-            if(softBuffer.refersTo(null) && weakBuffer.refersTo(null)) {
+            if(softBuffer.refersTo(null)) {
                 if(!channel.isOpen()) {
                     channel = FileChannelUtils.open(
                             filePath,
@@ -82,11 +70,11 @@ public class MappedBuffer {
                 );
 
                 softBuffer = new SoftReference<>(mappedBuffer);
-                return mappedBuffer;
             }
-
-            mappedBuffer = softBuffer.refersTo(null) ? weakBuffer.get() : softBuffer.get();
         }
+
+        long endTime = System.nanoTime();
+        G.I.incrementRecord(GET_BUFFER, endTime - startTime);
 
         return mappedBuffer;
     }
@@ -97,13 +85,5 @@ public class MappedBuffer {
 
     public void force() {
         getBuffer().force();
-    }
-
-    private void check() {
-        if(++ count > THRESHOLD && !softBuffer.refersTo(null)) {
-            MappedByteBuffer mappedBuffer = softBuffer.get();
-            softBuffer = new SoftReference<>(null);
-            weakBuffer = new WeakReference<>(mappedBuffer);
-        }
     }
 }

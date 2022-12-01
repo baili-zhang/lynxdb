@@ -86,6 +86,7 @@ public class SsTable {
         this.valueLogGroup = valueLogGroup;
     }
 
+    // TODO: 性能浪费在 List<DbIndex> 拷贝上了
     public static SsTable create(Path filePath, int levelNo, Options options,
                                  List<DbIndex> dbIndexList, LogGroup valueLogGroup) {
         long beginTime = System.nanoTime();
@@ -123,6 +124,7 @@ public class SsTable {
             keyMappedBuffer.put(key);
         });
 
+        sizeBuffer.force();
         bloomFilter.force();
         indexBuffer.force();
         keyBuffer.force();

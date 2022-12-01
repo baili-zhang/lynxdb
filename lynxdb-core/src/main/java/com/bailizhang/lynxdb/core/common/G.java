@@ -27,6 +27,10 @@ public class G {
 
     public void printRecord() {
         records.keySet().forEach(key -> {
+            if(key.endsWith("Count")) {
+                return;
+            }
+
             long millis = TimeUnit.MILLISECONDS.convert(
                     records.get(key),
                     TimeUnit.NANOSECONDS

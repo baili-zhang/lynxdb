@@ -18,8 +18,8 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 1000;
-    private static final int COLUMN_COUNT = 80;
+    private static final int KEY_COUNT = 10000;
+    private static final int COLUMN_COUNT = 40;
     private static final int MEM_TABLE_SIZE = 1000;
 
     private static final byte[] COLUMN_FAMILY;
@@ -48,7 +48,7 @@ class LynxDbLsmTreeTest {
     void testFunc01() {
         long insertStartTime = System.nanoTime();
 
-        for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+        for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
 
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
@@ -66,7 +66,7 @@ class LynxDbLsmTreeTest {
 
         long findStartTime = System.nanoTime();
 
-        for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+        for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
 
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
