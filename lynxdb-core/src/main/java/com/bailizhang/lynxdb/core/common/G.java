@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.core.common;
 
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 public class G {
     public static final G I = new G();
@@ -25,6 +26,13 @@ public class G {
     }
 
     public void printRecord() {
+        records.keySet().forEach(key -> {
+            long millis = TimeUnit.MILLISECONDS.convert(
+                    records.get(key),
+                    TimeUnit.NANOSECONDS
+            );
+            records.put(key, millis);
+        });
         System.out.println(records);
     }
 

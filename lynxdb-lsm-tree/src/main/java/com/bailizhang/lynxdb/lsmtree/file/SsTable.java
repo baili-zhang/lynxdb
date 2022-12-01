@@ -1,12 +1,11 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
+import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
@@ -14,14 +13,13 @@ import com.bailizhang.lynxdb.lsmtree.common.Options;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRAY;
 
 /**
@@ -32,79 +30,119 @@ public class SsTable {
     private static final String CREATE_SSTABLE = "Create SsTable";
     private static final String SSTABLE_FIND = "SsTable Find";
 
-    private static final int BLOOM_FILTER_BEGIN = 0;
+    private static final int SIZE_BEGIN = 0;
+    private static final int BLOOM_FILTER_BEGIN = INT_LENGTH;
+    private static final int INDEX_ENTRY_LENGTH = 2 * INT_LENGTH;
+
+    private final int ssTableSize;
+
+    private final MappedBuffer sizeBuffer;
 
     private final BloomFilter bloomFilter;
+
+    private final MappedBuffer indexBuffer;
+    private final MappedBuffer keyBuffer;
+
     private final LogGroup valueLogGroup;
-    private final List<DbIndex> dbIndexList;
 
-    public SsTable(String dir, int id, int levelNo, LogGroup logGroup, Options options) {
-        long startTime = System.currentTimeMillis();
+    public SsTable(Path filePath, int levelNo, LogGroup logGroup, Options options) {
+        long startTime = System.nanoTime();
 
-        // 构造函数，从文件中恢复数据
-        int ssTableSize = options.memTableSize()
-                * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
+        sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
+        int size = size();
 
-        String filename = NameUtils.name(id);
-        FileUtils.createFileIfNotExisted(dir, filename);
-
-        Path filePath = Path.of(dir, filename);
-
-        FileChannel readChannel = FileChannelUtils.open(
+        ssTableSize = SsTable.ssTableSize(levelNo, options);
+        bloomFilter = BloomFilter.from(
                 filePath,
-                StandardOpenOption.READ
+                BLOOM_FILTER_BEGIN,
+                ssTableSize
         );
 
-        bloomFilter = BloomFilter.from(filePath, BLOOM_FILTER_BEGIN, ssTableSize);
+        int indexBegin = bloomFilter.length() + BLOOM_FILTER_BEGIN;
+        int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
+        indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
+
+        MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
+        indexMappedBuffer.position(indexBegin + (ssTableSize - 1) * INDEX_ENTRY_LENGTH);
+        Index lastIndex = findIndex(size - 1);
+
+        int keyBegin = indexBegin + indexLength;
+        int keyLength = lastIndex.begin() + lastIndex.length() - keyBegin;
+        keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
 
         valueLogGroup = logGroup;
 
-        // 从持久化的文件中恢复数据
-        int dataBegin = bloomFilter.byteCount();
-        dbIndexList = DbIndex.listFrom(readChannel, dataBegin);
-
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         G.I.incrementRecord(LOAD_SSTABLE, endTime - startTime);
     }
 
-    public static void create(Path filePath, List<DbIndex> dbIndexList) {
-        long beginTime = System.currentTimeMillis();
+    public SsTable(int ssTableSize, MappedBuffer sizeBuffer, BloomFilter bloomFilter,
+            MappedBuffer indexBuffer, MappedBuffer keyBuffer, LogGroup valueLogGroup) {
+        this.ssTableSize = ssTableSize;
+        this.sizeBuffer = sizeBuffer;
+        this.bloomFilter = bloomFilter;
+        this.indexBuffer = indexBuffer;
+        this.keyBuffer = keyBuffer;
+        this.valueLogGroup = valueLogGroup;
+    }
 
-        int count = dbIndexList.size();
+    public static SsTable create(Path filePath, int levelNo, Options options,
+                                 List<DbIndex> dbIndexList, LogGroup valueLogGroup) {
+        long beginTime = System.nanoTime();
 
         FileUtils.createFileIfNotExisted(filePath.toFile());
-        FileChannel channel = FileChannelUtils.open(
-                filePath,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ
-        );
 
-        BloomFilter bloomFilter = new BloomFilter(count);
+        MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
+        MappedByteBuffer sizeMappedBuffer = sizeBuffer.getBuffer();
+        sizeMappedBuffer.putInt(SIZE_BEGIN, dbIndexList.size());
+
+        int ssTableSize = SsTable.ssTableSize(levelNo, options);
+        BloomFilter bloomFilter = BloomFilter.from(
+                filePath,
+                BLOOM_FILTER_BEGIN,
+                ssTableSize
+        );
         dbIndexList.forEach(dbIndex -> bloomFilter.setObj(dbIndex.key().toBytes()));
 
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawBytes(bloomFilter.data());
-        dbIndexList.forEach(bytesList::append);
+        int indexBegin = bloomFilter.length() + BLOOM_FILTER_BEGIN;
+        int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
+        MappedBuffer indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
 
-        List<byte[]> list = bytesList.toBytesList();
+        List<byte[]> keys = dbIndexList.stream().map(DbIndex::toBytes).toList();
+        int keyBegin = indexBegin + indexLength;
+        int keyLength = keys.stream().mapToInt(key -> key.length).sum();
+        MappedBuffer keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
 
-        int length = list.stream().mapToInt(bytes -> bytes.length).sum();
+        AtomicInteger entryBegin = new AtomicInteger();
+        keys.forEach(key -> {
+            MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
+            indexMappedBuffer.putInt(entryBegin.getAndAdd(key.length));
+            indexMappedBuffer.putInt(key.length);
 
-        MappedByteBuffer mappedBuffer = FileChannelUtils.map(
-                channel,
-                FileChannel.MapMode.READ_WRITE,
-                BLOOM_FILTER_BEGIN,
-                length
-        );
+            MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
+            keyMappedBuffer.put(key);
+        });
 
-        list.forEach(mappedBuffer::put);
-        mappedBuffer.force();
+        bloomFilter.force();
+        indexBuffer.force();
+        keyBuffer.force();
 
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         G.I.incrementRecord(CREATE_SSTABLE, endTime - beginTime);
+
+        return new SsTable(ssTableSize, sizeBuffer, bloomFilter, indexBuffer, keyBuffer, valueLogGroup);
     }
 
     public List<DbIndex> dbIndexList() {
+        List<DbIndex> dbIndexList = new ArrayList<>();
+
+        MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
+        keyMappedBuffer.rewind();
+
+        while(BufferUtils.isNotOver(keyMappedBuffer)) {
+            dbIndexList.add(DbIndex.from(keyMappedBuffer));
+        }
+
         return dbIndexList;
     }
 
@@ -113,20 +151,26 @@ public class SsTable {
     }
 
     public byte[] find(DbKey dbKey) {
-        long beginTime = System.currentTimeMillis();
+        long beginTime = System.nanoTime();
 
-        Integer globalIndex = findValueGlobalIndex(dbKey);
-        if(globalIndex == null) {
+        int idx = findIndex(dbKey);
+        if(idx >= size()) {
             return null;
         }
 
+        DbIndex dbIndex = findDbIndex(idx);
+        if(dbIndex.key().compareTo(dbKey) != 0) {
+            return null;
+        }
+
+        int globalIndex = dbIndex.valueGlobalIndex();
         LogEntry entry = valueLogGroup.find(globalIndex);
 
         if(Arrays.equals(entry.index().extraData(), DELETED_ARRAY)) {
             return null;
         }
 
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         G.I.incrementRecord(SSTABLE_FIND, endTime - beginTime);
 
         return entry.data();
@@ -134,49 +178,95 @@ public class SsTable {
 
     public List<DbValue> find(byte[] key) {
         List<DbValue> values = new ArrayList<>();
+        int idx = findIndex(new DbKey(key, BufferUtils.EMPTY_BYTES));
 
-        for(DbIndex dbIndex : dbIndexList) {
+        while (idx < size() - 1) {
+            DbIndex dbIndex = findDbIndex(idx);
             DbKey dbKey = dbIndex.key();
-            if(Arrays.equals(dbKey.key(), key)) {
-                LogEntry logEntry = valueLogGroup.find(dbIndex.valueGlobalIndex());
-                byte[] value = logEntry.data();
 
-                values.add(new DbValue(dbKey.column(), value));
+            if(!Arrays.equals(key, dbKey.key())) {
+                break;
             }
+
+            byte[] column = dbKey.column();
+            int globalIndex = dbIndex.valueGlobalIndex();
+            LogEntry entry = valueLogGroup.find(globalIndex);
+
+            values.add(new DbValue(column, entry.data()));
+
+            idx ++;
         }
 
         return values;
     }
 
     public boolean delete(DbKey dbKey) {
-        Integer globalIndex = findValueGlobalIndex(dbKey);
-        if(globalIndex == null) {
+        int idx = findIndex(dbKey);
+        if(idx >= size()) {
             return false;
         }
 
+        DbIndex dbIndex = findDbIndex(idx);
+        if(dbIndex.key().compareTo(dbKey) != 0) {
+            return false;
+        }
+
+        int globalIndex = dbIndex.valueGlobalIndex();
         valueLogGroup.setExtraData(globalIndex, DELETED_ARRAY);
 
-        return false;
+        return true;
     }
 
-    private Integer findValueGlobalIndex(DbKey dbKey) {
-        if(bloomFilter.isNotExist(dbKey.toBytes())) {
-            return null;
+    private static int ssTableSize(int levelNo, Options options) {
+        return options.memTableSize()
+                * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
+    }
+
+    // 找第一个大于等于 dbKey 的下标
+    private int findIndex(DbKey dbKey) {
+        int begin = 0, end = size() - 1, mid, idx = size();
+
+        while(begin <= end) {
+            mid = begin + ((end - begin) >> 1);
+            DbIndex midDbIndex = findDbIndex(mid);
+            DbKey midDbKey = midDbIndex.key();
+
+            if(dbKey.compareTo(midDbKey) <= 0) {
+                idx = mid;
+                end = mid - 1;
+            } else {
+                begin = mid + 1;
+            }
         }
 
-        Optional<DbIndex> optional = dbIndexList.stream()
-                .filter(dbIndex -> {
-                    DbKey dbIndexKey = dbIndex.key();
-                    return Arrays.equals(dbIndexKey.key(), dbKey.key())
-                            && Arrays.equals(dbIndexKey.column(), dbKey.column());
-                }).findFirst();
+        return idx;
+    }
 
-        Integer globalIndex = null;
+    private int size() {
+        MappedByteBuffer sizeMapperBuffer = sizeBuffer.getBuffer();
+        return sizeMapperBuffer.getInt(SIZE_BEGIN);
+    }
 
-        if(optional.isPresent()) {
-            globalIndex = optional.get().valueGlobalIndex();
-        }
+    private Index findIndex(int idx) {
+        MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
+        indexMappedBuffer.position(idx * INDEX_ENTRY_LENGTH);
 
-        return globalIndex;
+        int begin = indexMappedBuffer.getInt();
+        int length = indexMappedBuffer.getInt();
+
+        return new Index(begin, length);
+    }
+
+    private DbIndex findDbIndex(int idx) {
+        Index index = findIndex(idx);
+
+        MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
+        keyMappedBuffer.position(index.begin());
+
+        return DbIndex.from(keyMappedBuffer);
+    }
+
+    private record Index (int begin, int length) {
+
     }
 }

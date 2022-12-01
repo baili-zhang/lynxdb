@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +51,5 @@ class SsTableTest {
                 dbIndexList.add(new DbIndex(dbKey, 10));
             }
         }
-
-        SsTable.create(Path.of(BASE_DIR, "ss_table.log"), dbIndexList);
     }
 }

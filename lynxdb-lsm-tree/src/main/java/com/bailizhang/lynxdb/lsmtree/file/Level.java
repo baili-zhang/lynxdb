@@ -43,9 +43,13 @@ public class Level {
         for(String sub : subs) {
             int id = NameUtils.id(sub);
 
-            SsTable ssTable = new SsTable(
+            Path filePath = Path.of(
                     baseDir.toString(),
-                    id,
+                    NameUtils.name(id)
+            );
+
+            SsTable ssTable = new SsTable(
+                    filePath,
                     levelNo,
                     valueFileGroup,
                     options
@@ -60,7 +64,7 @@ public class Level {
             mergeToNextLevel();
         }
 
-        long beginTime = System.currentTimeMillis();
+        long beginTime = System.nanoTime();
 
         List<DbIndex> indexList = immutable.all()
                 .stream()
@@ -72,7 +76,7 @@ public class Level {
                     return new DbIndex(entry.key(), globalIndex);
                 }).toList();
 
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         G.I.incrementRecord(INSERT_VALUE, endTime - beginTime);
 
         createNextSsTable(indexList);
@@ -158,16 +162,13 @@ public class Level {
     private void createNextSsTable(List<DbIndex> indexList) {
         int nextSsTableNo = ssTables.size();
         Path nextSsTablePath = Path.of(baseDir.toString(), NameUtils.name(nextSsTableNo));
-        SsTable.create(nextSsTablePath, indexList);
-
-        SsTable ssTable = new SsTable(
-                baseDir.toString(),
-                nextSsTableNo,
+        SsTable ssTable = SsTable.create(
+                nextSsTablePath,
                 levelNo,
-                valueFileGroup,
-                options
+                options,
+                indexList,
+                valueFileGroup
         );
-
         ssTables.add(ssTable);
     }
 }

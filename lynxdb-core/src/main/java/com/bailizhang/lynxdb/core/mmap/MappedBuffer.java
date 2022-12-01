@@ -12,13 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MappedBuffer {
-
-    private static final int THRESHOLD = 10;
+    private static final int THRESHOLD = 20;
     private static final List<MappedBuffer> mappedBuffers = new ArrayList<>();
 
     private final Path filePath;
     private final long position;
-    private final long length;
+    private final int length;
 
     private int count = 0;
 
@@ -29,7 +28,7 @@ public class MappedBuffer {
     // 触发 GC，则会被回收
     private WeakReference<MappedByteBuffer> weakBuffer;
 
-    public MappedBuffer(Path filePath, long position, long length) {
+    public MappedBuffer(Path filePath, long position, int length) {
         this.filePath = filePath;
         this.position = position;
         this.length = length;
@@ -53,7 +52,7 @@ public class MappedBuffer {
         mappedBuffers.add(this);
     }
 
-    public MappedByteBuffer get() {
+    public MappedByteBuffer getBuffer() {
         mappedBuffers.forEach(mappedBuffer -> {
             if(mappedBuffer == this) {
                 count = 0;
@@ -90,6 +89,14 @@ public class MappedBuffer {
         }
 
         return mappedBuffer;
+    }
+
+    public int length() {
+        return length;
+    }
+
+    public void force() {
+        getBuffer().force();
     }
 
     private void check() {

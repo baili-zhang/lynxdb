@@ -10,7 +10,7 @@ class BloomFilterTest {
 
     @BeforeEach
     void setUp() {
-        bloomFilter = new BloomFilter(2000);
+        // bloomFilter = new BloomFilter(2000);
     }
 
     @Test

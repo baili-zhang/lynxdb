@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
@@ -17,8 +18,8 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 2000;
-    private static final int COLUMN_COUNT = 100;
+    private static final int KEY_COUNT = 1000;
+    private static final int COLUMN_COUNT = 80;
     private static final int MEM_TABLE_SIZE = 1000;
 
     private static final byte[] COLUMN_FAMILY;
@@ -45,11 +46,12 @@ class LynxDbLsmTreeTest {
 
     @Test
     void testFunc01() {
-        long insertStartTime = System.currentTimeMillis();
+        long insertStartTime = System.nanoTime();
 
         for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+            String key = KEY + keyCount;
+
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
-                String key = KEY + keyCount;
                 String column = COLUMN + columnCount;
                 String value = key + column;
 
@@ -62,11 +64,12 @@ class LynxDbLsmTreeTest {
             }
         }
 
-        long findStartTime = System.currentTimeMillis();
+        long findStartTime = System.nanoTime();
 
         for(int keyCount = 0; keyCount < KEY_COUNT; keyCount ++) {
+            String key = KEY + keyCount;
+
             for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
-                String key = KEY + keyCount;
                 String column = COLUMN + columnCount;
                 byte[] value = G.I.toBytes(key + column);
 
@@ -80,11 +83,14 @@ class LynxDbLsmTreeTest {
             }
         }
 
-        long findEndTime = System.currentTimeMillis();
+        long findEndTime = System.nanoTime();
 
         int total = KEY_COUNT * COLUMN_COUNT;
         long insertTime = findStartTime - insertStartTime;
+        insertTime = TimeUnit.MILLISECONDS.convert(insertTime, TimeUnit.NANOSECONDS);
+
         long findTime = findEndTime - findStartTime;
+        findTime = TimeUnit.MILLISECONDS.convert(findTime, TimeUnit.NANOSECONDS);
 
         System.out.println("Insert Time: " + insertTime);
         System.out.println("Find Time: " + findTime);

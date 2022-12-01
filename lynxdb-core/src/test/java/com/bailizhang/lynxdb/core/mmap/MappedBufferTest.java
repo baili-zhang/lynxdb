@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class MappedBufferTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
     private static final String FILENAME = "MappedBufferTest.log";
@@ -30,6 +28,6 @@ class MappedBufferTest {
 
     @Test
     void get() {
-        mappedBuffer.get();
+        mappedBuffer.getBuffer();
     }
 }

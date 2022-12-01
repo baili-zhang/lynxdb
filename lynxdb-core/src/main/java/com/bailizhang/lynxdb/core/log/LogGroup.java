@@ -13,7 +13,7 @@ import static com.bailizhang.lynxdb.core.utils.BufferUtils.EMPTY_BYTES;
  * TODO: 应该保证多线程安全
  */
 public class LogGroup implements Iterable<LogEntry> {
-    public static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
+    public static final int DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
 
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;

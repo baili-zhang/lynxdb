@@ -2,13 +2,9 @@ package com.bailizhang.lynxdb.lsmtree.common;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
-import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
-import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+import java.nio.ByteBuffer;
 
 public record DbIndex(
         DbKey key,
@@ -23,31 +19,12 @@ public record DbIndex(
         return bytesList;
     }
 
-    public static List<DbIndex> listFrom(FileChannel channel, int dataBegin) {
-        List<DbIndex> dbIndexList = new ArrayList<>();
+    public static DbIndex from(ByteBuffer buffer) {
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] column = BufferUtils.getBytes(buffer);
+        int valueGlobalIndex = buffer.getInt();
 
-        long length = FileChannelUtils.size(channel);
-
-        while(dataBegin < length - 1) {
-            int keyLength = FileChannelUtils.readInt(channel, dataBegin);
-            dataBegin += INT_LENGTH;
-            byte[] key = FileChannelUtils.read(channel, dataBegin, keyLength);
-            dataBegin += keyLength;
-
-            int columnLength = FileChannelUtils.readInt(channel, dataBegin);
-            dataBegin += INT_LENGTH;
-            byte[] column = FileChannelUtils.read(channel, dataBegin, columnLength);
-            dataBegin += columnLength;
-
-            int valueGlobalIndex = FileChannelUtils.readInt(channel, dataBegin);
-            dataBegin += INT_LENGTH;
-
-            DbKey dbKey = new DbKey(key, column);
-            DbIndex dbIndex = new DbIndex(dbKey, valueGlobalIndex);
-
-            dbIndexList.add(dbIndex);
-        }
-
-        return dbIndexList;
+        DbKey dbKey = new DbKey(key, column);
+        return new DbIndex(dbKey, valueGlobalIndex);
     }
 }

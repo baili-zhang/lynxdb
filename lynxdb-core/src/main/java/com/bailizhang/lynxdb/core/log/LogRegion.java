@@ -2,17 +2,11 @@ package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
-import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
-import java.io.File;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.zip.CRC32C;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
@@ -78,7 +72,7 @@ public class LogRegion {
     }
 
     public int append(byte[] extraData, byte[] data) {
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
 
         int globalIndexEnd = globalIndexEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
@@ -114,7 +108,7 @@ public class LogRegion {
             force();
         }
 
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         G.I.incrementRecord(LOG_REGION_APPEND, endTime - startTime);
 
         return globalIndexEnd;
@@ -181,6 +175,6 @@ public class LogRegion {
     }
 
     private MappedByteBuffer mappedBuffer() {
-        return mappedBuffer.get();
+        return mappedBuffer.getBuffer();
     }
 }
