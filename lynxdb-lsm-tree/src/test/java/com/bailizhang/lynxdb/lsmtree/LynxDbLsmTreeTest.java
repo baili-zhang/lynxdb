@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
@@ -19,8 +20,8 @@ class LynxDbLsmTreeTest {
     private static final String COLUMN = "column";
 
     private static final int KEY_COUNT = 1000;
-    private static final int COLUMN_COUNT = 40;
-    private static final int MEM_TABLE_SIZE = 300;
+    private static final int COLUMN_COUNT = 90;
+    private static final int MEM_TABLE_SIZE = 400;
 
     private static final byte[] COLUMN_FAMILY;
 
@@ -34,18 +35,42 @@ class LynxDbLsmTreeTest {
     @BeforeEach
     void setUp() {
         Options options = new Options(MEM_TABLE_SIZE);
-        options.wal(false);
         lsmTree = new LynxDbLsmTree(BASE_DIR, options);
     }
 
     @AfterEach
     void tearDown() {
-        lsmTree.clear();
+        // lsmTree.clear();
+    }
+
+    @Test
+    void insert() {
+        for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
+            String column = COLUMN + columnCount;
+
+            for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
+                String key = KEY + keyCount;
+                String value = key + column;
+
+                lsmTree.insert(
+                        G.I.toBytes(key),
+                        COLUMN_FAMILY,
+                        G.I.toBytes(column),
+                        G.I.toBytes(value)
+                );
+            }
+        }
+
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     void testFunc01() {
-        insert();
+        // insert();
 
         for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
@@ -138,23 +163,5 @@ class LynxDbLsmTreeTest {
         );
 
         assert Arrays.equals(dbValue, null);
-    }
-
-    private void insert() {
-        for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
-            String column = COLUMN + columnCount;
-
-            for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
-                String key = KEY + keyCount;
-                String value = key + column;
-
-                lsmTree.insert(
-                        G.I.toBytes(key),
-                        COLUMN_FAMILY,
-                        G.I.toBytes(column),
-                        G.I.toBytes(value)
-                );
-            }
-        }
     }
 }

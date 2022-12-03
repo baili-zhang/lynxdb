@@ -16,7 +16,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
  * 维护内存数据和磁盘数据
  */
 public class LogRegion {
-    private static final int DEFAULT_INDEX_SIZE = 2000;
+    private static final int DEFAULT_LOG_REGION_SIZE = 2000;
 
     private static final int BEGIN_FIELD_POSITION = 0;
     private static final int END_FIELD_POSITION = 4;
@@ -24,6 +24,8 @@ public class LogRegion {
 
     private final int dataBeginPosition;
     private final int logIndexLength;
+    
+    private final int logRegionSize;
 
     private final int id;
     private final Path path;
@@ -33,10 +35,14 @@ public class LogRegion {
 
     public LogRegion(int id, String dir, LogOptions options) {
         this.id = id;
-        logIndexLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
-        dataBeginPosition = INDEX_BEGIN_POSITION + DEFAULT_INDEX_SIZE * logIndexLength;
 
         this.options = options;
+
+        Integer logRegionSize = options.logRegionSize();
+        this.logRegionSize = logRegionSize == null ? DEFAULT_LOG_REGION_SIZE : logRegionSize;
+
+        logIndexLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
+        dataBeginPosition = INDEX_BEGIN_POSITION + this.logRegionSize * logIndexLength;
 
         path = Path.of(dir, NameUtils.name(id));
         FileUtils.createFileIfNotExisted(path.toFile());
@@ -163,7 +169,7 @@ public class LogRegion {
     }
 
     public boolean isFull() {
-        return globalIndexEnd() - globalIndexBegin() + 1 >= DEFAULT_INDEX_SIZE;
+        return globalIndexEnd() - globalIndexBegin() + 1 >= logRegionSize;
     }
 
     private MappedByteBuffer mappedBuffer() {

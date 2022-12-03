@@ -27,6 +27,7 @@ public class ColumnFamilyRegion {
     private final Options options;
 
     private final LogGroup walLog;
+
     private MemTable immutable;
     private MemTable mutable;
     private final LevelTree levelTree;
@@ -37,12 +38,14 @@ public class ColumnFamilyRegion {
         File file = FileUtils.createDirIfNotExisted(dir, columnFamily);
         String cfDir = file.getAbsolutePath();
 
-        LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
         String walDir = Path.of(cfDir, WAL_DIR).toString();
         mutable = new MemTable(options);
         levelTree = new LevelTree(cfDir, options);
 
         if(options.wal()) {
+            LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
+            logOptions.logRegionSize(options.memTableSize());
+
             walLog = new LogGroup(walDir, logOptions);
             recoverFromWal();
         } else {
@@ -79,30 +82,37 @@ public class ColumnFamilyRegion {
     }
 
     public void insert(DbEntry dbEntry) {
+        int walGlobalIndex = -1;
         if(options.wal()) {
-            walLog.append(EXISTED_ARRAY, dbEntry);
+            walGlobalIndex = walLog.append(EXISTED_ARRAY, dbEntry);
         }
 
-        insertIntoMemTableAndMerge(dbEntry);
+        insertIntoMemTableAndMerge(dbEntry, walGlobalIndex);
     }
 
     public void delete(DbKey dbKey) {
+        int walGlobalIndex = -1;
         if(options.wal()) {
-            walLog.append(DELETED_ARRAY, dbKey.toBytes());
+            walGlobalIndex = walLog.append(DELETED_ARRAY, dbKey.toBytes());
         }
 
-        insertIntoMemTableAndMerge(new DbEntry(dbKey, null));
+        DbEntry dbEntry = new DbEntry(dbKey, null);
+        insertIntoMemTableAndMerge(dbEntry, walGlobalIndex);
     }
 
-    private void insertIntoMemTableAndMerge(DbEntry dbEntry) {
+    private void insertIntoMemTableAndMerge(DbEntry dbEntry, int walGlobalIndex) {
         if(mutable.full()) {
             MemTable needMerged = immutable;
             mutable.transformToImmutable();
             immutable = mutable;
             mutable = new MemTable(options);
             levelTree.merge(needMerged);
+
+            if(options.wal() && needMerged != null) {
+                walLog.deleteOldContains(needMerged.maxWalGlobalIndex());
+            }
         }
-        mutable.append(dbEntry);
+        mutable.append(dbEntry, walGlobalIndex);
     }
 
     private void recoverFromWal() {
@@ -121,7 +131,7 @@ public class ColumnFamilyRegion {
                 throw new RuntimeException();
             }
 
-            insertIntoMemTableAndMerge(dbEntry);
+            insertIntoMemTableAndMerge(dbEntry, -1);
         }
     }
 }

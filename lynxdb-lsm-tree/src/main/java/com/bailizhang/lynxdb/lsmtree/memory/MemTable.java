@@ -21,14 +21,19 @@ public class MemTable {
             = new ConcurrentSkipListMap<>();
 
     private int size;
+    private int walGlobalIndex;
 
     public MemTable(Options options) {
         this.options = options;
     }
 
-    public void append(DbEntry dbEntry) {
+    public void append(DbEntry dbEntry, int globalIndex) {
         if(immutable) {
             return;
+        }
+
+        if(options.wal()) {
+            walGlobalIndex = globalIndex;
         }
 
         DbKey dbKey = dbEntry.key();
@@ -56,6 +61,10 @@ public class MemTable {
         }
 
         DbEntry dbEntry = columnMap.get(column);
+        if(dbEntry == null) {
+            return null;
+        }
+
         DbKey existed = dbEntry.key();
 
         if(existed.flag() == DbKey.DELETED) {
@@ -98,5 +107,9 @@ public class MemTable {
         );
 
         return entries;
+    }
+
+    public int maxWalGlobalIndex() {
+        return walGlobalIndex;
     }
 }

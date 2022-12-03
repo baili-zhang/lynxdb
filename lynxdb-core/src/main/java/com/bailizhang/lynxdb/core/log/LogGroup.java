@@ -24,7 +24,7 @@ public class LogGroup implements Iterable<LogEntry> {
     private final int beginRegionId;
     private int endRegionId;
 
-    private final List<LogRegion> logRegions = new ArrayList<>();
+    private final LinkedList<LogRegion> logRegions = new LinkedList<>();
 
     public LogGroup(String dir, LogOptions options) {
         groupDir = dir;
@@ -130,6 +130,19 @@ public class LogGroup implements Iterable<LogEntry> {
         return entries;
     }
 
+    public void deleteOldContains(int globalIndex) {
+        while(true) {
+            LogRegion logRegion = logRegions.getFirst();
+
+            if(globalIndex < logRegion.globalIndexEnd()) {
+                break;
+            }
+
+            logRegions.removeFirst();
+            logRegion.delete();
+        }
+    }
+
     public int maxGlobalIndex() {
         return lastRegion().globalIndexEnd();
     }
@@ -153,20 +166,21 @@ public class LogGroup implements Iterable<LogEntry> {
      */
     public synchronized int append(byte[] extraData, byte[] data) {
         LogRegion region = lastRegion();
+        int globalIndex = region.append(extraData, data);
 
-        if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {
+        if(region.isFull()) {
             if(options.forceAfterRegionFull()) {
                 region.force();
             }
-            region = createNextRegion();
+            createNextRegion();
         }
 
-        return region.append(extraData, data);
+        return globalIndex;
     }
 
-    public void append(byte[] extraData, BytesListConvertible convertible) {
+    public int append(byte[] extraData, BytesListConvertible convertible) {
         byte[] data = convertible.toBytesList().toBytes();
-        append(extraData, data);
+        return append(extraData, data);
     }
 
     @Override

@@ -38,7 +38,7 @@ public class Level {
         valueFileGroup = logGroup;
         options = lsmOptions;
 
-        List<String> subs = FileUtils.findSubFiles(dir);
+        List<String> subs = FileUtils.findSubFiles(baseDir);
         subs.sort(Comparator.comparingInt(NameUtils::id));
 
         for(String sub : subs) {
