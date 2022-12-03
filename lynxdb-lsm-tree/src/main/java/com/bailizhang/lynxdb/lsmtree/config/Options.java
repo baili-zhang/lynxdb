@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.lsmtree.common;
+package com.bailizhang.lynxdb.lsmtree.config;
 
 public class Options {
     private static final int DEFAULT_MEM_TABLE_SIZE = 2000;

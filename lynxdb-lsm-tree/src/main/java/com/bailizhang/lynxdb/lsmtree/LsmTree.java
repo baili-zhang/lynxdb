@@ -1,4 +1,6 @@
-package com.bailizhang.lynxdb.lsmtree.common;
+package com.bailizhang.lynxdb.lsmtree;
+
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 
 import java.util.List;
 
@@ -9,6 +11,6 @@ public interface LsmTree {
     byte[] find(byte[] key, byte[] columnFamily, byte[] column);
     List<DbValue> find(byte[] key, byte[] columnFamily);
     void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value);
-    boolean delete(byte[] key, byte[] columnFamily, byte[] column);
+    void delete(byte[] key, byte[] columnFamily, byte[] column);
     void clear();
 }

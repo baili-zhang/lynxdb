@@ -5,12 +5,13 @@ import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 public class LevelTree {
@@ -50,7 +51,7 @@ public class LevelTree {
         }
     }
 
-    public byte[] find(DbKey dbKey) {
+    public byte[] find(DbKey dbKey) throws DeletedException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
@@ -68,18 +69,14 @@ public class LevelTree {
         return null;
     }
 
-    public List<DbValue> find(byte[] key) {
-        List<DbValue> values = new ArrayList<>();
-
+    public void find(byte[] key, HashSet<DbValue> dbValues) {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
         while(level != null) {
-            values.addAll(level.find(key));
+            level.find(key, dbValues);
             level = levels.get(++ levelNo);
         }
-
-        return values;
     }
 
     public void merge(MemTable immutable) {
@@ -95,22 +92,6 @@ public class LevelTree {
         }
 
         level.merge(immutable);
-    }
-
-    public boolean delete(DbKey dbKey) {
-        int levelNo = LEVEL_BEGIN;
-        Level level = levels.get(levelNo);
-
-        while(level != null && level.contains(dbKey)) {
-            boolean hasDeleted = level.delete(dbKey);
-            if(hasDeleted) {
-                return hasDeleted;
-            }
-
-            level = levels.get(++ levelNo);
-        }
-
-        return false;
     }
 
     Level get(int levelNo) {

@@ -45,7 +45,8 @@ class SsTableTest {
 
                 DbKey dbKey = new DbKey(
                         G.I.toBytes(key),
-                        G.I.toBytes(column)
+                        G.I.toBytes(column),
+                        DbKey.EXISTED
                 );
 
                 dbIndexList.add(new DbIndex(dbKey, 10));

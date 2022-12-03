@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.lsmtree.common;
+package com.bailizhang.lynxdb.lsmtree.schema;
 
 import com.bailizhang.lynxdb.core.common.WrappedBytes;
 

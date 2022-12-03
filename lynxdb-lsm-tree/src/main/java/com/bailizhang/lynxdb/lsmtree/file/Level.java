@@ -6,13 +6,15 @@ import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+
+import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED;
+import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED_ARRAY;
 
 public class Level {
     public static final int LEVEL_SSTABLE_COUNT = 10;
@@ -24,7 +26,7 @@ public class Level {
     private final LevelTree parent;
     private final Options options;
 
-    private List<SsTable> ssTables = new ArrayList<>(LEVEL_SSTABLE_COUNT);
+    private LinkedList<SsTable> ssTables = new LinkedList<>();
 
     public Level(String dir, int level, LevelTree levelTree, LogGroup logGroup, Options lsmOptions) {
         parentDir = dir;
@@ -37,6 +39,8 @@ public class Level {
         options = lsmOptions;
 
         List<String> subs = FileUtils.findSubFiles(dir);
+        subs.sort(Comparator.comparingInt(NameUtils::id));
+
         for(String sub : subs) {
             int id = NameUtils.id(sub);
 
@@ -52,7 +56,11 @@ public class Level {
                     options
             );
 
-            ssTables.add(ssTable);
+            if(ssTables.size() > LEVEL_SSTABLE_COUNT) {
+                throw new RuntimeException();
+            }
+
+            ssTables.addFirst(ssTable);
         }
     }
 
@@ -64,11 +72,17 @@ public class Level {
         List<DbIndex> indexList = immutable.all()
                 .stream()
                 .map(entry -> {
-                    int globalIndex = valueFileGroup.append(
-                            ColumnFamilyRegion.EXISTED_ARRAY,
-                            entry.value()
-                    );
-                    return new DbIndex(entry.key(), globalIndex);
+                    DbKey dbKey = entry.key();
+                    int globalIndex = -1;
+
+                    if(dbKey.flag() == EXISTED) {
+                        globalIndex = valueFileGroup.append(
+                                EXISTED_ARRAY,
+                                entry.value()
+                        );
+                    }
+
+                    return new DbIndex(dbKey, globalIndex);
                 }).toList();
 
         createNextSsTable(indexList);
@@ -83,9 +97,10 @@ public class Level {
     }
 
     public List<DbIndex> all() {
-        List<DbIndex> dbIndexList = new ArrayList<>();
+        HashSet<DbIndex> dbIndexSet = new HashSet<>();
 
-        ssTables.forEach(ssTable -> dbIndexList.addAll(ssTable.dbIndexList()));
+        ssTables.forEach(ssTable -> ssTable.all(dbIndexSet));
+        List<DbIndex> dbIndexList = new ArrayList<>(dbIndexSet);
         dbIndexList.sort(Comparator.comparing(DbIndex::key));
 
         return dbIndexList;
@@ -95,7 +110,7 @@ public class Level {
         return ssTables.size() >= LEVEL_SSTABLE_COUNT;
     }
 
-    public byte[] find(DbKey dbKey) {
+    public byte[] find(DbKey dbKey) throws DeletedException {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(dbKey)) {
                 byte[] value = ssTable.find(dbKey);
@@ -107,14 +122,10 @@ public class Level {
         return null;
     }
 
-    public List<DbValue> find(byte[] key) {
-        List<DbValue> values = new ArrayList<>();
-
+    public void find(byte[] key, HashSet<DbValue> dbValues) {
         for(SsTable ssTable : ssTables) {
-            values.addAll(ssTable.find(key));
+            ssTable.find(key, dbValues);
         }
-
-        return values;
     }
 
     public boolean contains(DbKey dbKey) {
@@ -124,15 +135,6 @@ public class Level {
             }
         }
 
-        return false;
-    }
-
-    public boolean delete(DbKey dbKey) {
-        for(SsTable ssTable : ssTables) {
-            if(ssTable.contains(dbKey) && ssTable.delete(dbKey)) {
-                return true;
-            }
-        }
         return false;
     }
 
@@ -148,19 +150,19 @@ public class Level {
         nextLevel.merge(this);
 
         FileUtils.deleteSubs(baseDir);
-        ssTables = new ArrayList<>(LEVEL_SSTABLE_COUNT);
+        ssTables = new LinkedList<>();
     }
 
-    private void createNextSsTable(List<DbIndex> indexList) {
+    private void createNextSsTable(List<DbIndex> dbIndexList) {
         int nextSsTableNo = ssTables.size();
         Path nextSsTablePath = Path.of(baseDir.toString(), NameUtils.name(nextSsTableNo));
         SsTable ssTable = SsTable.create(
                 nextSsTablePath,
                 levelNo,
                 options,
-                indexList,
+                dbIndexList,
                 valueFileGroup
         );
-        ssTables.add(ssTable);
+        ssTables.addFirst(ssTable);
     }
 }

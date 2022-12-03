@@ -142,10 +142,6 @@ public class LogGroup implements Iterable<LogEntry> {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    public void setExtraData(int globalIndex, byte[] extraData) {
-
-    }
-
     /**
      * 需要保证多线程同步
      *
