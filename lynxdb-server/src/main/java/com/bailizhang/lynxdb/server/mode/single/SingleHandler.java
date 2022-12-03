@@ -1,9 +1,8 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
-import com.bailizhang.lynxdb.server.engine.AffectKey;
-import com.bailizhang.lynxdb.server.engine.AffectValue;
-import com.bailizhang.lynxdb.server.engine.QueryParams;
-import com.bailizhang.lynxdb.server.engine.query.RegisterKeyContent;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
+import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.mode.AffectKeyRegistry;
 import com.bailizhang.lynxdb.socket.code.Request;
 import com.bailizhang.lynxdb.socket.register.RegisterableEventHandler;
@@ -38,8 +37,7 @@ public class SingleHandler extends RegisterableEventHandler {
             throw new RuntimeException();
         }
 
-        RegisterKeyContent content = new RegisterKeyContent(params);
-        registry.register(request.selectionKey(), content.affectKey());
+        registry.register(request.selectionKey(), null);
     }
 
     @Override
@@ -51,8 +49,7 @@ public class SingleHandler extends RegisterableEventHandler {
             throw new RuntimeException();
         }
 
-        RegisterKeyContent content = new RegisterKeyContent(params);
-        registry.deregister(request.selectionKey(), content.affectKey());
+        registry.deregister(request.selectionKey(), null);
     }
 
     @Override

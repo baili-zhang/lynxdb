@@ -1,20 +1,21 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
-import com.bailizhang.lynxdb.server.engine.query.*;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
+import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.server.engine.result.Result;
-import com.bailizhang.lynxdb.storage.core.*;
-import com.bailizhang.lynxdb.storage.core.exception.ColumnsNotExistedException;
-import org.rocksdb.RocksDB;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
-import static com.bailizhang.lynxdb.server.annotations.LdtpCode.*;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.DB_VALUE_LIST;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.VOID;
 import static com.bailizhang.lynxdb.server.annotations.LdtpMethod.*;
 
 public class LdtpStorageEngine extends BaseStorageEngine {
@@ -22,370 +23,81 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         super(LdtpStorageEngine.class);
     }
 
-    public byte[] metaGet(String key) {
-        return metaDb.get(key.getBytes(StandardCharsets.UTF_8));
-    }
+    @LdtpMethod(FIND_BY_KEY_CF_COLUMN)
+    public QueryResult doFindByKeyCfColumn(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
 
-    /**
-     * 为什么不用注解的方式？
-     *  因为不是 Socket 通信的命令
-     *  需要生成 byte[] 的 command
-     *  再解析 command
-     *  处理流程绕了一大圈
-     *
-     * @param key key
-     * @param value value
-     */
-    public void metaSet(String key, byte[] value) {
-        metaDb.set(new Pair<>(key.getBytes(StandardCharsets.UTF_8), value));
-    }
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        byte[] column = BufferUtils.getBytes(buffer);
 
-    @LdtpMethod(CREATE_KV_STORE)
-    public QueryResult doCreateKvStore(QueryParams params) {
-        CreateKvStoreContent content = new CreateKvStoreContent(params);
-        List<String> kvstores = content.kvstores();
-
-        for(String kvstore : kvstores) {
-            if(kvDbMap.containsKey(kvstore)) {
-                String template = "Kvstore \"%s\" has existed.";
-                String errorMsg = String.format(template, kvstore);
-                return Result.invalidArgument(errorMsg);
-            }
-        }
-
-        content.kvstores().forEach(this::createKvDb);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(DROP_KV_STORE)
-    public QueryResult doDropKvStore(QueryParams params) {
-        DropKvStoreContent content = new DropKvStoreContent(params);
-        List<String> kvstores = content.kvstores();
-
-        for(String kvstore : kvstores) {
-            if(!kvDbMap.containsKey(kvstore)) {
-                String template = "Kvstore \"%s\" is not existed.";
-                String errorMsg = String.format(template, kvstore);
-                return Result.invalidArgument(errorMsg);
-            }
-        }
-
-        kvstores.forEach(this::dropKvDb);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(KV_SET)
-    public QueryResult doKvSet(QueryParams params) {
-        KvSetContent content = new KvSetContent(params);
-
-        KvAdapter db = kvDbMap.get(content.kvstore());
-        db.set(content.kvPairs());
-
-        return Result.success();
-    }
-
-    @LdtpMethod(KV_GET)
-    public QueryResult doKvGet(QueryParams params) {
-        KvGetContent content = new KvGetContent(params);
-
-        String kvstore = content.kvstore();
-        KvAdapter db = kvDbMap.get(kvstore);
-
-        if(db == null) {
-            String template = "Kvstore \"%s\" is not existed.";
-            String errorMsg = String.format(template, kvstore);
-            return Result.invalidArgument(errorMsg);
-        }
-
-        List<Pair<byte[], byte[]>> values = db.get(content.keys());
-
-        List<byte[]> total = new ArrayList<>();
-
-        values.forEach(pair -> {
-            total.add(pair.left());
-            total.add(pair.right() == null ? BufferUtils.EMPTY_BYTES : pair.right());
-        });
+        byte[] value = lsmTree.find(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS_WITH_KV_PAIRS);
-        total.forEach(bytesList::appendVarBytes);
+        bytesList.appendRawByte(LdtpCode.BYTE_ARRAY);
+        bytesList.appendVarBytes(value);
 
         return new QueryResult(bytesList, new ArrayList<>());
     }
 
-    @LdtpMethod(KV_DELETE)
-    public QueryResult doKvDelete(QueryParams params) {
-        KvDeleteContent content = new KvDeleteContent(params);
+    @LdtpMethod(FIND_BY_KEY_CF)
+    public QueryResult doFindByKeyCf(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
 
-        KvAdapter db = kvDbMap.get(content.kvstore());
-        db.delete(content.keys());
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
 
-        return Result.success();
-    }
-
-    @LdtpMethod(CREATE_TABLE)
-    public QueryResult doCreateTable(QueryParams params) {
-        CreateTableContent content = new CreateTableContent(params);
-        List<String> tables = content.tables();
-
-        for(String table : tables) {
-            if(tableMap.containsKey(table)) {
-                String template = "Table \"%s\" has existed.";
-                String errorMsg = String.format(template, table);
-                return Result.invalidArgument(errorMsg);
-            }
-        }
-
-        tables.forEach(this::createTableDb);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(DROP_TABLE)
-    public QueryResult doDropTable(QueryParams params) {
-        DropTableContent content = new DropTableContent(params);
-        List<String> tables = content.tables();
-
-        for(String table : tables) {
-            if(!tableMap.containsKey(table)) {
-                String template = "Table \"%s\" is not existed.";
-                String errorMsg = String.format(template, table);
-                return Result.invalidArgument(errorMsg);
-            }
-        }
-
-        tables.forEach(this::dropTableDb);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(CREATE_TABLE_COLUMN)
-    public QueryResult doCreateTableColumn(QueryParams params) {
-        CreateTableColumnContent content = new CreateTableColumnContent(params);
-        List<byte[]> columns = content.columns();
-
-        TableAdapter db = tableMap.get(content.table());
-
-        List<String> alreadyExisted = new ArrayList<>();
-        for(byte[] bytes : columns) {
-            Column column = new Column(bytes);
-
-            if(db.columns().contains(column)) {
-                alreadyExisted.add(new String(column.value()));
-            }
-        }
-
-        if(!alreadyExisted.isEmpty()) {
-            String template = "Table column %s has existed.";
-            String columnsMsg = String.join(", ",
-                    alreadyExisted
-                            .stream()
-                            .map(s -> "\"" + s + "\"")
-                            .toList()
-            ) ;
-
-            String errorMsg = String.format(template, columnsMsg);
-            return Result.invalidArgument(errorMsg);
-        }
-
-        db.createColumns(columns);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(DROP_TABLE_COLUMN)
-    public QueryResult doDropTableColumn(QueryParams params) {
-        DropTableColumnContent content = new DropTableColumnContent(params);
-        HashSet<Column> columns = content.columns();
-
-        TableAdapter db = tableMap.get(content.table());
-
-        for(Column column : columns) {
-            if(!db.columns().contains(column)) {
-                String template = "Table column \"%s\" is not existed.";
-                String errorMsg = String.format(template, column);
-                return Result.invalidArgument(errorMsg);
-            }
-        }
-
-        db.dropColumns(columns);
-
-        return Result.success();
-    }
-
-    @LdtpMethod(TABLE_SELECT)
-    public QueryResult doTableSelect(QueryParams params) {
-        TableSelectContent content = new TableSelectContent(params);
-
-        TableAdapter db = tableMap.get(content.table());
-
-        if(db == null) {
-            String template = "Table \"%s\" is not existed.";
-            String message = String.format(template, content.table());
-            return Result.invalidArgument(message);
-        }
-
-        MultiTableRows rows = db.get(content.multiKeys());
-
-        List<byte[]> keys = content.keys();
-        List<byte[]> columns = content.columns().stream().map(Column::value).toList();
-
-        List<byte[]> table = new ArrayList<>(columns);
-
-        int columnSize = table.size();
-
-        for(byte[] key : keys) {
-            Map<Column, byte[]> row = rows.get(new Key(key));
-
-            table.add(key);
-
-            for(byte[] column : columns) {
-                byte[] value = row.get(new Column(column));
-                table.add(value == null ? BufferUtils.EMPTY_BYTES : value);
-            }
-        }
+        List<DbValue> values = lsmTree.find(key, columnFamily);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS_WITH_TABLE);
-        bytesList.appendRawInt(columnSize);
-        table.forEach(bytesList::appendVarBytes);
+        bytesList.appendRawByte(DB_VALUE_LIST);
+        values.forEach(bytesList::append);
 
         return new QueryResult(bytesList, new ArrayList<>());
     }
 
-    @LdtpMethod(TABLE_INSERT)
-    public QueryResult doTableInsert(QueryParams params) {
-        TableInsertContent content = new TableInsertContent(params);
-        TableAdapter db = tableMap.get(content.table());
+    @LdtpMethod(INSERT)
+    public QueryResult doInsert(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
 
-        try {
-            db.set(content.rows());
-        } catch (ColumnsNotExistedException e) {
-            String template = "Table columns %s is not existed.";
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        byte[] column = BufferUtils.getBytes(buffer);
+        byte[] value = BufferUtils.getBytes(buffer);
 
-            String columns = String.join(
-                    ", ",
-                    e.columns()
-                            .stream()
-                            .map(s -> "\"" + s + "\"")
-                            .toList()
-            );
-
-            String errorMsg = String.format(template, columns);
-            return Result.invalidArgument(errorMsg);
-        }
-
-        return Result.success();
-    }
-
-    @LdtpMethod(TABLE_DELETE)
-    public QueryResult doTableDelete(QueryParams params) {
-        TableDeleteContent content = new TableDeleteContent(params);
-        TableAdapter db = tableMap.get(content.table());
-
-        db.delete(content.keys());
-
-        return Result.success();
-    }
-
-    @LdtpMethod(SHOW_KVSTORE)
-    public QueryResult doShowKvstore(QueryParams params) {
-        List<byte[]> total = new ArrayList<>();
-
-        for (String kvstore : kvDbMap.keySet()) {
-            total.add(G.I.toBytes(kvstore));
-        }
+        lsmTree.insert(key, columnFamily, column, value);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS_WITH_LIST);
-        total.forEach(bytesList::appendVarBytes);
+        bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new ArrayList<>());
+        List<AffectValue> affectValues = new ArrayList<>();
+        AffectKey affectKey = new AffectKey(key, columnFamily, column);
+        affectValues.add(new AffectValue(affectKey, value));
+
+        return new QueryResult(bytesList, affectValues);
     }
 
-    @LdtpMethod(SHOW_TABLE)
-    public QueryResult doShowTable(QueryParams params) {
-        List<byte[]> total = new ArrayList<>();
+    @LdtpMethod(DELETE)
+    public QueryResult doDelete(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
 
-        for (String table : tableMap.keySet()) {
-            total.add(G.I.toBytes(table));
-        }
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        byte[] column = BufferUtils.getBytes(buffer);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS_WITH_LIST);
-        total.forEach(bytesList::appendVarBytes);
-
-        return new QueryResult(bytesList, new ArrayList<>());
-    }
-
-    @LdtpMethod(SHOW_TABLE_COLUMN)
-    public QueryResult doShowTableColumn(QueryParams params) {
-        String table = new String(params.content());
-
-        TableAdapter db = tableMap.get(table);
-
-        if(db == null) {
-            String template = "Table \"%s\" is not existed.";
-            String message = String.format(template, table);
-            return Result.invalidArgument(message);
-        }
-
-        List<byte[]> columns = db.columns().stream()
-                .map(Column::value)
-                .filter(val -> !Arrays.equals(val, RocksDB.DEFAULT_COLUMN_FAMILY))
-                .toList();
-
+        lsmTree.delete(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS_WITH_LIST);
-        columns.forEach(bytesList::appendVarBytes);
+        bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new ArrayList<>());
-    }
+        List<AffectValue> affectValues = new ArrayList<>();
+        AffectKey affectKey = new AffectKey(key, columnFamily, column);
+        affectValues.add(new AffectValue(affectKey, null));
 
-    @LdtpMethod(KV_VALUE_LIST_INSERT)
-    public QueryResult doKvValueListInsert(QueryParams params) {
-        KvValueListInsertContent content = new KvValueListInsertContent(params);
-
-        String kvstore = content.kvstore();
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS);
-
-        KvAdapter db = kvDbMap.get(kvstore);
-
-        if(db == null) {
-            String template = "Kvstore \"%s\" is not existed.";
-            String errorMsg = String.format(template, kvstore);
-            return Result.invalidArgument(errorMsg);
-        }
-
-        db.ValueListInsert(content.key(), content.values());
-
-        return new QueryResult(bytesList, new ArrayList<>());
-    }
-
-    @LdtpMethod(KV_VALUE_LIST_REMOVE)
-    public QueryResult doKvValueListRemove(QueryParams params) {
-        KvValueListRemoveContent content = new KvValueListRemoveContent(params);
-
-        String kvstore = content.kvstore();
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(SUCCESS);
-
-        KvAdapter db = kvDbMap.get(kvstore);
-
-        if(db == null) {
-            String template = "Kvstore \"%s\" is not existed.";
-            String errorMsg = String.format(template, kvstore);
-            return Result.invalidArgument(errorMsg);
-        }
-
-        db.ValueListRemove(content.key(), content.values());
-
-        return new QueryResult(bytesList, new ArrayList<>());
+        return new QueryResult(bytesList, affectValues);
     }
 }

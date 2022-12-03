@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.engine;
+package com.bailizhang.lynxdb.server.engine.params;
 
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 

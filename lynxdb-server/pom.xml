@@ -30,7 +30,7 @@
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-storage</artifactId>
+            <artifactId>lynxdb-lsm-tree</artifactId>
             <version>2022.11.13-beta</version>
         </dependency>
         <dependency>

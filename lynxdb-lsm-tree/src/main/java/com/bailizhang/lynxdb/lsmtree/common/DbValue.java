@@ -1,8 +1,11 @@
 package com.bailizhang.lynxdb.lsmtree.common;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+
 import java.util.Arrays;
 
-public record DbValue(byte[] column, byte[] value) {
+public record DbValue(byte[] column, byte[] value) implements BytesListConvertible {
 
     @Override
     public boolean equals(Object o) {
@@ -15,5 +18,13 @@ public record DbValue(byte[] column, byte[] value) {
     @Override
     public int hashCode() {
         return Arrays.hashCode(column);
+    }
+
+    @Override
+    public BytesList toBytesList() {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendVarBytes(column);
+        bytesList.appendVarBytes(value);
+        return bytesList;
     }
 }
