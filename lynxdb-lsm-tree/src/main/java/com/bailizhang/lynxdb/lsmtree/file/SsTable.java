@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
@@ -26,10 +25,6 @@ import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.DELETED_ARRA
  * TODO: 支持二分查找，内存映射
  */
 public class SsTable {
-    private static final String LOAD_SSTABLE = "Load SsTable";
-    private static final String CREATE_SSTABLE = "Create SsTable";
-    private static final String SSTABLE_FIND = "SsTable Find";
-
     private static final int SIZE_BEGIN = 0;
     private static final int BLOOM_FILTER_BEGIN = INT_LENGTH;
     private static final int INDEX_ENTRY_LENGTH = 2 * INT_LENGTH;
@@ -46,8 +41,6 @@ public class SsTable {
     private final LogGroup valueLogGroup;
 
     public SsTable(Path filePath, int levelNo, LogGroup logGroup, Options options) {
-        long startTime = System.nanoTime();
-
         sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
         int size = size();
 
@@ -71,9 +64,6 @@ public class SsTable {
         keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
 
         valueLogGroup = logGroup;
-
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(LOAD_SSTABLE, endTime - startTime);
     }
 
     public SsTable(int ssTableSize, MappedBuffer sizeBuffer, BloomFilter bloomFilter,
@@ -89,8 +79,6 @@ public class SsTable {
     // TODO: 性能浪费在 List<DbIndex> 拷贝上了
     public static SsTable create(Path filePath, int levelNo, Options options,
                                  List<DbIndex> dbIndexList, LogGroup valueLogGroup) {
-        long beginTime = System.nanoTime();
-
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
         MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
@@ -129,9 +117,6 @@ public class SsTable {
         indexBuffer.force();
         keyBuffer.force();
 
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(CREATE_SSTABLE, endTime - beginTime);
-
         return new SsTable(ssTableSize, sizeBuffer, bloomFilter, indexBuffer, keyBuffer, valueLogGroup);
     }
 
@@ -153,8 +138,6 @@ public class SsTable {
     }
 
     public byte[] find(DbKey dbKey) {
-        long beginTime = System.nanoTime();
-
         int idx = findIndex(dbKey);
         if(idx >= size()) {
             return null;
@@ -171,9 +154,6 @@ public class SsTable {
         if(Arrays.equals(entry.index().extraData(), DELETED_ARRAY)) {
             return null;
         }
-
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(SSTABLE_FIND, endTime - beginTime);
 
         return entry.data();
     }

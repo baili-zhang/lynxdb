@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
@@ -17,8 +16,6 @@ import java.util.List;
 
 public class Level {
     public static final int LEVEL_SSTABLE_COUNT = 10;
-
-    private static final String INSERT_VALUE = "Insert Value";
 
     private final LogGroup valueFileGroup;
     private final String parentDir;
@@ -64,8 +61,6 @@ public class Level {
             mergeToNextLevel();
         }
 
-        long beginTime = System.nanoTime();
-
         List<DbIndex> indexList = immutable.all()
                 .stream()
                 .map(entry -> {
@@ -75,9 +70,6 @@ public class Level {
                     );
                     return new DbIndex(entry.key(), globalIndex);
                 }).toList();
-
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(INSERT_VALUE, endTime - beginTime);
 
         createNextSsTable(indexList);
     }

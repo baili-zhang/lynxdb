@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
@@ -18,9 +17,9 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "key";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 10000;
+    private static final int KEY_COUNT = 1000;
     private static final int COLUMN_COUNT = 40;
-    private static final int MEM_TABLE_SIZE = 1000;
+    private static final int MEM_TABLE_SIZE = 500;
 
     private static final byte[] COLUMN_FAMILY;
 
@@ -40,14 +39,11 @@ class LynxDbLsmTreeTest {
 
     @AfterEach
     void tearDown() {
-        G.I.printRecord();
         lsmTree.clear();
     }
 
     @Test
     void testFunc01() {
-        long insertStartTime = System.nanoTime();
-
         for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
 
@@ -63,8 +59,6 @@ class LynxDbLsmTreeTest {
                 );
             }
         }
-
-        long findStartTime = System.nanoTime();
 
         for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
@@ -82,19 +76,5 @@ class LynxDbLsmTreeTest {
                 assert Arrays.equals(value, findValue);
             }
         }
-
-        long findEndTime = System.nanoTime();
-
-        int total = KEY_COUNT * COLUMN_COUNT;
-        long insertTime = findStartTime - insertStartTime;
-        insertTime = TimeUnit.MILLISECONDS.convert(insertTime, TimeUnit.NANOSECONDS);
-
-        long findTime = findEndTime - findStartTime;
-        findTime = TimeUnit.MILLISECONDS.convert(findTime, TimeUnit.NANOSECONDS);
-
-        System.out.println("Insert Time: " + insertTime);
-        System.out.println("Find Time: " + findTime);
-        System.out.println("Insert Records: " + (double) total / (double) insertTime * 1000 + " Ops");
-        System.out.println("Find Records: " + (double) total / (double) findTime * 1000 + " Ops");
     }
 }

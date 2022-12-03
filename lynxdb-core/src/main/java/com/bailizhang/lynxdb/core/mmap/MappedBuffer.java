@@ -1,25 +1,17 @@
 package com.bailizhang.lynxdb.core.mmap;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 
 import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MappedBuffer {
-    private static final String GET_BUFFER = "Get Buffer";
-
     private final Path filePath;
     private final long position;
     private final int length;
-
-    private int count = 0;
 
     private FileChannel channel;
 
@@ -48,8 +40,6 @@ public class MappedBuffer {
     }
 
     public MappedByteBuffer getBuffer() {
-        long startTime = System.nanoTime();
-
         MappedByteBuffer mappedBuffer = softBuffer.get();
 
         while (mappedBuffer == null) {
@@ -72,9 +62,6 @@ public class MappedBuffer {
                 softBuffer = new SoftReference<>(mappedBuffer);
             }
         }
-
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(GET_BUFFER, endTime - startTime);
 
         return mappedBuffer;
     }

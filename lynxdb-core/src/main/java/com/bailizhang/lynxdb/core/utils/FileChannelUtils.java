@@ -1,7 +1,5 @@
 package com.bailizhang.lynxdb.core.utils;
 
-import com.bailizhang.lynxdb.core.common.G;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -10,8 +8,6 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 
 public interface FileChannelUtils {
-    String MMAP_COUNT = "MMap Count";
-
     static FileChannel open(String filePath, OpenOption... options) {
         return open(Path.of(filePath), options);
     }
@@ -112,8 +108,6 @@ public interface FileChannelUtils {
     }
 
     static MappedByteBuffer map(FileChannel channel, FileChannel.MapMode mode, long position, long size) {
-        G.I.incrementRecord(MMAP_COUNT, 1);
-
         try {
             return channel.map(mode, position, size);
         } catch (IOException e) {

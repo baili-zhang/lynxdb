@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
@@ -17,8 +16,6 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
  * 维护内存数据和磁盘数据
  */
 public class LogRegion {
-    private static final String LOG_REGION_APPEND = "Log Region Append";
-
     private static final int DEFAULT_INDEX_SIZE = 2000;
 
     private static final int BEGIN_FIELD_POSITION = 0;
@@ -72,8 +69,6 @@ public class LogRegion {
     }
 
     public int append(byte[] extraData, byte[] data) {
-        long startTime = System.nanoTime();
-
         int globalIndexEnd = globalIndexEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
@@ -107,9 +102,6 @@ public class LogRegion {
         if(options.forceAfterEachAppend()) {
             force();
         }
-
-        long endTime = System.nanoTime();
-        G.I.incrementRecord(LOG_REGION_APPEND, endTime - startTime);
 
         return globalIndexEnd;
     }
