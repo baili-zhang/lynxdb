@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.client.async;
+package com.bailizhang.lynxdb.client;
 
 import com.bailizhang.lynxdb.client.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
@@ -6,12 +6,13 @@ import com.bailizhang.lynxdb.socket.response.SocketResponse;
 
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class AsyncClientHandler implements SocketClientHandler {
+public class ClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture>> futureMap;
 
-    public AsyncClientHandler(ConcurrentHashMap<SelectionKey,
+    public ClientHandler(ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture>> map) {
         futureMap = map;
     }
@@ -24,6 +25,16 @@ public class AsyncClientHandler implements SocketClientHandler {
     @Override
     public void handleDisconnect(SelectionKey selectionKey) {
         futureMap.remove(selectionKey);
+    }
+
+    @Override
+    public void handleBeforeSend(SelectionKey selectionKey, int serial) {
+        ConcurrentHashMap<Integer, LynxDbFuture> map = futureMap.get(selectionKey);
+        if(map == null) {
+            map = new ConcurrentHashMap<>();
+            futureMap.put(selectionKey, map);
+        }
+        map.put(serial, new LynxDbFuture());
     }
 
     @Override

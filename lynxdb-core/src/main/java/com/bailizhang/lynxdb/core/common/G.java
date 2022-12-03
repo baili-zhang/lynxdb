@@ -45,6 +45,6 @@ public class G {
     }
 
     public String toString(byte[] src) {
-        return converter.toString(src);
+        return src == null ? null : converter.toString(src);
     }
 }

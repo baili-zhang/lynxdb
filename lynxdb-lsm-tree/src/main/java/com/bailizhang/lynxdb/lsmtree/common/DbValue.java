@@ -2,7 +2,9 @@ package com.bailizhang.lynxdb.lsmtree.common;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public record DbValue(byte[] column, byte[] value) implements BytesListConvertible {
@@ -26,5 +28,11 @@ public record DbValue(byte[] column, byte[] value) implements BytesListConvertib
         bytesList.appendVarBytes(column);
         bytesList.appendVarBytes(value);
         return bytesList;
+    }
+
+    public static DbValue from(ByteBuffer buffer) {
+        byte[] column = BufferUtils.getBytes(buffer);
+        byte[] value = BufferUtils.getBytes(buffer);
+        return new DbValue(column, value);
     }
 }

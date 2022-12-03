@@ -35,8 +35,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] value = lsmTree.find(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(LdtpCode.BYTE_ARRAY);
-        bytesList.appendVarBytes(value);
+
+        if(value == null) {
+            bytesList.appendRawByte(LdtpCode.NULL);
+        } else {
+            bytesList.appendRawByte(LdtpCode.BYTE_ARRAY);
+            bytesList.appendRawBytes(value);
+        }
 
         return new QueryResult(bytesList, new ArrayList<>());
     }

@@ -72,8 +72,14 @@ public class ColumnFamilyRegion {
     public List<DbValue> find(byte[] key) {
         HashSet<DbValue> dbValues = new HashSet<>();
 
-        mutable.find(key, dbValues);
-        immutable.find(key, dbValues);
+        if(mutable != null) {
+            mutable.find(key, dbValues);
+        }
+
+        if(immutable != null) {
+            immutable.find(key, dbValues);
+        }
+
         levelTree.find(key, dbValues);
 
         return dbValues.stream()
@@ -122,7 +128,7 @@ public class ColumnFamilyRegion {
             byte flag = entry.index().extraData()[0];
             byte[] key = BufferUtils.getBytes(buffer);
             byte[] column = BufferUtils.getBytes(buffer);
-            byte[] value = BufferUtils.getBytes(buffer);
+            byte[] value = flag == DELETED ? null : BufferUtils.getBytes(buffer);
 
             DbKey dbKey = new DbKey(key, column, flag);
             DbEntry dbEntry = new DbEntry(dbKey, value);

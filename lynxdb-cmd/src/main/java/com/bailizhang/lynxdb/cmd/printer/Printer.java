@@ -1,16 +1,10 @@
 package com.bailizhang.lynxdb.cmd.printer;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
-
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.List;
-
-import static com.bailizhang.lynxdb.cmd.LynxDbCmdClient.KEY_HEADER;
 
 public interface Printer {
     static void printPrompt(SelectionKey current) {
@@ -61,30 +55,5 @@ public interface Printer {
 
     static void printTable(List<List<String>> table) {
         new TablePrinter(table).print();
-    }
-
-
-    static void handleShowTable(ByteBuffer buffer) {
-        int columnSize = buffer.getInt();
-        List<List<String>> table = new ArrayList<>();
-
-        List<String> header = new ArrayList<>();
-        header.add(KEY_HEADER);
-
-        for(int i = 0; i < columnSize; i ++) {
-            header.add(BufferUtils.getString(buffer));
-        }
-
-        table.add(header);
-
-        while(!BufferUtils.isOver(buffer)) {
-            List<String> row = new ArrayList<>();
-            for(int i = 0; i < columnSize + 1; i ++) {
-                row.add(BufferUtils.getString(buffer));
-            }
-            table.add(row);
-        }
-
-        Printer.printTable(table);
     }
 }

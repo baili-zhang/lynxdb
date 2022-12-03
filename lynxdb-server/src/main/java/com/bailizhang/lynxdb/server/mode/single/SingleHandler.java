@@ -54,25 +54,6 @@ public class SingleHandler extends RegisterableEventHandler {
 
     @Override
     public void handleResponse(WritableSocketResponse response) {
-        AffectValue affectValue = (AffectValue)response.extraData();
 
-        // 防止循环发送很多 AffectValue 消息
-        if(affectValue == null) {
-            return;
-        }
-
-        AffectKey affectKey = affectValue.affectKey();
-        List<SelectionKey> selectionKeys = registry.selectionKeys(affectKey);
-
-        for(SelectionKey selectionKey : selectionKeys) {
-            // extraData 设置为 null，防止循环发送很多 AffectValue 消息
-            WritableSocketResponse socketResponse = new WritableSocketResponse(
-                    selectionKey,
-                    -1,
-                    affectValue,
-                    null
-            );
-            server.offerInterruptibly(socketResponse);
-        }
     }
 }

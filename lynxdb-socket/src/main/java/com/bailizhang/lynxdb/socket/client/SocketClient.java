@@ -100,10 +100,6 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         interrupt();
     }
 
-    public boolean isConnected(SelectionKey selectionKey) {
-        return contexts.containsKey(selectionKey);
-    }
-
     public final int send(SelectionKey selectionKey, byte[] data) {
         byte status = (byte) 0x00;
         int requestSerial = serial.getAndIncrement();
@@ -114,6 +110,8 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 requestSerial,
                 data
         );
+
+        handler.handleBeforeSend(selectionKey, requestSerial);
 
         offerInterruptibly(request);
         return requestSerial;
