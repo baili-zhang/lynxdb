@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 
@@ -17,15 +18,16 @@ public class LynxDbConnection {
     }
 
     public SelectionKey current() {
-        if(current == null || !current.isValid()) {
-            try {
-                current = socketClient.connect(serverNode);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if(current != null && current.isValid()) {
+            return current;
         }
 
-        // TODO 可能出现还没连上就发消息
+        try {
+            LynxDbFuture<SelectionKey> future = socketClient.connect(serverNode);
+            current = future.get();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         return current;
     }

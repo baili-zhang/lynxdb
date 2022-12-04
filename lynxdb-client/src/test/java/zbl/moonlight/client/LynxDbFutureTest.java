@@ -1,6 +1,6 @@
 package zbl.moonlight.client;
 
-import com.bailizhang.lynxdb.client.LynxDbFuture;
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -12,7 +12,7 @@ class LynxDbFutureTest {
 
     @Test
     void test_001() throws InterruptedException {
-        LynxDbFuture future = new LynxDbFuture();
+        LynxDbFuture<byte[]> future = new LynxDbFuture<>();
         Thread[] threads = new Thread[THREAD_COUNT];
         CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
 

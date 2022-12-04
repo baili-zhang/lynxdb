@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.client;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.executor.Executable;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
@@ -9,8 +8,8 @@ import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ import static com.bailizhang.lynxdb.socket.code.Request.CLIENT_REQUEST;
 
 public class LynxDbClient {
     private final ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, LynxDbFuture>> futureMap = new ConcurrentHashMap<>();
+            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap = new ConcurrentHashMap<>();
 
     private final LynxDbConnection connection;
     private final SocketClient socketClient;
@@ -59,7 +58,7 @@ public class LynxDbClient {
         SelectionKey current = connection.current();
         int serial = socketClient.send(current, bytesList.toBytes());
 
-        LynxDbFuture future = futureMapGet(current, serial);
+        LynxDbFuture<byte[]> future = futureMapGet(current, serial);
         byte[] data = future.get();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
@@ -81,7 +80,7 @@ public class LynxDbClient {
         SelectionKey current = connection.current();
         int serial = socketClient.send(current, bytesList.toBytes());
 
-        LynxDbFuture future = futureMapGet(current, serial);
+        LynxDbFuture<byte[]> future = futureMapGet(current, serial);
         byte[] data = future.get();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
@@ -109,7 +108,7 @@ public class LynxDbClient {
         SelectionKey current = connection.current();
         int serial = socketClient.send(current, bytesList.toBytes());
 
-        LynxDbFuture future = futureMapGet(current, serial);
+        LynxDbFuture<byte[]> future = futureMapGet(current, serial);
         byte[] data = future.get();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
@@ -129,7 +128,7 @@ public class LynxDbClient {
         SelectionKey current = connection.current();
         int serial = socketClient.send(current, bytesList.toBytes());
 
-        LynxDbFuture future = futureMapGet(current, serial);
+        LynxDbFuture<byte[]> future = futureMapGet(current, serial);
         byte[] data = future.get();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
@@ -138,8 +137,8 @@ public class LynxDbClient {
         }
     }
 
-    private LynxDbFuture futureMapGet(SelectionKey selectionKey, int serial) {
-        ConcurrentHashMap<Integer, LynxDbFuture> map = futureMap.get(selectionKey);
+    private LynxDbFuture<byte[]> futureMapGet(SelectionKey selectionKey, int serial) {
+        ConcurrentHashMap<Integer, LynxDbFuture<byte[]>> map = futureMap.get(selectionKey);
         return map.get(serial);
     }
 }

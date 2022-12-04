@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.socket.client;
 import com.bailizhang.lynxdb.core.common.BytesConvertible;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
@@ -37,6 +38,9 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
     private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
             = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SelectionKey, LynxDbFuture<SelectionKey>> connectFutureMap
+            = new ConcurrentHashMap<>();
+
     private final Selector selector;
     private final ThreadPoolExecutor executor;
     private final HashSet<SelectionKey> exitKeys = new HashSet<>();
@@ -60,7 +64,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
-    public SelectionKey connect(ServerNode node) throws IOException {
+    public LynxDbFuture<SelectionKey> connect(ServerNode node) throws IOException {
         SocketAddress address = new InetSocketAddress(node.host(), node.port());
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
@@ -73,10 +77,13 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                     SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE);
         }
 
+        LynxDbFuture<SelectionKey> future = new LynxDbFuture<>();
+
         contexts.put(selectionKey, new ConnectionContext(selectionKey));
+        connectFutureMap.put(selectionKey, future);
 
         interrupt();
-        return selectionKey;
+        return future;
     }
 
     public void disconnect(SelectionKey selectionKey) {
@@ -248,11 +255,16 @@ public class SocketClient extends Executor<WritableSocketRequest> {
                 if(socketChannel.isConnected()) {
                     /* 处理连接成功 */
                     selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+                    LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
+                    future.value(selectionKey);
                     handler.handleConnected(selectionKey);
 
                     logger.info("Has connected to socket node {}.", socketChannel.getRemoteAddress());
                 }
             } catch (ConnectException e) {
+                LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
+                future.value(selectionKey);
+
                 try {
                     handler.handleConnectFailure(selectionKey);
                     logger.debug("Connect to socket node {} failure.", socketChannel.getRemoteAddress());

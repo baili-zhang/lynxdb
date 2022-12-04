@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.client;
+package com.bailizhang.lynxdb.core.common;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -7,14 +7,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-public class LynxDbFuture implements Future<byte[]> {
+public class LynxDbFuture<T> implements Future<T> {
 
     private final AtomicInteger count = new AtomicInteger(0);
     private final Node header;
     private volatile Node tail;
 
     private volatile boolean completed = false;
-    private volatile byte[] value;
+    private volatile T value;
 
     public LynxDbFuture() {
         Node node = new Node(null);
@@ -22,7 +22,7 @@ public class LynxDbFuture implements Future<byte[]> {
         tail = node;
     }
 
-    public void value(byte[] val) {
+    public void value(T val) {
         if(completed) {
             return;
         }
@@ -56,7 +56,7 @@ public class LynxDbFuture implements Future<byte[]> {
     }
 
     @Override
-    public byte[] get() {
+    public T get() {
         while (!completed) {
             Thread thread = Thread.currentThread();
             Node node = new Node(thread);
@@ -77,7 +77,7 @@ public class LynxDbFuture implements Future<byte[]> {
     }
 
     @Override
-    public byte[] get(long timeout, TimeUnit unit) {
+    public T get(long timeout, TimeUnit unit) {
         throw new UnsupportedOperationException();
     }
 
