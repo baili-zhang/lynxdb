@@ -31,15 +31,17 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-lsm-tree</artifactId>
-            <version>2022.12.4-snapshot</version>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -116,7 +116,7 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-server</artifactId>
-            <version>2022.12.4-snapshot</version>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
