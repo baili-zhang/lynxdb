@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2022.11.13-beta</version>
+        <version>2022.12.5-alpha</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -16,30 +16,32 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-core</artifactId>
-            <version>2022.11.13-beta</version>
+            <version>2022.12.5-alpha</version>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-socket</artifactId>
-            <version>2022.11.13-beta</version>
+            <version>2022.12.5-alpha</version>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-raft</artifactId>
-            <version>2022.11.13-beta</version>
+            <version>2022.12.5-alpha</version>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-storage</artifactId>
-            <version>2022.11.13-beta</version>
+            <artifactId>lynxdb-lsm-tree</artifactId>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

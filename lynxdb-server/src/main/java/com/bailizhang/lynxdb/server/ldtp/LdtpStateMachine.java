@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.raft.common.RaftCommend;
 import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
-import com.bailizhang.lynxdb.server.engine.QueryParams;
+import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
@@ -36,19 +36,11 @@ public class LdtpStateMachine implements StateMachine {
 
     @Override
     public void metaSet(String key, byte[] value) {
-        storageEngine.metaSet(key, value);
     }
 
     @Override
     public List<ServerNode> clusterNodes() {
-        byte[] cOldNew = storageEngine.metaGet(C_OLD_NEW);
-
-        if(cOldNew == null) {
-            byte[] c = storageEngine.metaGet(C_OLD_NEW);
-            return ServerNode.parseNodeList(c);
-        }
-
-        return ServerNode.parseNodeList(cOldNew);
+        return null;
     }
 
     @Override

@@ -1,3 +1,3 @@
 @echo off
 title start-lynxdb-cmd.bat
-java -jar lib/lynxdb-cmd-2022.11.13-beta.jar
+java -jar lib/lynxdb-cmd-2022.12.5-alpha.jar

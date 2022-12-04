@@ -4,15 +4,19 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 public class LevelTree {
-    private final static int LEVEL_BEGIN = 1;
+    public final static int LEVEL_BEGIN = 1;
+
     private final static int EXTRA_DATA_LENGTH = 1;
     private final static String VALUE_GROUP_NAME = "value";
 
@@ -41,21 +45,22 @@ public class LevelTree {
                 continue;
             }
 
-            String levelPath = Path.of(baseDir, subDir).toString();
-            Level level = new Level(levelPath, levelNo, valueFileGroup, options);
+            Level level = new Level(baseDir, levelNo, this, valueFileGroup, options);
 
             levels.put(levelNo, level);
         }
     }
 
-    public byte[] find(DbKey dbKey) {
+    public byte[] find(DbKey dbKey) throws DeletedException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
-        while(level != null && level.contains(dbKey)) {
-            byte[] value = level.find(dbKey);
-            if(value != null) {
-                return value;
+        while(level != null) {
+            if(level.contains(dbKey)) {
+                byte[] value = level.find(dbKey);
+                if(value != null) {
+                    return value;
+                }
             }
 
             level = levels.get(++ levelNo);
@@ -64,52 +69,36 @@ public class LevelTree {
         return null;
     }
 
+    public void find(byte[] key, HashSet<DbValue> dbValues) {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null) {
+            level.find(key, dbValues);
+            level = levels.get(++ levelNo);
+        }
+    }
+
     public void merge(MemTable immutable) {
         if(immutable == null) {
             return;
         }
 
         Level level = levels.get(LEVEL_BEGIN);
+
         if(level == null) {
-            level = new Level(baseDir, LEVEL_BEGIN, valueFileGroup, options);
+            level = new Level(baseDir, LEVEL_BEGIN, this, valueFileGroup, options);
             levels.put(LEVEL_BEGIN, level);
         }
 
         level.merge(immutable);
-
-        if(level.isNotFull()) {
-            return;
-        }
-
-        int levelNo = LEVEL_BEGIN;
-        Level current = levels.get(levelNo);
-
-        while (current.isFull()) {
-            Level needMerge = current;
-            current = levels.get(++ levelNo);
-
-            if(current == null) {
-                current = new Level(baseDir, levelNo, valueFileGroup, options);
-                levels.put(levelNo, current);
-            }
-
-            current.merge(needMerge);
-        }
     }
 
-    public boolean delete(DbKey dbKey) {
-        int levelNo = LEVEL_BEGIN;
-        Level level = levels.get(levelNo);
+    Level get(int levelNo) {
+        return levels.get(levelNo);
+    }
 
-        while(level != null && level.contains(dbKey)) {
-            boolean hasDeleted = level.delete(dbKey);
-            if(hasDeleted) {
-                return hasDeleted;
-            }
-
-            level = levels.get(++ levelNo);
-        }
-
-        return false;
+    void put(int levelNo, Level level) {
+        levels.put(levelNo, level);
     }
 }

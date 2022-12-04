@@ -73,7 +73,7 @@ public class IoEventHandler implements Runnable {
             handler.handleRequest(request);
             /* 未写回完成的请求数量加一 */
             context.increaseRequestCount();
-            logger.debug("Request read completed.");
+            logger.info("Request {} read completed.", request);
         }
     }
 
@@ -90,7 +90,7 @@ public class IoEventHandler implements Runnable {
 
                 handler.handleResponse(response);
 
-                logger.debug("Send socket response: {} to client.", response);
+                logger.info("Send socket response: {} to client.", response);
             } else {
                 /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                 break;

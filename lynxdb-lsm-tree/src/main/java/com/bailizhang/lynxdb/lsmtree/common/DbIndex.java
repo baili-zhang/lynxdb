@@ -5,30 +5,40 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public record DbIndex(
         DbKey key,
-        long dataBegin,
         int valueGlobalIndex
 ) implements BytesListConvertible {
 
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
         bytesList.append(key);
         bytesList.appendRawInt(valueGlobalIndex);
         return bytesList;
     }
 
-    public static DbIndex from(byte[] data, long dataBegin) {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
+    public static DbIndex from(byte flag, ByteBuffer buffer) {
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
-        long version = buffer.getLong();
         int valueGlobalIndex = buffer.getInt();
 
-        DbKey dbKey = new DbKey(key, column, version);
+        DbKey dbKey = new DbKey(key, column, flag);
+        return new DbIndex(dbKey, valueGlobalIndex);
+    }
 
-        return new DbIndex(dbKey, dataBegin, valueGlobalIndex);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DbIndex dbIndex = (DbIndex) o;
+        return Objects.equals(key, dbIndex.key);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(key);
     }
 }

@@ -1,55 +1,56 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.Converter;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Arrays;
+
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
 class LogRegionTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
 
-    private static final int TERM = 20;
-    private static final byte[] COMMAND = "hallo world".getBytes(StandardCharsets.UTF_8);
+    private static final int GLOBAL_INDEX_BEGIN = 30;
+    private static final int LOG_ENTRY_COUNT = 100;
+    private static final String COMMAND = "command";
 
     private LogRegion logRegion;
 
     @BeforeEach
     void setUp() {
-        LogOptions options = new LogOptions(4);
-        try {
-            logRegion = LogRegion.create(1, 30, BASE_DIR, options);
-        } catch (Exception ignore) {
-            logRegion = LogRegion.open(1, BASE_DIR, options);
-        }
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        LogOptions options = new LogOptions(INT_LENGTH);
+
+        FileUtils.createDirIfNotExisted(BASE_DIR);
+
+        logRegion = new LogRegion(1, BASE_DIR, options);
+        logRegion.globalIndexBegin(GLOBAL_INDEX_BEGIN);
+        logRegion.globalIndexEnd(GLOBAL_INDEX_BEGIN - 1);
     }
 
     @AfterEach
     void tearDown() {
-        logRegion.delete();
-    }
-
-    @Test
-    void begin() {
-        assert logRegion.globalIndexBegin() == 30;
-    }
-
-    @Test
-    void end() {
-        assert logRegion.globalIndexEnd() == 29;
+        FileUtils.delete(Path.of(BASE_DIR));
     }
 
     @Test
     void append() {
-        byte[] extraData = BufferUtils.toBytes(TERM);
-        logRegion.append(extraData, COMMAND);
-        assert logRegion.globalIndexBegin() == 30;
-        assert logRegion.globalIndexEnd() == 30;
+        for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
+            byte[] extraData = BufferUtils.toBytes(i);
+            logRegion.append(extraData, G.I.toBytes(COMMAND + i));
+        }
 
-        LogEntry entry = logRegion.readEntry(30);
-        assert Arrays.equals(entry.index().extraData(), extraData);
-        assert Arrays.equals(entry.data(), COMMAND);
+        for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
+            LogEntry entry = logRegion.readEntry(GLOBAL_INDEX_BEGIN + i);
+            assert Arrays.equals(entry.index().extraData(), BufferUtils.toBytes(i));
+            assert Arrays.equals(entry.data(), G.I.toBytes(COMMAND + i));
+        }
     }
 }

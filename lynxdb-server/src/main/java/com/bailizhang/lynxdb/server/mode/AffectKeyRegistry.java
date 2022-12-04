@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.server.engine.AffectKey;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
 
 import java.nio.channels.SelectionKey;
 import java.util.HashSet;

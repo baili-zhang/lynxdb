@@ -7,42 +7,24 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
 import java.util.Arrays;
 
-public class DbKey implements Comparable<DbKey>, BytesListConvertible {
-    private final byte[] key;
-    private final byte[] column;
-    private final long timestamp;
+public record DbKey(byte[] key, byte[] column, byte flag)
+        implements Comparable<DbKey>, BytesListConvertible {
+
+    public static final byte EXISTED = (byte) 0x01;
+    public static final byte DELETED = (byte) 0x02;
+
+    public static final byte[] EXISTED_ARRAY = new byte[]{EXISTED};
+    public static final byte[] DELETED_ARRAY = new byte[]{DELETED};
 
     // TODO: 补充 CRC 校验
 
-    public DbKey(byte[] key, byte[] column, long timestamp) {
-        this.key = key;
-        this.column = column;
-        this.timestamp = timestamp;
-    }
-
-    public byte[] key() {
-        return key;
-    }
-
-    public byte[] column() {
-        return column;
-    }
-
-    public long timestamp() {
-        return timestamp;
-    }
-
     @Override
     public int compareTo(DbKey o) {
-        if(!Arrays.equals(key, o.key)) {
+        if (!Arrays.equals(key, o.key)) {
             return ByteArrayUtils.compare(key, o.key);
         }
 
-        if(!Arrays.equals(column, o.column)) {
-            return ByteArrayUtils.compare(column, o.column);
-        }
-
-        return Long.compare(timestamp, o.timestamp);
+        return ByteArrayUtils.compare(column, o.column);
     }
 
     @Override
@@ -50,12 +32,26 @@ public class DbKey implements Comparable<DbKey>, BytesListConvertible {
         BytesList bytesList = new BytesList(false);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(column);
-        bytesList.appendRawLong(timestamp);
         return bytesList;
     }
 
     @Override
     public String toString() {
         return G.I.toString(toBytes());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DbKey dbKey = (DbKey) o;
+        return Arrays.equals(key, dbKey.key) && Arrays.equals(column, dbKey.column);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(key);
+        result = 31 * result + Arrays.hashCode(column);
+        return result;
     }
 }
