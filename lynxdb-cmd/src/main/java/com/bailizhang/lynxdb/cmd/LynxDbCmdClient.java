@@ -28,7 +28,7 @@ public class LynxDbCmdClient extends Shutdown {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
     }
 
-    public void start() throws IOException {
+    public void start() {
         client.start();
         client.connect(HOST, PORT);
 

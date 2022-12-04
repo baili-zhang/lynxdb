@@ -1,7 +1,31 @@
 package com.bailizhang.lynxdb.springboot.starter;
 
-public class LynxDbTemplate extends AsyncLynxDbTemplate {
+import com.bailizhang.lynxdb.client.LynxDbClient;
+
+import java.nio.channels.SelectionKey;
+
+public class LynxDbTemplate extends LynxDbClient {
+
     public LynxDbTemplate(LynxDbProperties properties) {
-        super(properties);
+        String host = properties.getHost();
+        int port = properties.getPort();
+
+        super.start();
+        super.connect(host, port);
+    }
+
+    @Override
+    public void connect(String host, int port) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SelectionKey current() {
+        throw new UnsupportedOperationException();
     }
 }

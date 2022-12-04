@@ -39,7 +39,7 @@ public class LynxDbClient {
         Executor.start(socketClient);
     }
 
-    public void connect(String host, int port) throws IOException {
+    public void connect(String host, int port) {
         ServerNode node = new ServerNode(host, port);
         connection.serverNode(node);
     }
