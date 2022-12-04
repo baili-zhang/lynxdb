@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.core.utils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -62,6 +63,10 @@ public interface FileChannelUtils {
         write(channel, buffer, idx);
     }
 
+    static void write(FileChannel channel, byte[] data, int idx) {
+        write(channel, ByteBuffer.wrap(data), idx);
+    }
+
     static void write(FileChannel channel, ByteBuffer buffer, int idx) {
         try {
             channel.write(buffer, idx);
@@ -94,13 +99,17 @@ public interface FileChannelUtils {
         }
     }
 
-    static boolean sizeLessThan(FileChannel channel, long length) {
-        return size(channel) < length;
-    }
-
     static void force(FileChannel channel, boolean metaData) {
         try {
             channel.force(metaData);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static MappedByteBuffer map(FileChannel channel, FileChannel.MapMode mode, long position, long size) {
+        try {
+            return channel.map(mode, position, size);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

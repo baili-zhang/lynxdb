@@ -5,13 +5,19 @@ import com.bailizhang.lynxdb.core.utils.FileUtils;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Objects;
+
+import static com.bailizhang.lynxdb.core.utils.BufferUtils.EMPTY_BYTES;
 
 /**
  * TODO: 应该保证多线程安全
  */
 public class LogGroup implements Iterable<LogEntry> {
-    private static final long DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
+    public static final int DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
+
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
 
@@ -21,7 +27,7 @@ public class LogGroup implements Iterable<LogEntry> {
     private final int beginRegionId;
     private int endRegionId;
 
-    private final List<LogRegion> logRegions = new ArrayList<>();
+    private final LinkedList<LogRegion> logRegions = new LinkedList<>();
 
     public LogGroup(String dir, LogOptions options) {
         groupDir = dir;
@@ -71,7 +77,7 @@ public class LogGroup implements Iterable<LogEntry> {
                 endRegionId = logRegionIds[logRegionIds.length - 1];
 
                 for(int id = beginRegionId; id <= endRegionId; id ++) {
-                    logRegions.add(LogRegion.open(id, groupDir, options));
+                    logRegions.add(new LogRegion(id, groupDir, options));
                 }
 
                 return;
@@ -81,12 +87,14 @@ public class LogGroup implements Iterable<LogEntry> {
         beginRegionId = DEFAULT_BEGIN_REGION_ID;
         endRegionId = DEFAULT_BEGIN_REGION_ID;
 
-        LogRegion region = LogRegion.create(
+        LogRegion region = new LogRegion(
                 beginRegionId,
-                BEGIN_GLOBAL_LOG_INDEX,
                 groupDir,
                 options
         );
+
+        region.globalIndexBegin(BEGIN_GLOBAL_LOG_INDEX);
+        region.globalIndexEnd(BEGIN_GLOBAL_LOG_INDEX - 1);
 
         logRegions.add(region);
     }
@@ -125,20 +133,29 @@ public class LogGroup implements Iterable<LogEntry> {
         return entries;
     }
 
+    public void deleteOldContains(int globalIndex) {
+        while(true) {
+            LogRegion logRegion = logRegions.getFirst();
+
+            if(globalIndex < logRegion.globalIndexEnd()) {
+                break;
+            }
+
+            logRegions.removeFirst();
+            logRegion.delete();
+        }
+    }
+
     public int maxGlobalIndex() {
         return lastRegion().globalIndexEnd();
     }
 
     public byte[] lastLogExtraData() {
-        return lastRegion().extraData();
+        return EMPTY_BYTES;
     }
 
     public void delete() {
         FileUtils.delete(Path.of(groupDir));
-    }
-
-    public void setExtraData(int globalIndex, byte[] extraData) {
-
     }
 
     /**
@@ -152,17 +169,21 @@ public class LogGroup implements Iterable<LogEntry> {
      */
     public synchronized int append(byte[] extraData, byte[] data) {
         LogRegion region = lastRegion();
+        int globalIndex = region.append(extraData, data);
 
-        if(region.isFull() || region.length() >= DEFAULT_FILE_THRESHOLD) {
-            region = createNextRegion();
+        if(region.isFull()) {
+            if(options.forceAfterRegionFull()) {
+                region.force();
+            }
+            createNextRegion();
         }
 
-        return region.append(extraData, data);
+        return globalIndex;
     }
 
-    public void append(byte[] extraData, BytesListConvertible convertible) {
+    public int append(byte[] extraData, BytesListConvertible convertible) {
         byte[] data = convertible.toBytesList().toBytes();
-        append(extraData, data);
+        return append(extraData, data);
     }
 
     @Override
@@ -183,12 +204,14 @@ public class LogGroup implements Iterable<LogEntry> {
     }
 
     private LogRegion createNextRegion() {
-        LogRegion region = LogRegion.create(
+        LogRegion region = new LogRegion(
                 ++ endRegionId,
-                maxGlobalIndex() + 1,
                 groupDir,
                 options
         );
+
+        region.globalIndexBegin(maxGlobalIndex() + 1);
+        region.globalIndexEnd(maxGlobalIndex());
 
         logRegions.add(region);
         return region;

@@ -1,73 +1,39 @@
 package com.bailizhang.lynxdb.lsmtree.utils;
 
-import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
-import com.bailizhang.lynxdb.core.utils.MethodUtils;
+import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.Arrays;
+import java.nio.MappedByteBuffer;
+import java.nio.file.Path;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_BIT_COUNT;
 
 /**
- * 7 个 hash 函数，bit 位应该是插入元素的 10 倍
- * 误判率约等于 0.008
+ * 28 个 hash 函数，bit 位应该是插入元素的 40 倍
+ * 误判率约等于 3.37e-9
  */
 public class BloomFilter {
-    private static final int LIMIT_HASH_FUNC_SIZE = 7;
-    private static final int TEN_TIMES = 10;
+    public static final int BITS_TIMES = 40;
+    private static final int HASH_FUNC_SIZE = 28;
 
-    private static final Method[] hashFunctions;
+    private final MappedBuffer mappedBuffer;
 
-    private final FileChannel fileChannel;
-    private final int byteBegin;
-    private final int byteCount;
-    private final int bitCount;
-
-    static {
-        try {
-            Class<?> clazz = Class.forName("com.bailizhang.lynxdb.lsmtree.utils.HashFunctions");
-            Method[] methods = clazz.getDeclaredMethods();
-
-            hashFunctions = Arrays
-                    .stream(methods)
-                    .sorted((m1, m2) -> {
-                        HashFunction anno1 = m1.getAnnotation(HashFunction.class);
-                        HashFunction anno2 = m2.getAnnotation(HashFunction.class);
-                        return Integer.compare(anno1.value(), anno2.value());
-                    })
-                    .limit(LIMIT_HASH_FUNC_SIZE)
-                    .toArray(Method[]::new);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+    private BloomFilter(MappedBuffer buffer) {
+        mappedBuffer = buffer;
     }
 
-    public BloomFilter(FileChannel fileChannel, int byteBegin, int count) {
-        this.fileChannel = fileChannel;
-        this.byteBegin = byteBegin;
-        this.bitCount = count * TEN_TIMES;
+    public static BloomFilter from(Path filePath, int begin, int count) {
+        int length = (count * BITS_TIMES) / BYTE_BIT_COUNT;
+        MappedBuffer buffer = new MappedBuffer(filePath, begin, length);
 
-        byteCount = bitCount / BYTE_BIT_COUNT;
-
-        if(FileChannelUtils.sizeLessThan(fileChannel, byteBegin + byteCount)) {
-            ByteBuffer buffer = ByteBuffer.allocate(byteCount);
-            FileChannelUtils.write(fileChannel, buffer, byteBegin);
-        }
+        return new BloomFilter(buffer);
     }
 
-    public BloomFilter(FileChannel fileChannel, int count) {
-        this(fileChannel, 0, count);
-    }
+    public boolean isExist(byte[] key) {
+        MappedByteBuffer buffer = mappedBuffer.getBuffer();
+        int bitCount = mappedBuffer.length() * BYTE_BIT_COUNT;
 
-    public int byteCount() {
-        return byteCount;
-    }
-
-    public boolean isExist(Object o) {
-        for(Method hashFunction : hashFunctions) {
-            int hash = (int) MethodUtils.invoke(hashFunction, this, o.toString());
+        for(int i = 1; i < HASH_FUNC_SIZE + 1; i ++) {
+            int hash = hashCode(key, i);
             int remainder = hash % bitCount;
 
             // 第几个 byte
@@ -75,7 +41,7 @@ public class BloomFilter {
             // byte 中的第几个 bit 位
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
-            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            byte current = buffer.get(byteIndex);
             if((current & ((byte) 0x01 << bitIndex)) == 0) {
                 return false;
             }
@@ -84,13 +50,16 @@ public class BloomFilter {
         return true;
     }
 
-    public boolean isNotExist(Object o) {
-        return !isExist(o);
+    public boolean isNotExist(byte[] key) {
+        return !isExist(key);
     }
 
-    public void setObj(Object o) {
-        for(Method hashFunction : hashFunctions) {
-            int hash = (int) MethodUtils.invoke(hashFunction, this, o.toString());
+    public void setObj(byte[] key) {
+        MappedByteBuffer buffer = mappedBuffer.getBuffer();
+        int bitCount = mappedBuffer.length() * BYTE_BIT_COUNT;
+
+        for(int i = 1; i < HASH_FUNC_SIZE + 1; i ++) {
+            int hash = hashCode(key, i);
             int remainder = hash % bitCount;
 
             // 第几个 byte
@@ -98,10 +67,30 @@ public class BloomFilter {
             // byte 中的第几个 bit 位
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
-            byte current = FileChannelUtils.read(fileChannel, byteBegin + byteIndex);
+            byte current = buffer.get(byteIndex);
             current |= (byte) 0x01 << bitIndex;
-
-            FileChannelUtils.write(fileChannel, current, byteIndex);
+            buffer.put(byteIndex, current);
         }
+    }
+
+    public int length() {
+        return mappedBuffer.length();
+    }
+
+    public void force() {
+        mappedBuffer.force();
+    }
+
+    private static int hashCode(byte[] key, int n) {
+        int hash = 0;
+        for (byte b : key) {
+            hash += b;
+            hash += (hash << n + 3);
+            hash ^= (hash >> n);
+        }
+        hash += (hash << 3);
+        hash ^= (hash >> 11);
+        hash += (hash << 15);
+        return (hash & 0x7FFFFFFF);
     }
 }

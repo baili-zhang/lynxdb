@@ -2,9 +2,7 @@ package com.bailizhang.lynxdb.core.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +28,17 @@ public interface FileUtils {
 
         if(!success) {
             throw new RuntimeException("Can not delete " + path);
+        }
+    }
+
+    static void deleteSubs(Path path) {
+        File file = path.toFile();
+
+        if(file.isDirectory()) {
+            for(String sub : Objects.requireNonNull(file.list())) {
+                Path subPath = Path.of(path.toString(), sub);
+                delete(subPath);
+            }
         }
     }
 
@@ -103,16 +112,23 @@ public interface FileUtils {
     }
 
     static List<String> findSubFiles(String dir) {
-        List<String> subFiles = new ArrayList<>();
-        File file = new File(dir);
+        return findSubFiles(new File(dir));
+    }
 
-        String[] subs = file.list();
+    static List<String> findSubFiles(Path dirPath) {
+        return findSubFiles(dirPath.toString());
+    }
+
+    static List<String> findSubFiles(File dirFile) {
+        List<String> subFiles = new ArrayList<>();
+
+        String[] subs = dirFile.list();
         if(subs == null) {
             return subFiles;
         }
 
         for(String sub : subs) {
-            File subFile = new File(file, sub);
+            File subFile = new File(dirFile, sub);
             if(subFile.isFile()) {
                 subFiles.add(sub);
             }

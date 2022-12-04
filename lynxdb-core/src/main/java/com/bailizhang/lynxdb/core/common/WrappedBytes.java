@@ -29,6 +29,6 @@ public class WrappedBytes implements Comparable<WrappedBytes>{
 
     @Override
     public int compareTo(WrappedBytes o) {
-        return 0;
+        return Arrays.compare(bytes, o.bytes);
     }
 }

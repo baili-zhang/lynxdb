@@ -8,28 +8,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface LdtpMethod {
-    byte CREATE_KV_STORE        = (byte) 0x01;
-    byte DROP_KV_STORE          = (byte) 0x02;
-
-    byte KV_SET                 = (byte) 0x03;
-    byte KV_GET                 = (byte) 0x04;
-    byte KV_DELETE              = (byte) 0x05;
-
-    byte CREATE_TABLE           = (byte) 0x06;
-    byte DROP_TABLE             = (byte) 0x07;
-    byte CREATE_TABLE_COLUMN    = (byte) 0x08;
-    byte DROP_TABLE_COLUMN      = (byte) 0x09;
-
-    byte TABLE_SELECT           = (byte) 0x0a;
-    byte TABLE_INSERT           = (byte) 0x0b;
-    byte TABLE_DELETE           = (byte) 0x0c;
-
-    byte SHOW_KVSTORE           = (byte) 0x0d;
-    byte SHOW_TABLE             = (byte) 0x0e;
-    byte SHOW_TABLE_COLUMN      = (byte) 0x0f;
-
-    byte KV_VALUE_LIST_INSERT   = (byte) 0x10;
-    byte KV_VALUE_LIST_REMOVE   = (byte) 0x11;
+    byte FIND_BY_KEY_CF_COLUMN  = (byte) 0x01;
+    byte FIND_BY_KEY_CF         = (byte) 0x02;
+    byte INSERT                 = (byte) 0x03;
+    byte DELETE                 = (byte) 0x04;
 
     byte value();
 }

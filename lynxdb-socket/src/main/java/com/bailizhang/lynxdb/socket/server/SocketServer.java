@@ -75,7 +75,7 @@ public class SocketServer extends Executor<WritableSocketResponse> {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
             if(Thread.interrupted()) {
-                logger.info("Socket client has bean interrupted.");
+                logger.info("Socket server has bean interrupted.");
             }
 
             Set<SelectionKey> selectionKeys = selector.selectedKeys();

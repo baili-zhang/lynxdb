@@ -2,75 +2,115 @@ package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.core.utils.NameUtils;
+import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
 import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.Options;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
-import com.bailizhang.lynxdb.lsmtree.memory.SkipListNode;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Path;
+import java.util.*;
+
+import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED;
+import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED_ARRAY;
 
 public class Level {
     public static final int LEVEL_SSTABLE_COUNT = 10;
 
     private final LogGroup valueFileGroup;
-    private final List<SsTable> ssTables = new ArrayList<>(LEVEL_SSTABLE_COUNT);
-    private final String baseDir;
+    private final String parentDir;
+    private final Path baseDir;
     private final int levelNo;
+    private final LevelTree parent;
     private final Options options;
 
-    public Level(String dir, int level, LogGroup logGroup, Options lsmOptions) {
-        baseDir = dir;
+    private LinkedList<SsTable> ssTables = new LinkedList<>();
+
+    public Level(String dir, int level, LevelTree levelTree, LogGroup logGroup, Options lsmOptions) {
+        parentDir = dir;
+        baseDir = Path.of(dir, String.valueOf(level));
+        FileUtils.createDirIfNotExisted(baseDir.toFile());
 
         levelNo = level;
+        parent = levelTree;
         valueFileGroup = logGroup;
         options = lsmOptions;
 
-        List<String> subs = FileUtils.findSubFiles(dir);
+        List<String> subs = FileUtils.findSubFiles(baseDir);
+        subs.sort(Comparator.comparingInt(NameUtils::id));
+
         for(String sub : subs) {
-            int id = Integer.parseInt(sub);
+            int id = NameUtils.id(sub);
+
+            Path filePath = Path.of(
+                    baseDir.toString(),
+                    NameUtils.name(id)
+            );
 
             SsTable ssTable = new SsTable(
-                    baseDir,
-                    id,
+                    filePath,
                     levelNo,
                     valueFileGroup,
                     options
             );
 
-            ssTables.add(ssTable);
+            if(ssTables.size() > LEVEL_SSTABLE_COUNT) {
+                throw new RuntimeException();
+            }
+
+            ssTables.addFirst(ssTable);
         }
     }
 
     public void merge(MemTable immutable) {
-        SsTable ssTable = new SsTable(
-                baseDir,
-                ssTables.size(),
-                levelNo,
-                valueFileGroup,
-                options
-        );
-
-        for(SkipListNode node : immutable) {
-            ssTable.append(node.key(), node.column(), node.values());
+        if(isFull()) {
+            mergeToNextLevel();
         }
 
-        ssTables.add(ssTable);
+        List<DbIndex> indexList = immutable.all()
+                .stream()
+                .map(entry -> {
+                    DbKey dbKey = entry.key();
+                    int globalIndex = -1;
+
+                    if(dbKey.flag() == EXISTED) {
+                        globalIndex = valueFileGroup.append(
+                                EXISTED_ARRAY,
+                                entry.value()
+                        );
+                    }
+
+                    return new DbIndex(dbKey, globalIndex);
+                }).toList();
+
+        createNextSsTable(indexList);
     }
 
     public void merge(Level level) {
+        if(isFull()) {
+            mergeToNextLevel();
+        }
 
+        createNextSsTable(level.all());
     }
 
-    public boolean isNotFull() {
-        return !isFull();
+    public List<DbIndex> all() {
+        HashSet<DbIndex> dbIndexSet = new HashSet<>();
+
+        ssTables.forEach(ssTable -> ssTable.all(dbIndexSet));
+        List<DbIndex> dbIndexList = new ArrayList<>(dbIndexSet);
+        dbIndexList.sort(Comparator.comparing(DbIndex::key));
+
+        return dbIndexList;
     }
 
     public boolean isFull() {
         return ssTables.size() >= LEVEL_SSTABLE_COUNT;
     }
 
-    public byte[] find(DbKey dbKey) {
+    public byte[] find(DbKey dbKey) throws DeletedException {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(dbKey)) {
                 byte[] value = ssTable.find(dbKey);
@@ -80,6 +120,12 @@ public class Level {
             }
         }
         return null;
+    }
+
+    public void find(byte[] key, HashSet<DbValue> dbValues) {
+        for(SsTable ssTable : ssTables) {
+            ssTable.find(key, dbValues);
+        }
     }
 
     public boolean contains(DbKey dbKey) {
@@ -92,12 +138,31 @@ public class Level {
         return false;
     }
 
-    public boolean delete(DbKey dbKey) {
-        for(SsTable ssTable : ssTables) {
-            if(ssTable.contains(dbKey) && ssTable.delete(dbKey)) {
-                return true;
-            }
+    private void mergeToNextLevel() {
+        int nextLevelNo = levelNo + 1;
+        Level nextLevel = parent.get(nextLevelNo);
+
+        if(nextLevel == null) {
+            nextLevel = new Level(parentDir, nextLevelNo, parent, valueFileGroup, options);
+            parent.put(nextLevelNo, nextLevel);
         }
-        return false;
+
+        nextLevel.merge(this);
+
+        FileUtils.deleteSubs(baseDir);
+        ssTables = new LinkedList<>();
+    }
+
+    private void createNextSsTable(List<DbIndex> dbIndexList) {
+        int nextSsTableNo = ssTables.size();
+        Path nextSsTablePath = Path.of(baseDir.toString(), NameUtils.name(nextSsTableNo));
+        SsTable ssTable = SsTable.create(
+                nextSsTablePath,
+                levelNo,
+                options,
+                dbIndexList,
+                valueFileGroup
+        );
+        ssTables.addFirst(ssTable);
     }
 }

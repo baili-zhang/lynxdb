@@ -1,42 +1,31 @@
 package com.bailizhang.lynxdb.springboot.starter;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.client.LynxDbClient;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.channels.SelectionKey;
 
-public class LynxDbTemplate extends AsyncLynxDbTemplate {
+public class LynxDbTemplate extends LynxDbClient {
+
     public LynxDbTemplate(LynxDbProperties properties) {
-        super(properties);
+        String host = properties.getHost();
+        int port = properties.getPort();
+
+        super.start();
+        super.connect(host, port);
     }
 
-    public <T> T kvGet(Class<T> clazz) {
-        return client.kvGet(current, clazz);
+    @Override
+    public void connect(String host, int port) {
+        throw new UnsupportedOperationException();
     }
 
-    public void kvSet(Object o) {
-        client.kvSet(current, o);
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException();
     }
 
-    public void kvValueListInsert(String kvstore, String key, List<String> values) {
-        client.kvValueListInsert(current, kvstore, key, values);
-    }
-
-    public List<String> kvValueListGet(String kvstore, String key) {
-        byte[] value = client.kvGet(current, kvstore, List.of(key));
-        List<String> valueList = new ArrayList<>();
-
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-        while (BufferUtils.isNotOver(buffer)) {
-            String valueItem = BufferUtils.getString(buffer);
-            valueList.add(valueItem);
-        }
-
-        return valueList;
-    }
-
-    public void kvValueListRemove(String kvstore, String key, List<String> values) {
-        client.kvValueListRemove(current, kvstore, key, values);
+    @Override
+    public SelectionKey current() {
+        throw new UnsupportedOperationException();
     }
 }

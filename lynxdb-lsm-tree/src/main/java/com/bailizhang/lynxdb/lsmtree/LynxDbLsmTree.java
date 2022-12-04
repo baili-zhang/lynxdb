@@ -2,10 +2,15 @@ package com.bailizhang.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.*;
-import com.bailizhang.lynxdb.lsmtree.exception.ColumnFamilyNotFoundException;
+import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
+import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
+import com.bailizhang.lynxdb.lsmtree.schema.ColumnFamily;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,38 +37,52 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
-    public byte[] find(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
+    public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, timestamp);
-        return region.find(dbKey);
+        DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
+
+        try {
+            return region.find(dbKey);
+        } catch (DeletedException ignore) {
+            return null;
+        }
     }
 
     @Override
-    public void insert(byte[] key, byte[] columnFamily, byte[] column, long timestamp,
+    public List<DbValue> find(byte[] key, byte[] columnFamily) {
+        ColumnFamilyRegion region = findRegion(columnFamily);
+        return region.find(key);
+    }
+
+    @Override
+    public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        if(region == null) {
-            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
-        }
 
-        DbKey dbKey = new DbKey(key, column, timestamp);
+        DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
         DbEntry dbEntry = new DbEntry(dbKey, value);
         region.insert(dbEntry);
     }
 
     @Override
-    public boolean delete(byte[] key, byte[] columnFamily, byte[] column, long timestamp) {
+    public void delete(byte[] key, byte[] columnFamily, byte[] column) {
         ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, timestamp);
-        return region.delete(dbKey);
+        DbKey dbKey = new DbKey(key, column, DbKey.DELETED);
+        region.delete(dbKey);
+    }
+
+    @Override
+    public void clear() {
+        FileUtils.delete(Path.of(baseDir));
     }
 
     private ColumnFamilyRegion findRegion(byte[] columnFamily) {
         ColumnFamily cf = new ColumnFamily(columnFamily);
         ColumnFamilyRegion region = regions.get(cf);
 
-        if(region == null && !options.createColumnFamilyIfNotExisted()) {
-            throw new ColumnFamilyNotFoundException(columnFamily);
+        if(region == null) {
+            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
+            regions.put(cf, region);
         }
 
         return region;
