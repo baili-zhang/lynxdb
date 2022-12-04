@@ -1,14 +1,11 @@
-package com.bailizhang.lynxdb.springcloud.starter;
+package com.bailizhang.lynxdb.springcloud.starter.discovery;
 
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.serviceregistry.ServiceRegistry;
 
-import java.util.List;
-
 public class LynxDbServiceRegistry implements ServiceRegistry<LynxDbRegistration> {
-    public static final String KVSTORE_NAME = "lynxdb-registry";
-
     private static final String URL_TEMPLATE = "%s:%d";
 
     @Autowired
@@ -17,23 +14,30 @@ public class LynxDbServiceRegistry implements ServiceRegistry<LynxDbRegistration
     @Override
     public void register(LynxDbRegistration registration) {
         String serviceId = registration.getServiceId();
+        String instanceId = registration.getInstanceId();
 
         String host = registration.getHost();
         int port = registration.getPort();
         String url = String.format(URL_TEMPLATE, host, port);
 
-        lynxDbTemplate.kvValueListInsert(KVSTORE_NAME, serviceId, List.of(url));
+        lynxDbTemplate.insert(
+                G.I.toBytes(serviceId),
+                G.I.toBytes(LynxDbRegistration.COLUMN_FAMILY),
+                G.I.toBytes(instanceId),
+                G.I.toBytes(url)
+        );
     }
 
     @Override
     public void deregister(LynxDbRegistration registration) {
         String serviceId = registration.getServiceId();
+        String instanceId = registration.getInstanceId();
 
-        String host = registration.getHost();
-        int port = registration.getPort();
-        String url = String.format(URL_TEMPLATE, host, port);
-
-        lynxDbTemplate.kvValueListRemove(KVSTORE_NAME, serviceId, List.of(url));
+        lynxDbTemplate.delete(
+                G.I.toBytes(serviceId),
+                G.I.toBytes(LynxDbRegistration.COLUMN_FAMILY),
+                G.I.toBytes(instanceId)
+        );
     }
 
     @Override

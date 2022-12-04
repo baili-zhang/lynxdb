@@ -1,6 +1,7 @@
-package com.bailizhang.lynxdb.springcloud.starter;
+package com.bailizhang.lynxdb.springcloud.starter.discovery;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.DefaultServiceInstance;
 import org.springframework.cloud.client.serviceregistry.Registration;
 
 import java.net.InetAddress;
@@ -9,6 +10,8 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 public class LynxDbRegistration implements Registration {
+    public static final String COLUMN_FAMILY = "lynxdb-registry";
+    public static final String INSTANCE_ID_TEMPLATE = "%s--%s:%s";
 
     private final String host;
 
@@ -39,6 +42,11 @@ public class LynxDbRegistration implements Registration {
     }
 
     @Override
+    public String getInstanceId() {
+        return String.format(INSTANCE_ID_TEMPLATE, serviceId, host, port);
+    }
+
+    @Override
     public String getHost() {
         return host;
     }
@@ -55,7 +63,7 @@ public class LynxDbRegistration implements Registration {
 
     @Override
     public URI getUri() {
-        return null;
+        return DefaultServiceInstance.getUri(this);
     }
 
     @Override

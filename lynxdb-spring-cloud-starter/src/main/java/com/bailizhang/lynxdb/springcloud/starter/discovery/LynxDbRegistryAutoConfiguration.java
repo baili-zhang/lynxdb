@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.springcloud.starter;
+package com.bailizhang.lynxdb.springcloud.starter.discovery;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationProperties;
