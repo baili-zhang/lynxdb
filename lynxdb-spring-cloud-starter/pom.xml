@@ -67,7 +67,6 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <spring.cloud.version>3.1.5</spring.cloud.version>
     </properties>
 
     <dependencies>
@@ -79,8 +78,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter</artifactId>
-            <version>${spring.cloud.version}</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 
