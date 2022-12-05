@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
-@ComponentScan("com.bailizhang.lynxdb")
 @ConditionalOnClass(LynxDbTemplate.class)
 @EnableConfigurationProperties(LynxDbProperties.class)
 public class LynxDbAutoConfiguration {

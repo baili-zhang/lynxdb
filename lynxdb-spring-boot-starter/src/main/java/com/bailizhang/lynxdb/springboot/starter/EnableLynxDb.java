@@ -10,5 +10,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Import(LynxDbAutoConfiguration.class)
-public @interface EnableLynxDbClient {
+public @interface EnableLynxDb {
 }
