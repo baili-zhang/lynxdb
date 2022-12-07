@@ -1,6 +1,6 @@
 # LynxDB
 
-LynxDB is a light-weight distributed storage system implemented in the Java language and based on the Raft protocol. The bottom layer of LynxDb uses the RocksDB storage engine. LynxDB supports KV storage and table structure storage.
+LynxDB is a light-weight distributed storage system implemented in the Java language and based on the Raft protocol. LynxDB supports (key, column family, column, value) structured storage.
 
 ## Running LynxDB
 
@@ -22,6 +22,20 @@ The default port number for LynxDB server is `7820`, make sure port `7820` is no
 </dependency>
 ```
 
+*Enable Annotation*
+
+Enable annotation `@EnableLynxDb` to import LynxDB auto configuration class.
+
+```java
+@EnableLynxDb
+@SpringBootApplication
+public class UserServiceApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(UserServiceApplication.class, args);
+	}
+}
+```
+
 *application.yml*
 
 ```yaml
@@ -39,122 +53,105 @@ com:
 private LynxDbTemplate lynxDbTemplate;
 ```
 
-## Query Language
+*Find*
 
-LQL (LynxDB Query Language) is a simple query statement similar to SQL statement, including create, delete, query, insert data and other statements.
-
-**CREATE**
-
-*Create table*
-
-```
-CREATE TABLE `user_table`;
+```java
+// lynxDbTemplate.find
+byte[] find(byte[] key, byte[] columnFamily, byte[] column);
 ```
 
-*Create kv store*
-
-```
-CREATE KVSTORE `user_kv`;
-```
-
-*create table column*
-
-```
-CREATE COLUMNS `name`, `age` in `user_table`;
+```java
+// lynxDbTemplate.find
+List<DbValue> find(byte[] key, byte[] columnFamily)
 ```
 
-Only tables support columns, the KV store does not.
+*Insert*
 
-**SHOW**
-
-*Show all tables*
-
-```
-SHOW TABLES;
+```java
+// lynxDbTemplate.insert
+void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value)
 ```
 
-*Show all kv stores*
+*Delete*
 
-```
-SHOW KVSTORES;
-```
-
-*Show all columns in table*
-
-```
-SHOW COLUMNS IN `user_table`;
+```java
+// lynxDbTemplate.delete
+void delete(byte[] key, byte[] columnFamily, byte[] column)
 ```
 
-**DROP**
+## Spring Cloud
 
-*Drop table*
+*Maven Dependency*
 
-```
-DROP TABLE `user_table`;
-```
-
-*Drop kv store*
-
-```
-DROP KVSTORE `user_kv`;
-```
-
-*Drop columns of table*
-
-```
-DROP COLUMNS `name`, `age` IN `user_table`;
+```xml
+<dependency>
+    <groupId>com.bailizhang.lynxdb</groupId>
+    <artifactId>lynxdb-spring-boot-starter</artifactId>
+    <version>${lynxdb.version}</version>
+</dependency>
+<dependency>
+    <groupId>com.bailizhang.lynxdb</groupId>
+    <artifactId>lynxdb-spring-cloud-starter</artifactId>
+    <version>${lynxdb.version}</version>
+</dependency>
 ```
 
-**SELECT**
+### Service Registry
 
-*Select data from table*
+*Server*
 
-```
-SELECT `name`, `age`
-    FROM TABLE `user_table`
-    WHERE KEY IN `NO.1`, `NO.2`;
-```
+Run `start-server.bat` to start LynxDB Server.
 
-*Select data from kv store*
+*Client*
 
-```
-SELECT FROM KVSTORE `count_kv`
-    WHERE KEY IN `article_count`, `user_count`;
-```
+Enable annotation `@EnableLynxDbDiscovery` to import LynxDB registry auto configuration class and LynxDB auto configuration class, So `@EnableLynxDb` is not needed any more.
 
-**INSERT**
-
-*Insert data into table*
-
-```
-INSERT INTO TABLE `user_table`
-      (`name`,`age`)
-      VALUES
-          (`NO.1`, `Kobe`, `31`),
-          (`NO.2`, `Trump`, `63`);
+```java
+@EnableLynxDbDiscovery
+@SpringBootApplication
+public class UserServiceApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(UserServiceApplication.class, args);
+	}
+}
 ```
 
-*Insert data into kv store*
+- ServiceId: `${spring.application.name}`
+- InstanceId: `${spring.application.name}--[host]:${server.port}`
 
+Service register info is stored as:
+
+| Field         | Content           |
+|---------------|-------------------|
+| Key           | ServiceId         |
+| Column Family | `lynxdb-registry` |
+| Column        | InstanceId        |
+| Value         | URL               |
+
+## Query Command
+
+Run `start-client.bat` to start LynxDB Cmd Client.
+
+### Find
+
+```shell
+find [key] [column family] [column]
 ```
-INSERT INTO KVSTORE `count_kv`
-    VALUES
-        (`article_count`,`300`),
-        (`user_count`,`20`);
+
+```shell
+find [key] [column family] 
 ```
 
-**DELETE**
+### Insert
 
-*Delete data from table*
-
-```
-DELETE `NO.1`, `NO.2` FROM TABLE `user_table`;
+```shell
+insert [key] [column family] [column] [value]
 ```
 
-*Delete data from kv store*
+### Delete
 
-```
-DELETE `article_count`,`user_count` FROM KVSTORE `count_kv`;
+```shell
+delete [key] [column family] [column]
 ```
 
 ## Configuration

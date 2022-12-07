@@ -11,6 +11,26 @@
 
     <artifactId>lynxdb-spring-cloud-starter</artifactId>
 
+    <name>LynxDB Spring Cloud Starter</name>
+    <description>Spring Cloud Starter for LynxDB</description>
+    <url>https://github.com/baili-zhang/lynxdb</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Baili Zhang</name>
+            <email>1456938262@qq.com</email>
+            <organization>LynxDB Project</organization>
+            <organizationUrl>https://github.com/LynxDB-Project</organizationUrl>
+        </developer>
+    </developers>
+
     <build>
         <plugins>
             <plugin>
@@ -63,6 +83,19 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>sonatype-nexus</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+        <repository>
+            <id>sonatype-nexus</id>
+            <name>Nexus Release Repository</name>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
