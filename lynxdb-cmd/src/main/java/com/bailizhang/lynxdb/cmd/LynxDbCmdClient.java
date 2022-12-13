@@ -7,7 +7,6 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +16,14 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String FIND = "find";
     private static final String INSERT = "insert";
     private static final String DELETE = "delete";
+    private static final String REGISTER = "register";
+    private static final String WATCH = "watch";
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
     private static final String HOST = "127.0.0.1";
     private static final int PORT = 7820;
+    private static final int MESSAGE_PORT = 7263;
 
     private final LynxDbClient client = new LynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
@@ -33,6 +35,7 @@ public class LynxDbCmdClient extends Shutdown {
     public void start() {
         client.start();
         client.connect(HOST, PORT);
+        client.registerConnect(HOST, MESSAGE_PORT);
 
         while (isNotShutdown()) {
             Printer.printPrompt(client.current());
@@ -52,19 +55,7 @@ public class LynxDbCmdClient extends Shutdown {
                                 G.I.toBytes(command[1]),
                                 G.I.toBytes(command[2])
                         );
-
-                        List<List<String>> table = new ArrayList<>();
-                        List<String> header = List.of("Column", "Value");
-                        table.add(header);
-                        dbValues.forEach(dbValue -> {
-                            List<String> row = List.of(
-                                    G.I.toString(dbValue.column()),
-                                    G.I.toString(dbValue.value())
-                            );
-                            table.add(row);
-                        });
-
-                        Printer.printTable(table);
+                        printDbValues(dbValues);
                     } else if(command.length == 4) {
                         byte[] value = client.find(
                                 G.I.toBytes(command[1]),
@@ -105,14 +96,47 @@ public class LynxDbCmdClient extends Shutdown {
                     );
                 }
 
+                case REGISTER -> {
+                    if(command.length == 3) {
+                        client.register(
+                                G.I.toBytes(command[1]),
+                                G.I.toBytes(command[2])
+                        );
+                    } else {
+                        Printer.printError(ERROR_COMMAND);
+                    }
+                }
+
+                case WATCH -> {
+                    while (true) {
+                        List<DbValue> dbValues = client.onMessage();
+                        printDbValues(dbValues);
+                    }
+                }
+
                 default -> Printer.printError(ERROR_COMMAND);
             }
 
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         LynxDbCmdClient client = new LynxDbCmdClient();
         client.start();
+    }
+
+    private void printDbValues(List<DbValue> dbValues) {
+        List<List<String>> table = new ArrayList<>();
+        List<String> header = List.of("Column", "Value");
+        table.add(header);
+        dbValues.forEach(dbValue -> {
+            List<String> row = List.of(
+                    G.I.toString(dbValue.column()),
+                    G.I.toString(dbValue.value())
+            );
+            table.add(row);
+        });
+
+        Printer.printTable(table);
     }
 }

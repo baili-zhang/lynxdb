@@ -17,7 +17,9 @@ public class SingleLynxDbServer implements LynxDbServer {
         Configuration config = Configuration.getInstance();
         ServerNode current = config.currentNode();
 
-        server = new SocketServer(new SocketServerConfig(current.port()));
+        SocketServerConfig serverConfig = new SocketServerConfig(current.port());
+        server = new SocketServer(serverConfig);
+        server.startRegisterServer();
         engine = new SingleLdtpEngine(server);
 
         SingleHandler handler = new SingleHandler(engine);

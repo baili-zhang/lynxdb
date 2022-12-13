@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
@@ -20,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.bailizhang.lynxdb.raft.request.RaftRequest.CLIENT_REQUEST;
+import static com.bailizhang.lynxdb.server.annotations.LdtpCode.VOID;
+import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
 import static com.bailizhang.lynxdb.socket.code.Request.DEREGISTER_KEY;
 import static com.bailizhang.lynxdb.socket.code.Request.REGISTER_KEY;
 
@@ -82,7 +85,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                                 for(SelectionKey key : keys) {
                                     WritableSocketResponse affectResponse = new WritableSocketResponse(
                                             key,
-                                            -1,
+                                            MESSAGE_SERIAL,
                                             affectResult.data()
                                     );
 
@@ -93,8 +96,34 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                             executor
                     );
 
-            case REGISTER_KEY -> affectKeyRegistry.register(selectionKey, AffectKey.from(buffer));
-            case DEREGISTER_KEY -> affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
+            case REGISTER_KEY -> {
+                affectKeyRegistry.register(selectionKey, AffectKey.from(buffer));
+
+                BytesList bytesList = new BytesList();
+                bytesList.appendRawByte(VOID);
+
+                WritableSocketResponse response = new WritableSocketResponse(
+                        selectionKey,
+                        serial,
+                        bytesList
+                );
+
+                server.offerInterruptibly(response);
+            }
+            case DEREGISTER_KEY -> {
+                affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
+
+                BytesList bytesList = new BytesList();
+                bytesList.appendRawByte(VOID);
+
+                WritableSocketResponse response = new WritableSocketResponse(
+                        selectionKey,
+                        serial,
+                        bytesList
+                );
+
+                server.offerInterruptibly(response);
+            }
 
             default -> throw new RuntimeException();
         }
