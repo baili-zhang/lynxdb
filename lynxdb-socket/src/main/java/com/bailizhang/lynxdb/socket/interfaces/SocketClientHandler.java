@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.socket.interfaces;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public interface SocketClientHandler {
     default void handleConnected(SelectionKey selectionKey) throws Exception {}

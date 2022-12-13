@@ -9,7 +9,9 @@ import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
     private static final String FIND = "find";

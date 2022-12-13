@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.lsmtree.LsmTree;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
@@ -13,26 +12,24 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 
-/**
- * BaseStorageEngine：
- *  元数据存储
- *  KV 存储
- *  TABLE 存储
- */
-public abstract class BaseStorageEngine {
+
+public class BaseStorageEngine extends LynxDbLsmTree {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
 
+    private static final String dataDir;
+    private static final Options options;
+
+    static {
+        dataDir = Configuration.getInstance().dataDir();
+        options = new Options(DEFAULT_MEM_TABLE_SIZE);
+    }
+
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
-    protected final LsmTree lsmTree;
 
     /* TODO: Cache 以后再实现 */
 
     public BaseStorageEngine(Class<? extends BaseStorageEngine> clazz) {
-        String dataDir = Configuration.getInstance().dataDir();
-        Options options = new Options(DEFAULT_MEM_TABLE_SIZE);
-
-        lsmTree = new LynxDbLsmTree(dataDir, options);
-
+        super(dataDir, options);
         initMethod(clazz);
     }
 

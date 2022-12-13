@@ -4,7 +4,6 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.client.DefaultServiceInstance;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 

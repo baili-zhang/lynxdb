@@ -2,20 +2,26 @@ package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
+import com.bailizhang.lynxdb.server.mode.AffectKeyRegistry;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.bailizhang.lynxdb.raft.request.RaftRequest.CLIENT_REQUEST;
+import static com.bailizhang.lynxdb.socket.code.Request.DEREGISTER_KEY;
+import static com.bailizhang.lynxdb.socket.code.Request.REGISTER_KEY;
 
 public class SingleLdtpEngine extends Executor<SocketRequest> {
     private static final Logger logger = LogManager.getLogger("SingleLdtpEngine");
@@ -23,6 +29,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
     private final SocketServer server;
     private final LdtpStorageEngine engine = new LdtpStorageEngine();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final AffectKeyRegistry affectKeyRegistry = new AffectKeyRegistry();
 
     public SingleLdtpEngine(SocketServer socketServer) {
         server = socketServer;
@@ -36,30 +43,60 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
             return;
         }
 
+        SelectionKey selectionKey = request.selectionKey();
+        int serial = request.serial();
         byte[] data = request.data();
-        if(data[0] != CLIENT_REQUEST) {
-            throw new RuntimeException("Request is not CLIENT_REQUEST");
-        }
 
-        byte[] command = new byte[data.length - 1];
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        byte flag = buffer.get();
 
-        System.arraycopy(data, 1, command, 0, command.length);
+        switch (flag) {
+            case CLIENT_REQUEST ->
+                    // 防止数据库操作被中断
+                    CompletableFuture.runAsync(
+                            () -> {
+                                QueryParams queryParams = QueryParams.parse(buffer);
+                                QueryResult result = engine.doQuery(queryParams);
 
-        CompletableFuture.runAsync(
-                () -> {
-                    QueryParams queryParams = QueryParams.parse(command);
-                    QueryResult result = engine.doQuery(queryParams);
+                                WritableSocketResponse response = new WritableSocketResponse(
+                                        selectionKey,
+                                        serial,
+                                        result.data()
+                                );
 
-                    WritableSocketResponse response = new WritableSocketResponse(
-                            request.selectionKey(),
-                            request.serial(),
-                            result.data(),
-                            result.affectValues()
+                                // 返回给发起请求的客户端
+                                server.offerInterruptibly(response);
+
+                                // 处理注册监听的 key
+                                AffectKey affectKey = result.affectKey();
+                                if(affectKey == null) {
+                                    return;
+                                }
+
+                                List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
+                                QueryResult affectResult = engine.doFindByKeyCfColumn(
+                                        affectKey.key(),
+                                        affectKey.columnFamily()
+                                );
+
+                                for(SelectionKey key : keys) {
+                                    WritableSocketResponse affectResponse = new WritableSocketResponse(
+                                            key,
+                                            -1,
+                                            affectResult.data()
+                                    );
+
+                                    // 返回修改的信息给注册监听的客户端
+                                    server.offerInterruptibly(affectResponse);
+                                }
+                            },
+                            executor
                     );
 
-                    server.offerInterruptibly(response);
-                },
-                executor
-        );
+            case REGISTER_KEY -> affectKeyRegistry.register(selectionKey, AffectKey.from(buffer));
+            case DEREGISTER_KEY -> affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
+
+            default -> throw new RuntimeException();
+        }
     }
 }

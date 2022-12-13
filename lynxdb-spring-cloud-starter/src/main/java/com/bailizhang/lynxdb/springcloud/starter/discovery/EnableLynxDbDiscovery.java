@@ -1,8 +1,6 @@
 package com.bailizhang.lynxdb.springcloud.starter.discovery;
 
-import com.bailizhang.lynxdb.springboot.starter.EnableLynxDb;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbAutoConfiguration;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.ElementType;

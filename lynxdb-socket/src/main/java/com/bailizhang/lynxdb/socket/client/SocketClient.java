@@ -2,8 +2,8 @@ package com.bailizhang.lynxdb.socket.client;
 
 import com.bailizhang.lynxdb.core.common.BytesConvertible;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
-import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
+import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;

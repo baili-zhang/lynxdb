@@ -1,9 +1,7 @@
 package com.bailizhang.lynxdb.server.engine.result;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
 
-import java.util.List;
-
-public record QueryResult (BytesList data, List<AffectValue> affectValues) {
+public record QueryResult (BytesList data, AffectKey affectKey) {
 }
