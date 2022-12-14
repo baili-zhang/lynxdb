@@ -7,6 +7,7 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
+import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 
@@ -99,7 +100,17 @@ public class LynxDbClient {
         LynxDbFuture<byte[]> future = futureMapGet(current, serial);
         byte[] data = future.get();
 
-        return dbValueList(data);
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        if (buffer.get() != LdtpCode.DB_VALUE_LIST) {
+            throw new RuntimeException();
+        }
+
+        List<DbValue> dbValues = new ArrayList<>();
+        while (BufferUtils.isNotOver(buffer)) {
+            dbValues.add(DbValue.from(buffer));
+        }
+
+        return dbValues;
     }
 
     public void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value) {
@@ -179,10 +190,11 @@ public class LynxDbClient {
         }
     }
 
-    public List<DbValue> onMessage() {
+    public AffectValue onMessage() {
         try {
             byte[] data = messageQueue.take();
-            return dbValueList(data);
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            return AffectValue.from(buffer);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -191,19 +203,5 @@ public class LynxDbClient {
     private LynxDbFuture<byte[]> futureMapGet(SelectionKey selectionKey, int serial) {
         ConcurrentHashMap<Integer, LynxDbFuture<byte[]>> map = futureMap.get(selectionKey);
         return map.get(serial);
-    }
-
-    private List<DbValue> dbValueList(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.DB_VALUE_LIST) {
-            throw new RuntimeException();
-        }
-
-        List<DbValue> dbValues = new ArrayList<>();
-        while (BufferUtils.isNotOver(buffer)) {
-            dbValues.add(DbValue.from(buffer));
-        }
-
-        return dbValues;
     }
 }

@@ -2,8 +2,10 @@ package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.server.mode.AffectKeyRegistry;
@@ -77,16 +79,18 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                                 }
 
                                 List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
-                                QueryResult affectResult = engine.doFindByKeyCfColumn(
+                                List<DbValue> dbValues = engine.find(
                                         affectKey.key(),
                                         affectKey.columnFamily()
                                 );
+
+                                AffectValue affectValue = new AffectValue(affectKey, dbValues);
 
                                 for(SelectionKey key : keys) {
                                     WritableSocketResponse affectResponse = new WritableSocketResponse(
                                             key,
                                             MESSAGE_SERIAL,
-                                            affectResult.data()
+                                            affectValue
                                     );
 
                                     // 返回修改的信息给注册监听的客户端

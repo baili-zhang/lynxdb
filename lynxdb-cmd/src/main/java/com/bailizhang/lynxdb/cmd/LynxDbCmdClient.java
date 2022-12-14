@@ -6,6 +6,8 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -108,10 +110,8 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case WATCH -> {
-                    while (true) {
-                        List<DbValue> dbValues = client.onMessage();
-                        printDbValues(dbValues);
-                    }
+                    AffectValue affectValue = client.onMessage();
+                    printAffectValue(affectValue);
                 }
 
                 default -> Printer.printError(ERROR_COMMAND);
@@ -138,5 +138,20 @@ public class LynxDbCmdClient extends Shutdown {
         });
 
         Printer.printTable(table);
+    }
+
+    private void printAffectValue(AffectValue affectValue) {
+        AffectKey affectKey = affectValue.affectKey();
+        List<DbValue> dbValues = affectValue.dbValues();
+
+        String template = "Affect key: %s, columnFamily: %s";
+        String message = String.format(
+                template,
+                G.I.toString(affectKey.key()),
+                G.I.toString(affectKey.columnFamily())
+        );
+
+        Printer.printRawMessage(message);
+        printDbValues(dbValues);
     }
 }
