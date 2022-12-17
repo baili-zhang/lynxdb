@@ -1,0 +1,5 @@
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+com.bailizhang.lynxdb.config.springcloud.starter.LynxDbPropertySourceLocator
+
+org.springframework.boot.BootstrapRegistryInitializer=\
+org.springframework.cloud.config.client.ConfigClientRetryBootstrapper

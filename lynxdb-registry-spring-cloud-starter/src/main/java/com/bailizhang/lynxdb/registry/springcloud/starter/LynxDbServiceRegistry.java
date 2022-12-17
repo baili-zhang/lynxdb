@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.springcloud.starter.discovery;
+package com.bailizhang.lynxdb.registry.springcloud.starter;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;

@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.springcloud.starter.config;
+package com.bailizhang.lynxdb.config.springcloud.starter;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class LynxDbPropertySourceLocator implements PropertySourceLocator {
-    private static final String PROPERTY_SOURCE_NAME = "lynxdb-config";
+    private static final String PROPERTY_SOURCE_NAME = "lynxdbConfigProperties";
 
     @Autowired
     private LynxDbTemplate lynxDbTemplate;

@@ -1,10 +1,10 @@
-package com.bailizhang.lynxdb.springcloud.starter.config;
+package com.bailizhang.lynxdb.config.springcloud.starter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Objects;
 
-@ConfigurationProperties("com.bailizhang.lynxdb.config")
+@ConfigurationProperties("spring.cloud.config")
 public class LynxDbConfigProperties {
     private static final String DEFAULT_PROFILE_NAME = "default";
 

@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-    com.bailizhang.lynxdb.springboot.starter.LynxDbAutoConfiguration
+com.bailizhang.lynxdb.springboot.starter.LynxDbAutoConfiguration

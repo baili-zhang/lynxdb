@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.springcloud.starter.discovery;
+package com.bailizhang.lynxdb.registry.springcloud.starter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.serviceregistry.AbstractAutoServiceRegistration;

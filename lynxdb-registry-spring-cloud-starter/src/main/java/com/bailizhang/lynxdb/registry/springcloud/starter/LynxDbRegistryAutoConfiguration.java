@@ -1,12 +1,10 @@
-package com.bailizhang.lynxdb.springcloud.starter.discovery;
+package com.bailizhang.lynxdb.registry.springcloud.starter;
 
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
 @ConditionalOnClass({
         LynxDbTemplate.class,
         LynxDbServiceRegistry.class,

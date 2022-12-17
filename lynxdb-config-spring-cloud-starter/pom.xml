@@ -5,14 +5,14 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2022.12.5-alpha</version>
+        <version>2022.12.17-snapshot</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>lynxdb-spring-cloud-starter</artifactId>
+    <artifactId>lynxdb-config-spring-cloud-starter</artifactId>
 
-    <name>LynxDB Spring Cloud Starter</name>
-    <description>Spring Cloud Starter for LynxDB</description>
+    <name>LynxDB Config Spring Cloud Starter</name>
+    <description>Spring Cloud Service Configuration Center Client Starter</description>
     <url>https://github.com/baili-zhang/lynxdb</url>
 
     <licenses>
