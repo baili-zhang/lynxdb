@@ -19,6 +19,7 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String INSERT = "insert";
     private static final String DELETE = "delete";
     private static final String REGISTER = "register";
+    private static final String DEREGISTER = "deregister";
     private static final String WATCH = "watch";
 
     private static final String ERROR_COMMAND = "Invalid Command";
@@ -43,28 +44,15 @@ public class LynxDbCmdClient extends Shutdown {
             Printer.printPrompt(client.current());
 
             String line = scanner.nextLine();
-            String[] command = line.trim().split("\\s+");
+            LynxDbCommand command = new LynxDbCommand(client, line);
 
-            if(command.length < 1) {
-                Printer.printError(ERROR_COMMAND);
-                break;
-            }
-
-            switch (command[0]) {
+            switch (command.name()) {
                 case FIND -> {
-                    if(command.length == 3) {
-                        List<DbValue> dbValues = client.find(
-                                G.I.toBytes(command[1]),
-                                G.I.toBytes(command[2])
-                        );
+                    if(command.length() == 3) {
+                        List<DbValue> dbValues = command.findByKey();
                         printDbValues(dbValues);
-                    } else if(command.length == 4) {
-                        byte[] value = client.find(
-                                G.I.toBytes(command[1]),
-                                G.I.toBytes(command[2]),
-                                G.I.toBytes(command[3])
-                        );
-
+                    } else if(command.length() == 4) {
+                        byte[] value = command.find();
                         Printer.printRawMessage(G.I.toString(value));
                     } else {
                         Printer.printError(ERROR_COMMAND);
@@ -72,41 +60,35 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case INSERT -> {
-                    if(command.length != 5) {
+                    if(command.length() != 5) {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-
-                    client.insert(
-                            G.I.toBytes(command[1]),
-                            G.I.toBytes(command[2]),
-                            G.I.toBytes(command[3]),
-                            G.I.toBytes(command[4])
-                    );
+                    command.insert();
                 }
 
                 case DELETE -> {
-                    if(command.length != 4) {
+                    if(command.length() != 4) {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-
-                    client.delete(
-                            G.I.toBytes(command[1]),
-                            G.I.toBytes(command[2]),
-                            G.I.toBytes(command[3])
-                    );
+                    command.delete();
                 }
 
                 case REGISTER -> {
-                    if(command.length == 3) {
-                        client.register(
-                                G.I.toBytes(command[1]),
-                                G.I.toBytes(command[2])
-                        );
-                    } else {
+                    if(command.length() != 3) {
                         Printer.printError(ERROR_COMMAND);
+                        break;
                     }
+                    command.register();
+                }
+
+                case DEREGISTER -> {
+                    if(command.length() != 3) {
+                        Printer.printError(ERROR_COMMAND);
+                        break;
+                    }
+                    command.deregister();
                 }
 
                 case WATCH -> {
@@ -116,7 +98,6 @@ public class LynxDbCmdClient extends Shutdown {
 
                 default -> Printer.printError(ERROR_COMMAND);
             }
-
         }
     }
 
