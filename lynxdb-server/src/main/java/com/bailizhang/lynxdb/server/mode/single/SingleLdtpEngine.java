@@ -77,31 +77,14 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                                 if(affectKey == null) {
                                     return;
                                 }
-
-                                List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
-                                List<DbValue> dbValues = engine.find(
-                                        affectKey.key(),
-                                        affectKey.columnFamily()
-                                );
-
-                                AffectValue affectValue = new AffectValue(affectKey, dbValues);
-
-                                for(SelectionKey key : keys) {
-                                    WritableSocketResponse affectResponse = new WritableSocketResponse(
-                                            key,
-                                            MESSAGE_SERIAL,
-                                            affectValue
-                                    );
-
-                                    // 返回修改的信息给注册监听的客户端
-                                    server.offerInterruptibly(affectResponse);
-                                }
+                                sendAffectValueToRegisterClient(affectKey);
                             },
                             executor
                     );
 
             case REGISTER_KEY -> {
-                affectKeyRegistry.register(selectionKey, AffectKey.from(buffer));
+                AffectKey affectKey = AffectKey.from(buffer);
+                affectKeyRegistry.register(selectionKey, affectKey);
 
                 BytesList bytesList = new BytesList();
                 bytesList.appendRawByte(VOID);
@@ -113,6 +96,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                 );
 
                 server.offerInterruptibly(response);
+                sendAffectValueToRegisterClient(affectKey);
             }
             case DEREGISTER_KEY -> {
                 affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
@@ -130,6 +114,27 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
             }
 
             default -> throw new RuntimeException();
+        }
+    }
+
+    private void sendAffectValueToRegisterClient(AffectKey affectKey) {
+        List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
+        List<DbValue> dbValues = engine.find(
+                affectKey.key(),
+                affectKey.columnFamily()
+        );
+
+        AffectValue affectValue = new AffectValue(affectKey, dbValues);
+
+        for(SelectionKey key : keys) {
+            WritableSocketResponse affectResponse = new WritableSocketResponse(
+                    key,
+                    MESSAGE_SERIAL,
+                    affectValue
+            );
+
+            // 返回修改的信息给注册监听的客户端
+            server.offerInterruptibly(affectResponse);
         }
     }
 }
