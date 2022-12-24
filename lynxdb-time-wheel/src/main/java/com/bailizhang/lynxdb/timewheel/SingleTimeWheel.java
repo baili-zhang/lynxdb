@@ -6,7 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SingleTimeWheel {
     private final List<TimeoutTask>[] tasks;
+    /** 当前的时间刻度 */
     private final AtomicInteger current = new AtomicInteger(0);
+    /** 上一秒的（毫秒，秒，分钟...）值 */
+    private long lastTick;
 
     private volatile boolean nextRound = false;
 
@@ -28,21 +31,30 @@ public class SingleTimeWheel {
     }
 
     public boolean isNextRound() {
-        boolean isNextRound = nextRound;
-        nextRound = false;
-        return isNextRound;
+        return nextRound;
     }
 
     public List<TimeoutTask> nextTick() {
         int currentSlot = current.getAndIncrement();
 
-        List<TimeoutTask> taskList = tasks[currentSlot];
-        tasks[currentSlot] = new ArrayList<>();
+        List<TimeoutTask> taskList = new ArrayList<>();
 
+        for(int i = 0; i <= currentSlot; i ++) {
+            if(tasks[currentSlot].isEmpty()) {
+                continue;
+            }
+
+            taskList.addAll(tasks[currentSlot]);
+        }
+
+        // 检查当前时间轮是否遍历完
         if(current.get() >= tasks.length) {
             nextRound = true;
             current.set(0);
         }
+
+        // 阻塞等待下一秒
+        long nanoTime = System.nanoTime();
 
         return taskList;
     }
