@@ -17,11 +17,15 @@ import static com.bailizhang.lynxdb.server.context.Configuration.SINGLE;
 public class LynxDbMainServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
+    private static final String VERSION = "2022.12.17-snapshot";
+
     private final LynxDbServer server;
 
     LynxDbMainServer() throws IOException {
+        logger.info("LynxDB Version: \"{}\".", VERSION);
+
         Configuration config = Configuration.getInstance();
-        logger.info("Configuration: [{}]", config);
+        logger.info("Configuration: {}", config);
 
         G.I.converter(new Converter(config.charset()));
 
