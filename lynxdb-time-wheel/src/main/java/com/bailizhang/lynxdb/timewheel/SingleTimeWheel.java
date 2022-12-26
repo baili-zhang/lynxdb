@@ -53,9 +53,6 @@ public class SingleTimeWheel {
             current.set(0);
         }
 
-        // 阻塞等待下一秒
-        long nanoTime = System.nanoTime();
-
         return taskList;
     }
 }
