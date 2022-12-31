@@ -4,7 +4,6 @@ import com.bailizhang.lynxdb.core.executor.Shutdown;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -12,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LynxDbTimeWheel extends Shutdown implements Runnable {
     private static final Logger logger = LogManager.getLogger("LynxDbTimeWheel");
 
-    private static final int INTERVAL_MILLS = 5;
+    private static final int INTERVAL_MILLS = 10;
 
     private static final int SECOND_TIME_WHEEL_SLOT_SIZE = 200;
     private static final int MINUTE_TIME_WHEEL_SLOT_SIZE = 60;
@@ -71,7 +70,7 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
 
     @Override
     public void run() {
-        long nextTime = System.currentTimeMillis() + 30;
+        long nextTime = System.currentTimeMillis() + INTERVAL_MILLS;
 
         while (isNotShutdown()) {
             // 线程睡眠到被调度消耗时间，所以精度不可能太高
@@ -83,7 +82,7 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
                 }
             }
 
-            nextTime += 30;
+            nextTime += INTERVAL_MILLS;
 
 //            List<TimeoutTask> taskList = secondTimeWheel.nextTick();
 //            if(secondTimeWheel.isNextRound()) {
