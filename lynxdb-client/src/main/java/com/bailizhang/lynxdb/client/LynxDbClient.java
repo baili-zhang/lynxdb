@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.client.annotation.LynxDbColumn;
 import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.core.common.BytesList;
@@ -264,7 +265,11 @@ public class LynxDbClient implements AutoCloseable {
         List<DbValue> dbValues = new ArrayList<>();
         for(Field field : fields) {
             if(field.getType() != String.class) {
-                return;
+                continue;
+            }
+
+            if(!FieldUtils.isAnnotated(field, LynxDbColumn.class)) {
+                continue;
             }
 
             String column = field.getName();
