@@ -38,7 +38,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] value = find(key, columnFamily, column);
 
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily), G.I.toString(value));
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
 
         BytesList bytesList = new BytesList();
 
@@ -87,7 +87,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] value = BufferUtils.getBytes(buffer);
 
         logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily),
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
                 G.I.toString(value));
 
         insert(key, columnFamily, column, value);
@@ -108,7 +108,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] column = BufferUtils.getBytes(buffer);
 
         logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily));
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
 
         delete(key, columnFamily, column);
 
