@@ -1,9 +1,13 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
+import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
@@ -12,6 +16,7 @@ import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -118,6 +123,57 @@ public class LynxDbClient implements AutoCloseable {
         return dbValues;
     }
 
+    public <T> T find(T obj, byte[]... columns) {
+        Class<?> clazz = obj.getClass();
+        LynxDbColumnFamily annotation = clazz.getAnnotation(LynxDbColumnFamily.class);
+        if(annotation == null) {
+            throw new RuntimeException();
+        }
+
+        String columnFamily = annotation.value();
+        if(columnFamily == null) {
+            throw new RuntimeException();
+        }
+
+        // TODO: class 的 field 可以缓存，是否可以提高性能？
+        Field[] fields = clazz.getDeclaredFields();
+        List<Field> keyFields = new ArrayList<>();
+
+        for (Field field : fields) {
+            if(FieldUtils.isAnnotated(field, LynxDbKey.class)) {
+                keyFields.add(field);
+            }
+        }
+
+        if(keyFields.size() != 1) {
+            throw new RuntimeException();
+        }
+
+        Field keyField = keyFields.get(0);
+        Class<?> keyClazz = keyField.getType();
+
+        if(keyClazz != String.class) {
+            throw new RuntimeException();
+        }
+
+        String key = (String) FieldUtils.get(obj, keyField);
+        if(columns.length != 0) {
+            // TODO: 支持选择 column
+            throw new RuntimeException();
+        }
+
+        List<DbValue> dbValues = find(G.I.toBytes(key), G.I.toBytes(columnFamily));
+        dbValues.forEach(dbValue -> {
+            String name = G.I.toString(dbValue.column());
+            String value = G.I.toString(dbValue.value());
+
+            // TODO: 支持 String 以外的其他类型
+            FieldUtils.set(obj, name, value);
+        });
+
+        return obj;
+    }
+
     public void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
@@ -139,6 +195,14 @@ public class LynxDbClient implements AutoCloseable {
         }
     }
 
+    public void insert(byte[] key, byte[] columnFamily, List<DbValue> dbValues) {
+        // TODO
+    }
+
+    public void insert(Object obj, byte[]... columns) {
+        // TODO
+    }
+
     public void delete(byte[] key, byte[] columnFamily, byte[] column) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
@@ -157,6 +221,10 @@ public class LynxDbClient implements AutoCloseable {
         if (buffer.get() != LdtpCode.VOID) {
             throw new RuntimeException();
         }
+    }
+
+    public void delete(byte[] key, byte[] columnFamily) {
+        // TODO
     }
 
     public void register(byte[] key, byte[] columnFamily) {
