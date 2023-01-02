@@ -21,6 +21,7 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String REGISTER = "register";
     private static final String DEREGISTER = "deregister";
     private static final String WATCH = "watch";
+    private static final String EXIT = "exit";
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
@@ -96,9 +97,16 @@ public class LynxDbCmdClient extends Shutdown {
                     printAffectValue(affectValue);
                 }
 
+                case EXIT -> {
+                    command.exit();
+                    shutdown();
+                }
+
                 default -> Printer.printError(ERROR_COMMAND);
             }
         }
+
+        client.close();
     }
 
     public static void main(String[] args) {

@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
+import com.bailizhang.lynxdb.socket.request.SocketRequest;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -21,7 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
-public class LynxDbClient {
+public class LynxDbClient implements AutoCloseable {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap = new ConcurrentHashMap<>();
     private final BlockingQueue<byte[]> messageQueue = new LinkedBlockingQueue<>();
@@ -48,6 +49,10 @@ public class LynxDbClient {
         // 创建请求端口的连接
         ServerNode node = new ServerNode(host, port);
         connection.serverNode(node);
+    }
+
+    public void disconnect() {
+        socketClient.send(current(), SocketRequest.BLANK_FLAG, BufferUtils.EMPTY_BYTES);
     }
 
     public void registerConnect(String host, int port) {
@@ -203,5 +208,10 @@ public class LynxDbClient {
     private LynxDbFuture<byte[]> futureMapGet(SelectionKey selectionKey, int serial) {
         ConcurrentHashMap<Integer, LynxDbFuture<byte[]>> map = futureMap.get(selectionKey);
         return map.get(serial);
+    }
+
+    @Override
+    public void close() {
+        socketClient.close();
     }
 }

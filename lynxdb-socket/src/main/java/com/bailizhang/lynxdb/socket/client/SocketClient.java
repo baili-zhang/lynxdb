@@ -6,6 +6,7 @@ import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
+import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +25,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SocketClient extends Executor<WritableSocketRequest> {
+public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
     private final static Logger logger = LogManager.getLogger("SocketClient");
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
@@ -108,7 +109,11 @@ public class SocketClient extends Executor<WritableSocketRequest> {
     }
 
     public final int send(SelectionKey selectionKey, byte[] data) {
-        byte status = (byte) 0x00;
+        byte status = SocketRequest.KEEP_CONNECTION;
+        return send(selectionKey, status, data);
+    }
+
+    public final int send(SelectionKey selectionKey, byte status, byte[] data) {
         int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
@@ -125,7 +130,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
     }
 
     public final int send(NioMessage message) {
-        byte status = (byte) 0x00;
+        byte status = SocketRequest.KEEP_CONNECTION;
         int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
@@ -144,7 +149,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
 
         for(SelectionKey selectionKey : contexts.keySet()) {
             ConnectionContext context = contexts.get(selectionKey);
-            byte status = (byte) 0x00;
+            byte status = SocketRequest.KEEP_CONNECTION;
             context.offerRequest(new WritableSocketRequest(selectionKey, status, broadcastSerial, data));
         }
 
@@ -168,7 +173,7 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         try {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
-            if(Thread.interrupted()) {
+            if(isNotShutdown() && Thread.interrupted()) {
                 logger.debug("Socket client has bean interrupted.");
             }
 
@@ -197,6 +202,15 @@ public class SocketClient extends Executor<WritableSocketRequest> {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void close() {
+        shutdown();
+    }
+
+    protected void doAfterExecute() {
+        executor.shutdown();
     }
 
     /* IO线程的线程工厂 */

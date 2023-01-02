@@ -45,4 +45,8 @@ public class LynxDbCommand implements LynxDbEntity {
     public LynxDbClient client() {
         return client;
     }
+
+    public void exit() {
+        client.disconnect();
+    }
 }
