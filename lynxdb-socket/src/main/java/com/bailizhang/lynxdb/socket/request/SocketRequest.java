@@ -5,6 +5,9 @@ import com.bailizhang.lynxdb.core.exceptions.NullFieldException;
 import java.nio.channels.SelectionKey;
 
 public class SocketRequest {
+    public static final byte BLANK_FLAG = (byte) 0x00;
+    public static final byte KEEP_CONNECTION = (byte) 0x01;
+
     protected final SelectionKey selectionKey;
     protected Byte status;
     protected Integer serial;
@@ -61,7 +64,7 @@ public class SocketRequest {
     }
 
     public boolean isKeepConnection() {
-        return true;
+        return (status & KEEP_CONNECTION) == KEEP_CONNECTION;
     }
 
     public boolean isBroadcast() {

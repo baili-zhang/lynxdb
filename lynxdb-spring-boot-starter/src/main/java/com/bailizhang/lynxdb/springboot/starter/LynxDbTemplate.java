@@ -4,14 +4,16 @@ import com.bailizhang.lynxdb.client.LynxDbClient;
 
 import java.nio.channels.SelectionKey;
 
-public class LynxDbTemplate extends LynxDbClient {
+public class LynxDbTemplate extends LynxDbClient implements AutoCloseable {
 
     public LynxDbTemplate(LynxDbProperties properties) {
         String host = properties.getHost();
         int port = properties.getPort();
+        int messagePort = properties.getMessagePort();
 
         super.start();
         super.connect(host, port);
+        super.registerConnect(host, messagePort);
     }
 
     @Override
@@ -27,5 +29,11 @@ public class LynxDbTemplate extends LynxDbClient {
     @Override
     public SelectionKey current() {
         throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void close() {
+
     }
 }

@@ -1,2 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-    com.bailizhang.lynxdb.springcloud.starter.discovery.LynxDbRegistryAutoConfiguration

@@ -88,8 +88,6 @@ public class IoEventHandler implements Runnable {
                 context.pollResponse();
                 context.decreaseRequestCount();
 
-                handler.handleResponse(response);
-
                 logger.info("Send socket response: {} to client.", response);
             } else {
                 /* 如果mdtpResponse没写完，说明写缓存已经写满了 */

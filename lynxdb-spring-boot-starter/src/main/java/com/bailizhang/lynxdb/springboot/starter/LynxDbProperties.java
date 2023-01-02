@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class LynxDbProperties {
     private String host;
     private int port;
+    private int messagePort;
 
     public String getHost() {
         return host;
@@ -21,5 +22,13 @@ public class LynxDbProperties {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public int getMessagePort() {
+        return messagePort;
+    }
+
+    public void setMessagePort(int messagePort) {
+        this.messagePort = messagePort;
     }
 }

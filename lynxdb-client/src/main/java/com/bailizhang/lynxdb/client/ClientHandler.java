@@ -5,15 +5,21 @@ import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
 
 public class ClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
+    private final BlockingQueue<byte[]> messageQueue;
 
     public ClientHandler(ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map) {
+            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map,
+                         BlockingQueue<byte[]> queue) {
         futureMap = map;
+        messageQueue = queue;
     }
 
     @Override
@@ -39,6 +45,13 @@ public class ClientHandler implements SocketClientHandler {
     @Override
     public void handleResponse(SocketResponse response) {
         int serial = response.serial();
+        byte[] data = response.data();
+
+        if(serial == MESSAGE_SERIAL) {
+            messageQueue.add(data);
+            return;
+        }
+
         SelectionKey key = response.selectionKey();
         ConcurrentHashMap<Integer, LynxDbFuture<byte[]>> map = futureMap.get(key);
 
@@ -47,6 +60,6 @@ public class ClientHandler implements SocketClientHandler {
         }
 
         LynxDbFuture<byte[]> future = map.remove(serial);
-        future.value(response.data());
+        future.value(data);
     }
 }

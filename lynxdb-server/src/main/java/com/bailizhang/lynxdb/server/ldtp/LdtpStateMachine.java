@@ -11,6 +11,7 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
@@ -46,14 +47,13 @@ public class LdtpStateMachine implements StateMachine {
     @Override
     public void apply(List<RaftCommend> entries) {
         for (RaftCommend entry : entries) {
-            byte[] command = entry.data();
-            QueryParams params = QueryParams.parse(command);
+            ByteBuffer buffer = ByteBuffer.wrap(entry.data());
+            QueryParams params = QueryParams.parse(buffer);
             QueryResult result = storageEngine.doQuery(params);
             WritableSocketResponse response = new WritableSocketResponse(
                     entry.selectionKey(),
                     entry.serial(),
-                    result.data(),
-                    result.affectValues()
+                    result.data()
             );
             raftServer.offerInterruptibly(response);
         }
@@ -62,7 +62,8 @@ public class LdtpStateMachine implements StateMachine {
     @Override
     public void apply0(List<byte[]> commands) {
         for(byte[] command : commands) {
-            QueryParams params = QueryParams.parse(command);
+            ByteBuffer buffer = ByteBuffer.wrap(command);
+            QueryParams params = QueryParams.parse(buffer);
             storageEngine.doQuery(params);
         }
     }

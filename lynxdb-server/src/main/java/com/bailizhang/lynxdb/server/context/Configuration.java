@@ -118,4 +118,29 @@ public class Configuration {
     public String runningMode() {
         return runningMode;
     }
+
+    @Override
+    public String toString() {
+        String template = """
+                {
+                    host: %s,
+                    port: %d,
+                    dataDir: "%s",
+                    raftLogDir: "%s",
+                    runningMode: %s,
+                    electionMode: %s,
+                    charset: %s
+                }""";
+
+        return String.format(
+                template,
+                host,
+                port,
+                dataDir,
+                raftLogDir,
+                runningMode,
+                electionMode,
+                charset
+        );
+    }
 }
