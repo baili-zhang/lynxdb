@@ -11,7 +11,9 @@ public @interface LdtpMethod {
     byte FIND_BY_KEY_CF_COLUMN  = (byte) 0x01;
     byte FIND_BY_KEY_CF         = (byte) 0x02;
     byte INSERT                 = (byte) 0x03;
-    byte DELETE                 = (byte) 0x04;
+    byte INSERT_MULTI_COLUMN    = (byte) 0x04;
+    byte DELETE                 = (byte) 0x05;
+    byte DELETE_MULTI_COLUMN    = (byte) 0x06;
 
     byte value();
 }

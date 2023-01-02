@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.server.annotations.LdtpCode.DB_VALUE_LIST;
@@ -98,6 +99,34 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, new AffectKey(key, columnFamily));
     }
 
+    @LdtpMethod(INSERT_MULTI_COLUMN)
+    public QueryResult doInsertMultiColumn(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+
+        List<DbValue> dbValues = new ArrayList<>();
+
+        while(BufferUtils.isNotOver(buffer)) {
+            byte[] column = BufferUtils.getBytes(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+
+            dbValues.add(new DbValue(column, value));
+        }
+
+        logger.debug("Insert key: {}, columnFamily: {}, dbValues: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), dbValues);
+
+        insert(key, columnFamily, dbValues);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+    }
+
     @LdtpMethod(DELETE)
     public QueryResult doDelete(QueryParams params) {
         byte[] data = params.content();
@@ -111,6 +140,25 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
 
         delete(key, columnFamily, column);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+    }
+
+    @LdtpMethod(DELETE_MULTI_COLUMN)
+    public QueryResult doDeleteMultiColumn(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+
+        logger.debug("Delete key: {}, columnFamily: {}.",
+                G.I.toString(key), G.I.toString(columnFamily));
+
+        delete(key, columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
