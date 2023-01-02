@@ -7,7 +7,7 @@
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>2022.12.17-snapshot</version>
+    <version>2023.1.2-alpha</version>
 
     <modules>
         <module>lynxdb-server</module>
@@ -26,7 +26,7 @@
     <properties>
         <springboot.version>3.0.0</springboot.version>
         <spring.cloud.version>3.1.5</spring.cloud.version>
-        <lynxdb.version>2022.12.17-snapshot</lynxdb.version>
+        <lynxdb.version>2023.1.2-alpha</lynxdb.version>
         <log4j.version>2.16.0</log4j.version>
         <junit.version>5.8.2</junit.version>
         <maven.compiler.source>17</maven.compiler.source>

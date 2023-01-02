@@ -17,7 +17,7 @@ import static com.bailizhang.lynxdb.server.context.Configuration.SINGLE;
 public class LynxDbMainServer {
     private static final Logger logger = LogManager.getLogger("MoonlightServer");
 
-    private static final String VERSION = "2022.12.17-snapshot";
+    private static final String VERSION = "2023.1.2-alpha";
 
     private final LynxDbServer server;
 
