@@ -1,1 +1,1 @@
-java -Xmx2g -Xms2g -jar lib/lynxdb-server-2023.1.2-alpha.jar
+java -Xmx2g -Xms2g -jar lib/lynxdb-server-2023.1.4-alpha.jar

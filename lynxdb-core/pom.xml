@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2023.1.2-alpha</version>
+        <version>2023.1.4-alpha</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>

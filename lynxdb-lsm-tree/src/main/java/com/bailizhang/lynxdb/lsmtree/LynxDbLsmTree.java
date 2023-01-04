@@ -65,10 +65,35 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
+    public void insert(byte[] key, byte[] columnFamily, List<DbValue> dbValues) {
+        ColumnFamilyRegion region = findRegion(columnFamily);
+
+        dbValues.forEach(dbValue -> {
+            byte[] column = dbValue.column();
+            byte[] value = dbValue.value();
+
+            DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
+            DbEntry dbEntry = new DbEntry(dbKey, value);
+            region.insert(dbEntry);
+        });
+    }
+
+    @Override
     public void delete(byte[] key, byte[] columnFamily, byte[] column) {
         ColumnFamilyRegion region = findRegion(columnFamily);
         DbKey dbKey = new DbKey(key, column, DbKey.DELETED);
         region.delete(dbKey);
+    }
+
+    @Override
+    public void delete(byte[] key, byte[] columnFamily) {
+        // TODO: 只查询 key，不查询 value
+        List<DbValue> dbValues = find(key, columnFamily);
+
+        dbValues.forEach(dbValue -> {
+            byte[] column = dbValue.column();
+            delete(key, columnFamily, column);
+        });
     }
 
     @Override

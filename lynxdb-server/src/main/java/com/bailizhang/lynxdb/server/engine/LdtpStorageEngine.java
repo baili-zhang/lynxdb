@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.server.annotations.LdtpCode.DB_VALUE_LIST;
@@ -38,7 +39,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] value = find(key, columnFamily, column);
 
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily), G.I.toString(value));
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
 
         BytesList bytesList = new BytesList();
 
@@ -87,10 +88,38 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] value = BufferUtils.getBytes(buffer);
 
         logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily),
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
                 G.I.toString(value));
 
         insert(key, columnFamily, column, value);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+    }
+
+    @LdtpMethod(INSERT_MULTI_COLUMN)
+    public QueryResult doInsertMultiColumn(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+
+        List<DbValue> dbValues = new ArrayList<>();
+
+        while(BufferUtils.isNotOver(buffer)) {
+            byte[] column = BufferUtils.getBytes(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+
+            dbValues.add(new DbValue(column, value));
+        }
+
+        logger.debug("Insert key: {}, columnFamily: {}, dbValues: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), dbValues);
+
+        insert(key, columnFamily, dbValues);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -108,9 +137,28 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] column = BufferUtils.getBytes(buffer);
 
         logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
-                G.I.toString(key), G.I.toString(column), G.I.toString(columnFamily));
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
 
         delete(key, columnFamily, column);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+    }
+
+    @LdtpMethod(DELETE_MULTI_COLUMN)
+    public QueryResult doDeleteMultiColumn(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        byte[] columnFamily = BufferUtils.getBytes(buffer);
+
+        logger.debug("Delete key: {}, columnFamily: {}.",
+                G.I.toString(key), G.I.toString(columnFamily));
+
+        delete(key, columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);

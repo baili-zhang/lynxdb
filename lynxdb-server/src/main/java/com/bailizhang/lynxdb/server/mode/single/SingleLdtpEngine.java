@@ -56,33 +56,28 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
         byte flag = buffer.get();
 
         switch (flag) {
-            case CLIENT_REQUEST ->
-                    // 防止数据库操作被中断
-                    CompletableFuture.runAsync(
-                            () -> {
-                                QueryParams queryParams = QueryParams.parse(buffer);
-                                QueryResult result = engine.doQuery(queryParams);
+            case CLIENT_REQUEST -> CompletableFuture.runAsync(() -> {
+                QueryParams queryParams = QueryParams.parse(buffer);
+                QueryResult result = engine.doQuery(queryParams);
 
-                                WritableSocketResponse response = new WritableSocketResponse(
-                                        selectionKey,
-                                        serial,
-                                        result.data()
-                                );
+                WritableSocketResponse response = new WritableSocketResponse(
+                        selectionKey,
+                        serial,
+                        result.data()
+                );
 
-                                // 返回给发起请求的客户端
-                                server.offerInterruptibly(response);
+                // 返回给发起请求的客户端
+                server.offerInterruptibly(response);
 
-                                // 处理注册监听的 key
-                                AffectKey affectKey = result.affectKey();
-                                if(affectKey == null) {
-                                    return;
-                                }
-                                sendAffectValueToRegisterClient(affectKey);
-                            },
-                            executor
-                    );
+                // 处理注册监听的 key
+                AffectKey affectKey = result.affectKey();
+                if(affectKey == null) {
+                    return;
+                }
+                sendAffectValueToRegisterClient(affectKey);
+            }, executor);
 
-            case REGISTER_KEY -> {
+            case REGISTER_KEY -> CompletableFuture.runAsync(() -> {
                 AffectKey affectKey = AffectKey.from(buffer);
                 affectKeyRegistry.register(selectionKey, affectKey);
 
@@ -97,8 +92,8 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
 
                 server.offerInterruptibly(response);
                 sendAffectValueToRegisterClient(affectKey);
-            }
-            case DEREGISTER_KEY -> {
+            }, executor);
+            case DEREGISTER_KEY -> CompletableFuture.runAsync(() -> {
                 affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
 
                 BytesList bytesList = new BytesList();
@@ -111,7 +106,7 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                 );
 
                 server.offerInterruptibly(response);
-            }
+            }, executor);
 
             default -> throw new RuntimeException();
         }
