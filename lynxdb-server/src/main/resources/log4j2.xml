@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
     <Properties>
-        <Property name="log.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%20t] [%5level] [%20logger] -- %msg%n</Property>
+        <Property name="log.pattern">%d{YYYY-MM-dd HH:mm:ss.SSS} [%20t] [%level] [%20logger] -- %msg%n</Property>
     </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">

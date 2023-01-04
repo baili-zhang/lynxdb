@@ -1,1 +1,1 @@
-java -jar lib/lynxdb-cmd-2023.1.3-snapshot.jar
+java -jar lib/lynxdb-cmd-2023.1.4-alpha.jar
