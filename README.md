@@ -65,11 +65,51 @@ byte[] find(byte[] key, byte[] columnFamily, byte[] column);
 List<DbValue> find(byte[] key, byte[] columnFamily)
 ```
 
+Find object:
+
+```java
+<T> T find(T obj, byte[]... columns)
+```
+
+Example: see insert object.
+
 *Insert*
+
+Insert one column:
 
 ```java
 // lynxDbTemplate.insert
 void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value)
+```
+
+Insert multi columns:
+
+```java
+void insert(byte[] key, byte[] columnFamily, List<DbValue> dbValues)
+```
+
+Insert object:
+
+```java
+void insert(Object obj, byte[]... columns)
+```
+
+If insert object, object must annotate by `@LynxDbColumnFamily`, `@LynxDbKey` and `@LynxDbColumn`.
+
+For example:
+
+```java
+@LynxDbColumnFamily("article")
+public class Article {
+    @LynxDbKey
+    private String id;
+
+    @LynxDbColumn
+    private String title;
+
+    @LynxDbColumn
+    private String body;
+}
 ```
 
 *Delete*
@@ -78,6 +118,21 @@ void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value)
 // lynxDbTemplate.delete
 void delete(byte[] key, byte[] columnFamily, byte[] column)
 ```
+
+*Register*
+
+```java
+// lynxDbTemplate.register
+void register(byte[] key, byte[] columnFamily)
+```
+
+*Deregister*
+
+```java
+// lynxDbTemplate.deregister
+void deregister(byte[] key, byte[] columnFamily)
+```
+
 
 ## Spring Cloud
 
@@ -152,6 +207,18 @@ insert [key] [column family] [column] [value]
 
 ```shell
 delete [key] [column family] [column]
+```
+
+### Register
+
+```shell
+register [key] [column family]
+```
+
+### Deregister
+
+```shell
+Deregister [key] [column family]
 ```
 
 ## Configuration
