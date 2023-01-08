@@ -13,51 +13,31 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
 
     private static final int INTERVAL_MILLS = 10;
 
-    private static final int SECOND_TIME_WHEEL_SLOT_SIZE = 200;
-    private static final int MINUTE_TIME_WHEEL_SLOT_SIZE = 60;
-    private static final int HOUR_TIME_WHEEL_SLOT_SIZE = 60;
-    private static final int TOP_TIME_WHEEL_SLOT_SIZE = 10;
-
-    private static final int SECOND = 1000;
-    private static final int MINUTE = 60 * 1000;
-    private static final int HOUR = 60 * 60 * 1000;
-
     private final AtomicLong id = new AtomicLong(1);
     private final ConcurrentHashMap<Long, TimeoutTask> tasks = new ConcurrentHashMap<>();
 
-    private final SingleTimeWheel secondTimeWheel = new SingleTimeWheel(SECOND_TIME_WHEEL_SLOT_SIZE);
-    private final SingleTimeWheel minuteTimeWheel = new SingleTimeWheel(MINUTE_TIME_WHEEL_SLOT_SIZE);
-    private final SingleTimeWheel hourTimeWheel = new SingleTimeWheel(HOUR_TIME_WHEEL_SLOT_SIZE);
-    private final PriorityTimeWheel topTimeWheel = new PriorityTimeWheel(TOP_TIME_WHEEL_SLOT_SIZE);
+    /** 秒钟的时间轮 */
+    private final TimeWheel second;
 
     private final TaskConsumer consumer;
 
     public LynxDbTimeWheel(TaskConsumer taskConsumer) {
         consumer = taskConsumer;
+
+        TimeWheel day = new TimeWheel(24, null);
+        TimeWheel hour = new TimeWheel(60, day);
+        TimeWheel minute = new TimeWheel(60, hour);
+
+        second = new TimeWheel(100, minute);
     }
 
-    // 需要保证线程安全
-    public long register(TimeoutTask task) {
+    public synchronized long register(TimeoutTask task) {
         long taskId = id.getAndIncrement();
         tasks.put(taskId, task);
 
         long duration = task.time() - System.currentTimeMillis();
         if(duration < INTERVAL_MILLS) {
             task.run();
-        }
-
-        if(duration < SECOND) {
-            int slot = ((int) duration) % INTERVAL_MILLS;
-            secondTimeWheel.register(slot, task);
-        } else if(duration < MINUTE) {
-            int slot = ((int) duration) % SECOND;
-            minuteTimeWheel.register(slot, task);
-        } else if(duration < HOUR) {
-            int slot = ((int) duration) % MINUTE;
-            hourTimeWheel.register(slot, task);
-        } else {
-            int slot = ((int) duration) % HOUR;
-            topTimeWheel.register(slot, task);
         }
 
         return taskId;
@@ -70,7 +50,10 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
 
     @Override
     public void run() {
-        long nextTime = System.currentTimeMillis() + INTERVAL_MILLS;
+        long current = System.currentTimeMillis();
+        second.init(current);
+
+        long nextTime = current + INTERVAL_MILLS;
 
         while (isNotShutdown()) {
             // 线程睡眠到被调度消耗时间，所以精度不可能太高
@@ -83,15 +66,6 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
             }
 
             nextTime += INTERVAL_MILLS;
-
-//            List<TimeoutTask> taskList = secondTimeWheel.nextTick();
-//            if(secondTimeWheel.isNextRound()) {
-//
-//            }
-//
-//            for(TimeoutTask task : taskList) {
-//                consumer.consume(task.data());
-//            }
 
             logger.info("Tick");
         }
