@@ -12,6 +12,11 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
     private static final Logger logger = LogManager.getLogger("LynxDbTimeWheel");
 
     private static final int INTERVAL_MILLS = 10;
+    private static final int DAY_COUNT = 24;
+    private static final int HOUR_COUNT = 60;
+    private static final int MINUTE_COUNT = 60;
+    private static final int SECOND_COUNT = 100;
+    private static final int TOTAL_COUNT = DAY_COUNT * HOUR_COUNT * MINUTE_COUNT * SECOND_COUNT;
 
     private final AtomicLong id = new AtomicLong(1);
     private final ConcurrentHashMap<Long, TimeoutTask> tasks = new ConcurrentHashMap<>();
@@ -24,11 +29,11 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
     public LynxDbTimeWheel(TaskConsumer taskConsumer) {
         consumer = taskConsumer;
 
-        TimeWheel day = new TimeWheel(24, null);
-        TimeWheel hour = new TimeWheel(60, day);
-        TimeWheel minute = new TimeWheel(60, hour);
+        TimeWheel day = new TimeWheel(DAY_COUNT, null);
+        TimeWheel hour = new TimeWheel(HOUR_COUNT, day);
+        TimeWheel minute = new TimeWheel(MINUTE_COUNT, hour);
 
-        second = new TimeWheel(100, minute);
+        second = new TimeWheel(SECOND_COUNT, minute);
     }
 
     public synchronized long register(TimeoutTask task) {
@@ -51,7 +56,8 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
     @Override
     public void run() {
         long current = System.currentTimeMillis();
-        second.init(current);
+        int delta = (int) current % TOTAL_COUNT;
+        second.init(delta);
 
         long nextTime = current + INTERVAL_MILLS;
 
@@ -64,6 +70,8 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
                     e.printStackTrace();
                 }
             }
+
+            second.tick();
 
             nextTime += INTERVAL_MILLS;
 

@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.timewheel;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TimeWheel {
 
@@ -10,7 +10,7 @@ public class TimeWheel {
     private final TimeWheel next;
     private final List<TimeoutTask>[] circle;
     /** 当前的刻度值 */
-    private final AtomicInteger pointer = new AtomicInteger();
+    private final AtomicLong pointer = new AtomicLong();
 
     @SuppressWarnings("unchecked")
     public TimeWheel(int scale, TimeWheel next) {
@@ -20,15 +20,22 @@ public class TimeWheel {
         circle = new List[scale];
     }
 
-    public TimeWheel next() {
-        return next;
-    }
-
     public boolean hasNoNext() {
         return next == null;
     }
 
-    public void init(long timestamp) {
+    public void init(int val) {
+        if(val < scale) {
+            pointer.set(val);
+            return;
+        }
+
+        if(next != null) {
+            next.init(val % scale);
+        }
+    }
+
+    public void tick() {
 
     }
 }
