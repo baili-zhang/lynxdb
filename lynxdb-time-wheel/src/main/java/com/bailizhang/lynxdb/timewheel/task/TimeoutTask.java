@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.timewheel;
+package com.bailizhang.lynxdb.timewheel.task;
 
 public class TimeoutTask implements Runnable {
     private final long time;
@@ -17,10 +17,6 @@ public class TimeoutTask implements Runnable {
 
     public long time() {
         return time;
-    }
-
-    public byte[] data() {
-        return data;
     }
 
     @Override

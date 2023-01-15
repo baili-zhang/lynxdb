@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.timewheel;
+package com.bailizhang.lynxdb.timewheel.task;
 
 @FunctionalInterface
 public interface TaskConsumer {

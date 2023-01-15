@@ -6,7 +6,7 @@ class LynxDbTimeWheelTest {
 
     @Test
     void run() {
-        LynxDbTimeWheel lynxDbTimeWheel = new LynxDbTimeWheel(data -> {});
+        LynxDbTimeWheel lynxDbTimeWheel = new LynxDbTimeWheel();
         lynxDbTimeWheel.run();
     }
 }
