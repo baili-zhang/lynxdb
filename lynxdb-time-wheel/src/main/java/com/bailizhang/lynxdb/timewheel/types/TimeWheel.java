@@ -36,9 +36,9 @@ public abstract class TimeWheel {
 
     public List<TimeoutTask> tick() {
         if(++ slot >= scale) {
-            List<TimeoutTask> nextRound = nextRound();
-
             baseTime += totalTime;
+
+            List<TimeoutTask> nextRound = nextRound();
 
             nextRound.forEach(task -> {
                 long time = task.time();
@@ -65,5 +65,6 @@ public abstract class TimeWheel {
 
     public abstract int init(long time);
     public abstract int register(TimeoutTask task);
+    public abstract int unregister(TimeoutTask task);
     protected abstract List<TimeoutTask> nextRound();
 }

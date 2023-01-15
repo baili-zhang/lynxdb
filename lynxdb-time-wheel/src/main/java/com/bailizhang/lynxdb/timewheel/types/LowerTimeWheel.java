@@ -42,6 +42,26 @@ public class LowerTimeWheel extends TimeWheel {
     }
 
     @Override
+    public int unregister(TimeoutTask task) {
+        int remain = nextTimeWheel.unregister(task);
+
+        // 已经移除成功了
+        if(remain < 0) {
+            return SUCCESS;
+        }
+
+        int newSlot = remain / millisPerSlot;
+        if(newSlot > slot) {
+            circle[newSlot].remove(task);
+            return SUCCESS;
+        } else if(newSlot < slot) {
+            return 0;
+        }
+
+        return remain % millisPerSlot;
+    }
+
+    @Override
     protected List<TimeoutTask> nextRound() {
         return nextTimeWheel.tick();
     }

@@ -52,6 +52,34 @@ public class TopperTimeWheel extends TimeWheel {
     }
 
     @Override
+    public int unregister(TimeoutTask task) {
+        long time = task.time();
+
+        int remain = (int)(time - baseTime);
+
+        // remain 小于 0，直接返回 0
+        if(remain < 0) {
+            return 0;
+        }
+
+        int newSlot = remain / millisPerSlot;
+
+        // 在优先队列里
+        if(newSlot >= scale) {
+            queue.remove(task);
+            return SUCCESS;
+        } else if(newSlot > slot) {
+            // 在时间轮里
+            circle[newSlot].remove(task);
+            return SUCCESS;
+        } else if(newSlot < slot) {
+            return 0;
+        }
+
+        return remain % millisPerSlot;
+    }
+
+    @Override
     protected List<TimeoutTask> nextRound() {
         List<TimeoutTask> tasks = new ArrayList<>();
 
@@ -62,7 +90,7 @@ public class TopperTimeWheel extends TimeWheel {
                 break;
             }
 
-            tasks.add(task);
+            tasks.add(queue.poll());
         }
 
         return tasks;

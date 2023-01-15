@@ -9,6 +9,8 @@ import com.bailizhang.lynxdb.timewheel.types.TopperTimeWheel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +41,7 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         second = new LowerTimeWheel(TEN_MILLIS_PER_SECOND, secondMillis, minute);
     }
 
+    /** 保证线程安全 */
     public synchronized void register(TimeoutTask task) {
         if(!initialized) {
             logger.info("Time wheel is not initialized.");
@@ -58,6 +61,26 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         logger.info("Register failed, TimeoutTask: {}", task);
     }
 
+    /** 保证线程安全 */
+    public synchronized void unregister(TimeoutTask task) {
+        if(!initialized) {
+            logger.info("Time wheel is not initialized.");
+            return;
+        }
+
+        if(task.identifier() == null) {
+            return;
+        }
+
+        int remain = second.unregister(task);
+        if(remain == TimeWheel.SUCCESS) {
+            logger.info("Unregister success, TimeoutTask: {}.", task);
+            return;
+        }
+
+        logger.warn("Unregister failed, TimeoutTask: {}.", task);
+    }
+
     @Override
     public void run() {
         long beginTime = (System.currentTimeMillis() / TEN_MILLIS_PER_SECOND) * TEN_MILLIS_PER_SECOND;
@@ -75,7 +98,13 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
                 TimeUtils.sleep(TimeUnit.MILLISECONDS, 1);
             }
 
-            List<TimeoutTask> tasks = second.tick();
+            List<TimeoutTask> tasks;
+
+            // 同步 tick 方法
+            synchronized (this) {
+                tasks = second.tick();
+            }
+
             tasks.forEach(TimeoutTask::doTask);
 
             nextTime += INTERVAL_MILLS;
