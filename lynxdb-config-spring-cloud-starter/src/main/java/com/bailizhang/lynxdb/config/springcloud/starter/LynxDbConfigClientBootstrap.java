@@ -6,12 +6,12 @@ import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 @Component
 public class LynxDbConfigClientBootstrap implements SpringApplicationRunListener {

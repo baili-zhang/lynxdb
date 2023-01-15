@@ -9,8 +9,6 @@ import com.bailizhang.lynxdb.timewheel.types.TopperTimeWheel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 

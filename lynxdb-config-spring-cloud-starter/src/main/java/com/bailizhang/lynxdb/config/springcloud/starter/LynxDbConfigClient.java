@@ -6,16 +6,14 @@ import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
-import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
-import org.springframework.cloud.context.properties.ConfigurationPropertiesRebinder;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.env.*;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class LynxDbConfigClient extends Shutdown implements Runnable {
     private final LynxDbTemplate lynxDbTemplate;
