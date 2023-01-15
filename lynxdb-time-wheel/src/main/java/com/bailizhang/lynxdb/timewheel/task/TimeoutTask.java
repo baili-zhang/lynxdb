@@ -1,26 +1,26 @@
 package com.bailizhang.lynxdb.timewheel.task;
 
-public class TimeoutTask implements Runnable {
+public class TimeoutTask {
     private final long time;
-    private final byte[] data;
-    private final TaskConsumer consumer;
 
-    public TimeoutTask(long time, byte[] data, TaskConsumer consumer) {
+    private final Runnable runnableTask;
+
+    public TimeoutTask(long time, Runnable runnableTask) {
         this.time = time;
-        this.data = data;
-        this.consumer = consumer;
-    }
-
-    public TimeoutTask(long time, TaskConsumer consumer) {
-        this(time, null, consumer);
+        this.runnableTask = runnableTask;
     }
 
     public long time() {
         return time;
     }
 
+    public void doTask() {
+        runnableTask.run();
+    }
+
     @Override
-    public void run() {
-        consumer.consume(data);
+    public String toString() {
+        String template = "{ time: %s, task: %s }";
+        return String.format(template, time, runnableTask);
     }
 }

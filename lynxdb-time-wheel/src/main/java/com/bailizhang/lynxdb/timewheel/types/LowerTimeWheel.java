@@ -13,17 +13,36 @@ public class LowerTimeWheel extends TimeWheel {
     }
 
     @Override
-    protected void registerNext(TimeoutTask task) {
-        nextTimeWheel.register(task);
+    public int init(long time) {
+        int remain = nextTimeWheel.init(time);
+        slot = remain / millisPerSlot;
+        baseTime = time - remain;
+
+        return remain % millisPerSlot;
+    }
+
+    @Override
+    public int register(TimeoutTask task) {
+        int remain = nextTimeWheel.register(task);
+
+        // 已经注册成功了
+        if(remain < 0) {
+            return SUCCESS;
+        }
+
+        int newSlot = remain / millisPerSlot;
+        if(newSlot > slot) {
+            circle[newSlot].add(task);
+            return SUCCESS;
+        } else if(newSlot < slot) {
+            return 0;
+        }
+
+        return remain % millisPerSlot;
     }
 
     @Override
     protected List<TimeoutTask> nextRound() {
         return nextTimeWheel.tick();
-    }
-
-    @Override
-    protected void initNextTimeWheel(int delta, long base) {
-        nextTimeWheel.init(delta, base);
     }
 }

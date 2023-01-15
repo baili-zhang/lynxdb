@@ -20,10 +20,11 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
     private static final int MINUTES_PER_HOUR = 60;
     private static final int SECONDS_PER_MINUTE = 60;
     private static final int TEN_MILLIS_PER_SECOND = 100;
-    private static final int TOTAL_COUNT = HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * TEN_MILLIS_PER_SECOND;
 
     /** 秒钟的时间轮 */
     private final TimeWheel second;
+
+    private volatile boolean initialized = false;
 
     public LynxDbTimeWheel() {
         int secondMillis = TEN_MILLIS_PER_SECOND * INTERVAL_MILLS;
@@ -38,16 +39,35 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         second = new LowerTimeWheel(TEN_MILLIS_PER_SECOND, secondMillis, minute);
     }
 
+    public synchronized void register(TimeoutTask task) {
+        if(!initialized) {
+            logger.info("Time wheel is not initialized.");
+            return;
+        }
+
+        int remain = second.register(task);
+
+        // 注册成功
+        if(remain == TimeWheel.SUCCESS) {
+            logger.info("Register success, TimeoutTask: {}", task);
+            return;
+        }
+
+        // 注册失败，直接当前线程执行
+        task.doTask();
+        logger.info("Register failed, TimeoutTask: {}", task);
+    }
+
     @Override
     public void run() {
         long beginTime = (System.currentTimeMillis() / TEN_MILLIS_PER_SECOND) * TEN_MILLIS_PER_SECOND;
+        second.init(beginTime);
 
-        int delta = (int)(beginTime % TOTAL_COUNT);
-        long base = beginTime - delta;
-
-        second.init(delta, base);
+        logger.info("Init time wheel, beginTime: {}", beginTime);
 
         long nextTime = beginTime + INTERVAL_MILLS;
+
+        initialized = true;
 
         while (isNotShutdown()) {
             // 线程睡眠到被调度消耗时间，所以精度不可能太高
@@ -56,11 +76,9 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
             }
 
             List<TimeoutTask> tasks = second.tick();
-            tasks.forEach(TimeoutTask::run);
+            tasks.forEach(TimeoutTask::doTask);
 
             nextTime += INTERVAL_MILLS;
-
-            logger.info("Tick {}", nextTime);
         }
     }
 }

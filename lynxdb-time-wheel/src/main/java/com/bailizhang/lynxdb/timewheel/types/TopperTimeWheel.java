@@ -15,8 +15,40 @@ public class TopperTimeWheel extends TimeWheel {
     }
 
     @Override
-    protected void registerNext(TimeoutTask task) {
-        queue.add(task);
+    public int init(long time) {
+        int remain = (int)(time % totalTime);
+        slot = remain / millisPerSlot;
+        baseTime = time - remain;
+
+        return remain % millisPerSlot;
+    }
+
+    @Override
+    public int register(TimeoutTask task) {
+        long time = task.time();
+
+        int remain = (int)(time - baseTime);
+
+        // remain 小于 0，直接返回 0
+        if(remain < 0) {
+            return 0;
+        }
+
+        int newSlot = remain / millisPerSlot;
+
+        // 当前时间轮放不下，放到优先队列里
+        if(newSlot >= scale) {
+            queue.add(task);
+            return SUCCESS;
+        } else if(newSlot > slot) {
+            // 只能注册到比 slot 大的 slot
+            circle[newSlot].add(task);
+            return SUCCESS;
+        } else if(newSlot < slot) {
+            return 0;
+        }
+
+        return remain % millisPerSlot;
     }
 
     @Override
@@ -34,10 +66,5 @@ public class TopperTimeWheel extends TimeWheel {
         }
 
         return tasks;
-    }
-
-    @Override
-    protected void initNextTimeWheel(int delta, long base) {
-        // Do nothing
     }
 }

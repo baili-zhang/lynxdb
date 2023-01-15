@@ -1,6 +1,11 @@
 package com.bailizhang.lynxdb.timewheel.task;
 
-@FunctionalInterface
-public interface TaskConsumer {
-    void consume(byte[] data);
+public record TaskConsumer(
+        byte[] data,
+        Consumable consumable
+) implements Runnable {
+    @Override
+    public void run() {
+        consumable.consume(data);
+    }
 }
