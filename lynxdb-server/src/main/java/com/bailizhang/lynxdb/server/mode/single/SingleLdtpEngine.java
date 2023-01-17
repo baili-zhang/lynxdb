@@ -2,16 +2,21 @@ package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
+import com.bailizhang.lynxdb.server.engine.timeout.TimeoutKey;
+import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 import com.bailizhang.lynxdb.server.mode.AffectKeyRegistry;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
+import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
+import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,21 +30,24 @@ import java.util.concurrent.Executors;
 import static com.bailizhang.lynxdb.raft.request.RaftRequest.CLIENT_REQUEST;
 import static com.bailizhang.lynxdb.server.annotations.LdtpCode.VOID;
 import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
-import static com.bailizhang.lynxdb.socket.code.Request.DEREGISTER_KEY;
-import static com.bailizhang.lynxdb.socket.code.Request.REGISTER_KEY;
+import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public class SingleLdtpEngine extends Executor<SocketRequest> {
     private static final Logger logger = LogManager.getLogger("SingleLdtpEngine");
 
     private final SocketServer server;
-    private final LdtpStorageEngine engine = new LdtpStorageEngine();
+    private final LdtpStorageEngine engine;
+    private final LynxDbTimeWheel timeWheel;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AffectKeyRegistry affectKeyRegistry = new AffectKeyRegistry();
 
-    public SingleLdtpEngine(SocketServer socketServer) {
+    public SingleLdtpEngine(SocketServer socketServer, LynxDbTimeWheel lynxDbTimeWheel) {
         server = socketServer;
+        engine = new LdtpStorageEngine();
+        timeWheel = lynxDbTimeWheel;
     }
 
+    // TODO: 抽象到一个通用的执行器中
     @Override
     protected void execute() {
         SocketRequest request = blockPoll();
@@ -108,16 +116,60 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
                 server.offerInterruptibly(response);
             }, executor);
 
+            case SET_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
+                TimeoutValue timeoutValue = TimeoutValue.from(buffer);
+                engine.insertTimeoutKey(timeoutValue);
+
+                TimeoutKey timeoutKey = timeoutValue.timeoutKey();
+                long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
+
+                TimeoutTask task = new TimeoutTask(timestamp, timeoutKey, () -> {
+                    sendTimeoutValueToClient(timeoutKey);
+                    engine.removeTimeoutKey(timeoutKey);
+                    engine.removeData(timeoutKey);
+                });
+
+                timeWheel.register(task);
+
+                BytesList bytesList = new BytesList();
+                bytesList.appendRawByte(VOID);
+
+                WritableSocketResponse response = new WritableSocketResponse(
+                        selectionKey,
+                        serial,
+                        bytesList
+                );
+
+                server.offerInterruptibly(response);
+            }, executor);
+
+            case REMOVE_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
+                TimeoutKey timeoutKey = TimeoutKey.from(buffer);
+
+                long timestamp = engine.findTimeoutValue(timeoutKey);
+                engine.removeTimeoutKey(timeoutKey);
+
+                timeWheel.unregister(timestamp, timeoutKey);
+
+                BytesList bytesList = new BytesList();
+                bytesList.appendRawByte(VOID);
+
+                WritableSocketResponse response = new WritableSocketResponse(
+                        selectionKey,
+                        serial,
+                        bytesList
+                );
+
+                server.offerInterruptibly(response);
+            }, executor);
+
             default -> throw new RuntimeException();
         }
     }
 
     private void sendAffectValueToRegisterClient(AffectKey affectKey) {
         List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
-        List<DbValue> dbValues = engine.find(
-                affectKey.key(),
-                affectKey.columnFamily()
-        );
+        List<DbValue> dbValues = engine.findAffectKey(affectKey);
 
         AffectValue affectValue = new AffectValue(affectKey, dbValues);
 
@@ -131,5 +183,9 @@ public class SingleLdtpEngine extends Executor<SocketRequest> {
             // 返回修改的信息给注册监听的客户端
             server.offerInterruptibly(affectResponse);
         }
+    }
+
+    private void sendTimeoutValueToClient(TimeoutKey timeoutKey) {
+        // todo
     }
 }

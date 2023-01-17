@@ -36,7 +36,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] columnFamily = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
 
-        byte[] value = find(key, columnFamily, column);
+        byte[] value = dataLsmTree.find(key, columnFamily, column);
 
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
@@ -65,7 +65,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     public QueryResult doFindByKeyCfColumn(byte[] key, byte[] columnFamily) {
-        List<DbValue> values = find(key, columnFamily);
+        List<DbValue> values = dataLsmTree.find(key, columnFamily);
 
         logger.debug("Find by key: {}, columnFamily: {}.",
                 G.I.toString(key), G.I.toString(columnFamily));
@@ -91,7 +91,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
                 G.I.toString(value));
 
-        insert(key, columnFamily, column, value);
+        dataLsmTree.insert(key, columnFamily, column, value);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -119,7 +119,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Insert key: {}, columnFamily: {}, dbValues: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), dbValues);
 
-        insert(key, columnFamily, dbValues);
+        dataLsmTree.insert(key, columnFamily, dbValues);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -139,7 +139,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
 
-        delete(key, columnFamily, column);
+        dataLsmTree.delete(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -158,7 +158,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Delete key: {}, columnFamily: {}.",
                 G.I.toString(key), G.I.toString(columnFamily));
 
-        delete(key, columnFamily);
+        dataLsmTree.delete(key, columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);

@@ -59,6 +59,10 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         logger.info("Register failed, TimeoutTask: {}", task);
     }
 
+    public void unregister(long time, Object identifier) {
+        unregister(new TimeoutTask(time, identifier, null));
+    }
+
     /** 保证线程安全 */
     public synchronized void unregister(TimeoutTask task) {
         if(!initialized) {

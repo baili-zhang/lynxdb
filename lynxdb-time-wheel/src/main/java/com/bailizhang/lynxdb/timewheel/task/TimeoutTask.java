@@ -1,12 +1,11 @@
 package com.bailizhang.lynxdb.timewheel.task;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 public class TimeoutTask implements Comparable<TimeoutTask> {
     private final long time;
 
-    private final byte[] identifier;
+    private final Object identifier;
 
     private final Runnable runnableTask;
 
@@ -14,7 +13,7 @@ public class TimeoutTask implements Comparable<TimeoutTask> {
         this(time, null, runnableTask);
     }
 
-    public TimeoutTask(long time, byte[] identifier, Runnable runnableTask) {
+    public TimeoutTask(long time, Object identifier, Runnable runnableTask) {
         this.time = time;
         this.runnableTask = runnableTask;
         this.identifier = identifier;
@@ -24,7 +23,7 @@ public class TimeoutTask implements Comparable<TimeoutTask> {
         return time;
     }
 
-    public byte[] identifier() {
+    public Object identifier() {
         return identifier;
     }
 
@@ -39,22 +38,20 @@ public class TimeoutTask implements Comparable<TimeoutTask> {
     }
 
     @Override
+    public int compareTo(TimeoutTask o) {
+        return Long.compare(time, o.time());
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TimeoutTask task = (TimeoutTask) o;
-        return time == task.time && Arrays.equals(identifier, task.identifier);
+        return time == task.time && Objects.equals(identifier, task.identifier);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(time);
-        result = 31 * result + Arrays.hashCode(identifier);
-        return result;
-    }
-
-    @Override
-    public int compareTo(TimeoutTask o) {
-        return Long.compare(time, o.time());
+        return Objects.hash(time, identifier);
     }
 }
