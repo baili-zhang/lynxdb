@@ -122,7 +122,7 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
                 long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
 
                 TimeoutTask task = new TimeoutTask(timestamp, timeoutKey, () -> {
-                    sendTimeoutValueToClient(timeoutKey);
+                    sendTimeoutValueToClient(timeoutKey, selectionKey);
                     engine.removeTimeoutKey(timeoutKey);
                     engine.removeData(timeoutKey);
                 });
@@ -144,7 +144,8 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
             case REMOVE_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
                 TimeoutKey timeoutKey = TimeoutKey.from(buffer);
 
-                long timestamp = engine.findTimeoutValue(timeoutKey);
+                byte[] value = engine.findTimeoutValue(timeoutKey);
+                long timestamp = ByteArrayUtils.toLong(value);
                 engine.removeTimeoutKey(timeoutKey);
 
                 timeWheel.unregister(timestamp, timeoutKey);
@@ -183,7 +184,18 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         }
     }
 
-    private void sendTimeoutValueToClient(TimeoutKey timeoutKey) {
-        // todo
+    private void sendTimeoutValueToClient(TimeoutKey timeoutKey, SelectionKey selectionKey) {
+        byte[] value = engine.findTimeoutValue(timeoutKey);
+
+        TimeoutValue timeoutValue = new TimeoutValue(timeoutKey, value);
+
+        WritableSocketResponse affectResponse = new WritableSocketResponse(
+                selectionKey,
+                MESSAGE_SERIAL,
+                timeoutValue
+        );
+
+        // 返回修改的信息给注册监听的客户端
+        server.offerInterruptibly(affectResponse);
     }
 }

@@ -62,14 +62,12 @@ public class BaseStorageEngine {
         return dataLsmTree.find(affectKey.key(), affectKey.columnFamily());
     }
 
-    public long findTimeoutValue(TimeoutKey timeoutKey) {
-        byte[] value = timeoutLsmTree.find(
+    public byte[] findTimeoutValue(TimeoutKey timeoutKey) {
+        return timeoutLsmTree.find(
                 timeoutKey.key(),
                 timeoutKey.columnFamily(),
                 TIMEOUT_COLUMN
         );
-
-        return ByteArrayUtils.toLong(value);
     }
 
     public void insertTimeoutKey(TimeoutValue timeoutValue) {

@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.server.engine.message.MessageType;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -15,7 +16,12 @@ public record AffectValue(
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = affectKey.toBytesList();
+        BytesList bytesList = new BytesList(false);
+
+        BytesList key = affectKey.toBytesList();
+
+        bytesList.appendRawByte(MessageType.REGISTER);
+        bytesList.append(key);
         dbValues.forEach(bytesList::append);
 
         return bytesList;
