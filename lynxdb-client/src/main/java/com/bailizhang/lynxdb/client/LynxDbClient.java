@@ -3,6 +3,8 @@ package com.bailizhang.lynxdb.client;
 import com.bailizhang.lynxdb.client.annotation.LynxDbColumn;
 import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
+import com.bailizhang.lynxdb.client.message.MessageHandler;
+import com.bailizhang.lynxdb.client.message.MessageHandlerChain;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
@@ -28,7 +30,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
-public class LynxDbClient implements AutoCloseable {
+public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap = new ConcurrentHashMap<>();
     private final BlockingQueue<byte[]> messageQueue = new LinkedBlockingQueue<>();
@@ -357,11 +359,10 @@ public class LynxDbClient implements AutoCloseable {
         }
     }
 
-    public AffectValue onMessage() {
+    public void onMessage() {
         try {
-            byte[] data = messageQueue.take();
-            ByteBuffer buffer = ByteBuffer.wrap(data);
-            return AffectValue.from(buffer);
+            byte[] msg = messageQueue.take();
+            handle(msg);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

@@ -93,8 +93,9 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case WATCH -> {
-                    AffectValue affectValue = client.onMessage();
-                    printAffectValue(affectValue);
+                    // TODO
+                    client.onMessage();
+                    // printAffectValue(affectValue);
                 }
 
                 case EXIT -> {

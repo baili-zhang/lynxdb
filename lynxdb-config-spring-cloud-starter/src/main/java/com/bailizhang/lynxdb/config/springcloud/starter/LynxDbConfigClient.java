@@ -28,7 +28,11 @@ public class LynxDbConfigClient extends Shutdown implements Runnable {
     @Override
     public void run() {
         while (isNotShutdown()) {
-            AffectValue affectValue = lynxDbTemplate.onMessage();
+            // AffectValue affectValue = lynxDbTemplate.onMessage();
+
+            // TODO
+            AffectValue affectValue = new AffectValue(null, null);
+
             AffectKey affectKey = affectValue.affectKey();
             List<DbValue> dbValues = affectValue.dbValues();
 
