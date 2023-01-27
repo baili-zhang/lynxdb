@@ -27,7 +27,7 @@ public class LynxDbTemplate extends LynxDbClient implements AutoCloseable {
     }
 
     @Override
-    public SelectionKey current() {
+    public SelectionKey selectionKey() {
         throw new UnsupportedOperationException();
     }
 

@@ -6,7 +6,7 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 
 import java.nio.charset.StandardCharsets;
@@ -42,7 +42,7 @@ public class LynxDbCmdClient extends Shutdown {
         client.registerConnect(HOST, MESSAGE_PORT);
 
         while (isNotShutdown()) {
-            Printer.printPrompt(client.current());
+            Printer.printPrompt(client.selectionKey());
 
             String line = scanner.nextLine();
             LynxDbCommand command = new LynxDbCommand(client, line);
@@ -131,14 +131,14 @@ public class LynxDbCmdClient extends Shutdown {
     }
 
     private void printAffectValue(AffectValue affectValue) {
-        AffectKey affectKey = affectValue.affectKey();
+        MessageKey messageKey = affectValue.messageKey();
         List<DbValue> dbValues = affectValue.dbValues();
 
         String template = "Affect key: %s, columnFamily: %s";
         String message = String.format(
                 template,
-                G.I.toString(affectKey.key()),
-                G.I.toString(affectKey.columnFamily())
+                G.I.toString(messageKey.key()),
+                G.I.toString(messageKey.columnFamily())
         );
 
         Printer.printRawMessage(message);

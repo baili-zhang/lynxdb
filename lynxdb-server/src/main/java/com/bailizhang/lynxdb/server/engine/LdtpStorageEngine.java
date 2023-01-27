@@ -6,7 +6,7 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import org.apache.logging.log4j.LogManager;
@@ -96,7 +96,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
     @LdtpMethod(INSERT_MULTI_COLUMN)
@@ -124,7 +124,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
     @LdtpMethod(DELETE)
@@ -144,7 +144,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
     @LdtpMethod(DELETE_MULTI_COLUMN)
@@ -163,6 +163,6 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new AffectKey(key, columnFamily));
+        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 }

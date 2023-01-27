@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.client.annotation.LynxDbColumn;
 import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.client.message.MessageHandler;
-import com.bailizhang.lynxdb.client.message.MessageHandlerChain;
+import com.bailizhang.lynxdb.client.message.MessageHandlerRegister;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
@@ -14,7 +14,7 @@ import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.annotations.LdtpCode;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
-import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
@@ -30,7 +30,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
-public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
+public class LynxDbClient implements AutoCloseable {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap = new ConcurrentHashMap<>();
     private final BlockingQueue<byte[]> messageQueue = new LinkedBlockingQueue<>();
@@ -38,6 +38,7 @@ public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
     private final LynxDbConnection connection;
     private final LynxDbConnection registerConnection;
     private final SocketClient socketClient;
+    private final MessageHandlerRegister handlerRegister;
 
     public LynxDbClient() {
         ClientHandler handler = new ClientHandler(futureMap, messageQueue);
@@ -47,6 +48,7 @@ public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
 
         connection = new LynxDbConnection(socketClient);
         registerConnection = new LynxDbConnection(socketClient);
+        handlerRegister = new MessageHandlerRegister();
     }
 
     public void start() {
@@ -60,7 +62,7 @@ public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
     }
 
     public void disconnect() {
-        socketClient.send(current(), SocketRequest.BLANK_FLAG, BufferUtils.EMPTY_BYTES);
+        socketClient.send(selectionKey(), SocketRequest.BLANK_FLAG, BufferUtils.EMPTY_BYTES);
     }
 
     public void registerConnect(String host, int port) {
@@ -69,12 +71,20 @@ public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
         registerConnection.serverNode(node);
     }
 
-    public SelectionKey current() {
+    public SelectionKey selectionKey() {
         return connection.current();
     }
 
-    public SelectionKey registerCurrent() {
+    public SelectionKey messageSelectionKey() {
         return registerConnection.current();
+    }
+
+    public void registerAffectHandler(MessageKey messageKey, MessageHandler messageHandler) {
+        handlerRegister.registerAffectHandler(messageKey, messageHandler);
+    }
+
+    public void registerTimeoutHandler(MessageKey messageKey, MessageHandler messageHandler) {
+        handlerRegister.registerTimeoutHandler(messageKey, messageHandler);
     }
 
     public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
@@ -362,7 +372,7 @@ public class LynxDbClient extends MessageHandlerChain implements AutoCloseable {
     public void onMessage() {
         try {
             byte[] msg = messageQueue.take();
-            handle(msg);
+            handlerRegister.handle(msg);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

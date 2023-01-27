@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.config.springcloud.starter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.springboot.starter.LynxDbTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -33,10 +33,10 @@ public class LynxDbConfigClient extends Shutdown implements Runnable {
             // TODO
             AffectValue affectValue = new AffectValue(null, null);
 
-            AffectKey affectKey = affectValue.affectKey();
+            MessageKey messageKey = affectValue.messageKey();
             List<DbValue> dbValues = affectValue.dbValues();
 
-            String name = G.I.toString(affectKey.key());
+            String name = G.I.toString(messageKey.key());
 
             ConfigurableEnvironment environment = applicationContext.getEnvironment();
             MutablePropertySources propertySources = environment.getPropertySources();

@@ -1,17 +1,15 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.lsmtree.LsmTree;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.server.engine.timeout.TimeoutKey;
 import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 
 import java.lang.reflect.InvocationTargetException;
@@ -58,41 +56,41 @@ public class BaseStorageEngine {
         }
     }
 
-    public List<DbValue> findAffectKey(AffectKey affectKey) {
-        return dataLsmTree.find(affectKey.key(), affectKey.columnFamily());
+    public List<DbValue> findAffectKey(MessageKey messageKey) {
+        return dataLsmTree.find(messageKey.key(), messageKey.columnFamily());
     }
 
-    public byte[] findTimeoutValue(TimeoutKey timeoutKey) {
+    public byte[] findTimeoutValue(MessageKey messageKey) {
         return timeoutLsmTree.find(
-                timeoutKey.key(),
-                timeoutKey.columnFamily(),
+                messageKey.key(),
+                messageKey.columnFamily(),
                 TIMEOUT_COLUMN
         );
     }
 
     public void insertTimeoutKey(TimeoutValue timeoutValue) {
-        TimeoutKey timeoutKey = timeoutValue.timeoutKey();
+        MessageKey messageKey = timeoutValue.messageKey();
 
         timeoutLsmTree.insert(
-                timeoutKey.key(),
-                timeoutKey.columnFamily(),
+                messageKey.key(),
+                messageKey.columnFamily(),
                 TIMEOUT_COLUMN,
                 timeoutValue.value()
         );
     }
 
-    public void removeTimeoutKey(TimeoutKey timeoutKey) {
+    public void removeTimeoutKey(MessageKey messageKey) {
         timeoutLsmTree.delete(
-                timeoutKey.key(),
-                timeoutKey.columnFamily(),
+                messageKey.key(),
+                messageKey.columnFamily(),
                 TIMEOUT_COLUMN
         );
     }
 
-    public void removeData(TimeoutKey timeoutKey) {
+    public void removeData(MessageKey messageKey) {
         dataLsmTree.delete(
-                timeoutKey.key(),
-                timeoutKey.columnFamily()
+                messageKey.key(),
+                messageKey.columnFamily()
         );
     }
 

@@ -5,11 +5,10 @@ import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.server.engine.timeout.TimeoutKey;
 import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
@@ -76,16 +75,16 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
                 server.offerInterruptibly(response);
 
                 // 处理注册监听的 key
-                AffectKey affectKey = result.affectKey();
-                if(affectKey == null) {
+                MessageKey messageKey = result.messageKey();
+                if(messageKey == null) {
                     return;
                 }
-                sendAffectValueToRegisterClient(affectKey);
+                sendAffectValueToRegisterClient(messageKey);
             }, executor);
 
             case REGISTER_KEY -> CompletableFuture.runAsync(() -> {
-                AffectKey affectKey = AffectKey.from(buffer);
-                affectKeyRegistry.register(selectionKey, affectKey);
+                MessageKey messageKey = MessageKey.from(buffer);
+                affectKeyRegistry.register(selectionKey, messageKey);
 
                 BytesList bytesList = new BytesList();
                 bytesList.appendRawByte(VOID);
@@ -97,10 +96,10 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
                 );
 
                 server.offerInterruptibly(response);
-                sendAffectValueToRegisterClient(affectKey);
+                sendAffectValueToRegisterClient(messageKey);
             }, executor);
             case DEREGISTER_KEY -> CompletableFuture.runAsync(() -> {
-                affectKeyRegistry.deregister(selectionKey, AffectKey.from(buffer));
+                affectKeyRegistry.deregister(selectionKey, MessageKey.from(buffer));
 
                 BytesList bytesList = new BytesList();
                 bytesList.appendRawByte(VOID);
@@ -118,13 +117,13 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
                 TimeoutValue timeoutValue = TimeoutValue.from(buffer);
                 engine.insertTimeoutKey(timeoutValue);
 
-                TimeoutKey timeoutKey = timeoutValue.timeoutKey();
+                MessageKey messageKey = timeoutValue.messageKey();
                 long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
 
-                TimeoutTask task = new TimeoutTask(timestamp, timeoutKey, () -> {
-                    sendTimeoutValueToClient(timeoutKey, selectionKey);
-                    engine.removeTimeoutKey(timeoutKey);
-                    engine.removeData(timeoutKey);
+                TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
+                    sendTimeoutValueToClient(messageKey, selectionKey);
+                    engine.removeTimeoutKey(messageKey);
+                    engine.removeData(messageKey);
                 });
 
                 timeWheel.register(task);
@@ -142,13 +141,13 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
             }, executor);
 
             case REMOVE_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
-                TimeoutKey timeoutKey = TimeoutKey.from(buffer);
+                MessageKey messageKey = MessageKey.from(buffer);
 
-                byte[] value = engine.findTimeoutValue(timeoutKey);
+                byte[] value = engine.findTimeoutValue(messageKey);
                 long timestamp = ByteArrayUtils.toLong(value);
-                engine.removeTimeoutKey(timeoutKey);
+                engine.removeTimeoutKey(messageKey);
 
-                timeWheel.unregister(timestamp, timeoutKey);
+                timeWheel.unregister(timestamp, messageKey);
 
                 BytesList bytesList = new BytesList();
                 bytesList.appendRawByte(VOID);
@@ -166,11 +165,11 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         }
     }
 
-    private void sendAffectValueToRegisterClient(AffectKey affectKey) {
-        List<SelectionKey> keys = affectKeyRegistry.selectionKeys(affectKey);
-        List<DbValue> dbValues = engine.findAffectKey(affectKey);
+    private void sendAffectValueToRegisterClient(MessageKey messageKey) {
+        List<SelectionKey> keys = affectKeyRegistry.selectionKeys(messageKey);
+        List<DbValue> dbValues = engine.findAffectKey(messageKey);
 
-        AffectValue affectValue = new AffectValue(affectKey, dbValues);
+        AffectValue affectValue = new AffectValue(messageKey, dbValues);
 
         for(SelectionKey key : keys) {
             WritableSocketResponse affectResponse = new WritableSocketResponse(
@@ -184,10 +183,10 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         }
     }
 
-    private void sendTimeoutValueToClient(TimeoutKey timeoutKey, SelectionKey selectionKey) {
-        byte[] value = engine.findTimeoutValue(timeoutKey);
+    private void sendTimeoutValueToClient(MessageKey messageKey, SelectionKey selectionKey) {
+        byte[] value = engine.findTimeoutValue(messageKey);
 
-        TimeoutValue timeoutValue = new TimeoutValue(timeoutKey, value);
+        TimeoutValue timeoutValue = new TimeoutValue(messageKey, value);
 
         WritableSocketResponse affectResponse = new WritableSocketResponse(
                 selectionKey,
