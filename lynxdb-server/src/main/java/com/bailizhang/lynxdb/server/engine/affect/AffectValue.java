@@ -30,12 +30,18 @@ public record AffectValue(
 
     public static AffectValue from(ByteBuffer buffer) {
         MessageKey messageKey = MessageKey.from(buffer);
+        List<DbValue> dbValues = valuesFrom(buffer);
+
+        return new AffectValue(messageKey, dbValues);
+    }
+
+    public static List<DbValue> valuesFrom(ByteBuffer buffer) {
         List<DbValue> dbValues = new ArrayList<>();
 
         while (BufferUtils.isNotOver(buffer)) {
             dbValues.add(DbValue.from(buffer));
         }
 
-        return new AffectValue(messageKey, dbValues);
+        return dbValues;
     }
 }

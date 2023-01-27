@@ -24,12 +24,12 @@ public class MessageHandlerRegister {
         switch (type) {
             case AFFECT -> {
                 List<MessageHandler> handlers = affectHandlers.get(messageKey);
-                handle(handlers, buffer);
+                handle(handlers, messageKey, buffer);
             }
 
             case TIMEOUT -> {
                 List<MessageHandler> handlers = timeoutHandlers.get(messageKey);
-                handle(handlers, buffer);
+                handle(handlers, messageKey, buffer);
             }
 
             default -> throw new RuntimeException();
@@ -46,12 +46,12 @@ public class MessageHandlerRegister {
         handlers.add(messageHandler);
     }
 
-    private void handle(List<MessageHandler> handlers, ByteBuffer buffer) {
+    private void handle(List<MessageHandler> handlers, MessageKey messageKey, ByteBuffer buffer) {
         int limit = buffer.limit();
         int position = buffer.position();
 
         for(MessageHandler handler : handlers) {
-            handler.doHandle(buffer);
+            handler.doHandle(messageKey, buffer);
 
             buffer.limit(limit);
             buffer.position(position);
