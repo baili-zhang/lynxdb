@@ -21,9 +21,9 @@ public class LynxDbLsmTree implements LsmTree {
     private final ConcurrentHashMap<ColumnFamily, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
-    public LynxDbLsmTree(String dir, Options configOptions) {
+    public LynxDbLsmTree(String dir, Options options) {
         baseDir = dir;
-        options = configOptions;
+        this.options = options;
 
         FileUtils.createDirIfNotExisted(dir);
 
@@ -31,7 +31,7 @@ public class LynxDbLsmTree implements LsmTree {
 
         for(String subDir : subDirs) {
             ColumnFamily cf = new ColumnFamily(G.I.toBytes(subDir));
-            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir, options);
+            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir, this.options);
             regions.put(cf, region);
         }
     }

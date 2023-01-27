@@ -1,99 +1,115 @@
 package com.bailizhang.lynxdb.timewheel;
 
 import com.bailizhang.lynxdb.core.executor.Shutdown;
+import com.bailizhang.lynxdb.core.utils.TimeUtils;
+import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
+import com.bailizhang.lynxdb.timewheel.types.LowerTimeWheel;
+import com.bailizhang.lynxdb.timewheel.types.TimeWheel;
+import com.bailizhang.lynxdb.timewheel.types.TopperTimeWheel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class LynxDbTimeWheel extends Shutdown implements Runnable {
     private static final Logger logger = LogManager.getLogger("LynxDbTimeWheel");
 
     private static final int INTERVAL_MILLS = 10;
+    private static final int HOURS_PER_DAY = 24;
+    private static final int MINUTES_PER_HOUR = 60;
+    private static final int SECONDS_PER_MINUTE = 60;
+    private static final int TEN_MILLIS_PER_SECOND = 100;
 
-    private static final int SECOND_TIME_WHEEL_SLOT_SIZE = 200;
-    private static final int MINUTE_TIME_WHEEL_SLOT_SIZE = 60;
-    private static final int HOUR_TIME_WHEEL_SLOT_SIZE = 60;
-    private static final int TOP_TIME_WHEEL_SLOT_SIZE = 10;
+    /** 秒钟的时间轮 */
+    private final TimeWheel second;
 
-    private static final int SECOND = 1000;
-    private static final int MINUTE = 60 * 1000;
-    private static final int HOUR = 60 * 60 * 1000;
+    private volatile boolean initialized = false;
 
-    private final AtomicLong id = new AtomicLong(1);
-    private final ConcurrentHashMap<Long, TimeoutTask> tasks = new ConcurrentHashMap<>();
+    public LynxDbTimeWheel() {
+        int secondMillis = TEN_MILLIS_PER_SECOND * INTERVAL_MILLS;
+        int minuteMillis = SECONDS_PER_MINUTE * secondMillis;
+        int hourMillis = MINUTES_PER_HOUR * minuteMillis;
+        int dayMillis = HOURS_PER_DAY * hourMillis;
 
-    private final SingleTimeWheel secondTimeWheel = new SingleTimeWheel(SECOND_TIME_WHEEL_SLOT_SIZE);
-    private final SingleTimeWheel minuteTimeWheel = new SingleTimeWheel(MINUTE_TIME_WHEEL_SLOT_SIZE);
-    private final SingleTimeWheel hourTimeWheel = new SingleTimeWheel(HOUR_TIME_WHEEL_SLOT_SIZE);
-    private final PriorityTimeWheel topTimeWheel = new PriorityTimeWheel(TOP_TIME_WHEEL_SLOT_SIZE);
+        TimeWheel day = new TopperTimeWheel(HOURS_PER_DAY, dayMillis);
+        TimeWheel hour = new LowerTimeWheel(MINUTES_PER_HOUR, hourMillis, day);
+        TimeWheel minute = new LowerTimeWheel(SECONDS_PER_MINUTE, minuteMillis, hour);
 
-    private final TaskConsumer consumer;
-
-    public LynxDbTimeWheel(TaskConsumer taskConsumer) {
-        consumer = taskConsumer;
+        second = new LowerTimeWheel(TEN_MILLIS_PER_SECOND, secondMillis, minute);
     }
 
-    // 需要保证线程安全
-    public long register(TimeoutTask task) {
-        long taskId = id.getAndIncrement();
-        tasks.put(taskId, task);
-
-        long duration = task.time() - System.currentTimeMillis();
-        if(duration < INTERVAL_MILLS) {
-            task.run();
+    /** 保证线程安全 */
+    public synchronized void register(TimeoutTask task) {
+        if(!initialized) {
+            logger.info("Time wheel is not initialized.");
+            return;
         }
 
-        if(duration < SECOND) {
-            int slot = ((int) duration) % INTERVAL_MILLS;
-            secondTimeWheel.register(slot, task);
-        } else if(duration < MINUTE) {
-            int slot = ((int) duration) % SECOND;
-            minuteTimeWheel.register(slot, task);
-        } else if(duration < HOUR) {
-            int slot = ((int) duration) % MINUTE;
-            hourTimeWheel.register(slot, task);
-        } else {
-            int slot = ((int) duration) % HOUR;
-            topTimeWheel.register(slot, task);
+        int remain = second.register(task);
+
+        // 注册成功
+        if(remain == TimeWheel.SUCCESS) {
+            logger.info("Register success, TimeoutTask: {}", task);
+            return;
         }
 
-        return taskId;
+        // 注册失败，直接当前线程执行
+        task.doTask();
+        logger.info("Register failed, TimeoutTask: {}", task);
     }
 
-    // 需要保证线程安全
-    public void unregister(long id) {
-        tasks.remove(id);
+    public void unregister(long time, Object identifier) {
+        unregister(new TimeoutTask(time, identifier, null));
+    }
+
+    /** 保证线程安全 */
+    public synchronized void unregister(TimeoutTask task) {
+        if(!initialized) {
+            logger.info("Time wheel is not initialized.");
+            return;
+        }
+
+        if(task.identifier() == null) {
+            return;
+        }
+
+        int remain = second.unregister(task);
+        if(remain == TimeWheel.SUCCESS) {
+            logger.info("Unregister success, TimeoutTask: {}.", task);
+            return;
+        }
+
+        logger.warn("Unregister failed, TimeoutTask: {}.", task);
     }
 
     @Override
     public void run() {
-        long nextTime = System.currentTimeMillis() + INTERVAL_MILLS;
+        long beginTime = (System.currentTimeMillis() / TEN_MILLIS_PER_SECOND) * TEN_MILLIS_PER_SECOND;
+        second.init(beginTime);
+
+        logger.info("Init time wheel, beginTime: {}", beginTime);
+
+        long nextTime = beginTime + INTERVAL_MILLS;
+
+        initialized = true;
 
         while (isNotShutdown()) {
             // 线程睡眠到被调度消耗时间，所以精度不可能太高
-            while(System.currentTimeMillis() < nextTime) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            while (System.currentTimeMillis() < nextTime) {
+                TimeUtils.sleep(TimeUnit.MILLISECONDS, 1);
             }
 
+            List<TimeoutTask> tasks;
+
+            // 同步 tick 方法
+            synchronized (this) {
+                tasks = second.tick();
+            }
+
+            tasks.forEach(TimeoutTask::doTask);
+
             nextTime += INTERVAL_MILLS;
-
-//            List<TimeoutTask> taskList = secondTimeWheel.nextTick();
-//            if(secondTimeWheel.isNextRound()) {
-//
-//            }
-//
-//            for(TimeoutTask task : taskList) {
-//                consumer.consume(task.data());
-//            }
-
-            logger.info("Tick");
         }
     }
 }

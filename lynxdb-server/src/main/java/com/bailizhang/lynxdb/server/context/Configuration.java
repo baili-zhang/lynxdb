@@ -24,6 +24,7 @@ public class Configuration {
     private static final String HOST = "host";
     private static final String PORT = "port";
     private static final String DATA_DIR = "data_dir";
+    private static final String TIMEOUT_DIR = "timeout_dir";
     private static final String RUNNING_MODE = "running_mode";
     private static final String ELECTION_MODE = "election_mode";
 
@@ -33,6 +34,7 @@ public class Configuration {
     private int port;
 
     private String dataDir;
+    private String timeoutDir;
     private final String raftLogDir;
 
     private String runningMode;
@@ -86,6 +88,9 @@ public class Configuration {
                 case DATA_DIR -> dataDir = value.startsWith(BASE_DIR)
                         ? value.replace(BASE_DIR, System.getProperty("user.dir"))
                         : value;
+                case TIMEOUT_DIR -> timeoutDir = value.startsWith(BASE_DIR)
+                        ? value.replace(BASE_DIR, System.getProperty("user.dir"))
+                        : value;
                 case RUNNING_MODE -> runningMode = value;
                 case ELECTION_MODE -> electionMode = value;
             }
@@ -101,6 +106,10 @@ public class Configuration {
 
     public String dataDir() {
         return dataDir;
+    }
+
+    public String timeoutDir() {
+        return timeoutDir;
     }
 
     public String electionMode() {

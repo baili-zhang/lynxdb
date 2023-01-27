@@ -2,8 +2,6 @@ package com.bailizhang.lynxdb.core.utils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 public interface FieldUtils {

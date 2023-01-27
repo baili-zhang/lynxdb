@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.server.engine.affect.AffectKey;
+import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -10,59 +10,59 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class AffectKeyRegistry {
-    private final ConcurrentHashMap<SelectionKey, HashSet<AffectKey>> selectionKeyMap
+    private final ConcurrentHashMap<SelectionKey, HashSet<MessageKey>> selectionKeyMap
             = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<AffectKey, HashSet<SelectionKey>> affectKeyMap
+    private final ConcurrentHashMap<MessageKey, HashSet<SelectionKey>> affectKeyMap
             = new ConcurrentHashMap<>();
 
     public AffectKeyRegistry() {
 
     }
 
-    public void register(SelectionKey selectionKey, AffectKey affectKey) {
-        HashSet<AffectKey> affectKeys = selectionKeyMap.computeIfAbsent(
+    public void register(SelectionKey selectionKey, MessageKey messageKey) {
+        HashSet<MessageKey> messageKeys = selectionKeyMap.computeIfAbsent(
                 selectionKey,
                 k -> new HashSet<>()
         );
 
-        affectKeys.add(affectKey);
+        messageKeys.add(messageKey);
 
         HashSet<SelectionKey> selectionKeys = affectKeyMap.computeIfAbsent(
-                affectKey,
+                messageKey,
                 k -> new HashSet<>()
         );
 
         selectionKeys.add(selectionKey);
     }
 
-    public void deregister(SelectionKey selectionKey, AffectKey affectKey) {
-        HashSet<AffectKey> affectKeys = selectionKeyMap.get(selectionKey);
-        if(affectKeys != null) {
-            affectKeys.remove(affectKey);
+    public void deregister(SelectionKey selectionKey, MessageKey messageKey) {
+        HashSet<MessageKey> messageKeys = selectionKeyMap.get(selectionKey);
+        if(messageKeys != null) {
+            messageKeys.remove(messageKey);
         }
 
-        HashSet<SelectionKey> selectionKeys = affectKeyMap.get(affectKey);
+        HashSet<SelectionKey> selectionKeys = affectKeyMap.get(messageKey);
         if(selectionKeys != null) {
             selectionKeys.remove(selectionKey);
         }
     }
 
     public void deregister(SelectionKey selectionKey) {
-        HashSet<AffectKey> affectKeys = selectionKeyMap.remove(selectionKey);
-        if(affectKeys == null || affectKeys.isEmpty()) {
+        HashSet<MessageKey> messageKeys = selectionKeyMap.remove(selectionKey);
+        if(messageKeys == null || messageKeys.isEmpty()) {
             return;
         }
 
-        for(AffectKey affectKey : affectKeys) {
-            HashSet<SelectionKey> selectionKeys = affectKeyMap.get(affectKey);
+        for(MessageKey messageKey : messageKeys) {
+            HashSet<SelectionKey> selectionKeys = affectKeyMap.get(messageKey);
             if(selectionKeys != null) {
                 selectionKeys.remove(selectionKey);
             }
         }
     }
 
-    public List<SelectionKey> selectionKeys(AffectKey affectKey) {
-        HashSet<SelectionKey> selectionKeys = affectKeyMap.get(affectKey);
+    public List<SelectionKey> selectionKeys(MessageKey messageKey) {
+        HashSet<SelectionKey> selectionKeys = affectKeyMap.get(messageKey);
 
         List<SelectionKey> invalid = new ArrayList<>();
         List<SelectionKey> valid = new ArrayList<>();

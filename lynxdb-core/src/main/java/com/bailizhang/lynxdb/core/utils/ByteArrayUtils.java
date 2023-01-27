@@ -21,8 +21,13 @@ public interface ByteArrayUtils {
         return src == null || src.length == 0;
     }
 
-    static int toInt(byte[] extraData) {
-        ByteBuffer buffer = ByteBuffer.wrap(extraData);
+    static int toInt(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
         return buffer.getInt();
+    }
+
+    static long toLong(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        return buffer.getLong();
     }
 }

@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.engine.affect;
+package com.bailizhang.lynxdb.server.engine.message;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
@@ -7,16 +7,16 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public record AffectKey (
+public record MessageKey(
         byte[] key,
         byte[] columnFamily
 ) implements BytesListConvertible {
 
-    public static AffectKey from(ByteBuffer buffer) {
+    public static MessageKey from(ByteBuffer buffer) {
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] columnFamily = BufferUtils.getBytes(buffer);
 
-        return new AffectKey(key, columnFamily);
+        return new MessageKey(key, columnFamily);
     }
 
     @Override
@@ -32,9 +32,9 @@ public record AffectKey (
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AffectKey affectKey = (AffectKey) o;
-        return Arrays.equals(key, affectKey.key)
-                && Arrays.equals(columnFamily, affectKey.columnFamily);
+        MessageKey messageKey = (MessageKey) o;
+        return Arrays.equals(key, messageKey.key)
+                && Arrays.equals(columnFamily, messageKey.columnFamily);
     }
 
     @Override

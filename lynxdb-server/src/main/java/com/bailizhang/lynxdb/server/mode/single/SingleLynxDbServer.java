@@ -6,12 +6,15 @@ import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.socket.server.SocketServerConfig;
+import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
 
 import java.io.IOException;
 
 public class SingleLynxDbServer implements LynxDbServer {
     private final SocketServer server;
     private final SingleLdtpEngine engine;
+
+    private final LynxDbTimeWheel timeWheel;
 
     public SingleLynxDbServer() throws IOException {
         Configuration config = Configuration.getInstance();
@@ -20,7 +23,9 @@ public class SingleLynxDbServer implements LynxDbServer {
         SocketServerConfig serverConfig = new SocketServerConfig(current.port());
         server = new SocketServer(serverConfig);
         server.startRegisterServer();
-        engine = new SingleLdtpEngine(server);
+
+        timeWheel = new LynxDbTimeWheel();
+        engine = new SingleLdtpEngine(server, timeWheel);
 
         SingleHandler handler = new SingleHandler(engine);
         server.setHandler(handler);
@@ -30,5 +35,6 @@ public class SingleLynxDbServer implements LynxDbServer {
     public void run() {
         Executor.start(server);
         Executor.start(engine);
+        Executor.start(timeWheel);
     }
 }

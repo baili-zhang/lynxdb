@@ -24,6 +24,13 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         logger.info("Executor \"{}\" has started.", name);
     }
 
+    public static void start(Runnable executor) {
+        String name = executor.getClass().getSimpleName();
+        Thread thread = new Thread(executor, name);
+        thread.start();
+        logger.info("Executor \"{}\" has started.", name);
+    }
+
     @Override
     public final void offer(E e) {
         if(e != null) {
