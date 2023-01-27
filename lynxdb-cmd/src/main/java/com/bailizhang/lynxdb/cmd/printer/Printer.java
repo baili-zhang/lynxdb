@@ -1,9 +1,13 @@
 package com.bailizhang.lynxdb.cmd.printer;
 
+import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 public interface Printer {
@@ -55,5 +59,20 @@ public interface Printer {
 
     static void printTable(List<List<String>> table) {
         new TablePrinter(table).print();
+    }
+
+    static void printDbValues(List<DbValue> dbValues) {
+        List<List<String>> table = new ArrayList<>();
+        List<String> header = List.of("Column", "Value");
+        table.add(header);
+        dbValues.forEach(dbValue -> {
+            List<String> row = List.of(
+                    G.I.toString(dbValue.column()),
+                    G.I.toString(dbValue.value())
+            );
+            table.add(row);
+        });
+
+        Printer.printTable(table);
     }
 }

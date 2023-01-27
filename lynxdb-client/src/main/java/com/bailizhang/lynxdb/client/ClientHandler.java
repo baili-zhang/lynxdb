@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.client;
 
+import com.bailizhang.lynxdb.client.message.MessageReceiver;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
@@ -13,13 +14,13 @@ import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
 public class ClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
-    private final BlockingQueue<byte[]> messageQueue;
+    private final MessageReceiver messageReceiver;
 
     public ClientHandler(ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map,
-                         BlockingQueue<byte[]> queue) {
+                         MessageReceiver receiver) {
         futureMap = map;
-        messageQueue = queue;
+        messageReceiver = receiver;
     }
 
     @Override
@@ -48,7 +49,7 @@ public class ClientHandler implements SocketClientHandler {
         byte[] data = response.data();
 
         if(serial == MESSAGE_SERIAL) {
-            messageQueue.add(data);
+            messageReceiver.offerInterruptibly(data);
             return;
         }
 

@@ -24,11 +24,19 @@ public class MessageHandlerRegister {
         switch (type) {
             case AFFECT -> {
                 List<MessageHandler> handlers = affectHandlers.get(messageKey);
+                if(handlers == null) {
+                    return;
+                }
+
                 handle(handlers, messageKey, buffer);
             }
 
             case TIMEOUT -> {
                 List<MessageHandler> handlers = timeoutHandlers.get(messageKey);
+                if(handlers == null) {
+                    return;
+                }
+
                 handle(handlers, messageKey, buffer);
             }
 
@@ -36,12 +44,12 @@ public class MessageHandlerRegister {
         }
     }
 
-    public void registerAffectHandler(MessageKey messageKey, MessageHandler messageHandler) {
+    public synchronized void registerAffectHandler(MessageKey messageKey, MessageHandler messageHandler) {
         List<MessageHandler> handlers = affectHandlers.computeIfAbsent(messageKey, k -> new ArrayList<>());
         handlers.add(messageHandler);
     }
 
-    public void registerTimeoutHandler(MessageKey messageKey, MessageHandler messageHandler) {
+    public synchronized void registerTimeoutHandler(MessageKey messageKey, MessageHandler messageHandler) {
         List<MessageHandler> handlers = timeoutHandlers.computeIfAbsent(messageKey, k -> new ArrayList<>());
         handlers.add(messageHandler);
     }
@@ -57,5 +65,4 @@ public class MessageHandlerRegister {
             buffer.position(position);
         }
     }
-
 }

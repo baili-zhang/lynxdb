@@ -20,7 +20,6 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String DELETE = "delete";
     private static final String REGISTER = "register";
     private static final String DEREGISTER = "deregister";
-    private static final String WATCH = "watch";
     private static final String EXIT = "exit";
 
     private static final String ERROR_COMMAND = "Invalid Command";
@@ -51,7 +50,7 @@ public class LynxDbCmdClient extends Shutdown {
                 case FIND -> {
                     if(command.length() == 3) {
                         List<DbValue> dbValues = command.findByKey();
-                        printDbValues(dbValues);
+                        Printer.printDbValues(dbValues);
                     } else if(command.length() == 4) {
                         byte[] value = command.find();
                         Printer.printRawMessage(G.I.toString(value));
@@ -81,6 +80,14 @@ public class LynxDbCmdClient extends Shutdown {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
+
+                    byte[] key = command.key();
+                    byte[] columnFamily = command.columnFamily();
+
+                    MessageKey messageKey = new MessageKey(key, columnFamily);
+                    AffectHandler handler = new AffectHandler(client);
+                    client.registerAffectHandler(messageKey, handler);
+
                     command.register();
                 }
 
@@ -90,12 +97,6 @@ public class LynxDbCmdClient extends Shutdown {
                         break;
                     }
                     command.deregister();
-                }
-
-                case WATCH -> {
-                    // TODO
-                    client.onMessage();
-                    // printAffectValue(affectValue);
                 }
 
                 case EXIT -> {
@@ -113,35 +114,5 @@ public class LynxDbCmdClient extends Shutdown {
     public static void main(String[] args) {
         LynxDbCmdClient client = new LynxDbCmdClient();
         client.start();
-    }
-
-    private void printDbValues(List<DbValue> dbValues) {
-        List<List<String>> table = new ArrayList<>();
-        List<String> header = List.of("Column", "Value");
-        table.add(header);
-        dbValues.forEach(dbValue -> {
-            List<String> row = List.of(
-                    G.I.toString(dbValue.column()),
-                    G.I.toString(dbValue.value())
-            );
-            table.add(row);
-        });
-
-        Printer.printTable(table);
-    }
-
-    private void printAffectValue(AffectValue affectValue) {
-        MessageKey messageKey = affectValue.messageKey();
-        List<DbValue> dbValues = affectValue.dbValues();
-
-        String template = "Affect key: %s, columnFamily: %s";
-        String message = String.format(
-                template,
-                G.I.toString(messageKey.key()),
-                G.I.toString(messageKey.columnFamily())
-        );
-
-        Printer.printRawMessage(message);
-        printDbValues(dbValues);
     }
 }
