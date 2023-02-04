@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.engine.message;
+package com.bailizhang.lynxdb.ldtp.message;
 
 public interface MessageType {
     byte AFFECT = (byte) 0x01;

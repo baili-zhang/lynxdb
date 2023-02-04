@@ -1,8 +1,8 @@
 module lynxdb.client {
     requires lynxdb.core;
-    requires lynxdb.socket;
     requires lynxdb.lsmtree;
-    requires lynxdb.server;
+    requires lynxdb.socket;
+    requires lynxdb.ldtp;
 
     exports com.bailizhang.lynxdb.client;
     exports com.bailizhang.lynxdb.client.annotation;

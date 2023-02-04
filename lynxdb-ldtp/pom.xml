@@ -2,14 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
+        <artifactId>parent</artifactId>
         <version>2023.2.4-snapshot</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>lynxdb-lsmtree</artifactId>
+    <artifactId>lynxdb-ldtp</artifactId>
 
     <build>
         <plugins>
@@ -28,6 +28,7 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
@@ -36,14 +37,6 @@
             <artifactId>lynxdb-core</artifactId>
             <version>${lynxdb.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
         </dependency>
     </dependencies>
 

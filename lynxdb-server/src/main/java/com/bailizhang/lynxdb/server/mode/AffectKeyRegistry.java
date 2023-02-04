@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
+
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;

@@ -1,6 +1,0 @@
-server:
-  port: 7821
-  host: '127.0.0.1'
-io:
-  corePoolSize: 30
-  maxPoolSize: 60

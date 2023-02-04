@@ -15,18 +15,8 @@
     <dependencies>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-core</artifactId>
-            <version>2023.2.4-snapshot</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-socket</artifactId>
-            <version>2023.2.4-snapshot</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-raft</artifactId>
-            <version>2023.2.4-snapshot</version>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
@@ -38,6 +28,12 @@
             <artifactId>lynxdb-timewheel</artifactId>
             <version>${lynxdb.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-ldtp</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

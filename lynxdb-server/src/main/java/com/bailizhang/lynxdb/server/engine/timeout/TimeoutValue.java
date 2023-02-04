@@ -3,8 +3,8 @@ package com.bailizhang.lynxdb.server.engine.timeout;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
-import com.bailizhang.lynxdb.server.engine.message.MessageType;
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
+import com.bailizhang.lynxdb.ldtp.message.MessageType;
 
 import java.nio.ByteBuffer;
 

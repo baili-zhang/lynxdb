@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.client.message;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 
 public class MessageReceiver extends Executor<byte[]> {
     private final MessageHandlerRegister register;

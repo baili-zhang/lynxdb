@@ -3,9 +3,9 @@ package com.bailizhang.lynxdb.server.mode;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
@@ -23,8 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.bailizhang.lynxdb.server.annotations.LdtpCode.VOID;
-import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {

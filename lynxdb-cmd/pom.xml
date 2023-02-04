@@ -19,11 +19,6 @@
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-server</artifactId>
-            <version>${lynxdb.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
         </dependency>

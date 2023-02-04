@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.server.engine.message;
+package com.bailizhang.lynxdb.ldtp.message;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;

@@ -1,6 +1,6 @@
 module lynxdb.raft {
-    requires lynxdb.core;
-    requires lynxdb.socket;
+    requires static lynxdb.core;
+    requires static lynxdb.socket;
 
     exports com.bailizhang.lynxdb.raft.client;
     exports com.bailizhang.lynxdb.raft.common;

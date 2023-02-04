@@ -1,5 +1,5 @@
 module lynxdb.timewheel {
-    requires lynxdb.core;
+    requires static lynxdb.core;
 
     exports com.bailizhang.lynxdb.timewheel;
     exports com.bailizhang.lynxdb.timewheel.task;

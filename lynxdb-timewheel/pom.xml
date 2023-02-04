@@ -33,7 +33,8 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-core</artifactId>
-            <version>2023.2.4-snapshot</version>
+            <version>${lynxdb.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
