@@ -1,5 +1,5 @@
 module lynxdb.socket {
-    requires transitive lynxdb.core;
+    requires lynxdb.core;
 
     exports com.bailizhang.lynxdb.socket.client;
     exports com.bailizhang.lynxdb.socket.code;
