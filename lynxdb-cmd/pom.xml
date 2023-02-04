@@ -19,6 +19,21 @@
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-core</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-lsmtree</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-ldtp</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
         </dependency>

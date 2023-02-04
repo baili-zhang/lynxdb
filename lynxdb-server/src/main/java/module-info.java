@@ -7,5 +7,4 @@ module lynxdb.server {
     requires lynxdb.ldtp;
 
     exports com.bailizhang.lynxdb.server.mode;
-    exports com.bailizhang.lynxdb.server.engine.affect;
 }
