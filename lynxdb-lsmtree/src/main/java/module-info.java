@@ -1,5 +1,5 @@
 module lynxdb.lsmtree {
-    requires lynxdb.core;
+    requires transitive lynxdb.core;
 
     exports com.bailizhang.lynxdb.lsmtree;
     exports com.bailizhang.lynxdb.lsmtree.common;
