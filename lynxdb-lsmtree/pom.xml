@@ -5,13 +5,17 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2023.1.4-alpha</version>
+        <version>2023.2.4-snapshot</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>lynxdb-lsmtree</artifactId>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
@@ -19,9 +23,6 @@
             </plugin>
         </plugins>
     </build>
-    <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>lynxdb-time-wheel</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -32,17 +33,7 @@
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-core</artifactId>
-            <version>2023.1.4-alpha</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>compile</scope>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

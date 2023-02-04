@@ -1,13 +1,9 @@
 package com.bailizhang.lynxdb.core.executor;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public abstract class Executor<E> extends Shutdown implements Executable<E>, Interruptable {
-    private static final Logger logger = LogManager.getLogger("Executor");
-
     private final ConcurrentLinkedQueue<E> queue = new ConcurrentLinkedQueue<>();
     private Thread currentThread;
 
@@ -20,15 +16,12 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         Thread thread = new Thread(executor, name);
         executor.setThread(thread);
         thread.start();
-
-        logger.info("Executor \"{}\" has started.", name);
     }
 
     public static void start(Runnable executor) {
         String name = executor.getClass().getSimpleName();
         Thread thread = new Thread(executor, name);
         thread.start();
-        logger.info("Executor \"{}\" has started.", name);
     }
 
     @Override

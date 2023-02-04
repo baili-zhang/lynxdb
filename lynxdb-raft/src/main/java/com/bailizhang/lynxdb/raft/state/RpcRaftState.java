@@ -14,8 +14,6 @@ import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -26,8 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RpcRaftState extends CoreRaftState {
-    private static final Logger logger = LogManager.getLogger("RpcRaftState");
-
     protected final AtomicInteger commitIndex = new AtomicInteger(0);
 
     private final HashSet<SelectionKey> votedNodes = new HashSet<>();
@@ -102,7 +98,6 @@ public class RpcRaftState extends CoreRaftState {
             throw new RuntimeException(e);
         }
 
-        logger.info("Vote not granted, term: {}, server node: {}", term, address);
     }
 
     public void appendEntriesSuccess(SelectionKey selectionKey) {

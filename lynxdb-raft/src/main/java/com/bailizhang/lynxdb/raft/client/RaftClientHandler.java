@@ -6,13 +6,10 @@ import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.raft.state.RaftState;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 
 import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_FAILED;
 import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_SUCCESS;
@@ -21,8 +18,6 @@ import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.IS_VOTE_GRANTE
 import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.NOT_VOTE_GRANTED;
 
 public class RaftClientHandler implements SocketClientHandler {
-    private final static Logger logger = LogManager.getLogger("RaftClientHandler");
-
     private final RaftState raftState;
 
     public RaftClientHandler() {
@@ -31,7 +26,6 @@ public class RaftClientHandler implements SocketClientHandler {
 
     @Override
     public void handleConnected(SelectionKey selectionKey) throws IOException {
-        logger.info("Has connected to {}.", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
     }
 
     @Override

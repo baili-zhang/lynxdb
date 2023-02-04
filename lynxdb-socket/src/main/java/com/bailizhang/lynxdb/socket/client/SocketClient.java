@@ -8,8 +8,6 @@ import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -26,8 +24,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
-    private final static Logger logger = LogManager.getLogger("SocketClient");
-
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
     private final static int DEFAULT_CAPACITY = 200;
     private final static int DEFAULT_CORE_POOL_SIZE = 5;
@@ -174,7 +170,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
             if(isNotShutdown() && Thread.interrupted()) {
-                logger.debug("Socket client has bean interrupted.");
             }
 
             Set<SelectionKey> keys = selector.selectedKeys();
@@ -272,8 +267,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
                     LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
                     future.value(selectionKey);
                     handler.handleConnected(selectionKey);
-
-                    logger.info("Has connected to socket node {}.", socketChannel.getRemoteAddress());
                 }
             } catch (ConnectException e) {
                 LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
@@ -281,7 +274,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
                 try {
                     handler.handleConnectFailure(selectionKey);
-                    logger.debug("Connect to socket node {} failure.", socketChannel.getRemoteAddress());
                 } catch (Exception exception) {
                     exception.printStackTrace();
                 }
@@ -330,8 +322,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             selectionKey.cancel();
 
             handler.handleDisconnect(selectionKey);
-
-            logger.info("Disconnect from node [{}].", ((SocketChannel)selectionKey.channel()).getRemoteAddress());
         }
     }
 }

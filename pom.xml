@@ -7,7 +7,7 @@
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>2023.1.4-alpha</version>
+    <version>2023.2.4-snapshot</version>
 
     <modules>
         <module>lynxdb-server</module>
@@ -19,18 +19,19 @@
         <module>lynxdb-client</module>
         <module>lynxdb-registry-spring-cloud-starter</module>
         <module>lynxdb-config-spring-cloud-starter</module>
-        <module>lynxdb-lsm-tree</module>
-        <module>lynxdb-time-wheel</module>
+        <module>lynxdb-lsmtree</module>
+        <module>lynxdb-timewheel</module>
     </modules>
 
     <properties>
         <springboot.version>3.0.0</springboot.version>
         <spring.cloud.version>3.1.5</spring.cloud.version>
-        <lynxdb.version>2023.1.4-alpha</lynxdb.version>
-        <log4j.version>2.16.0</log4j.version>
+        <lynxdb.version>2023.2.4-snapshot</lynxdb.version>
+        <log4j.version>2.19.0</log4j.version>
         <junit.version>5.8.2</junit.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -54,18 +55,6 @@
                 <scope>provided</scope>
             </dependency>
 
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-api</artifactId>
-                <version>${log4j.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${log4j.version}</version>
-                <scope>provided</scope>
-            </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>

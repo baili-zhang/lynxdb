@@ -8,8 +8,6 @@ import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -20,8 +18,6 @@ import java.util.List;
  * 客户端 -> Raft 层 -> 状态机 -> Raft 层 -> 客户端
  */
 public class LdtpStateMachine implements StateMachine {
-    private static final Logger logger = LogManager.getLogger("MdtpStateMachine");
-
     public static final String C_OLD_NEW = "c_old_new";
 
     private static final LdtpStorageEngine storageEngine = new LdtpStorageEngine();

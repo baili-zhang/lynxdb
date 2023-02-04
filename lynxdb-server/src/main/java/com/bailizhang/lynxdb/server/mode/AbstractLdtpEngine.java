@@ -15,8 +15,6 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
 import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -30,8 +28,6 @@ import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
-    private static final Logger logger = LogManager.getLogger("AbstractLdtpEngine");
-
     private final SocketServer server;
     private final LdtpStorageEngine engine;
     private final LynxDbTimeWheel timeWheel;
