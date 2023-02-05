@@ -1,0 +1,27 @@
+[
+  {
+    "name":"com.bailizhang.lynxdb.server.engine.LdtpStorageEngine",
+    "methods":[
+      {
+        "name":"doFindByKeyCfColumn",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doFindByKeyCf",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doInsert",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doDelete",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doDeleteMultiColumn",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      }
+    ]
+  }
+]

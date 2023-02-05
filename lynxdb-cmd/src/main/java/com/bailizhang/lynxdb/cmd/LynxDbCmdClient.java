@@ -9,7 +9,6 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 

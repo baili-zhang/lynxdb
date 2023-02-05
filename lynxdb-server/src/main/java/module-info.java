@@ -6,5 +6,7 @@ module lynxdb.server {
     requires lynxdb.timewheel;
     requires lynxdb.ldtp;
 
+    requires org.slf4j;
+
     exports com.bailizhang.lynxdb.server.mode;
 }

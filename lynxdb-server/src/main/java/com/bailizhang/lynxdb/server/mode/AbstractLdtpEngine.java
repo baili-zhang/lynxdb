@@ -15,6 +15,8 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
 import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -28,10 +30,16 @@ import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractLdtpEngine.class);
+
+    private static final String EXECUTOR_THREAD_NAME = "interrupt-protection-thread";
+
     private final SocketServer server;
     private final LdtpStorageEngine engine;
     private final LynxDbTimeWheel timeWheel;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(
+            runnable -> new Thread(runnable, EXECUTOR_THREAD_NAME)
+    );
     private final AffectKeyRegistry affectKeyRegistry = new AffectKeyRegistry();
 
     public AbstractLdtpEngine(SocketServer socketServer, LynxDbTimeWheel lynxDbTimeWheel) {
@@ -59,6 +67,9 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         switch (flag) {
             case CLIENT_REQUEST -> CompletableFuture.runAsync(() -> {
                 QueryParams queryParams = QueryParams.parse(buffer);
+
+                logger.info("Handle client request, params: {}", queryParams);
+
                 QueryResult result = engine.doQuery(queryParams);
 
                 WritableSocketResponse response = new WritableSocketResponse(

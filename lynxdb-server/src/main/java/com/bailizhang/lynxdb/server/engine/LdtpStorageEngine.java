@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
@@ -8,6 +9,8 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -19,6 +22,8 @@ import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
 
 
 public class LdtpStorageEngine extends BaseStorageEngine {
+    private static final Logger logger = LoggerFactory.getLogger(LdtpStorageEngine.class);
+
     public LdtpStorageEngine() {
         super(LdtpStorageEngine.class);
     }
@@ -33,6 +38,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] column = BufferUtils.getBytes(buffer);
 
         byte[] value = dataLsmTree.find(key, columnFamily, column);
+
+        logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
 
         BytesList bytesList = new BytesList();
 
@@ -54,11 +62,14 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] columnFamily = BufferUtils.getBytes(buffer);
 
-        return doFindByKeyCfColumn(key, columnFamily);
+        return doFindByKeyCf(key, columnFamily);
     }
 
-    public QueryResult doFindByKeyCfColumn(byte[] key, byte[] columnFamily) {
+    public QueryResult doFindByKeyCf(byte[] key, byte[] columnFamily) {
         List<DbValue> values = dataLsmTree.find(key, columnFamily);
+
+        logger.debug("Find by key: {}, columnFamily: {}.",
+                G.I.toString(key), G.I.toString(columnFamily));
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(DB_VALUE_LIST);
@@ -76,6 +87,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] columnFamily = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
         byte[] value = BufferUtils.getBytes(buffer);
+
+        logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
+                G.I.toString(value));
 
         dataLsmTree.insert(key, columnFamily, column, value);
 
@@ -102,6 +117,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             dbValues.add(new DbValue(column, value));
         }
 
+        logger.debug("Insert key: {}, columnFamily: {}, dbValues: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), dbValues);
+
         dataLsmTree.insert(key, columnFamily, dbValues);
 
         BytesList bytesList = new BytesList();
@@ -119,6 +137,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] columnFamily = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
 
+        logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
+                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
+
         dataLsmTree.delete(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
@@ -134,6 +155,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] columnFamily = BufferUtils.getBytes(buffer);
+
+        logger.debug("Delete key: {}, columnFamily: {}.",
+                G.I.toString(key), G.I.toString(columnFamily));
 
         dataLsmTree.delete(key, columnFamily);
 
