@@ -12,11 +12,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 public class AffectHandler implements MessageHandler {
-    private final LynxDbClient client;
-
-    public AffectHandler(LynxDbClient lynxDbClient) {
-        client = lynxDbClient;
-    }
 
     @Override
     public void doHandle(MessageKey messageKey, ByteBuffer buffer) {
@@ -25,7 +20,7 @@ public class AffectHandler implements MessageHandler {
 
         printAffectValue(affectValue);
 
-        Printer.printPrompt(client.selectionKey());
+        Printer.printPrompt(null);
     }
 
     private void printAffectValue(AffectValue affectValue) {

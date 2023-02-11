@@ -1,18 +1,23 @@
 package com.bailizhang.lynxdb.cmd;
 
 import com.bailizhang.lynxdb.client.LynxDbClient;
+import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
+    private static final String CONNECT = "connect";
+    private static final String DISCONNECT = "disconnect";
+
     private static final String FIND = "find";
     private static final String INSERT = "insert";
     private static final String DELETE = "delete";
@@ -22,12 +27,10 @@ public class LynxDbCmdClient extends Shutdown {
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
-    private static final String HOST = "127.0.0.1";
-    private static final int PORT = 7820;
-    private static final int MESSAGE_PORT = 7263;
-
     private final LynxDbClient client = new LynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
+
+    private LynxDbConnection current;
 
     public LynxDbCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
@@ -35,22 +38,45 @@ public class LynxDbCmdClient extends Shutdown {
 
     public void start() {
         client.start();
-        client.connect(HOST, PORT);
-        client.registerConnect(HOST, MESSAGE_PORT);
 
         while (isNotShutdown()) {
-            Printer.printPrompt(client.selectionKey());
+            Printer.printPrompt(current);
 
             String line = scanner.nextLine();
-            LynxDbCommand command = new LynxDbCommand(client, line);
+            LynxDbCommand command = new LynxDbCommand(line);
 
             switch (command.name()) {
+                case CONNECT -> {
+                    String address = G.I.toString(command.key());
+                    ServerNode node = ServerNode.from(address);
+                    client.connect(node);
+                    current = client.connection(node);
+                }
+
+                case DISCONNECT -> {
+                    current.disconnect();
+                    current = null;
+                }
+
                 case FIND -> {
+                    if(current == null) {
+                        Printer.printNotConnectServer();
+                    }
+
                     if(command.length() == 3) {
-                        List<DbValue> dbValues = command.findByKey();
+                        List<DbValue> dbValues = current.find(
+                                command.key(),
+                                command.columnFamily()
+                        );
+
                         Printer.printDbValues(dbValues);
                     } else if(command.length() == 4) {
-                        byte[] value = command.find();
+                        byte[] value = current.find(
+                                command.key(),
+                                command.columnFamily(),
+                                command.column()
+                        );
+
                         Printer.printRawMessage(G.I.toString(value));
                     } else {
                         Printer.printError(ERROR_COMMAND);
@@ -58,22 +84,45 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case INSERT -> {
+                    if(current == null) {
+                        Printer.printNotConnectServer();
+                    }
+
                     if(command.length() != 5) {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.insert();
+
+                    current.insert(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column(),
+                            command.value()
+                    );
                 }
 
                 case DELETE -> {
+                    if(current == null) {
+                        Printer.printNotConnectServer();
+                    }
+
                     if(command.length() != 4) {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.delete();
+
+                    current.delete(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column()
+                    );
                 }
 
                 case REGISTER -> {
+                    if(current == null) {
+                        Printer.printNotConnectServer();
+                    }
+
                     if(command.length() != 3) {
                         Printer.printError(ERROR_COMMAND);
                         break;
@@ -83,22 +132,29 @@ public class LynxDbCmdClient extends Shutdown {
                     byte[] columnFamily = command.columnFamily();
 
                     MessageKey messageKey = new MessageKey(key, columnFamily);
-                    AffectHandler handler = new AffectHandler(client);
+                    AffectHandler handler = new AffectHandler();
                     client.registerAffectHandler(messageKey, handler);
 
-                    command.register();
+                    current.register(key, columnFamily);
                 }
 
                 case DEREGISTER -> {
+                    if(current == null) {
+                        Printer.printNotConnectServer();
+                    }
+
                     if(command.length() != 3) {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.deregister();
+
+                    current.deregister(
+                            command.key(),
+                            command.columnFamily()
+                    );
                 }
 
                 case EXIT -> {
-                    command.exit();
                     shutdown();
                 }
 

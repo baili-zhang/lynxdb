@@ -17,8 +17,6 @@
         <module>lynxdb-raft</module>
         <module>lynxdb-spring-boot-starter</module>
         <module>lynxdb-client</module>
-        <module>lynxdb-registry-spring-cloud-starter</module>
-        <module>lynxdb-config-spring-cloud-starter</module>
         <module>lynxdb-lsmtree</module>
         <module>lynxdb-timewheel</module>
         <module>lynxdb-ldtp</module>
@@ -49,12 +47,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-autoconfigure</artifactId>
                 <version>${springboot.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-starter</artifactId>
-                <version>${spring.cloud.version}</version>
                 <scope>provided</scope>
             </dependency>
 

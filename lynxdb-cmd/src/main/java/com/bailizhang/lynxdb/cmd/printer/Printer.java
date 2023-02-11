@@ -1,7 +1,9 @@
 package com.bailizhang.lynxdb.cmd.printer;
 
+import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -11,17 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface Printer {
-    static void printPrompt(SelectionKey current) {
-        if(current == null) {
+    static void printPrompt(LynxDbConnection connection) {
+        if(connection == null) {
             System.out.print("Moonlight> ");
         } else {
-            try {
-                String address = ((SocketChannel) current.channel()).getRemoteAddress().toString();
-                String prompt = String.format("[%s] Moonlight> ", address);
-                System.out.print(prompt);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            String prompt = String.format("[%s] Moonlight> ", connection);
+            System.out.print(prompt);
         }
     }
 
