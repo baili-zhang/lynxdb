@@ -2,8 +2,6 @@ package com.bailizhang.lynxdb.springboot.starter;
 
 import com.bailizhang.lynxdb.client.LynxDbClient;
 
-import java.nio.channels.SelectionKey;
-
 public class LynxDbTemplate extends LynxDbClient implements AutoCloseable {
     public LynxDbTemplate(LynxDbProperties properties) {
         String host = properties.getHost();
@@ -22,7 +20,6 @@ public class LynxDbTemplate extends LynxDbClient implements AutoCloseable {
     public void start() {
         throw new UnsupportedOperationException();
     }
-
 
     @Override
     public void close() {

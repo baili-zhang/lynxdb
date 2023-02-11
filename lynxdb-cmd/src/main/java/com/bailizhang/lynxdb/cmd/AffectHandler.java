@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.cmd;
 
-import com.bailizhang.lynxdb.client.LynxDbClient;
 import com.bailizhang.lynxdb.client.message.MessageHandler;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.G;

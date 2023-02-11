@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.cmd.printer;
 import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.IOException;
 import java.net.SocketAddress;

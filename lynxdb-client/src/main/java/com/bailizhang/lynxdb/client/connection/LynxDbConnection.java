@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.bailizhang.lynxdb.socket.code.Request.*;
-import static com.bailizhang.lynxdb.socket.code.Request.CLIENT_REQUEST;
 
 public class LynxDbConnection {
     private final ServerNode serverNode;

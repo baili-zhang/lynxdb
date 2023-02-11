@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.cmd;
 
-import com.bailizhang.lynxdb.client.LynxDbClient;
 import com.bailizhang.lynxdb.core.common.G;
 
 public class LynxDbCommand {
