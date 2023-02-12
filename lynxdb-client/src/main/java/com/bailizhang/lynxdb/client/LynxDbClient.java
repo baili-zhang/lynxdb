@@ -36,18 +36,20 @@ public class LynxDbClient implements AutoCloseable {
         Executor.start(messageReceiver);
     }
 
-    public void connect(String host, int port) {
+    public LynxDbConnection connect(String host, int port) {
         ServerNode serverNode = new ServerNode(host, port);
-        connect(serverNode);
+        return connect(serverNode);
     }
 
-    public void connect(ServerNode serverNode) {
+    public LynxDbConnection connect(ServerNode serverNode) {
         LynxDbConnection connection = connections.computeIfAbsent(
                 serverNode,
                 node -> new LynxDbConnection(node, socketClient, futureMap)
         );
 
         connection.connect();
+
+        return connection;
     }
 
     public void disconnect(String host, int port) {
@@ -64,6 +66,11 @@ public class LynxDbClient implements AutoCloseable {
 
     public LynxDbConnection connection(ServerNode serverNode) {
         return connections.get(serverNode);
+    }
+
+    public ConcurrentHashMap<SelectionKey,
+            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap() {
+        return futureMap;
     }
 
     public void registerAffectHandler(MessageKey messageKey, MessageHandler messageHandler) {
