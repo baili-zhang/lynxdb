@@ -118,19 +118,16 @@
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-lsmtree</artifactId>
             <version>${lynxdb.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-socket</artifactId>
             <version>${lynxdb.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-ldtp</artifactId>
             <version>${lynxdb.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

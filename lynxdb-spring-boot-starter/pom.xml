@@ -112,17 +112,7 @@
     <dependencies>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-core</artifactId>
-            <version>${lynxdb.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bailizhang.lynxdb</groupId>
             <artifactId>lynxdb-client</artifactId>
-            <version>${lynxdb.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-socket</artifactId>
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
