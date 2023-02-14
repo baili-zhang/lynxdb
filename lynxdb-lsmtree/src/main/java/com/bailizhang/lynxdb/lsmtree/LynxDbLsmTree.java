@@ -9,8 +9,11 @@ import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 import com.bailizhang.lynxdb.lsmtree.schema.ColumnFamily;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +58,12 @@ public class LynxDbLsmTree implements LsmTree {
     }
 
     @Override
+    public HashMap<Key, HashSet<DbValue>> findAll(byte[] columnFamily) {
+        ColumnFamilyRegion region = findRegion(columnFamily);
+        return region.findAll();
+    }
+
+    @Override
     public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
         ColumnFamilyRegion region = findRegion(columnFamily);
@@ -87,13 +96,17 @@ public class LynxDbLsmTree implements LsmTree {
 
     @Override
     public void delete(byte[] key, byte[] columnFamily) {
-        // TODO: 只查询 key，不查询 value
-        List<DbValue> dbValues = find(key, columnFamily);
+        // TODO: 只查询 dbKey，不查询 value
+        ColumnFamilyRegion region = findRegion(columnFamily);
+        List<byte[]> columns = region.findColumns(key);
 
-        dbValues.forEach(dbValue -> {
-            byte[] column = dbValue.column();
-            delete(key, columnFamily, column);
-        });
+        columns.forEach(column -> delete(key, columnFamily, column));
+    }
+
+    @Override
+    public boolean existKey(byte[] key, byte[] columnFamily) {
+        ColumnFamilyRegion region = findRegion(columnFamily);
+        return region.existKey(key);
     }
 
     @Override

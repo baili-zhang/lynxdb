@@ -26,7 +26,7 @@ public class AffectHandler implements MessageHandler {
         MessageKey messageKey = affectValue.messageKey();
         List<DbValue> dbValues = affectValue.dbValues();
 
-        String template = "\nAffect key: %s, columnFamily: %s";
+        String template = "\nAffect dbKey: %s, columnFamily: %s";
         String message = String.format(
                 template,
                 G.I.toString(messageKey.key()),

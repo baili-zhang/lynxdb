@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
 
-    private static final String KEY = "key";
+    private static final String KEY = "dbKey";
     private static final String COLUMN = "column";
 
     private static final int KEY_COUNT = 1000;

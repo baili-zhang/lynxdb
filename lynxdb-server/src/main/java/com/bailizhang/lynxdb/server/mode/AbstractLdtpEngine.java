@@ -81,7 +81,7 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
                 // 返回给发起请求的客户端
                 server.offerInterruptibly(response);
 
-                // 处理注册监听的 key
+                // 处理注册监听的 dbKey
                 MessageKey messageKey = result.messageKey();
                 if(messageKey == null) {
                     return;

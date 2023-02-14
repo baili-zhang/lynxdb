@@ -8,14 +8,14 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 
 public record DbIndex(
-        DbKey key,
+        DbKey dbKey,
         int valueGlobalIndex
 ) implements BytesListConvertible {
 
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
-        bytesList.append(key);
+        bytesList.append(dbKey);
         bytesList.appendRawInt(valueGlobalIndex);
         return bytesList;
     }
@@ -34,11 +34,11 @@ public record DbIndex(
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DbIndex dbIndex = (DbIndex) o;
-        return Objects.equals(key, dbIndex.key);
+        return Objects.equals(dbKey, dbIndex.dbKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return Objects.hash(dbKey);
     }
 }

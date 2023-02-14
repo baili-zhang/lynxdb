@@ -101,7 +101,7 @@ public class Level {
 
         ssTables.forEach(ssTable -> ssTable.all(dbIndexSet));
         List<DbIndex> dbIndexList = new ArrayList<>(dbIndexSet);
-        dbIndexList.sort(Comparator.comparing(DbIndex::key));
+        dbIndexList.sort(Comparator.comparing(DbIndex::dbKey));
 
         return dbIndexList;
     }

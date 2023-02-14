@@ -13,7 +13,7 @@ import java.util.Objects;
 import static com.bailizhang.lynxdb.core.utils.BufferUtils.EMPTY_BYTES;
 
 /**
- * TODO: 应该保证多线程安全
+ * TODO: 1. 应该保证多线程安全, 2. 每条记录添加 CRC 校验，3. 容量 size 检查
  */
 public class LogGroup implements Iterable<LogEntry> {
     public static final int DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;

@@ -16,7 +16,7 @@ class SsTableTest {
 
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
 
-    private static final String KEY = "key";
+    private static final String KEY = "dbKey";
     private static final String COLUMN = "column";
 
     private static final byte[] COLUMN_FAMILY;

@@ -11,10 +11,12 @@ import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -87,6 +89,11 @@ public class ColumnFamilyRegion {
                 .toList();
     }
 
+    public HashMap<Key, HashSet<DbValue>> findAll() {
+        // TODO
+        return null;
+    }
+
     public void insert(DbEntry dbEntry) {
         int walGlobalIndex = -1;
         if(options.wal()) {
@@ -139,5 +146,15 @@ public class ColumnFamilyRegion {
 
             insertIntoMemTableAndMerge(dbEntry, -1);
         }
+    }
+
+    public boolean existKey(byte[] key) {
+        // TODO
+        return false;
+    }
+
+    public List<byte[]> findColumns(byte[] key) {
+        // TODO
+        return null;
     }
 }

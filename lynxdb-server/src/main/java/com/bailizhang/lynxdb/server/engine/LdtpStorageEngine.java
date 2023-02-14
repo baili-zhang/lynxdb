@@ -39,7 +39,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         byte[] value = dataLsmTree.find(key, columnFamily, column);
 
-        logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
+        logger.debug("Find by dbKey: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
 
         BytesList bytesList = new BytesList();
@@ -68,7 +68,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doFindByKeyCf(byte[] key, byte[] columnFamily) {
         List<DbValue> values = dataLsmTree.find(key, columnFamily);
 
-        logger.debug("Find by key: {}, columnFamily: {}.",
+        logger.debug("Find by dbKey: {}, columnFamily: {}.",
                 G.I.toString(key), G.I.toString(columnFamily));
 
         BytesList bytesList = new BytesList();
@@ -88,7 +88,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] column = BufferUtils.getBytes(buffer);
         byte[] value = BufferUtils.getBytes(buffer);
 
-        logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
+        logger.debug("Insert dbKey: {}, columnFamily: {}, column: {}, value: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
                 G.I.toString(value));
 
@@ -117,7 +117,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             dbValues.add(new DbValue(column, value));
         }
 
-        logger.debug("Insert key: {}, columnFamily: {}, dbValues: {}.",
+        logger.debug("Insert dbKey: {}, columnFamily: {}, dbValues: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), dbValues);
 
         dataLsmTree.insert(key, columnFamily, dbValues);
@@ -137,7 +137,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] columnFamily = BufferUtils.getBytes(buffer);
         byte[] column = BufferUtils.getBytes(buffer);
 
-        logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
+        logger.debug("Delete dbKey: {}, columnFamily: {}, column: {}.",
                 G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
 
         dataLsmTree.delete(key, columnFamily, column);
@@ -156,7 +156,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] key = BufferUtils.getBytes(buffer);
         byte[] columnFamily = BufferUtils.getBytes(buffer);
 
-        logger.debug("Delete key: {}, columnFamily: {}.",
+        logger.debug("Delete dbKey: {}, columnFamily: {}.",
                 G.I.toString(key), G.I.toString(columnFamily));
 
         dataLsmTree.delete(key, columnFamily);
