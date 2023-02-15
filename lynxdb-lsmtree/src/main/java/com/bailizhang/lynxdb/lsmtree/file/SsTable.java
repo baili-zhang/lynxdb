@@ -10,20 +10,20 @@ import com.bailizhang.lynxdb.lsmtree.common.DbKey;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
-import static com.bailizhang.lynxdb.lsmtree.common.DbKey.DELETED;
-import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED;
 
 /**
  * TODO: 元数据，布隆过滤器，索引，entry 都需要添加 crc 检验字段
@@ -120,20 +120,20 @@ public class SsTable {
         int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
         MappedBuffer indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
 
-        List<Key> keys = dbIndexList.stream()
+        List<Entry> entries = dbIndexList.stream()
                 .map(dbIndex -> {
                     DbKey dbKey = dbIndex.dbKey();
-                    return new Key(dbKey.flag(), dbIndex.toBytes());
+                    return new Entry(dbKey.flag(), dbIndex.toBytes());
                 })
                 .toList();
         int keyBegin = indexBegin + indexLength;
-        int keyLength = keys.stream().mapToInt(key -> key.data().length).sum();
+        int keyLength = entries.stream().mapToInt(entry -> entry.data().length).sum();
         MappedBuffer keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
 
         AtomicInteger entryBegin = new AtomicInteger();
-        keys.forEach(key -> {
-            byte flag = key.flag();
-            byte[] data = key.data();
+        entries.forEach(entry -> {
+            byte flag = entry.flag();
+            byte[] data = entry.data();
 
             MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
             indexMappedBuffer.put(flag);
@@ -175,7 +175,7 @@ public class SsTable {
             if(set.contains(dbIndex)) {
                 int position = indexMapperBuffer.position();
                 int flagPosition = position - INDEX_ENTRY_LENGTH;
-                indexMapperBuffer.put(flagPosition, DELETED);
+                indexMapperBuffer.put(flagPosition, DbKey.DELETED);
                 continue;
             }
 
@@ -199,7 +199,7 @@ public class SsTable {
             return null;
         }
 
-        if(existed.flag() == DELETED) {
+        if(existed.flag() == DbKey.DELETED) {
             throw new DeletedException();
         }
 
@@ -210,7 +210,7 @@ public class SsTable {
     }
 
     public void find(byte[] key, HashSet<DbValue> dbValues) {
-        int idx = findIndex(new DbKey(key, BufferUtils.EMPTY_BYTES, EXISTED));
+        int idx = findIndex(new DbKey(key, BufferUtils.EMPTY_BYTES, DbKey.EXISTED));
 
         while (idx < size() - 1) {
             DbIndex dbIndex = findDbIndex(idx);
@@ -234,6 +234,31 @@ public class SsTable {
             }
 
             dbValues.add(dbValue);
+        }
+    }
+
+    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
+        int size = size();
+
+        for(int i = 0; i < size; i ++) {
+            DbIndex dbIndex = findDbIndex(i);
+            DbKey dbKey = dbIndex.dbKey();
+
+            int valueGlobalIndex = dbIndex.valueGlobalIndex();
+            LogEntry logEntry = valueLogGroup.find(valueGlobalIndex);
+            byte[] value = logEntry.data();
+
+            Key key = new Key(dbKey.key());
+            DbValue dbValue = new DbValue(dbKey.column(), value);
+
+            HashSet<DbValue> set = map.computeIfAbsent(key, k -> new HashSet<>());
+
+            // 只有不存在的时候才添加数据
+            if(set.contains(dbValue)) {
+                return;
+            }
+
+            set.add(dbValue);
         }
     }
 
@@ -292,7 +317,7 @@ public class SsTable {
         }
     }
 
-    private record Key (byte flag, byte[] data) {
+    private record Entry(byte flag, byte[] data) {
 
     }
 }

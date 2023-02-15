@@ -9,12 +9,10 @@ import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
 import java.util.*;
-
-import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED;
-import static com.bailizhang.lynxdb.lsmtree.common.DbKey.EXISTED_ARRAY;
 
 public class Level {
     public static final int LEVEL_SSTABLE_COUNT = 10;
@@ -75,9 +73,9 @@ public class Level {
                     DbKey dbKey = entry.key();
                     int globalIndex = -1;
 
-                    if(dbKey.flag() == EXISTED) {
+                    if(dbKey.flag() == DbKey.EXISTED) {
                         globalIndex = valueFileGroup.append(
-                                EXISTED_ARRAY,
+                                DbKey.EXISTED_ARRAY,
                                 entry.value()
                         );
                     }
@@ -125,6 +123,12 @@ public class Level {
     public void find(byte[] key, HashSet<DbValue> dbValues) {
         for(SsTable ssTable : ssTables) {
             ssTable.find(key, dbValues);
+        }
+    }
+
+    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
+        for(SsTable ssTable : ssTables) {
+            ssTable.findAll(map);
         }
     }
 

@@ -9,6 +9,7 @@ import com.bailizhang.lynxdb.lsmtree.schema.Column;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -97,6 +98,11 @@ public class MemTable {
         immutable = true;
     }
 
+    /**
+     * 合并到 memTable 时用的
+     *
+     * @return DB entries
+     */
     public List<DbEntry> all() {
         List<DbEntry> entries = new ArrayList<>();
 
@@ -107,6 +113,34 @@ public class MemTable {
         );
 
         return entries;
+    }
+
+    /**
+     * 查询所有的（key, column, value）
+     * 给查询接口用
+     */
+    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
+        skipListMap.forEach((key, columnMap) -> {
+            HashSet<DbValue> set = map.computeIfAbsent(key, k -> new HashSet<>());
+
+            columnMap.forEach(
+                    (column, dbEntry) -> {
+                        byte[] col = column.bytes();
+                        byte[] val = dbEntry.value();
+
+                        DbValue dbValue = new DbValue(col, val);
+
+                        // 只有不存在的时候才添加数据
+                        if(set.contains(dbValue)) {
+                            return;
+                        }
+
+                        set.add(dbValue);
+                    }
+            );
+
+            map.put(key, set);
+        });
     }
 
     public int maxWalGlobalIndex() {

@@ -20,8 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-import static com.bailizhang.lynxdb.lsmtree.common.DbKey.*;
-
 public class ColumnFamilyRegion {
     private static final String WAL_DIR = "wal";
     private static final int EXTRA_DATA_LENGTH = 1;
@@ -90,14 +88,20 @@ public class ColumnFamilyRegion {
     }
 
     public HashMap<Key, HashSet<DbValue>> findAll() {
-        // TODO
-        return null;
+        HashMap<Key, HashSet<DbValue>> map = new HashMap<>();
+
+        mutable.findAll(map);
+        immutable.findAll(map);
+
+        levelTree.findAll(map);
+
+        return map;
     }
 
     public void insert(DbEntry dbEntry) {
         int walGlobalIndex = -1;
         if(options.wal()) {
-            walGlobalIndex = walLog.append(EXISTED_ARRAY, dbEntry);
+            walGlobalIndex = walLog.append(DbKey.EXISTED_ARRAY, dbEntry);
         }
 
         insertIntoMemTableAndMerge(dbEntry, walGlobalIndex);
@@ -106,7 +110,7 @@ public class ColumnFamilyRegion {
     public void delete(DbKey dbKey) {
         int walGlobalIndex = -1;
         if(options.wal()) {
-            walGlobalIndex = walLog.append(DELETED_ARRAY, dbKey.toBytes());
+            walGlobalIndex = walLog.append(DbKey.DELETED_ARRAY, dbKey.toBytes());
         }
 
         DbEntry dbEntry = new DbEntry(dbKey, null);
@@ -135,12 +139,12 @@ public class ColumnFamilyRegion {
             byte flag = entry.index().extraData()[0];
             byte[] key = BufferUtils.getBytes(buffer);
             byte[] column = BufferUtils.getBytes(buffer);
-            byte[] value = flag == DELETED ? null : BufferUtils.getBytes(buffer);
+            byte[] value = flag == DbKey.DELETED ? null : BufferUtils.getBytes(buffer);
 
             DbKey dbKey = new DbKey(key, column, flag);
             DbEntry dbEntry = new DbEntry(dbKey, value);
 
-            if (flag != EXISTED && flag != DELETED) {
+            if (flag != DbKey.EXISTED && flag != DbKey.DELETED) {
                 throw new RuntimeException();
             }
 

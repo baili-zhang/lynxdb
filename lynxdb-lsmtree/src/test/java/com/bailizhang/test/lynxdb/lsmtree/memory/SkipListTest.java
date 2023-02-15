@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.lsmtree.memory;
+package com.bailizhang.test.lynxdb.lsmtree.memory;
 
 import org.junit.jupiter.api.Test;
 

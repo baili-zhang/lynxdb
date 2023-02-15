@@ -1,7 +1,9 @@
-package com.bailizhang.lynxdb.lsmtree;
+package com.bailizhang.test.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.lsmtree.LsmTree;
+import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import org.junit.jupiter.api.AfterEach;

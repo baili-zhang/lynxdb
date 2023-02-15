@@ -8,6 +8,7 @@ import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.lsmtree.config.Options;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -75,6 +76,16 @@ public class LevelTree {
 
         while(level != null) {
             level.find(key, dbValues);
+            level = levels.get(++ levelNo);
+        }
+    }
+
+    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null) {
+            level.findAll(map);
             level = levels.get(++ levelNo);
         }
     }
