@@ -2,10 +2,9 @@ package com.bailizhang.test.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.lsmtree.LsmTree;
+import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +31,11 @@ class LynxDbLsmTreeTest {
         COLUMN_FAMILY = G.I.toBytes("column_family01");
     }
 
-    private LsmTree lsmTree;
+    private Table lsmTree;
 
     @BeforeEach
     void setUp() {
-        Options options = new Options(MEM_TABLE_SIZE);
+        LsmTreeOptions options = new LsmTreeOptions(MEM_TABLE_SIZE);
         lsmTree = new LynxDbLsmTree(BASE_DIR, options);
     }
 

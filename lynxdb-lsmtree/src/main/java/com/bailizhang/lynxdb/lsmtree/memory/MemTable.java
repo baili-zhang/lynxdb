@@ -1,9 +1,8 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
 import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.schema.Column;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
@@ -15,16 +14,15 @@ import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class MemTable {
-    private final Options options;
+    private final LsmTreeOptions options;
     private volatile boolean immutable = false;
 
-    private final ConcurrentSkipListMap<Key, ConcurrentSkipListMap<Column, DbEntry>> skipListMap
-            = new ConcurrentSkipListMap<>();
+    private final ConcurrentSkipListMap<Key, byte[]> skipListMap = new ConcurrentSkipListMap<>();
 
     private int size;
     private int walGlobalIndex;
 
-    public MemTable(Options options) {
+    public MemTable(LsmTreeOptions options) {
         this.options = options;
     }
 
@@ -37,7 +35,7 @@ public class MemTable {
             walGlobalIndex = globalIndex;
         }
 
-        DbKey dbKey = dbEntry.key();
+        KeyEntry dbKey = dbEntry.key();
         Key key = new Key(dbKey.key());
         Column column = new Column(dbKey.column());
 
@@ -52,23 +50,12 @@ public class MemTable {
         }
     }
 
-    public byte[] find(DbKey dbKey) throws DeletedException {
-        Key key = new Key(dbKey.key());
-        Column column = new Column(dbKey.column());
+    public byte[] find(byte[] k) throws DeletedException {
+        Key key = new Key(k);
 
-        ConcurrentSkipListMap<Column, DbEntry> columnMap = skipListMap.get(key);
-        if(columnMap == null) {
-            return null;
-        }
+        KeyEntry existed = dbEntry.key();
 
-        DbEntry dbEntry = columnMap.get(column);
-        if(dbEntry == null) {
-            return null;
-        }
-
-        DbKey existed = dbEntry.key();
-
-        if(existed.flag() == DbKey.DELETED) {
+        if(existed.flag() == KeyEntry.DELETED) {
             throw new DeletedException();
         }
 

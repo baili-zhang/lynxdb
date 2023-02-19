@@ -4,9 +4,8 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
@@ -22,11 +21,11 @@ public class Level {
     private final Path baseDir;
     private final int levelNo;
     private final LevelTree parent;
-    private final Options options;
+    private final LsmTreeOptions options;
 
     private LinkedList<SsTable> ssTables = new LinkedList<>();
 
-    public Level(String dir, int level, LevelTree levelTree, LogGroup logGroup, Options lsmOptions) {
+    public Level(String dir, int level, LevelTree levelTree, LogGroup logGroup, LsmTreeOptions lsmOptions) {
         parentDir = dir;
         baseDir = Path.of(dir, String.valueOf(level));
         FileUtils.createDirIfNotExisted(baseDir.toFile());
@@ -70,12 +69,12 @@ public class Level {
         List<DbIndex> indexList = immutable.all()
                 .stream()
                 .map(entry -> {
-                    DbKey dbKey = entry.key();
+                    KeyEntry dbKey = entry.key();
                     int globalIndex = -1;
 
-                    if(dbKey.flag() == DbKey.EXISTED) {
+                    if(dbKey.flag() == KeyEntry.EXISTED) {
                         globalIndex = valueFileGroup.append(
-                                DbKey.EXISTED_ARRAY,
+                                KeyEntry.EXISTED_ARRAY,
                                 entry.value()
                         );
                     }
@@ -108,7 +107,7 @@ public class Level {
         return ssTables.size() >= LEVEL_SSTABLE_COUNT;
     }
 
-    public byte[] find(DbKey dbKey) throws DeletedException {
+    public byte[] find(KeyEntry dbKey) throws DeletedException {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(dbKey)) {
                 byte[] value = ssTable.find(dbKey);
@@ -132,7 +131,7 @@ public class Level {
         }
     }
 
-    public boolean contains(DbKey dbKey) {
+    public boolean contains(KeyEntry dbKey) {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(dbKey)) {
                 return true;

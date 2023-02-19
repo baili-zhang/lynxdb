@@ -3,7 +3,7 @@ package com.bailizhang.test.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +34,7 @@ class SsTableTest {
     void tearDown() {
     }
 
+    // 测试代码不好写
     @Test
     void create() {
         List<DbIndex> dbIndexList = new ArrayList<>();
@@ -43,10 +44,10 @@ class SsTableTest {
                 String key = KEY + keyCount;
                 String column = COLUMN + columnCount;
 
-                DbKey dbKey = new DbKey(
+                KeyEntry dbKey = new KeyEntry(
                         G.I.toBytes(key),
                         G.I.toBytes(column),
-                        DbKey.EXISTED
+                        KeyEntry.EXISTED
                 );
 
                 dbIndexList.add(new DbIndex(dbKey, 10));

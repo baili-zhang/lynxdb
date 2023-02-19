@@ -6,7 +6,6 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import org.slf4j.Logger;

@@ -7,7 +7,6 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.charset.StandardCharsets;

@@ -7,8 +7,8 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 
 import java.util.Arrays;
 
-public record DbKey(byte[] key, byte[] column, byte flag)
-        implements Comparable<DbKey>, BytesListConvertible {
+public record KeyEntry(byte[] key, byte flag, long crc32)
+        implements Comparable<KeyEntry>, BytesListConvertible {
 
     public static final byte EXISTED = (byte) 0x01;
     public static final byte DELETED = (byte) 0x02;
@@ -16,22 +16,15 @@ public record DbKey(byte[] key, byte[] column, byte flag)
     public static final byte[] EXISTED_ARRAY = new byte[]{EXISTED};
     public static final byte[] DELETED_ARRAY = new byte[]{DELETED};
 
-    // TODO: 补充 CRC 校验
-
     @Override
-    public int compareTo(DbKey o) {
-        if (!Arrays.equals(key, o.key)) {
-            return ByteArrayUtils.compare(key, o.key);
-        }
-
-        return ByteArrayUtils.compare(column, o.column);
+    public int compareTo(KeyEntry o) {
+        return ByteArrayUtils.compare(key, o.key);
     }
 
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(column);
         return bytesList;
     }
 
@@ -44,14 +37,12 @@ public record DbKey(byte[] key, byte[] column, byte flag)
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DbKey dbKey = (DbKey) o;
-        return Arrays.equals(key, dbKey.key) && Arrays.equals(column, dbKey.column);
+        KeyEntry dbKey = (KeyEntry) o;
+        return Arrays.equals(key, dbKey.key);
     }
 
     @Override
     public int hashCode() {
-        int result = Arrays.hashCode(key);
-        result = 31 * result + Arrays.hashCode(column);
-        return result;
+        return Arrays.hashCode(key);
     }
 }

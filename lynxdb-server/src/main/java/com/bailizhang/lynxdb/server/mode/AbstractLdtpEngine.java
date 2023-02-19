@@ -5,7 +5,6 @@ import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.affect.AffectValue;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;

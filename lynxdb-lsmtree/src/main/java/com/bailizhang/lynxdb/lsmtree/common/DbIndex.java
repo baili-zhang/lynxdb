@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 
 public record DbIndex(
-        DbKey dbKey,
+        KeyEntry dbKey,
         int valueGlobalIndex
 ) implements BytesListConvertible {
 
@@ -25,7 +25,7 @@ public record DbIndex(
         byte[] column = BufferUtils.getBytes(buffer);
         int valueGlobalIndex = buffer.getInt();
 
-        DbKey dbKey = new DbKey(key, column, flag);
+        KeyEntry dbKey = new KeyEntry(key, column, flag);
         return new DbIndex(dbKey, valueGlobalIndex);
     }
 

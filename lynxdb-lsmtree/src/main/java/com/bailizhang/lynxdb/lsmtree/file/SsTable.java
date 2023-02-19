@@ -6,9 +6,8 @@ import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
@@ -46,7 +45,7 @@ public class SsTable {
 
     private final LogGroup valueLogGroup;
 
-    public SsTable(Path filePath, int levelNo, LogGroup logGroup, Options options) {
+    public SsTable(Path filePath, int levelNo, LogGroup logGroup, LsmTreeOptions options) {
         sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
         int size = size();
 
@@ -88,7 +87,7 @@ public class SsTable {
         this.valueLogGroup = valueLogGroup;
     }
 
-    public static SsTable create(Path filePath, int levelNo, Options options,
+    public static SsTable create(Path filePath, int levelNo, LsmTreeOptions options,
                                  List<DbIndex> dbIndexList, LogGroup valueLogGroup) {
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
@@ -122,7 +121,7 @@ public class SsTable {
 
         List<Entry> entries = dbIndexList.stream()
                 .map(dbIndex -> {
-                    DbKey dbKey = dbIndex.dbKey();
+                    KeyEntry dbKey = dbIndex.dbKey();
                     return new Entry(dbKey.flag(), dbIndex.toBytes());
                 })
                 .toList();
@@ -175,7 +174,7 @@ public class SsTable {
             if(set.contains(dbIndex)) {
                 int position = indexMapperBuffer.position();
                 int flagPosition = position - INDEX_ENTRY_LENGTH;
-                indexMapperBuffer.put(flagPosition, DbKey.DELETED);
+                indexMapperBuffer.put(flagPosition, KeyEntry.DELETED);
                 continue;
             }
 
@@ -183,23 +182,23 @@ public class SsTable {
         }
     }
 
-    public boolean contains(DbKey dbKey) {
+    public boolean contains(KeyEntry dbKey) {
         return keyColumnBloomFilter.isExist(dbKey.toBytes());
     }
 
-    public byte[] find(DbKey dbKey) throws DeletedException {
+    public byte[] find(KeyEntry dbKey) throws DeletedException {
         int idx = findIndex(dbKey);
         if(idx >= size()) {
             return null;
         }
 
         DbIndex dbIndex = findDbIndex(idx);
-        DbKey existed = dbIndex.dbKey();
+        KeyEntry existed = dbIndex.dbKey();
         if(existed.compareTo(dbKey) != 0) {
             return null;
         }
 
-        if(existed.flag() == DbKey.DELETED) {
+        if(existed.flag() == KeyEntry.DELETED) {
             throw new DeletedException();
         }
 
@@ -210,11 +209,11 @@ public class SsTable {
     }
 
     public void find(byte[] key, HashSet<DbValue> dbValues) {
-        int idx = findIndex(new DbKey(key, BufferUtils.EMPTY_BYTES, DbKey.EXISTED));
+        int idx = findIndex(new KeyEntry(key, BufferUtils.EMPTY_BYTES, KeyEntry.EXISTED));
 
         while (idx < size() - 1) {
             DbIndex dbIndex = findDbIndex(idx);
-            DbKey dbKey = dbIndex.dbKey();
+            KeyEntry dbKey = dbIndex.dbKey();
 
             if(!Arrays.equals(key, dbKey.key())) {
                 break;
@@ -242,7 +241,7 @@ public class SsTable {
 
         for(int i = 0; i < size; i ++) {
             DbIndex dbIndex = findDbIndex(i);
-            DbKey dbKey = dbIndex.dbKey();
+            KeyEntry dbKey = dbIndex.dbKey();
 
             int valueGlobalIndex = dbIndex.valueGlobalIndex();
             LogEntry logEntry = valueLogGroup.find(valueGlobalIndex);
@@ -262,19 +261,19 @@ public class SsTable {
         }
     }
 
-    private static int ssTableSize(int levelNo, Options options) {
+    private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
                 * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
     }
 
     // 找第一个大于等于 dbKey 的下标
-    private int findIndex(DbKey dbKey) {
+    private int findIndex(KeyEntry dbKey) {
         int begin = 0, end = size() - 1, mid, idx = size();
 
         while(begin <= end) {
             mid = begin + ((end - begin) >> 1);
             DbIndex midDbIndex = findDbIndex(mid);
-            DbKey midDbKey = midDbIndex.dbKey();
+            KeyEntry midDbKey = midDbIndex.dbKey();
 
             if(dbKey.compareTo(midDbKey) <= 0) {
                 idx = mid;

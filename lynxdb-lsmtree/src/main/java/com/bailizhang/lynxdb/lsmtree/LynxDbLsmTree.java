@@ -3,28 +3,25 @@ package com.bailizhang.lynxdb.lsmtree;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
-import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
+import com.bailizhang.lynxdb.lsmtree.file.ColumnRegion;
 import com.bailizhang.lynxdb.lsmtree.schema.ColumnFamily;
-import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class LynxDbLsmTree implements LsmTree {
-    private final Options options;
+public class LynxDbLsmTree implements Table {
+    private final LsmTreeOptions options;
     private final String baseDir;
 
     private final ConcurrentHashMap<ColumnFamily, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
-    public LynxDbLsmTree(String dir, Options options) {
+    public LynxDbLsmTree(String dir, LsmTreeOptions options) {
         baseDir = dir;
         this.options = options;
 
@@ -34,54 +31,50 @@ public class LynxDbLsmTree implements LsmTree {
 
         for(String subDir : subDirs) {
             ColumnFamily cf = new ColumnFamily(G.I.toBytes(subDir));
-            ColumnFamilyRegion region = new ColumnFamilyRegion(dir, subDir, this.options);
+            ColumnFamilyRegion region = new ColumnFamilyRegion(subDir, this.options);
             regions.put(cf, region);
         }
     }
 
     @Override
     public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
+        ColumnFamilyRegion cfRegion = findColumnFamilyRegion(columnFamily);
+        ColumnRegion columnRegion = cfRegion.findColumnRegion(column);
 
-        try {
-            return region.find(dbKey);
-        } catch (DeletedException ignore) {
-            return null;
-        }
+        return columnRegion.find(key);
     }
 
     @Override
-    public List<DbValue> find(byte[] key, byte[] columnFamily) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
+    public HashMap<byte[], byte[]> find(byte[] key, byte[] columnFamily) {
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         return region.find(key);
     }
 
     @Override
-    public HashMap<Key, HashSet<DbValue>> findAll(byte[] columnFamily) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
+    public HashMap<byte[], HashMap<byte[], byte[]>> findAll(byte[] columnFamily) {
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         return region.findAll();
     }
 
     @Override
     public void insert(byte[] key, byte[] columnFamily, byte[] column,
                        byte[] value) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
 
-        DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
+        KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.EXISTED);
         DbEntry dbEntry = new DbEntry(dbKey, value);
         region.insert(dbEntry);
     }
 
     @Override
-    public void insert(byte[] key, byte[] columnFamily, List<DbValue> dbValues) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
+    public void insert(byte[] key, byte[] columnFamily, HashMap<byte[], byte[]> multiColumns) {
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
 
         dbValues.forEach(dbValue -> {
             byte[] column = dbValue.column();
             byte[] value = dbValue.value();
 
-            DbKey dbKey = new DbKey(key, column, DbKey.EXISTED);
+            KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.EXISTED);
             DbEntry dbEntry = new DbEntry(dbKey, value);
             region.insert(dbEntry);
         });
@@ -89,15 +82,15 @@ public class LynxDbLsmTree implements LsmTree {
 
     @Override
     public void delete(byte[] key, byte[] columnFamily, byte[] column) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
-        DbKey dbKey = new DbKey(key, column, DbKey.DELETED);
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
+        KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.DELETED);
         region.delete(dbKey);
     }
 
     @Override
     public void delete(byte[] key, byte[] columnFamily) {
         // TODO: 只查询 dbKey，不查询 value
-        ColumnFamilyRegion region = findRegion(columnFamily);
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         List<byte[]> columns = region.findColumns(key);
 
         columns.forEach(column -> delete(key, columnFamily, column));
@@ -105,7 +98,7 @@ public class LynxDbLsmTree implements LsmTree {
 
     @Override
     public boolean existKey(byte[] key, byte[] columnFamily) {
-        ColumnFamilyRegion region = findRegion(columnFamily);
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         return region.existKey(key);
     }
 
@@ -114,12 +107,12 @@ public class LynxDbLsmTree implements LsmTree {
         FileUtils.delete(Path.of(baseDir));
     }
 
-    private ColumnFamilyRegion findRegion(byte[] columnFamily) {
+    private ColumnFamilyRegion findColumnFamilyRegion(byte[] columnFamily) {
         ColumnFamily cf = new ColumnFamily(columnFamily);
         ColumnFamilyRegion region = regions.get(cf);
 
         if(region == null) {
-            region = new ColumnFamilyRegion(baseDir, G.I.toString(columnFamily), options);
+            region = new ColumnFamilyRegion(G.I.toString(columnFamily), options);
             regions.put(cf, region);
         }
 

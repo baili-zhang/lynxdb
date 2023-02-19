@@ -3,10 +3,9 @@ package com.bailizhang.lynxdb.server.engine;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
-import com.bailizhang.lynxdb.lsmtree.LsmTree;
+import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
@@ -23,8 +22,8 @@ public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
     private static final byte[] TIMEOUT_COLUMN = G.I.toBytes("timeout");
 
-    protected final LsmTree dataLsmTree;
-    protected final LsmTree timeoutLsmTree;
+    protected final Table dataLsmTree;
+    protected final Table timeoutLsmTree;
 
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
@@ -35,7 +34,7 @@ public class BaseStorageEngine {
         String dataDir = config.dataDir();
         String timeoutDir = config.timeoutDir();
 
-        Options options = new Options(DEFAULT_MEM_TABLE_SIZE);
+        LsmTreeOptions options = new LsmTreeOptions(DEFAULT_MEM_TABLE_SIZE);
 
         dataLsmTree = new LynxDbLsmTree(dataDir, options);
         timeoutLsmTree = new LynxDbLsmTree(timeoutDir, options);

@@ -3,9 +3,8 @@ package com.bailizhang.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.DbKey;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
+import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
@@ -24,9 +23,9 @@ public class LevelTree {
     private final HashMap<Integer, Level> levels = new HashMap<>();
     private final String baseDir;
     private final LogGroup valueFileGroup;
-    private final Options options;
+    private final LsmTreeOptions options;
 
-    public LevelTree(String dir, Options lsmOptions) {
+    public LevelTree(String dir, LsmTreeOptions lsmOptions) {
         baseDir = dir;
         options = lsmOptions;
 
@@ -52,7 +51,7 @@ public class LevelTree {
         }
     }
 
-    public byte[] find(DbKey dbKey) throws DeletedException {
+    public byte[] find(KeyEntry dbKey) throws DeletedException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
