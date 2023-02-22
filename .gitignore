@@ -8,6 +8,7 @@ core/temp/
 
 # db file
 **/data/*
+timeoutData
 
 # idea
 .idea/
