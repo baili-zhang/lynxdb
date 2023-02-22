@@ -19,7 +19,7 @@ class LogGroupTest {
 
     @BeforeEach
     void setUp() {
-        LogOptions options = new LogOptions(4);
+        LogGroupOptions options = new LogGroupOptions(4);
         logGroup = new LogGroup(BASE_DIR, options);
     }
 

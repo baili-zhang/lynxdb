@@ -2,12 +2,10 @@ package com.bailizhang.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnRegion;
-import com.bailizhang.lynxdb.lsmtree.schema.ColumnFamily;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -18,7 +16,7 @@ public class LynxDbLsmTree implements Table {
     private final LsmTreeOptions options;
     private final String baseDir;
 
-    private final ConcurrentHashMap<ColumnFamily, ColumnFamilyRegion> regions
+    private final ConcurrentHashMap<String, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
     public LynxDbLsmTree(String dir, LsmTreeOptions options) {
@@ -29,77 +27,92 @@ public class LynxDbLsmTree implements Table {
 
         List<String> subDirs = FileUtils.findSubDirs(dir);
 
-        for(String subDir : subDirs) {
-            ColumnFamily cf = new ColumnFamily(G.I.toBytes(subDir));
-            ColumnFamilyRegion region = new ColumnFamilyRegion(subDir, this.options);
-            regions.put(cf, region);
+        for(String columnFamily : subDirs) {
+            ColumnFamilyRegion region = new ColumnFamilyRegion(columnFamily, this.options);
+            regions.put(columnFamily, region);
         }
     }
 
     @Override
-    public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
+    public byte[] find(byte[] key, String columnFamily, String column) {
         ColumnFamilyRegion cfRegion = findColumnFamilyRegion(columnFamily);
         ColumnRegion columnRegion = cfRegion.findColumnRegion(column);
 
-        return columnRegion.find(key);
+        try {
+            return columnRegion.find(key);
+        } catch (DeletedException ignored) {
+            return null;
+        }
     }
 
     @Override
-    public HashMap<byte[], byte[]> find(byte[] key, byte[] columnFamily) {
+    public HashMap<String, byte[]> find(byte[] key, String columnFamily) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        return region.find(key);
+        return region.findAllColumnsByKey(key);
     }
 
     @Override
-    public HashMap<byte[], HashMap<byte[], byte[]>> findAll(byte[] columnFamily) {
+    public HashMap<byte[], HashMap<String, byte[]>> range(
+            String columnFamily,
+            String mainColumn,
+            byte[] beginKey,
+            int limit
+    ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        return region.findAll();
+        ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
+
+        List<byte[]> keys = mainColumnRegion.range(beginKey, limit);
+
+        HashMap<byte[], HashMap<String, byte[]>> values = new HashMap<>();
+
+        for(byte[] key : keys) {
+            HashMap<String, byte[]> multiColumns = region.findAllColumnsByKey(key);
+            values.put(key, multiColumns);
+        }
+
+        return values;
     }
 
     @Override
-    public void insert(byte[] key, byte[] columnFamily, byte[] column,
-                       byte[] value) {
+    public void insert(
+            byte[] key,
+            String columnFamily,
+            String column,
+            byte[] value
+    ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-
-        KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.EXISTED);
-        DbEntry dbEntry = new DbEntry(dbKey, value);
-        region.insert(dbEntry);
+        ColumnRegion columnRegion = region.findColumnRegion(column);
+        columnRegion.insert(key, value);
     }
 
     @Override
-    public void insert(byte[] key, byte[] columnFamily, HashMap<byte[], byte[]> multiColumns) {
+    public void insert(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
 
-        dbValues.forEach(dbValue -> {
-            byte[] column = dbValue.column();
-            byte[] value = dbValue.value();
-
-            KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.EXISTED);
-            DbEntry dbEntry = new DbEntry(dbKey, value);
-            region.insert(dbEntry);
+        multiColumns.forEach((column, value) -> {
+            ColumnRegion columnRegion = region.findColumnRegion(column);
+            columnRegion.insert(key, value);
         });
     }
 
     @Override
-    public void delete(byte[] key, byte[] columnFamily, byte[] column) {
+    public void delete(byte[] key, String columnFamily, String column) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        KeyEntry dbKey = new KeyEntry(key, column, KeyEntry.DELETED);
-        region.delete(dbKey);
+        ColumnRegion columnRegion = region.findColumnRegion(column);
+        columnRegion.delete(key);
     }
 
     @Override
-    public void delete(byte[] key, byte[] columnFamily) {
-        // TODO: 只查询 dbKey，不查询 value
+    public void delete(byte[] key, String columnFamily) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        List<byte[]> columns = region.findColumns(key);
-
-        columns.forEach(column -> delete(key, columnFamily, column));
+        region.deleteAllColumnsByKey(key);
     }
 
     @Override
-    public boolean existKey(byte[] key, byte[] columnFamily) {
+    public boolean existKey(byte[] key, String columnFamily, String mainColumn) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        return region.existKey(key);
+        ColumnRegion columnRegion = region.findColumnRegion(mainColumn);
+        return columnRegion.existKey(key);
     }
 
     @Override
@@ -107,15 +120,10 @@ public class LynxDbLsmTree implements Table {
         FileUtils.delete(Path.of(baseDir));
     }
 
-    private ColumnFamilyRegion findColumnFamilyRegion(byte[] columnFamily) {
-        ColumnFamily cf = new ColumnFamily(columnFamily);
-        ColumnFamilyRegion region = regions.get(cf);
-
-        if(region == null) {
-            region = new ColumnFamilyRegion(G.I.toString(columnFamily), options);
-            regions.put(cf, region);
-        }
-
-        return region;
+    private ColumnFamilyRegion findColumnFamilyRegion(String columnFamily) {
+        return regions.computeIfAbsent(
+                columnFamily,
+                v -> new ColumnFamilyRegion(columnFamily, options)
+        );
     }
 }

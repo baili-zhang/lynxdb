@@ -5,18 +5,14 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
-import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,8 +33,7 @@ public class SsTable {
     private final MappedBuffer sizeBuffer;
 
 
-    private final BloomFilter keyBloomFilter;
-    private final BloomFilter keyColumnBloomFilter;
+    private final BloomFilter bloomFilter;
 
     private final MappedBuffer indexBuffer;
     private final MappedBuffer keyBuffer;
@@ -50,23 +45,17 @@ public class SsTable {
         int size = size();
 
         ssTableSize = SsTable.ssTableSize(levelNo, options);
-        keyBloomFilter = BloomFilter.from(
+        bloomFilter = BloomFilter.from(
                 filePath,
                 BLOOM_FILTER_BEGIN,
                 ssTableSize
         );
 
-        keyColumnBloomFilter = BloomFilter.from(
-                filePath,
-                BLOOM_FILTER_BEGIN + keyBloomFilter.length(),
-                ssTableSize
-        );
-
-        int indexBegin = BLOOM_FILTER_BEGIN + keyBloomFilter.length() + keyColumnBloomFilter.length();
+        int indexBegin = BLOOM_FILTER_BEGIN + bloomFilter.length();
         int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
         indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
 
-        Index lastIndex = findIndex(size - 1);
+        IndexEntry lastIndex = findIndex(size - 1);
 
         int keyBegin = indexBegin + indexLength;
         int keyLength = lastIndex.begin() + lastIndex.length();
@@ -75,67 +64,56 @@ public class SsTable {
         valueLogGroup = logGroup;
     }
 
-    public SsTable(int ssTableSize, MappedBuffer sizeBuffer, BloomFilter keyBloomFilter,
-                   BloomFilter keyColumnBloomFilter, MappedBuffer indexBuffer,
-                   MappedBuffer keyBuffer, LogGroup valueLogGroup) {
+    public SsTable(
+            int ssTableSize,
+            MappedBuffer sizeBuffer,
+            BloomFilter bloomFilter,
+            MappedBuffer indexBuffer,
+            MappedBuffer keyBuffer,
+            LogGroup valueLogGroup
+    ) {
         this.ssTableSize = ssTableSize;
         this.sizeBuffer = sizeBuffer;
-        this.keyBloomFilter = keyBloomFilter;
-        this.keyColumnBloomFilter = keyColumnBloomFilter;
+        this.bloomFilter = bloomFilter;
         this.indexBuffer = indexBuffer;
         this.keyBuffer = keyBuffer;
         this.valueLogGroup = valueLogGroup;
     }
 
     public static SsTable create(Path filePath, int levelNo, LsmTreeOptions options,
-                                 List<DbIndex> dbIndexList, LogGroup valueLogGroup) {
+                                 List<KeyEntry> keyEntries, LogGroup valueLogGroup) {
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
         MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
         MappedByteBuffer sizeMappedBuffer = sizeBuffer.getBuffer();
         int ssTableSize = SsTable.ssTableSize(levelNo, options);
 
-        if(dbIndexList.size() > ssTableSize) {
+        if(keyEntries.size() > ssTableSize) {
             throw new RuntimeException();
         }
 
         sizeMappedBuffer.putInt(SIZE_BEGIN, ssTableSize);
 
-        BloomFilter keyBloomFilter = BloomFilter.from(
+        BloomFilter bloomFilter = BloomFilter.from(
                 filePath,
                 BLOOM_FILTER_BEGIN,
                 ssTableSize
         );
-        dbIndexList.forEach(dbIndex -> keyBloomFilter.setObj(dbIndex.dbKey().key()));
+        keyEntries.forEach(keyEntry -> bloomFilter.setObj(keyEntry.key()));
 
-        BloomFilter keyCloumnBloomFilter = BloomFilter.from(
-                filePath,
-                BLOOM_FILTER_BEGIN + keyBloomFilter.length(),
-                ssTableSize
-        );
-        dbIndexList.forEach(dbIndex -> keyCloumnBloomFilter.setObj(dbIndex.dbKey().toBytes()));
-
-        int indexBegin = keyCloumnBloomFilter.length() + BLOOM_FILTER_BEGIN;
+        int indexBegin = BLOOM_FILTER_BEGIN + bloomFilter.length();
         int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
         MappedBuffer indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
 
-        List<Entry> entries = dbIndexList.stream()
-                .map(dbIndex -> {
-                    KeyEntry dbKey = dbIndex.dbKey();
-                    return new Entry(dbKey.flag(), dbIndex.toBytes());
-                })
-                .toList();
         int keyBegin = indexBegin + indexLength;
-        int keyLength = entries.stream().mapToInt(entry -> entry.data().length).sum();
+        int keyLength = keyEntries.stream().mapToInt(KeyEntry::length).sum();
         MappedBuffer keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
 
         AtomicInteger entryBegin = new AtomicInteger();
-        entries.forEach(entry -> {
-            byte flag = entry.flag();
-            byte[] data = entry.data();
+        keyEntries.forEach(entry -> {
+            byte[] data = entry.toBytes();
 
             MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
-            indexMappedBuffer.put(flag);
             indexMappedBuffer.putInt(entryBegin.getAndAdd(data.length));
             indexMappedBuffer.putInt(data.length);
 
@@ -144,23 +122,21 @@ public class SsTable {
         });
 
         sizeBuffer.force();
-        keyBloomFilter.force();
-        keyCloumnBloomFilter.force();
+        bloomFilter.force();
         indexBuffer.force();
         keyBuffer.force();
 
         return new SsTable(
                 ssTableSize,
                 sizeBuffer,
-                keyBloomFilter,
-                keyCloumnBloomFilter,
+                bloomFilter,
                 indexBuffer,
                 keyBuffer,
                 valueLogGroup
         );
     }
 
-    public void all(HashSet<DbIndex> set) {
+    public void all(HashSet<KeyEntry> set) {
         MappedByteBuffer indexMapperBuffer = indexBuffer.getBuffer();
         indexMapperBuffer.rewind();
 
@@ -168,8 +144,7 @@ public class SsTable {
         keyMappedBuffer.rewind();
 
         while(BufferUtils.isNotOver(keyMappedBuffer)) {
-            Index index = Index.from(indexMapperBuffer);
-            DbIndex dbIndex = DbIndex.from(index.flag(), keyMappedBuffer);
+            IndexEntry index = IndexEntry.from(indexMapperBuffer);
 
             if(set.contains(dbIndex)) {
                 int position = indexMapperBuffer.position();
@@ -182,19 +157,19 @@ public class SsTable {
         }
     }
 
-    public boolean contains(KeyEntry dbKey) {
-        return keyColumnBloomFilter.isExist(dbKey.toBytes());
+    public boolean contains(byte[] key) {
+        return bloomFilter.isExist(key);
     }
 
-    public byte[] find(KeyEntry dbKey) throws DeletedException {
-        int idx = findIndex(dbKey);
+    public byte[] find(byte[] key) throws DeletedException {
+        int idx = findIndex(key);
         if(idx >= size()) {
             return null;
         }
 
-        DbIndex dbIndex = findDbIndex(idx);
+        IndexEntry dbIndex = findDbIndex(idx);
         KeyEntry existed = dbIndex.dbKey();
-        if(existed.compareTo(dbKey) != 0) {
+        if(existed.compareTo(key) != 0) {
             return null;
         }
 
@@ -208,59 +183,6 @@ public class SsTable {
         return entry.data();
     }
 
-    public void find(byte[] key, HashSet<DbValue> dbValues) {
-        int idx = findIndex(new KeyEntry(key, BufferUtils.EMPTY_BYTES, KeyEntry.EXISTED));
-
-        while (idx < size() - 1) {
-            DbIndex dbIndex = findDbIndex(idx);
-            KeyEntry dbKey = dbIndex.dbKey();
-
-            if(!Arrays.equals(key, dbKey.key())) {
-                break;
-            }
-
-            byte[] column = dbKey.column();
-            int globalIndex = dbIndex.valueGlobalIndex();
-            LogEntry entry = valueLogGroup.find(globalIndex);
-
-            DbValue dbValue = new DbValue(column, entry.data());
-
-            idx ++;
-
-            // 只有不存在的时候才 add
-            if(dbValues.contains(dbValue)) {
-                continue;
-            }
-
-            dbValues.add(dbValue);
-        }
-    }
-
-    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
-        int size = size();
-
-        for(int i = 0; i < size; i ++) {
-            DbIndex dbIndex = findDbIndex(i);
-            KeyEntry dbKey = dbIndex.dbKey();
-
-            int valueGlobalIndex = dbIndex.valueGlobalIndex();
-            LogEntry logEntry = valueLogGroup.find(valueGlobalIndex);
-            byte[] value = logEntry.data();
-
-            Key key = new Key(dbKey.key());
-            DbValue dbValue = new DbValue(dbKey.column(), value);
-
-            HashSet<DbValue> set = map.computeIfAbsent(key, k -> new HashSet<>());
-
-            // 只有不存在的时候才添加数据
-            if(set.contains(dbValue)) {
-                return;
-            }
-
-            set.add(dbValue);
-        }
-    }
-
     private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
                 * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
@@ -272,7 +194,7 @@ public class SsTable {
 
         while(begin <= end) {
             mid = begin + ((end - begin) >> 1);
-            DbIndex midDbIndex = findDbIndex(mid);
+            IndexEntry midDbIndex = findDbIndex(mid);
             KeyEntry midDbKey = midDbIndex.dbKey();
 
             if(dbKey.compareTo(midDbKey) <= 0) {
@@ -291,32 +213,19 @@ public class SsTable {
         return sizeMapperBuffer.getInt(SIZE_BEGIN);
     }
 
-    private Index findIndex(int idx) {
+    private IndexEntry findIndex(int idx) {
         MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
         indexMappedBuffer.position(idx * INDEX_ENTRY_LENGTH);
 
-        return Index.from(indexMappedBuffer);
+        return IndexEntry.from(indexMappedBuffer);
     }
 
-    private DbIndex findDbIndex(int idx) {
-        Index index = findIndex(idx);
+    private IndexEntry findDbIndex(int idx) {
+        IndexEntry index = findIndex(idx);
 
         MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
         keyMappedBuffer.position(index.begin());
 
-        return DbIndex.from(index.flag(), keyMappedBuffer);
-    }
-
-    private record Index (byte flag, int begin, int length) {
-        static Index from(ByteBuffer buffer) {
-            byte flag = buffer.get();
-            int begin = buffer.getInt();
-            int length = buffer.getInt();
-            return new Index(flag, begin, length);
-        }
-    }
-
-    private record Entry(byte flag, byte[] data) {
-
+        return IndexEntry.from(keyMappedBuffer);
     }
 }

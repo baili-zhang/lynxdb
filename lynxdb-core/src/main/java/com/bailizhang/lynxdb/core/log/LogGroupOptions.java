@@ -1,12 +1,12 @@
 package com.bailizhang.lynxdb.core.log;
 
-public class LogOptions {
+public class LogGroupOptions {
     private final int extraDataLength;
     private Integer logRegionSize;
     private boolean forceAfterEachAppend = false;
     private boolean forceAfterRegionFull = true;
 
-    public LogOptions(int extraDataLength) {
+    public LogGroupOptions(int extraDataLength) {
         this.extraDataLength = extraDataLength;
         this.logRegionSize = null;
     }

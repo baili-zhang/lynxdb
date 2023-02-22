@@ -22,14 +22,14 @@ public class LogGroup implements Iterable<LogEntry> {
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
 
     private final String groupDir;
-    private final LogOptions options;
+    private final LogGroupOptions options;
 
     private final int beginRegionId;
     private int endRegionId;
 
     private final LinkedList<LogRegion> logRegions = new LinkedList<>();
 
-    public LogGroup(String dir, LogOptions options) {
+    public LogGroup(String dir, LogGroupOptions options) {
         groupDir = dir;
         this.options = options;
 
@@ -133,11 +133,16 @@ public class LogGroup implements Iterable<LogEntry> {
         return entries;
     }
 
-    public void deleteOldContains(int globalIndex) {
+    /**
+     * 不会删除 globalIndex 这条记录
+     *
+     * @param globalIndex global index
+     */
+    public void deleteOldThan(int globalIndex) {
         while(true) {
             LogRegion logRegion = logRegions.getFirst();
 
-            if(globalIndex < logRegion.globalIndexEnd()) {
+            if(globalIndex <= logRegion.globalIndexEnd()) {
                 break;
             }
 

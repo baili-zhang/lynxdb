@@ -1,15 +1,11 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
-import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
-import com.bailizhang.lynxdb.lsmtree.schema.Column;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -17,68 +13,42 @@ public class MemTable {
     private final LsmTreeOptions options;
     private volatile boolean immutable = false;
 
-    private final ConcurrentSkipListMap<Key, byte[]> skipListMap = new ConcurrentSkipListMap<>();
-
-    private int size;
-    private int walGlobalIndex;
+    /**
+     * KeyEntry 保存了是否是删除的 flag 信息
+     */
+    private final ConcurrentSkipListMap<Key, KeyEntry> skipListMap = new ConcurrentSkipListMap<>();
 
     public MemTable(LsmTreeOptions options) {
         this.options = options;
     }
 
-    public void append(DbEntry dbEntry, int globalIndex) {
+    public void append(KeyEntry keyEntry) {
         if(immutable) {
             return;
         }
 
-        if(options.wal()) {
-            walGlobalIndex = globalIndex;
-        }
-
-        KeyEntry dbKey = dbEntry.key();
-        Key key = new Key(dbKey.key());
-        Column column = new Column(dbKey.column());
-
-        ConcurrentSkipListMap<Column, DbEntry> columnMap = skipListMap.get(key);
-        if(columnMap == null) {
-            columnMap = new ConcurrentSkipListMap<>();
-            skipListMap.put(key, columnMap);
-        }
-
-        if(columnMap.put(column, dbEntry) == null) {
-            size ++;
-        }
+        byte[] key = keyEntry.key();
+        skipListMap.put(new Key(key), keyEntry);
     }
 
     public byte[] find(byte[] k) throws DeletedException {
         Key key = new Key(k);
 
-        KeyEntry existed = dbEntry.key();
+        KeyEntry keyEntry = skipListMap.get(key);
 
-        if(existed.flag() == KeyEntry.DELETED) {
+        if(keyEntry == null) {
+            return null;
+        }
+
+        if(keyEntry.flag() == KeyEntry.DELETED) {
             throw new DeletedException();
         }
 
-        return dbEntry.value();
-    }
-
-    public void find(byte[] key, HashSet<DbValue> values) {
-        ConcurrentSkipListMap<Column, DbEntry> columnMap = skipListMap.get(new Key(key));
-        if(columnMap == null) {
-            return;
-        }
-
-        columnMap.forEach((column, dbEntry) -> {
-            DbValue dbValue = new DbValue(column.bytes(), dbEntry.value());
-            if(values.contains(dbValue)) {
-                return;
-            }
-            values.add(dbValue);
-        });
+        return keyEntry.value();
     }
 
     public boolean full() {
-        return size >= options.memTableSize();
+        return skipListMap.size() >= options.memTableSize();
     }
 
     public void transformToImmutable() {
@@ -90,47 +60,17 @@ public class MemTable {
      *
      * @return DB entries
      */
-    public List<DbEntry> all() {
-        List<DbEntry> entries = new ArrayList<>();
-
-        skipListMap.forEach(
-                (key, columnMap) -> columnMap.forEach(
-                        (column, dbEntry) -> entries.add(dbEntry)
-                )
-        );
-
-        return entries;
+    public List<KeyEntry> all() {
+        // TODO: values 是不是排序过的？
+        return new ArrayList<>(skipListMap.values());
     }
 
-    /**
-     * 查询所有的（key, column, value）
-     * 给查询接口用
-     */
-    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
-        skipListMap.forEach((key, columnMap) -> {
-            HashSet<DbValue> set = map.computeIfAbsent(key, k -> new HashSet<>());
-
-            columnMap.forEach(
-                    (column, dbEntry) -> {
-                        byte[] col = column.bytes();
-                        byte[] val = dbEntry.value();
-
-                        DbValue dbValue = new DbValue(col, val);
-
-                        // 只有不存在的时候才添加数据
-                        if(set.contains(dbValue)) {
-                            return;
-                        }
-
-                        set.add(dbValue);
-                    }
-            );
-
-            map.put(key, set);
-        });
+    public boolean existKey(byte[] key) {
+        return skipListMap.containsKey(new Key(key));
     }
 
-    public int maxWalGlobalIndex() {
-        return walGlobalIndex;
+    public List<Key> range(byte[] beginKey, int limit) {
+        // TODO
+        throw new UnsupportedOperationException();
     }
 }

@@ -2,12 +2,12 @@ package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogOptions;
+import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.DbEntry;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.lsmtree.entry.WalEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
@@ -15,12 +15,15 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 
 public class ColumnRegion {
     private static final String WAL_DIR = "wal";
+    private final static String VALUE_DIR = "value";
     private static final int EXTRA_DATA_LENGTH = 1;
+    private static final int WAL_EXTRA_DATA_LENGTH = 0;
 
     private final String columnFamily;
     private final String column;
@@ -28,6 +31,7 @@ public class ColumnRegion {
     private final LsmTreeOptions options;
 
     private final LogGroup walLog;
+    private final LogGroup valueLog;
 
     private MemTable immutable;
     private MemTable mutable;
@@ -40,14 +44,21 @@ public class ColumnRegion {
 
         String baseDir = options.baseDir();
         File file = FileUtils.createDirIfNotExisted(baseDir, columnFamily, column);
-        String cfDir = file.getAbsolutePath();
+        String dir = file.getAbsolutePath();
 
-        String walDir = Path.of(cfDir, WAL_DIR).toString();
+        LogGroupOptions valueLogGroupOptions = new LogGroupOptions(EXTRA_DATA_LENGTH);
+
+        // 初始化 value log group
+        String valueLogPath = Path.of(baseDir, VALUE_DIR).toString();
+        valueLog = new LogGroup(valueLogPath, valueLogGroupOptions);
+
         mutable = new MemTable(options);
-        levelTree = new LevelTree(cfDir, options);
+        levelTree = new LevelTree(dir, options);
 
         if(options.wal()) {
-            LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
+            // 初始化 wal log group
+            String walDir = Path.of(dir, WAL_DIR).toString();
+            LogGroupOptions logOptions = new LogGroupOptions(WAL_EXTRA_DATA_LENGTH);
             logOptions.logRegionSize(options.memTableSize());
 
             walLog = new LogGroup(walDir, logOptions);
@@ -64,46 +75,44 @@ public class ColumnRegion {
         }
 
         if(immutable != null) {
-            value = immutable.find(dbKey);
+            value = immutable.find(key);
             if(value != null) {
                 return value;
             }
         }
 
-        return levelTree.find(dbKey);
+        return levelTree.find(key);
     }
 
-    public HashMap<Key, HashSet<DbValue>> findAll() {
-        HashMap<Key, HashSet<DbValue>> map = new HashMap<>();
+    public void insert(byte[] key, byte[] value) {
+        // TODO: extraData 用来以后清除 value log group 中的无效数据
+        int valueGlobalIndex = valueLog.append(KeyEntry.EXISTED_ARRAY, value);
+        KeyEntry keyEntry = KeyEntry.from(KeyEntry.EXISTED, key, value, valueGlobalIndex);
 
-        mutable.findAll(map);
-        immutable.findAll(map);
-
-        levelTree.findAll(map);
-
-        return map;
-    }
-
-    public void insert(DbEntry dbEntry) {
-        int walGlobalIndex = -1;
+        int maxWalGlobalIndex = -1;
         if(options.wal()) {
-            walGlobalIndex = walLog.append(KeyEntry.EXISTED_ARRAY, dbEntry);
+            WalEntry walEntry = WalEntry.from(KeyEntry.EXISTED, key, value, valueGlobalIndex);
+            byte[] data = walEntry.toBytes();
+            maxWalGlobalIndex = walLog.append(BufferUtils.EMPTY_BYTES, data);
         }
 
-        insertIntoMemTableAndMerge(dbEntry, walGlobalIndex);
+        insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);
     }
 
-    public void delete(KeyEntry dbKey) {
-        int walGlobalIndex = -1;
+    public void delete(byte[] key) {
+        KeyEntry keyEntry = KeyEntry.from(KeyEntry.EXISTED, key, BufferUtils.EMPTY_BYTES, -1);
+
+        int maxWalGlobalIndex = -1;
         if(options.wal()) {
-            walGlobalIndex = walLog.append(KeyEntry.DELETED_ARRAY, dbKey.toBytes());
+            WalEntry walEntry = WalEntry.from(KeyEntry.EXISTED, key, BufferUtils.EMPTY_BYTES, -1);
+            byte[] data = walEntry.toBytes();
+            maxWalGlobalIndex = walLog.append(BufferUtils.EMPTY_BYTES, data);
         }
 
-        DbEntry dbEntry = new DbEntry(dbKey, null);
-        insertIntoMemTableAndMerge(dbEntry, walGlobalIndex);
+        insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);
     }
 
-    private void insertIntoMemTableAndMerge(DbEntry dbEntry, int walGlobalIndex) {
+    private void insertIntoMemTableAndMerge(KeyEntry keyEntry, int maxWalGlobalIndex) {
         if(mutable.full()) {
             MemTable needMerged = immutable;
             mutable.transformToImmutable();
@@ -111,40 +120,58 @@ public class ColumnRegion {
             mutable = new MemTable(options);
             levelTree.merge(needMerged);
 
-            if(options.wal() && needMerged != null) {
-                walLog.deleteOldContains(needMerged.maxWalGlobalIndex());
+            if(options.wal()) {
+                walLog.deleteOldThan(maxWalGlobalIndex);
             }
         }
-        mutable.append(dbEntry, walGlobalIndex);
+        mutable.append(keyEntry);
+    }
+
+    public boolean existKey(byte[] key) {
+        return mutable.existKey(key) || immutable.existKey(key) || levelTree.existKey(key);
+    }
+
+    public List<byte[]> range(byte[] beginKey, int limit) {
+        List<Key> mKeys = mutable.range(beginKey, limit);
+        List<Key> imKeys = immutable.range(beginKey, limit);
+        List<Key> lKeys = levelTree.range(beginKey, limit);
+
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+        priorityQueue.addAll(mKeys);
+        priorityQueue.addAll(imKeys);
+        priorityQueue.addAll(lKeys);
+
+        List<byte[]> range = new ArrayList<>();
+
+        for(int i = 0; i < limit; i ++) {
+            Key key = priorityQueue.poll();
+
+            if(key == null) {
+                break;
+            }
+
+            range.add(key.bytes());
+        }
+
+        return range;
+    }
+
+    public String columnFamily() {
+        return columnFamily;
+    }
+
+    public String column() {
+        return column;
     }
 
     private void recoverFromWal() {
         for(LogEntry entry : walLog) {
             ByteBuffer buffer = ByteBuffer.wrap(entry.data());
 
-            byte flag = entry.index().extraData()[0];
-            byte[] key = BufferUtils.getBytes(buffer);
-            byte[] column = BufferUtils.getBytes(buffer);
-            byte[] value = flag == KeyEntry.DELETED ? null : BufferUtils.getBytes(buffer);
+            WalEntry walEntry = WalEntry.from(buffer);
+            KeyEntry keyEntry = KeyEntry.from(walEntry);
 
-            KeyEntry dbKey = new KeyEntry(key, column, flag);
-            DbEntry dbEntry = new DbEntry(dbKey, value);
-
-            if (flag != KeyEntry.EXISTED && flag != KeyEntry.DELETED) {
-                throw new RuntimeException();
-            }
-
-            insertIntoMemTableAndMerge(dbEntry, -1);
+            insertIntoMemTableAndMerge(keyEntry, -1);
         }
-    }
-
-    public boolean existKey(byte[] key) {
-        // TODO
-        return false;
-    }
-
-    public List<byte[]> findColumns(byte[] key) {
-        // TODO
-        return null;
     }
 }

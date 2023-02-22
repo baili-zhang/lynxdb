@@ -2,8 +2,8 @@ package com.bailizhang.test.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.lsmtree.common.DbIndex;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
+import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class SsTableTest {
     // 测试代码不好写
     @Test
     void create() {
-        List<DbIndex> dbIndexList = new ArrayList<>();
+        List<IndexEntry> dbIndexList = new ArrayList<>();
 
         for(int keyCount = 0; keyCount < 100; keyCount ++) {
             for(int columnCount = 0; columnCount < 40; columnCount ++) {
@@ -50,7 +50,7 @@ class SsTableTest {
                         KeyEntry.EXISTED
                 );
 
-                dbIndexList.add(new DbIndex(dbKey, 10));
+                dbIndexList.add(new IndexEntry(dbKey, 10));
             }
         }
     }

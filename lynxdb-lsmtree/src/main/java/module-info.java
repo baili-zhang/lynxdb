@@ -2,7 +2,7 @@ module lynxdb.lsmtree {
     requires static lynxdb.core;
 
     exports com.bailizhang.lynxdb.lsmtree;
-    exports com.bailizhang.lynxdb.lsmtree.common;
+    exports com.bailizhang.lynxdb.lsmtree.entry;
     exports com.bailizhang.lynxdb.lsmtree.config;
     exports com.bailizhang.lynxdb.lsmtree.exception;
     exports com.bailizhang.lynxdb.lsmtree.file;

@@ -1,9 +1,8 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogOptions;
+import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.lsmtree.common.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
@@ -31,7 +30,7 @@ public class LevelTree {
 
         // 初始化 valueFileGroup
         String valueFileGroupPath = Path.of(baseDir, VALUE_GROUP_NAME).toString();
-        LogOptions logOptions = new LogOptions(EXTRA_DATA_LENGTH);
+        LogGroupOptions logOptions = new LogGroupOptions(EXTRA_DATA_LENGTH);
 
         valueFileGroup = new LogGroup(valueFileGroupPath, logOptions);
 
@@ -51,13 +50,13 @@ public class LevelTree {
         }
     }
 
-    public byte[] find(KeyEntry dbKey) throws DeletedException {
+    public byte[] find(byte[] key) throws DeletedException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
         while(level != null) {
-            if(level.contains(dbKey)) {
-                byte[] value = level.find(dbKey);
+            if(level.contains(key)) {
+                byte[] value = level.find(key);
                 if(value != null) {
                     return value;
                 }
@@ -67,26 +66,6 @@ public class LevelTree {
         }
 
         return null;
-    }
-
-    public void find(byte[] key, HashSet<DbValue> dbValues) {
-        int levelNo = LEVEL_BEGIN;
-        Level level = levels.get(levelNo);
-
-        while(level != null) {
-            level.find(key, dbValues);
-            level = levels.get(++ levelNo);
-        }
-    }
-
-    public void findAll(HashMap<Key, HashSet<DbValue>> map) {
-        int levelNo = LEVEL_BEGIN;
-        Level level = levels.get(levelNo);
-
-        while(level != null) {
-            level.findAll(map);
-            level = levels.get(++ levelNo);
-        }
     }
 
     public void merge(MemTable immutable) {
@@ -110,5 +89,14 @@ public class LevelTree {
 
     void put(int levelNo, Level level) {
         levels.put(levelNo, level);
+    }
+
+    public boolean existKey(byte[] key) {
+        throw new UnsupportedOperationException();
+    }
+
+    public List<Key> range(byte[] beginKey, int limit) {
+        // TODO
+        throw new UnsupportedOperationException();
     }
 }

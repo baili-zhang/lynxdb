@@ -29,11 +29,11 @@ public class LogRegion {
 
     private final int id;
     private final Path path;
-    private final LogOptions options;
+    private final LogGroupOptions options;
 
     private final MappedBuffer mappedBuffer;
 
-    public LogRegion(int id, String dir, LogOptions options) {
+    public LogRegion(int id, String dir, LogGroupOptions options) {
         this.id = id;
 
         this.options = options;

@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.raft.state;
 
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogOptions;
+import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -14,7 +14,7 @@ public class LogRaftState extends BaseRaftState {
 
     protected final LogGroup raftLog = new LogGroup(
             raftConfiguration.logDir(),
-            new LogOptions(EXTRA_DATA_LENGTH)
+            new LogGroupOptions(EXTRA_DATA_LENGTH)
     );
 
     protected LogRaftState() {
