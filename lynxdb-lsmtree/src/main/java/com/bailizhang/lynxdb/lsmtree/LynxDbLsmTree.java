@@ -19,13 +19,13 @@ public class LynxDbLsmTree implements Table {
     private final ConcurrentHashMap<String, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
-    public LynxDbLsmTree(String dir, LsmTreeOptions options) {
-        baseDir = dir;
+    public LynxDbLsmTree(LsmTreeOptions options) {
+        baseDir = options.baseDir();
         this.options = options;
 
-        FileUtils.createDirIfNotExisted(dir);
+        FileUtils.createDirIfNotExisted(baseDir);
 
-        List<String> subDirs = FileUtils.findSubDirs(dir);
+        List<String> subDirs = FileUtils.findSubDirs(baseDir);
 
         for(String columnFamily : subDirs) {
             ColumnFamilyRegion region = new ColumnFamilyRegion(columnFamily, this.options);

@@ -11,14 +11,15 @@ import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
 /**
  * TODO: 元数据，布隆过滤器，索引，entry 都需要添加 crc 检验字段
@@ -26,7 +27,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 public class SsTable {
     private static final int SIZE_BEGIN = 0;
     private static final int BLOOM_FILTER_BEGIN = INT_LENGTH;
-    private static final int INDEX_ENTRY_LENGTH = BYTE_LENGTH + 2 * INT_LENGTH;
+    private static final int INDEX_ENTRY_LENGTH = BYTE_LENGTH + 2 * INT_LENGTH + LONG_LENGTH;
 
     private final int ssTableSize;
 
@@ -55,7 +56,7 @@ public class SsTable {
         int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
         indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
 
-        IndexEntry lastIndex = findIndex(size - 1);
+        IndexEntry lastIndex = findIndexEntry(size - 1);
 
         int keyBegin = indexBegin + indexLength;
         int keyLength = lastIndex.begin() + lastIndex.length();
@@ -113,9 +114,15 @@ public class SsTable {
         keyEntries.forEach(entry -> {
             byte[] data = entry.toBytes();
 
+            byte flag = entry.flag();
+            int begin = entryBegin.getAndAdd(data.length);
+            int length = entry.length();
+            IndexEntry indexEntry = IndexEntry.from(flag, begin, length);
+
+            byte[] indexData = indexEntry.toBytes();
+
             MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
-            indexMappedBuffer.putInt(entryBegin.getAndAdd(data.length));
-            indexMappedBuffer.putInt(data.length);
+            indexMappedBuffer.put(indexData);
 
             MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
             keyMappedBuffer.put(data);
@@ -143,17 +150,16 @@ public class SsTable {
         MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
         keyMappedBuffer.rewind();
 
+        // MemTable 可能不是最大容量
         while(BufferUtils.isNotOver(keyMappedBuffer)) {
             IndexEntry index = IndexEntry.from(indexMapperBuffer);
+            int length = index.length();
 
-            if(set.contains(dbIndex)) {
-                int position = indexMapperBuffer.position();
-                int flagPosition = position - INDEX_ENTRY_LENGTH;
-                indexMapperBuffer.put(flagPosition, KeyEntry.DELETED);
-                continue;
-            }
+            byte[] data = new byte[length];
+            keyMappedBuffer.get(data);
 
-            set.add(dbIndex);
+            KeyEntry entry = KeyEntry.from(index.flag(), data);
+            set.add(entry);
         }
     }
 
@@ -162,26 +168,24 @@ public class SsTable {
     }
 
     public byte[] find(byte[] key) throws DeletedException {
-        int idx = findIndex(key);
+        int idx = findIdx(key);
         if(idx >= size()) {
             return null;
         }
 
-        IndexEntry dbIndex = findDbIndex(idx);
-        KeyEntry existed = dbIndex.dbKey();
-        if(existed.compareTo(key) != 0) {
-            return null;
-        }
+        IndexEntry indexEntry = findIndexEntry(idx);
 
-        if(existed.flag() == KeyEntry.DELETED) {
+        if(indexEntry.flag() == KeyEntry.DELETED) {
             throw new DeletedException();
         }
 
-        int globalIndex = dbIndex.valueGlobalIndex();
+        KeyEntry keyEntry = findKeyEntry(indexEntry);
+        int globalIndex = keyEntry.valueGlobalIndex();
         LogEntry entry = valueLogGroup.find(globalIndex);
 
         return entry.data();
     }
+
 
     private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
@@ -189,15 +193,19 @@ public class SsTable {
     }
 
     // 找第一个大于等于 dbKey 的下标
-    private int findIndex(KeyEntry dbKey) {
+    private int findIdx(byte[] key) {
         int begin = 0, end = size() - 1, mid, idx = size();
 
         while(begin <= end) {
             mid = begin + ((end - begin) >> 1);
-            IndexEntry midDbIndex = findDbIndex(mid);
-            KeyEntry midDbKey = midDbIndex.dbKey();
+            IndexEntry midIndexEntry = findIndexEntry(mid);
+            ByteBuffer buffer = keyBuffer.getBuffer();
+            buffer.position(midIndexEntry.begin());
 
-            if(dbKey.compareTo(midDbKey) <= 0) {
+            byte[] midKey = new byte[midIndexEntry.length()];
+            buffer.get(midKey);
+
+            if(Arrays.compare(key, midKey) <= 0) {
                 idx = mid;
                 end = mid - 1;
             } else {
@@ -213,19 +221,21 @@ public class SsTable {
         return sizeMapperBuffer.getInt(SIZE_BEGIN);
     }
 
-    private IndexEntry findIndex(int idx) {
+    private IndexEntry findIndexEntry(int idx) {
         MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
         indexMappedBuffer.position(idx * INDEX_ENTRY_LENGTH);
 
         return IndexEntry.from(indexMappedBuffer);
     }
 
-    private IndexEntry findDbIndex(int idx) {
-        IndexEntry index = findIndex(idx);
+    private KeyEntry findKeyEntry(IndexEntry indexEntry) {
+        ByteBuffer buffer = keyBuffer.getBuffer();
+        buffer.position(indexEntry.begin());
 
-        MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
-        keyMappedBuffer.position(index.begin());
+        byte[] keyData = new byte[indexEntry.length()];
+        buffer.get(keyData);
 
-        return IndexEntry.from(keyMappedBuffer);
+        return KeyEntry.from(indexEntry.flag(), keyData);
     }
+
 }

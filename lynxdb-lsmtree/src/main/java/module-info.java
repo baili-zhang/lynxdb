@@ -1,5 +1,5 @@
 module lynxdb.lsmtree {
-    requires static lynxdb.core;
+    requires lynxdb.core;
 
     exports com.bailizhang.lynxdb.lsmtree;
     exports com.bailizhang.lynxdb.lsmtree.entry;

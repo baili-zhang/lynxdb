@@ -2,8 +2,11 @@ package com.bailizhang.lynxdb.lsmtree.entry;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.zip.CRC32C;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
@@ -60,6 +63,23 @@ public record KeyEntry(
         );
     }
 
+    public static KeyEntry from(byte flag, byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        byte[] key = BufferUtils.getBytes(buffer);
+        int valueGlobalIndex = buffer.getInt();
+        long crc32c = buffer.getLong();
+
+        CRC32C crc32C = new CRC32C();
+        crc32C.update(key);
+        crc32C.update(valueGlobalIndex);
+
+        if(crc32c != crc32C.getValue()) {
+            throw new RuntimeException("Data Error");
+        }
+
+        return new KeyEntry(flag, key, null, valueGlobalIndex, crc32c);
+    }
+
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
@@ -76,8 +96,7 @@ public record KeyEntry(
 
     @Override
     public int compareTo(KeyEntry o) {
-        // TODO
-        return 0;
+        return Arrays.compare(key, o.key);
     }
 
     @Override

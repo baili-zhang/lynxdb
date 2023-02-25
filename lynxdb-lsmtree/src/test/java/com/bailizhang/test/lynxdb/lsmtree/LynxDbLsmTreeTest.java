@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -24,19 +25,18 @@ class LynxDbLsmTreeTest {
     private static final int COLUMN_COUNT = 90;
     private static final int MEM_TABLE_SIZE = 400;
 
-    private static final byte[] COLUMN_FAMILY;
+    private static final String COLUMN_FAMILY = "column_family01";
 
     static {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        COLUMN_FAMILY = G.I.toBytes("column_family01");
     }
 
     private Table lsmTree;
 
     @BeforeEach
     void setUp() {
-        LsmTreeOptions options = new LsmTreeOptions(MEM_TABLE_SIZE);
-        lsmTree = new LynxDbLsmTree(BASE_DIR, options);
+        LsmTreeOptions options = new LsmTreeOptions(BASE_DIR, MEM_TABLE_SIZE);
+        lsmTree = new LynxDbLsmTree(options);
     }
 
     @AfterEach
@@ -56,7 +56,7 @@ class LynxDbLsmTreeTest {
                 lsmTree.insert(
                         G.I.toBytes(key),
                         COLUMN_FAMILY,
-                        G.I.toBytes(column),
+                        column,
                         G.I.toBytes(value)
                 );
             }
@@ -83,7 +83,7 @@ class LynxDbLsmTreeTest {
                 byte[] findValue = lsmTree.find(
                         G.I.toBytes(key),
                         COLUMN_FAMILY,
-                        G.I.toBytes(column)
+                        column
                 );
 
                 assert Arrays.equals(value, findValue);
@@ -97,12 +97,12 @@ class LynxDbLsmTreeTest {
 
         String key = KEY + 500;
 
-        List<DbValue> dbValues = lsmTree.find(
+        HashMap<String, byte[]> multiColumns = lsmTree.find(
                 G.I.toBytes(key),
                 COLUMN_FAMILY
         );
 
-        assert dbValues.size() == COLUMN_COUNT;
+        assert multiColumns.size() == COLUMN_COUNT;
     }
 
     @Test
@@ -115,10 +115,10 @@ class LynxDbLsmTreeTest {
         lsmTree.delete(
                 G.I.toBytes(key),
                 COLUMN_FAMILY,
-                G.I.toBytes(column)
+                column
         );
 
-        List<DbValue> dbValues = lsmTree.find(
+        HashMap<String, byte[]> dbValues = lsmTree.find(
                 G.I.toBytes(key),
                 COLUMN_FAMILY
         );
@@ -129,7 +129,7 @@ class LynxDbLsmTreeTest {
     @Test
     void testFunc04() {
         byte[] key = G.I.toBytes("Hallo");
-        byte[] column = G.I.toBytes("World");
+        String column = "World";
         byte[] value = G.I.toBytes("LynxDb");
 
         lsmTree.insert(

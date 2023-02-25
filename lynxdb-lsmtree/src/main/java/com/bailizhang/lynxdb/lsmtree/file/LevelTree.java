@@ -10,7 +10,6 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 public class LevelTree {

@@ -10,7 +10,7 @@ import java.util.zip.CRC32C;
 
 public record IndexEntry(
         byte flag, // 是否被删除
-        int begin,
+        int begin, // 顺序查找不需要，二分查找需要这个字段
         int length,
         long crc32c
 ) implements BytesListConvertible {
@@ -27,8 +27,21 @@ public record IndexEntry(
     }
 
     public static IndexEntry from(ByteBuffer buffer) {
-        // TODO
-        throw new UnsupportedOperationException();
+        byte flag = buffer.get();
+        int begin = buffer.getInt();
+        int length = buffer.getInt();
+        long crc32c = buffer.getLong();
+
+        CRC32C crc32C = new CRC32C();
+        crc32C.update(new byte[]{flag});
+        crc32C.update(begin);
+        crc32C.update(length);
+
+        if(crc32c != crc32C.getValue()) {
+            throw new RuntimeException("Data Error");
+        }
+
+        return new IndexEntry(flag, begin, length, crc32c);
     }
 
     @Override

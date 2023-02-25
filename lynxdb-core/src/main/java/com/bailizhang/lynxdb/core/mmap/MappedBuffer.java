@@ -63,7 +63,7 @@ public class MappedBuffer {
             }
         }
 
-        return mappedBuffer;
+        return mappedBuffer.rewind();
     }
 
     public int length() {
