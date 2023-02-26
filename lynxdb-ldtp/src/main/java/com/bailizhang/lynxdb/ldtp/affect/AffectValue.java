@@ -2,17 +2,19 @@ package com.bailizhang.lynxdb.ldtp.affect;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.ldtp.message.MessageType;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public record AffectValue(
         MessageKey messageKey,
-        List<DbValue> dbValues
+        HashMap<String, byte[]> multiColumns
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
@@ -22,25 +24,30 @@ public record AffectValue(
 
         bytesList.appendRawByte(MessageType.AFFECT);
         bytesList.append(key);
-        dbValues.forEach(bytesList::append);
+        multiColumns.forEach((column, value) -> {
+            bytesList.appendRawBytes(G.I.toBytes(column));
+            bytesList.appendVarBytes(value);
+        });
 
         return bytesList;
     }
 
     public static AffectValue from(ByteBuffer buffer) {
         MessageKey messageKey = MessageKey.from(buffer);
-        List<DbValue> dbValues = valuesFrom(buffer);
+        HashMap<String, byte[]> dbValues = valuesFrom(buffer);
 
         return new AffectValue(messageKey, dbValues);
     }
 
-    public static List<DbValue> valuesFrom(ByteBuffer buffer) {
-        List<DbValue> dbValues = new ArrayList<>();
+    public static HashMap<String, byte[]> valuesFrom(ByteBuffer buffer) {
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
 
         while (BufferUtils.isNotOver(buffer)) {
-            dbValues.add(DbValue.from(buffer));
+            String column = BufferUtils.getString(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+            multiColumns.put(column, value);
         }
 
-        return dbValues;
+        return multiColumns;
     }
 }

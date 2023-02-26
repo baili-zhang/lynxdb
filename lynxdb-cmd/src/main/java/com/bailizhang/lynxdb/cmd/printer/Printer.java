@@ -8,6 +8,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public interface Printer {
@@ -56,15 +57,12 @@ public interface Printer {
         new TablePrinter(table).print();
     }
 
-    static void printDbValues(List<DbValue> dbValues) {
+    static void printDbValues(HashMap<String, byte[]> multiColumns) {
         List<List<String>> table = new ArrayList<>();
         List<String> header = List.of("Column", "Value");
         table.add(header);
-        dbValues.forEach(dbValue -> {
-            List<String> row = List.of(
-                    G.I.toString(dbValue.column()),
-                    G.I.toString(dbValue.value())
-            );
+        multiColumns.forEach((column, value) -> {
+            List<String> row = List.of(column, G.I.toString(value));
             table.add(row);
         });
 

@@ -17,12 +17,12 @@ public class LynxDbCommand {
         return commands.length < 2 ? null : G.I.toBytes(commands[1]);
     }
 
-    public byte[] columnFamily() {
-        return commands.length < 3 ? null : G.I.toBytes(commands[2]);
+    public String columnFamily() {
+        return commands.length < 3 ? null : commands[2];
     }
 
-    public byte[] column() {
-        return commands.length < 4 ? null : G.I.toBytes(commands[3]);
+    public String column() {
+        return commands.length < 4 ? null : commands[3];
     }
 
     public byte[] value() {

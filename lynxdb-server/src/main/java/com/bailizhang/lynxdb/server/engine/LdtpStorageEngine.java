@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.DB_VALUE_LIST;
@@ -33,13 +34,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
-        byte[] column = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
+        String column = BufferUtils.getString(buffer);
 
         byte[] value = dataLsmTree.find(key, columnFamily, column);
 
         logger.debug("Find by dbKey: {}, columnFamily: {}, column: {}, value is: {}.",
-                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column), G.I.toString(value));
+                G.I.toString(key), columnFamily, column, G.I.toString(value));
 
         BytesList bytesList = new BytesList();
 
@@ -59,20 +60,22 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
 
         return doFindByKeyCf(key, columnFamily);
     }
 
-    public QueryResult doFindByKeyCf(byte[] key, byte[] columnFamily) {
-        List<DbValue> values = dataLsmTree.find(key, columnFamily);
+    public QueryResult doFindByKeyCf(byte[] key, String columnFamily) {
+        HashMap<String, byte[]> multiColumns = dataLsmTree.find(key, columnFamily);
 
-        logger.debug("Find by dbKey: {}, columnFamily: {}.",
-                G.I.toString(key), G.I.toString(columnFamily));
+        logger.debug("Find by dbKey: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(DB_VALUE_LIST);
-        values.forEach(bytesList::append);
+        multiColumns.forEach((column, value) -> {
+           bytesList.appendVarStr(column);
+           bytesList.appendVarBytes(value);
+        });
 
         return new QueryResult(bytesList, null);
     }
@@ -83,13 +86,12 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
-        byte[] column = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
+        String column = BufferUtils.getString(buffer);
         byte[] value = BufferUtils.getBytes(buffer);
 
         logger.debug("Insert dbKey: {}, columnFamily: {}, column: {}, value: {}.",
-                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column),
-                G.I.toString(value));
+                G.I.toString(key), columnFamily, column, G.I.toString(value));
 
         dataLsmTree.insert(key, columnFamily, column, value);
 
@@ -105,21 +107,21 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
 
-        List<DbValue> dbValues = new ArrayList<>();
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
 
         while(BufferUtils.isNotOver(buffer)) {
-            byte[] column = BufferUtils.getBytes(buffer);
+            String column = BufferUtils.getString(buffer);
             byte[] value = BufferUtils.getBytes(buffer);
 
-            dbValues.add(new DbValue(column, value));
+            multiColumns.put(column, value);
         }
 
-        logger.debug("Insert dbKey: {}, columnFamily: {}, dbValues: {}.",
-                G.I.toString(key), G.I.toString(columnFamily), dbValues);
+        logger.debug("Insert dbKey: {}, columnFamily: {}, multiColumns: {}.",
+                G.I.toString(key), columnFamily, multiColumns);
 
-        dataLsmTree.insert(key, columnFamily, dbValues);
+        dataLsmTree.insert(key, columnFamily, multiColumns);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -133,11 +135,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
-        byte[] column = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
+        String column = BufferUtils.getString(buffer);
 
         logger.debug("Delete dbKey: {}, columnFamily: {}, column: {}.",
-                G.I.toString(key), G.I.toString(columnFamily), G.I.toString(column));
+                G.I.toString(key), columnFamily, column);
 
         dataLsmTree.delete(key, columnFamily, column);
 
@@ -153,10 +155,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
-        byte[] columnFamily = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
 
         logger.debug("Delete dbKey: {}, columnFamily: {}.",
-                G.I.toString(key), G.I.toString(columnFamily));
+                G.I.toString(key), columnFamily);
 
         dataLsmTree.delete(key, columnFamily);
 

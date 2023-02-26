@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -173,9 +174,9 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
 
     private void sendAffectValueToRegisterClient(MessageKey messageKey) {
         List<SelectionKey> keys = affectKeyRegistry.selectionKeys(messageKey);
-        List<DbValue> dbValues = engine.findAffectKey(messageKey);
+        HashMap<String, byte[]> multiColumns = engine.findAffectKey(messageKey);
 
-        AffectValue affectValue = new AffectValue(messageKey, dbValues);
+        AffectValue affectValue = new AffectValue(messageKey, multiColumns);
 
         for(SelectionKey key : keys) {
             WritableSocketResponse affectResponse = new WritableSocketResponse(

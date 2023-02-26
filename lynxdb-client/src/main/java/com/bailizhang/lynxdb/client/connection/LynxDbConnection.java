@@ -18,6 +18,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -68,13 +69,13 @@ public class LynxDbConnection {
         socketClient.disconnect(selectionKey);
     }
 
-    public byte[] find(byte[] key, byte[] columnFamily, byte[] column) {
+    public byte[] find(byte[] key, String columnFamily, String column) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.appendRawByte(LdtpMethod.FIND_BY_KEY_CF_COLUMN);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
-        bytesList.appendVarBytes(column);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(column);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, bytesList.toBytes());
@@ -91,12 +92,12 @@ public class LynxDbConnection {
         };
     }
 
-    public List<DbValue> find(byte[] key, byte[] columnFamily) {
+    public HashMap<String, byte[]> find(byte[] key, String columnFamily) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.appendRawByte(LdtpMethod.FIND_BY_KEY_CF);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
+        bytesList.appendVarStr(columnFamily);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, bytesList.toBytes());
@@ -109,12 +110,15 @@ public class LynxDbConnection {
             throw new RuntimeException();
         }
 
-        List<DbValue> dbValues = new ArrayList<>();
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
         while (BufferUtils.isNotOver(buffer)) {
-            dbValues.add(DbValue.from(buffer));
+            String column = BufferUtils.getString(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+
+            multiColumns.put(column, value);
         }
 
-        return dbValues;
+        return multiColumns;
     }
 
     public <T> T find(T obj, byte[]... columns) {
@@ -156,25 +160,24 @@ public class LynxDbConnection {
             throw new RuntimeException();
         }
 
-        List<DbValue> dbValues = find(G.I.toBytes(key), G.I.toBytes(columnFamily));
-        dbValues.forEach(dbValue -> {
-            String name = G.I.toString(dbValue.column());
-            String value = G.I.toString(dbValue.value());
+        HashMap<String, byte[]> multiColumns = find(G.I.toBytes(key), columnFamily);
+        multiColumns.forEach((column, value) -> {
+            String val = G.I.toString(value);
 
             // TODO: 支持 String 以外的其他类型
-            FieldUtils.set(obj, name, value);
+            FieldUtils.set(obj, column, val);
         });
 
         return obj;
     }
 
-    public void insert(byte[] key, byte[] columnFamily, byte[] column, byte[] value) {
+    public void insert(byte[] key, String columnFamily, String column, byte[] value) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.appendRawByte(LdtpMethod.INSERT);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
-        bytesList.appendVarBytes(column);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(column);
         bytesList.appendVarBytes(value);
 
         SelectionKey selectionKey = selectionKey();
@@ -189,18 +192,15 @@ public class LynxDbConnection {
         }
     }
 
-    public void insert(byte[] key, byte[] columnFamily, List<DbValue> dbValues) {
+    public void insert(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMN);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(columnFamily);
 
-        dbValues.forEach(dbValue -> {
-            byte[] column = dbValue.column();
-            byte[] value = dbValue.value();
-
-            bytesList.appendVarBytes(column);
+        multiColumns.forEach((column, value) -> {
+            bytesList.appendVarStr(column);
             bytesList.appendVarBytes(value);
         });
 
@@ -255,7 +255,7 @@ public class LynxDbConnection {
             throw new RuntimeException();
         }
 
-        List<DbValue> dbValues = new ArrayList<>();
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
         for(Field field : fields) {
             if(field.getType() != String.class) {
                 continue;
@@ -268,20 +268,19 @@ public class LynxDbConnection {
             String column = field.getName();
             String value = (String) FieldUtils.get(obj, field);
 
-            DbValue dbValue = new DbValue(G.I.toBytes(column), G.I.toBytes(value));
-            dbValues.add(dbValue);
+            multiColumns.put(column, G.I.toBytes(value));
         }
 
-        insert(G.I.toBytes(key), G.I.toBytes(columnFamily), dbValues);
+        insert(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
     }
 
-    public void delete(byte[] key, byte[] columnFamily, byte[] column) {
+    public void delete(byte[] key, String columnFamily, String column) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(CLIENT_REQUEST);
         bytesList.appendRawByte(LdtpMethod.DELETE);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
-        bytesList.appendVarBytes(column);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(column);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, bytesList.toBytes());
@@ -314,11 +313,11 @@ public class LynxDbConnection {
         }
     }
 
-    public void register(byte[] key, byte[] columnFamily) {
+    public void register(byte[] key, String columnFamily) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(REGISTER_KEY);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
+        bytesList.appendVarStr(columnFamily);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, bytesList.toBytes());
@@ -332,11 +331,11 @@ public class LynxDbConnection {
         }
     }
 
-    public void deregister(byte[] key, byte[] columnFamily) {
+    public void deregister(byte[] key, String columnFamily) {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(DEREGISTER_KEY);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
+        bytesList.appendVarStr(columnFamily);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, bytesList.toBytes());

@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -63,12 +64,12 @@ public class LynxDbCmdClient extends Shutdown {
                     }
 
                     if(command.length() == 3) {
-                        List<DbValue> dbValues = current.find(
+                        HashMap<String, byte[]> multiColumns = current.find(
                                 command.key(),
                                 command.columnFamily()
                         );
 
-                        Printer.printDbValues(dbValues);
+                        Printer.printDbValues(multiColumns);
                     } else if(command.length() == 4) {
                         byte[] value = current.find(
                                 command.key(),
@@ -128,7 +129,7 @@ public class LynxDbCmdClient extends Shutdown {
                     }
 
                     byte[] key = command.key();
-                    byte[] columnFamily = command.columnFamily();
+                    String columnFamily = command.columnFamily();
 
                     MessageKey messageKey = new MessageKey(key, columnFamily);
                     AffectHandler handler = new AffectHandler();

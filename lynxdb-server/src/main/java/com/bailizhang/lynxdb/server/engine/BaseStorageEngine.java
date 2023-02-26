@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.Table;
@@ -15,12 +14,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 
 public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
-    private static final byte[] TIMEOUT_COLUMN = G.I.toBytes("timeout");
+    private static final String TIMEOUT_COLUMN = "timeout";
 
     protected final Table dataLsmTree;
     protected final Table timeoutLsmTree;
@@ -34,10 +32,11 @@ public class BaseStorageEngine {
         String dataDir = config.dataDir();
         String timeoutDir = config.timeoutDir();
 
-        LsmTreeOptions options = new LsmTreeOptions(DEFAULT_MEM_TABLE_SIZE);
+        LsmTreeOptions dataLsmTreeOptions = new LsmTreeOptions(dataDir, DEFAULT_MEM_TABLE_SIZE);
+        LsmTreeOptions timeoutLsmTreeOptions = new LsmTreeOptions(timeoutDir, DEFAULT_MEM_TABLE_SIZE);
 
-        dataLsmTree = new LynxDbLsmTree(dataDir, options);
-        timeoutLsmTree = new LynxDbLsmTree(timeoutDir, options);
+        dataLsmTree = new LynxDbLsmTree(dataLsmTreeOptions);
+        timeoutLsmTree = new LynxDbLsmTree(timeoutLsmTreeOptions);
 
         initMethod(clazz);
     }
@@ -55,7 +54,7 @@ public class BaseStorageEngine {
         }
     }
 
-    public List<DbValue> findAffectKey(MessageKey messageKey) {
+    public HashMap<String, byte[]> findAffectKey(MessageKey messageKey) {
         return dataLsmTree.find(messageKey.key(), messageKey.columnFamily());
     }
 
