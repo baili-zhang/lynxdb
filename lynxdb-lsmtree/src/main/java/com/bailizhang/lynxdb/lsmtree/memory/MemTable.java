@@ -65,8 +65,18 @@ public class MemTable {
         return new ArrayList<>(skipListMap.values());
     }
 
-    public boolean existKey(byte[] key) {
-        return skipListMap.containsKey(new Key(key));
+    public boolean existKey(byte[] key) throws DeletedException {
+        KeyEntry entry = skipListMap.get(new Key(key));
+
+        if(entry == null) {
+            return false;
+        }
+
+        if(entry.flag() == KeyEntry.DELETED) {
+            throw new DeletedException();
+        }
+
+        return true;
     }
 
     public List<Key> range(byte[] beginKey, int limit) {

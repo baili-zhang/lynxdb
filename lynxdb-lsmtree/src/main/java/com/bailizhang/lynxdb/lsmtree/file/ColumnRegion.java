@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 
+import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
+
 public class ColumnRegion {
     private static final String WAL_DIR = "wal";
     private final static String VALUE_DIR = "value";
@@ -43,13 +45,13 @@ public class ColumnRegion {
         this.options = options;
 
         String baseDir = options.baseDir();
-        File file = FileUtils.createDirIfNotExisted(baseDir, columnFamily, column);
+        File file = FileUtils.createDirIfNotExisted(baseDir, columnFamily, COLUMNS_DIR, column);
         String dir = file.getAbsolutePath();
 
         LogGroupOptions valueLogGroupOptions = new LogGroupOptions(EXTRA_DATA_LENGTH);
 
         // 初始化 value log group
-        String valueLogPath = Path.of(baseDir, VALUE_DIR).toString();
+        String valueLogPath = Path.of(dir, VALUE_DIR).toString();
         valueLog = new LogGroup(valueLogPath, valueLogGroupOptions);
 
         mutable = new MemTable(options);
@@ -100,11 +102,21 @@ public class ColumnRegion {
     }
 
     public void delete(byte[] key) {
-        KeyEntry keyEntry = KeyEntry.from(KeyEntry.EXISTED, key, BufferUtils.EMPTY_BYTES, -1);
+        KeyEntry keyEntry = KeyEntry.from(
+                KeyEntry.DELETED,
+                key,
+                BufferUtils.EMPTY_BYTES,
+                -1
+        );
 
         int maxWalGlobalIndex = -1;
         if(options.wal()) {
-            WalEntry walEntry = WalEntry.from(KeyEntry.EXISTED, key, BufferUtils.EMPTY_BYTES, -1);
+            WalEntry walEntry = WalEntry.from(
+                    KeyEntry.DELETED,
+                    key,
+                    BufferUtils.EMPTY_BYTES,
+                    -1
+            );
             byte[] data = walEntry.toBytes();
             maxWalGlobalIndex = walLog.append(BufferUtils.EMPTY_BYTES, data);
         }
@@ -120,15 +132,22 @@ public class ColumnRegion {
             mutable = new MemTable(options);
             levelTree.merge(needMerged);
 
-            if(options.wal()) {
-                walLog.deleteOldThan(maxWalGlobalIndex);
+            // TODO: 极端情况下会出现数据重复
+            if(options.wal() && needMerged != null) {
+                walLog.deleteOldThan(maxWalGlobalIndex - options.memTableSize() + 1);
             }
         }
         mutable.append(keyEntry);
     }
 
     public boolean existKey(byte[] key) {
-        return mutable.existKey(key) || immutable.existKey(key) || levelTree.existKey(key);
+        try {
+            return mutable.existKey(key)
+                    || (immutable != null && immutable.existKey(key))
+                    || levelTree.existKey(key);
+        } catch (DeletedException e) {
+            return false;
+        }
     }
 
     public List<byte[]> range(byte[] beginKey, int limit) {

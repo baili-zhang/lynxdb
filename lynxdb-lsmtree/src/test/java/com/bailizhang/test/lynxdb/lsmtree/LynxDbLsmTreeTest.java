@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 class LynxDbLsmTreeTest {
@@ -21,9 +20,9 @@ class LynxDbLsmTreeTest {
     private static final String KEY = "dbKey";
     private static final String COLUMN = "column";
 
-    private static final int KEY_COUNT = 1000;
-    private static final int COLUMN_COUNT = 90;
-    private static final int MEM_TABLE_SIZE = 400;
+    private static final int KEY_COUNT = 800;
+    private static final int COLUMN_COUNT = 10;
+    private static final int MEM_TABLE_SIZE = 20;
 
     private static final String COLUMN_FAMILY = "column_family01";
 
@@ -36,12 +35,13 @@ class LynxDbLsmTreeTest {
     @BeforeEach
     void setUp() {
         LsmTreeOptions options = new LsmTreeOptions(BASE_DIR, MEM_TABLE_SIZE);
+        options.wal(true);
         lsmTree = new LynxDbLsmTree(options);
     }
 
     @AfterEach
     void tearDown() {
-        // lsmTree.clear();
+        lsmTree.clear();
     }
 
     @Test
@@ -71,7 +71,7 @@ class LynxDbLsmTreeTest {
 
     @Test
     void testFunc01() {
-        // insert();
+        insert();
 
         for(int keyCount = KEY_COUNT; keyCount > 0; keyCount --) {
             String key = KEY + keyCount;
@@ -118,12 +118,12 @@ class LynxDbLsmTreeTest {
                 column
         );
 
-        HashMap<String, byte[]> dbValues = lsmTree.find(
+        HashMap<String, byte[]> multiColumns = lsmTree.find(
                 G.I.toBytes(key),
                 COLUMN_FAMILY
         );
 
-        assert dbValues.size() == COLUMN_COUNT - 1;
+        assert multiColumns.size() == COLUMN_COUNT - 1;
     }
 
     @Test
@@ -164,5 +164,23 @@ class LynxDbLsmTreeTest {
         );
 
         assert Arrays.equals(dbValue, null);
+    }
+
+    @Test
+    void testFunc05() {
+        insert();
+
+        byte[] key = G.I.toBytes(KEY + 5001);
+        String column = COLUMN + 1;
+
+        assert !lsmTree.existKey(key, COLUMN_FAMILY, column);
+
+        byte[] value = G.I.toBytes("value");
+        lsmTree.insert(key, COLUMN_FAMILY, column, value);
+
+        assert lsmTree.existKey(key, COLUMN_FAMILY, column);
+
+        lsmTree.delete(key, COLUMN_FAMILY, column);
+        assert !lsmTree.existKey(key, COLUMN_FAMILY, column);
     }
 }

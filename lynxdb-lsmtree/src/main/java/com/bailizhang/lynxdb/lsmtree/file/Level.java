@@ -104,9 +104,25 @@ public class Level {
         return null;
     }
 
+    /**
+     * 使用布隆过滤器判断是否存在 key
+     *
+     * @param key key
+     * @return contains key or not
+     */
     public boolean contains(byte[] key) {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean existKey(byte[] key) throws DeletedException {
+        for(SsTable ssTable : ssTables) {
+            if(ssTable.existKey(key)) {
                 return true;
             }
         }

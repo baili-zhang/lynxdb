@@ -41,7 +41,12 @@ public class SsTable {
 
     private final LogGroup valueLogGroup;
 
-    public SsTable(Path filePath, int levelNo, LogGroup logGroup, LsmTreeOptions options) {
+    public SsTable(
+            Path filePath,
+            int levelNo,
+            LogGroup logGroup,
+            LsmTreeOptions options
+    ) {
         sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
         int size = size();
 
@@ -81,8 +86,13 @@ public class SsTable {
         this.valueLogGroup = valueLogGroup;
     }
 
-    public static SsTable create(Path filePath, int levelNo, LsmTreeOptions options,
-                                 List<KeyEntry> keyEntries, LogGroup valueLogGroup) {
+    public static SsTable create(
+            Path filePath,
+            int levelNo,
+            LsmTreeOptions options,
+            List<KeyEntry> keyEntries,
+            LogGroup valueLogGroup
+    ) {
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
         MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
@@ -186,6 +196,31 @@ public class SsTable {
         return entry.data();
     }
 
+    public boolean existKey(byte[] key) throws DeletedException {
+        if(bloomFilter.isNotExist(key)) {
+            return false;
+        }
+
+        int idx = findIdx(key);
+
+        if(idx >= size()) {
+            return false;
+        }
+
+        IndexEntry indexEntry = findIndexEntry(idx);
+        KeyEntry keyEntry = findKeyEntry(indexEntry);
+
+        if(Arrays.equals(key, keyEntry.key())) {
+            if(indexEntry.flag() == KeyEntry.EXISTED) {
+                return true;
+            }
+
+            throw new DeletedException();
+        }
+
+        return false;
+    }
+
 
     private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
@@ -199,13 +234,9 @@ public class SsTable {
         while(begin <= end) {
             mid = begin + ((end - begin) >> 1);
             IndexEntry midIndexEntry = findIndexEntry(mid);
-            ByteBuffer buffer = keyBuffer.getBuffer();
-            buffer.position(midIndexEntry.begin());
+            KeyEntry midKeyEntry = findKeyEntry(midIndexEntry);
 
-            byte[] midKey = new byte[midIndexEntry.length()];
-            buffer.get(midKey);
-
-            if(Arrays.compare(key, midKey) <= 0) {
+            if(Arrays.compare(key, midKeyEntry.key()) <= 0) {
                 idx = mid;
                 end = mid - 1;
             } else {
@@ -237,5 +268,4 @@ public class SsTable {
 
         return KeyEntry.from(indexEntry.flag(), keyData);
     }
-
 }

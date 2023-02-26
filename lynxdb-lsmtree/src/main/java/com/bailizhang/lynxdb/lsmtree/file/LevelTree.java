@@ -90,8 +90,28 @@ public class LevelTree {
         levels.put(levelNo, level);
     }
 
-    public boolean existKey(byte[] key) {
-        throw new UnsupportedOperationException();
+    /**
+     * 是否存在 key
+     *
+     * @param key key
+     * @return is existed or not
+     */
+    public boolean existKey(byte[] key) throws DeletedException {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        while(level != null) {
+            if(level.contains(key)) {
+                boolean isExisted = level.existKey(key);
+                if(isExisted) {
+                    return true;
+                }
+            }
+
+            level = levels.get(++ levelNo);
+        }
+
+        return false;
     }
 
     public List<Key> range(byte[] beginKey, int limit) {
