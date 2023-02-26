@@ -183,4 +183,21 @@ class LynxDbLsmTreeTest {
         lsmTree.delete(key, COLUMN_FAMILY, column);
         assert !lsmTree.existKey(key, COLUMN_FAMILY, column);
     }
+
+    @Test
+    void testFunc06() {
+        insert();
+
+        String column = COLUMN + 1;
+        byte[] beginKey = G.I.toBytes(KEY + 5001);
+
+        HashMap<byte[], HashMap<String, byte[]>> multiKeys = lsmTree.range(
+                COLUMN_FAMILY,
+                column,
+                beginKey,
+                10
+        );
+
+        assert multiKeys.size() == 10;
+    }
 }

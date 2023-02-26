@@ -9,11 +9,13 @@ import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -221,6 +223,40 @@ public class SsTable {
         return false;
     }
 
+    public List<Key> range(
+            byte[] beginKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        int idx = findIdxBiggerThan(beginKey);
+
+        List<Key> range = new ArrayList<>();
+
+        while (limit > 0 && idx < size()) {
+            IndexEntry indexEntry = findIndexEntry(idx ++);
+            KeyEntry keyEntry = findKeyEntry(indexEntry);
+
+            Key key = new Key(keyEntry.key());
+
+            if(indexEntry.flag() == KeyEntry.DELETED) {
+                deletedKeys.add(key);
+                continue;
+            }
+
+            if(deletedKeys.contains(key) || existedKeys.contains(key)) {
+                continue;
+            }
+
+            existedKeys.add(key);
+            range.add(key);
+
+            limit --;
+        }
+
+        return range;
+    }
+
 
     private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
@@ -245,6 +281,32 @@ public class SsTable {
         }
 
         return idx;
+    }
+
+    private int findIdxBiggerThan(byte[] key) {
+        int begin = 0, end = size() - 1, mid, idx = size();
+
+        IndexEntry midIndexEntry;
+        KeyEntry midKeyEntry = null;
+
+        while(begin <= end) {
+            mid = begin + ((end - begin) >> 1);
+            midIndexEntry = findIndexEntry(mid);
+            midKeyEntry = findKeyEntry(midIndexEntry);
+
+            if(Arrays.compare(key, midKeyEntry.key()) <= 0) {
+                idx = mid;
+                end = mid - 1;
+            } else {
+                begin = mid + 1;
+            }
+        }
+
+        if(midKeyEntry == null) {
+            throw new RuntimeException();
+        }
+
+        return Arrays.equals(key, midKeyEntry.key()) ? idx + 1 : idx;
     }
 
     private int size() {

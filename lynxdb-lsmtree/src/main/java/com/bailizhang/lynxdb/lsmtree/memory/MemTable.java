@@ -6,7 +6,9 @@ import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class MemTable {
@@ -79,8 +81,41 @@ public class MemTable {
         return true;
     }
 
-    public List<Key> range(byte[] beginKey, int limit) {
-        // TODO
-        throw new UnsupportedOperationException();
+    public List<Key> range(
+            byte[] beginKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        Key key = new Key(beginKey);
+
+        List<Key> keys = new ArrayList<>();
+
+        while(limit > 0) {
+            Map.Entry<Key, KeyEntry> entry = skipListMap.higherEntry(key);
+
+            if(entry == null) {
+                break;
+            }
+
+            KeyEntry keyEntry = entry.getValue();
+            key = entry.getKey();
+
+            if(keyEntry.flag() == KeyEntry.DELETED) {
+                deletedKeys.add(key);
+                continue;
+            }
+
+            if(deletedKeys.contains(key) || existedKeys.contains(key)) {
+                continue;
+            }
+
+            keys.add(key);
+            existedKeys.add(key);
+
+            limit --;
+        }
+
+        return keys;
     }
 }

@@ -9,8 +9,7 @@ import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class LevelTree {
     public final static int LEVEL_BEGIN = 1;
@@ -114,8 +113,35 @@ public class LevelTree {
         return false;
     }
 
-    public List<Key> range(byte[] beginKey, int limit) {
-        // TODO
-        throw new UnsupportedOperationException();
+    public List<Key> range(
+            byte[] beginKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        int levelNo = LEVEL_BEGIN;
+        Level level = levels.get(levelNo);
+
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+        while(level != null) {
+            List<Key> keys = level.range(beginKey, limit, deletedKeys, existedKeys);
+            priorityQueue.addAll(keys);
+
+            level = levels.get(++ levelNo);
+        }
+
+        List<Key> range = new ArrayList<>();
+
+        for(int i = 0; i < limit; i ++) {
+            Key key = priorityQueue.poll();
+
+            if(key == null) {
+                break;
+            }
+
+            range.add(key);
+        }
+
+        return range;
     }
 }

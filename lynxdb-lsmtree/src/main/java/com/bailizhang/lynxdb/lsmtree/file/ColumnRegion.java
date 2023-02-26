@@ -15,9 +15,7 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 
@@ -151,9 +149,26 @@ public class ColumnRegion {
     }
 
     public List<byte[]> range(byte[] beginKey, int limit) {
-        List<Key> mKeys = mutable.range(beginKey, limit);
-        List<Key> imKeys = immutable.range(beginKey, limit);
-        List<Key> lKeys = levelTree.range(beginKey, limit);
+        HashSet<Key> existedKeys = new HashSet<>();
+        HashSet<Key> deletedKeys = new HashSet<>();
+
+        List<Key> mKeys = mutable.range(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
+
+        List<Key> imKeys = immutable == null
+                ? new ArrayList<>()
+                : immutable.range(beginKey, limit, deletedKeys, existedKeys);
+
+        List<Key> lKeys = levelTree.range(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
 
         PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
         priorityQueue.addAll(mKeys);

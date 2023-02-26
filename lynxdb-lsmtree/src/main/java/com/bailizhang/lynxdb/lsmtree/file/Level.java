@@ -130,6 +130,39 @@ public class Level {
         return false;
     }
 
+    public List<Key> range(
+            byte[] beginKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+
+        for(SsTable ssTable : ssTables) {
+            List<Key> keys = ssTable.range(
+                    beginKey,
+                    limit,
+                    deletedKeys,
+                    existedKeys
+            );
+            priorityQueue.addAll(keys);
+        }
+
+        List<Key> range = new ArrayList<>();
+
+        for(int i = 0; i < limit; i ++) {
+            Key key = priorityQueue.poll();
+
+            if(key == null) {
+                break;
+            }
+
+            range.add(key);
+        }
+
+        return range;
+    }
+
     private void mergeToNextLevel() {
         int nextLevelNo = levelNo + 1;
         Level nextLevel = parent.get(nextLevelNo);
