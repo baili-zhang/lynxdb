@@ -45,6 +45,11 @@ public class LynxDbCmdClient extends Shutdown {
             String line = scanner.nextLine();
             LynxDbCommand command = new LynxDbCommand(line);
 
+            if(current == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
+                Printer.printNotConnectServer();
+                continue;
+            }
+
             switch (command.name()) {
                 case CONNECT -> {
                     String address = G.I.toString(command.key());
@@ -59,10 +64,6 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case FIND -> {
-                    if(current == null) {
-                        Printer.printNotConnectServer();
-                    }
-
                     if(command.length() == 3) {
                         HashMap<String, byte[]> multiColumns = current.find(
                                 command.key(),
@@ -84,10 +85,6 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case INSERT -> {
-                    if(current == null) {
-                        Printer.printNotConnectServer();
-                    }
-
                     if(command.length() != 5) {
                         Printer.printError(ERROR_COMMAND);
                         break;
@@ -102,10 +99,6 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case DELETE -> {
-                    if(current == null) {
-                        Printer.printNotConnectServer();
-                    }
-
                     if(command.length() != 4) {
                         Printer.printError(ERROR_COMMAND);
                         break;
@@ -119,10 +112,6 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case REGISTER -> {
-                    if(current == null) {
-                        Printer.printNotConnectServer();
-                    }
-
                     if(command.length() != 3) {
                         Printer.printError(ERROR_COMMAND);
                         break;
@@ -139,10 +128,6 @@ public class LynxDbCmdClient extends Shutdown {
                 }
 
                 case DEREGISTER -> {
-                    if(current == null) {
-                        Printer.printNotConnectServer();
-                    }
-
                     if(command.length() != 3) {
                         Printer.printError(ERROR_COMMAND);
                         break;
