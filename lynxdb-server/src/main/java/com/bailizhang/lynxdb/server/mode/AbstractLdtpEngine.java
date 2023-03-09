@@ -21,9 +21,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.LockSupport;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
@@ -32,20 +31,29 @@ import static com.bailizhang.lynxdb.socket.code.Request.*;
 public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractLdtpEngine.class);
 
-    private static final String EXECUTOR_THREAD_NAME = "interrupt-protection-thread";
+    private static final String TASKS_THREAD_NAME = "tasks-thread";
 
     private final SocketServer server;
     private final LdtpStorageEngine engine;
     private final LynxDbTimeWheel timeWheel;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor(
-            runnable -> new Thread(runnable, EXECUTOR_THREAD_NAME)
-    );
-    private final AffectKeyRegistry affectKeyRegistry = new AffectKeyRegistry();
+
+    private final ConcurrentLinkedQueue<Runnable> tasksQueue;
+    private final Thread tasksThread;
+
+    private final AffectKeyRegistry affectKeyRegistry;
 
     public AbstractLdtpEngine(SocketServer socketServer, LynxDbTimeWheel lynxDbTimeWheel) {
         server = socketServer;
         engine = new LdtpStorageEngine();
         timeWheel = lynxDbTimeWheel;
+        tasksQueue = new ConcurrentLinkedQueue<>();
+        affectKeyRegistry = new AffectKeyRegistry();
+        tasksThread = new Thread(this::runTask, TASKS_THREAD_NAME);
+    }
+
+    @Override
+    protected void doBeforeExecute() {
+        tasksThread.start();
     }
 
     // TODO: 抽象到一个通用的执行器中
@@ -65,111 +73,154 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         byte flag = buffer.get();
 
         switch (flag) {
-            case CLIENT_REQUEST -> CompletableFuture.runAsync(() -> {
-                QueryParams queryParams = QueryParams.parse(buffer);
+            case CLIENT_REQUEST -> {
+                tasksQueue.offer(() -> handleClientRequest(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
 
-                logger.info("Handle client request, params: {}", queryParams);
+            case REGISTER_KEY -> {
+                tasksQueue.offer(() -> handleRegisterKey(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
+            case DEREGISTER_KEY -> {
+                tasksQueue.offer(() -> handleDeregisterKey(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
 
-                QueryResult result = engine.doQuery(queryParams);
+            case SET_TIMEOUT_KEY -> {
+                tasksQueue.offer(() -> handleSetTimeoutKey(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
 
-                WritableSocketResponse response = new WritableSocketResponse(
-                        selectionKey,
-                        serial,
-                        result.data()
-                );
-
-                // 返回给发起请求的客户端
-                server.offerInterruptibly(response);
-
-                // 处理注册监听的 dbKey
-                MessageKey messageKey = result.messageKey();
-                if(messageKey == null) {
-                    return;
-                }
-                sendAffectValueToRegisterClient(messageKey);
-            }, executor);
-
-            case REGISTER_KEY -> CompletableFuture.runAsync(() -> {
-                MessageKey messageKey = MessageKey.from(buffer);
-                affectKeyRegistry.register(selectionKey, messageKey);
-
-                BytesList bytesList = new BytesList();
-                bytesList.appendRawByte(VOID);
-
-                WritableSocketResponse response = new WritableSocketResponse(
-                        selectionKey,
-                        serial,
-                        bytesList
-                );
-
-                server.offerInterruptibly(response);
-                sendAffectValueToRegisterClient(messageKey);
-            }, executor);
-            case DEREGISTER_KEY -> CompletableFuture.runAsync(() -> {
-                affectKeyRegistry.deregister(selectionKey, MessageKey.from(buffer));
-
-                BytesList bytesList = new BytesList();
-                bytesList.appendRawByte(VOID);
-
-                WritableSocketResponse response = new WritableSocketResponse(
-                        selectionKey,
-                        serial,
-                        bytesList
-                );
-
-                server.offerInterruptibly(response);
-            }, executor);
-
-            case SET_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
-                TimeoutValue timeoutValue = TimeoutValue.from(buffer);
-                engine.insertTimeoutKey(timeoutValue);
-
-                MessageKey messageKey = timeoutValue.messageKey();
-                long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
-
-                TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
-                    sendTimeoutValueToClient(messageKey, selectionKey);
-                    engine.removeTimeoutKey(messageKey);
-                    engine.removeData(messageKey);
-                });
-
-                timeWheel.register(task);
-
-                BytesList bytesList = new BytesList();
-                bytesList.appendRawByte(VOID);
-
-                WritableSocketResponse response = new WritableSocketResponse(
-                        selectionKey,
-                        serial,
-                        bytesList
-                );
-
-                server.offerInterruptibly(response);
-            }, executor);
-
-            case REMOVE_TIMEOUT_KEY -> CompletableFuture.runAsync(() -> {
-                MessageKey messageKey = MessageKey.from(buffer);
-
-                byte[] value = engine.findTimeoutValue(messageKey);
-                long timestamp = ByteArrayUtils.toLong(value);
-                engine.removeTimeoutKey(messageKey);
-
-                timeWheel.unregister(timestamp, messageKey);
-
-                BytesList bytesList = new BytesList();
-                bytesList.appendRawByte(VOID);
-
-                WritableSocketResponse response = new WritableSocketResponse(
-                        selectionKey,
-                        serial,
-                        bytesList
-                );
-
-                server.offerInterruptibly(response);
-            }, executor);
+            case REMOVE_TIMEOUT_KEY -> {
+                tasksQueue.offer(() -> handleRemoveTimeoutKey(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
 
             default -> throw new RuntimeException();
         }
+    }
+
+    private void runTask() {
+        while (isNotShutdown()) {
+            Runnable task = tasksQueue.poll();
+            if(task == null) {
+                LockSupport.park();
+                continue;
+            }
+
+            task.run();
+        }
+    }
+
+    private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        QueryParams queryParams = QueryParams.parse(buffer);
+
+        logger.info("Handle client request, params: {}", queryParams);
+
+        QueryResult result = engine.doQuery(queryParams);
+
+        logger.debug("Result is: {}", result);
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.data()
+        );
+
+        logger.info("Offer response to server executor, {}", response);
+
+        // 返回给发起请求的客户端
+        server.offerInterruptibly(response);
+
+        // 处理注册监听的 dbKey
+        MessageKey messageKey = result.messageKey();
+
+        if(messageKey == null) {
+            return;
+        }
+
+        sendAffectValueToRegisterClient(messageKey);
+    }
+
+    private void handleRegisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        MessageKey messageKey = MessageKey.from(buffer);
+        affectKeyRegistry.register(selectionKey, messageKey);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                bytesList
+        );
+
+        server.offerInterruptibly(response);
+        sendAffectValueToRegisterClient(messageKey);
+    }
+
+    private void handleDeregisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        affectKeyRegistry.deregister(selectionKey, MessageKey.from(buffer));
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                bytesList
+        );
+
+        server.offerInterruptibly(response);
+    }
+
+    private void handleSetTimeoutKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        TimeoutValue timeoutValue = TimeoutValue.from(buffer);
+        engine.insertTimeoutKey(timeoutValue);
+
+        MessageKey messageKey = timeoutValue.messageKey();
+        long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
+
+        TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
+            sendTimeoutValueToClient(messageKey, selectionKey);
+            engine.removeTimeoutKey(messageKey);
+            engine.removeData(messageKey);
+        });
+
+        timeWheel.register(task);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                bytesList
+        );
+
+        server.offerInterruptibly(response);
+    }
+
+    private void handleRemoveTimeoutKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        MessageKey messageKey = MessageKey.from(buffer);
+
+        byte[] value = engine.findTimeoutValue(messageKey);
+        long timestamp = ByteArrayUtils.toLong(value);
+        engine.removeTimeoutKey(messageKey);
+
+        timeWheel.unregister(timestamp, messageKey);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(VOID);
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                bytesList
+        );
+
+        server.offerInterruptibly(response);
     }
 
     private void sendAffectValueToRegisterClient(MessageKey messageKey) {

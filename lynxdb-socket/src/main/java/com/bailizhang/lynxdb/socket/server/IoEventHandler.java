@@ -4,6 +4,8 @@ import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -14,6 +16,8 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 public class IoEventHandler implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);
+
     private final SocketContext context;
     private final CountDownSync latch;
     private final SocketServerHandler handler;
@@ -78,8 +82,9 @@ public class IoEventHandler implements Runnable {
                 /* 从队列首部移除已经写完的响应 */
                 context.pollResponse();
                 context.decreaseRequestCount();
+
+                logger.info("Write response completed to client, response: {}", response);
             } else {
-                /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                 break;
             }
         }

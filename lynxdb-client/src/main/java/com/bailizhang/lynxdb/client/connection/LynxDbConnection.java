@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.BYTE_ARRAY;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.NULL;
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
 public class LynxDbConnection {
@@ -86,7 +88,7 @@ public class LynxDbConnection {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         return switch (buffer.get()) {
-            case LdtpCode.BYTE_ARRAY -> BufferUtils.getRemaining(buffer);
+            case BYTE_ARRAY -> BufferUtils.getRemaining(buffer);
             case LdtpCode.NULL -> null;
             default -> throw new RuntimeException();
         };
@@ -113,7 +115,13 @@ public class LynxDbConnection {
         HashMap<String, byte[]> multiColumns = new HashMap<>();
         while (BufferUtils.isNotOver(buffer)) {
             String column = BufferUtils.getString(buffer);
-            byte[] value = BufferUtils.getBytes(buffer);
+            byte flag = buffer.get();
+
+            byte[] value = switch (flag) {
+                case BYTE_ARRAY -> BufferUtils.getBytes(buffer);
+                case NULL -> null;
+                default -> throw new RuntimeException();
+            };
 
             multiColumns.put(column, value);
         }

@@ -44,7 +44,7 @@ public class BaseStorageEngine {
     public synchronized QueryResult doQuery(QueryParams params) {
         Method doQueryMethod = methodMap.get(params.method());
         if(doQueryMethod == null) {
-            throw new RuntimeException("Not Supported mdtp method.");
+            throw new RuntimeException("Not supported ldtp method.");
         }
 
         try {

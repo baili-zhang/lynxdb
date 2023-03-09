@@ -62,7 +62,9 @@ public interface Printer {
         List<String> header = List.of("Column", "Value");
         table.add(header);
         multiColumns.forEach((column, value) -> {
-            List<String> row = List.of(column, G.I.toString(value));
+            List<String> row = new ArrayList<>();
+            row.add(column);
+            row.add(G.I.toString(value));
             table.add(row);
         });
 

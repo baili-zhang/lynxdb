@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.server.engine;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
@@ -16,8 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.DB_VALUE_LIST;
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
 
 
@@ -74,7 +74,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         bytesList.appendRawByte(DB_VALUE_LIST);
         multiColumns.forEach((column, value) -> {
            bytesList.appendVarStr(column);
-           bytesList.appendVarBytes(value);
+
+           if(value == null) {
+               bytesList.appendRawByte(NULL);
+           } else {
+               bytesList.appendRawByte(BYTE_ARRAY);
+               bytesList.appendVarBytes(value);
+           }
         });
 
         return new QueryResult(bytesList, null);
