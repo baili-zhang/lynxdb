@@ -223,7 +223,7 @@ public class SsTable {
         return false;
     }
 
-    public List<Key> range(
+    public List<Key> rangeNext(
             byte[] beginKey,
             int limit,
             HashSet<Key> deletedKeys,

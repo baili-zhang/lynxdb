@@ -148,11 +148,11 @@ public class ColumnRegion {
         }
     }
 
-    public List<byte[]> range(byte[] beginKey, int limit) {
+    public List<byte[]> rangeNext(byte[] beginKey, int limit) {
         HashSet<Key> existedKeys = new HashSet<>();
         HashSet<Key> deletedKeys = new HashSet<>();
 
-        List<Key> mKeys = mutable.range(
+        List<Key> mKeys = mutable.rangeNext(
                 beginKey,
                 limit,
                 deletedKeys,
@@ -161,9 +161,9 @@ public class ColumnRegion {
 
         List<Key> imKeys = immutable == null
                 ? new ArrayList<>()
-                : immutable.range(beginKey, limit, deletedKeys, existedKeys);
+                : immutable.rangeNext(beginKey, limit, deletedKeys, existedKeys);
 
-        List<Key> lKeys = levelTree.range(
+        List<Key> lKeys = levelTree.rangeNext(
                 beginKey,
                 limit,
                 deletedKeys,

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -108,7 +109,7 @@ public class LynxDbConnection {
         byte[] data = future.get();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.DB_VALUE_LIST) {
+        if (buffer.get() != LdtpCode.MULTI_COLUMNS) {
             throw new RuntimeException();
         }
 
@@ -355,6 +356,15 @@ public class LynxDbConnection {
         if (buffer.get() != LdtpCode.VOID) {
             throw new RuntimeException();
         }
+    }
+
+    public HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+            String columnFamily,
+            String mainColumn,
+            byte[] beginKey,
+            int limit
+    ) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

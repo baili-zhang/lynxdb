@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.server.engine;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
@@ -13,9 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
@@ -37,7 +34,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String columnFamily = BufferUtils.getString(buffer);
         String column = BufferUtils.getString(buffer);
 
-        byte[] value = dataLsmTree.find(key, columnFamily, column);
+        byte[] value = dataTable.find(key, columnFamily, column);
 
         logger.debug("Find by dbKey: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
@@ -66,22 +63,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     public QueryResult doFindByKeyCf(byte[] key, String columnFamily) {
-        HashMap<String, byte[]> multiColumns = dataLsmTree.find(key, columnFamily);
+        HashMap<String, byte[]> multiColumns = dataTable.find(key, columnFamily);
 
         logger.debug("Find by dbKey: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(DB_VALUE_LIST);
-        multiColumns.forEach((column, value) -> {
-           bytesList.appendVarStr(column);
-
-           if(value == null) {
-               bytesList.appendRawByte(NULL);
-           } else {
-               bytesList.appendRawByte(BYTE_ARRAY);
-               bytesList.appendVarBytes(value);
-           }
-        });
+        bytesList.appendRawByte(MULTI_COLUMNS);
+        appendMultiColumns(bytesList, multiColumns);
 
         return new QueryResult(bytesList, null);
     }
@@ -99,7 +87,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Insert dbKey: {}, columnFamily: {}, column: {}, value: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
-        dataLsmTree.insert(key, columnFamily, column, value);
+        dataTable.insert(key, columnFamily, column, value);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -127,7 +115,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Insert dbKey: {}, columnFamily: {}, multiColumns: {}.",
                 G.I.toString(key), columnFamily, multiColumns);
 
-        dataLsmTree.insert(key, columnFamily, multiColumns);
+        dataTable.insert(key, columnFamily, multiColumns);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -147,7 +135,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Delete dbKey: {}, columnFamily: {}, column: {}.",
                 G.I.toString(key), columnFamily, column);
 
-        dataLsmTree.delete(key, columnFamily, column);
+        dataTable.delete(key, columnFamily, column);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -166,11 +154,77 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Delete dbKey: {}, columnFamily: {}.",
                 G.I.toString(key), columnFamily);
 
-        dataLsmTree.delete(key, columnFamily);
+        dataTable.delete(key, columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
 
         return new QueryResult(bytesList, new MessageKey(key, columnFamily));
+    }
+
+    @LdtpMethod(RANGE_NEXT)
+    public QueryResult doRangeNext(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        String columnFamily = BufferUtils.getString(buffer);
+        String mainColumn = BufferUtils.getString(buffer);
+        byte[] beginKey = BufferUtils.getBytes(buffer);
+        int limit = buffer.getInt();
+
+        var multiKeys = dataTable.rangeNext(columnFamily, mainColumn, beginKey, limit);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(MULTI_KEYS);
+
+        for(var entry : multiKeys.entrySet()) {
+            byte[] key = entry.getKey();
+            var multiColumns = entry.getValue();
+            int size = multiColumns.size();
+
+            bytesList.appendVarBytes(key);
+            bytesList.appendRawInt(size);
+            appendMultiColumns(bytesList, multiColumns);
+        }
+
+        return new QueryResult(bytesList, null);
+    }
+
+    @LdtpMethod(RANGE_BEFORE)
+    public QueryResult doRangeBefore(QueryParams params) {
+        throw new UnsupportedOperationException();
+    }
+
+    @LdtpMethod(EXIST_KEY)
+    public QueryResult doExistKey(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
+        String mainColumn = BufferUtils.getString(buffer);
+
+        boolean existed = dataTable.existKey(key, columnFamily, mainColumn);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(existed ? TRUE : FALSE);
+
+        return new QueryResult(bytesList, null);
+    }
+
+    private void appendMultiColumns(
+            BytesList bytesList,
+            HashMap<String, byte[]> multiColumns
+    ) {
+        multiColumns.forEach((column, value) -> {
+            bytesList.appendVarStr(column);
+
+            if(value == null) {
+                bytesList.appendRawByte(NULL);
+            } else {
+                bytesList.appendRawByte(BYTE_ARRAY);
+                bytesList.appendVarBytes(value);
+            }
+        });
     }
 }

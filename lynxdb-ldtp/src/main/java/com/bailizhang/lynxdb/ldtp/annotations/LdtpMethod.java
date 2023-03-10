@@ -14,6 +14,9 @@ public @interface LdtpMethod {
     byte INSERT_MULTI_COLUMN            = (byte) 0x04;
     byte DELETE                         = (byte) 0x05;
     byte DELETE_MULTI_COLUMN            = (byte) 0x06;
+    byte RANGE_NEXT                     = (byte) 0x07;
+    byte RANGE_BEFORE                   = (byte) 0x08;
+    byte EXIST_KEY                      = (byte) 0x09;
 
     byte value();
 }

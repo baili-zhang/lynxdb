@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree;
 
-import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
@@ -52,7 +51,7 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public HashMap<byte[], HashMap<String, byte[]>> range(
+    public HashMap<byte[], HashMap<String, byte[]>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
@@ -61,7 +60,7 @@ public class LynxDbLsmTree implements Table {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
 
-        List<byte[]> keys = mainColumnRegion.range(beginKey, limit);
+        List<byte[]> keys = mainColumnRegion.rangeNext(beginKey, limit);
 
         HashMap<byte[], HashMap<String, byte[]>> values = new HashMap<>();
 
@@ -71,6 +70,16 @@ public class LynxDbLsmTree implements Table {
         }
 
         return values;
+    }
+
+    @Override
+    public HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
+            String columnFamily,
+            String mainColumn,
+            byte[] beginKey,
+            int limit
+    ) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

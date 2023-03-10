@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
-import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
@@ -130,7 +129,7 @@ public class Level {
         return false;
     }
 
-    public List<Key> range(
+    public List<Key> rangeNext(
             byte[] beginKey,
             int limit,
             HashSet<Key> deletedKeys,
@@ -139,7 +138,7 @@ public class Level {
         PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
 
         for(SsTable ssTable : ssTables) {
-            List<Key> keys = ssTable.range(
+            List<Key> keys = ssTable.rangeNext(
                     beginKey,
                     limit,
                     deletedKeys,

@@ -20,8 +20,8 @@ public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
     private static final String TIMEOUT_COLUMN = "timeout";
 
-    protected final Table dataLsmTree;
-    protected final Table timeoutLsmTree;
+    protected final Table dataTable;
+    protected final Table timeoutTable;
 
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
@@ -35,8 +35,8 @@ public class BaseStorageEngine {
         LsmTreeOptions dataLsmTreeOptions = new LsmTreeOptions(dataDir, DEFAULT_MEM_TABLE_SIZE);
         LsmTreeOptions timeoutLsmTreeOptions = new LsmTreeOptions(timeoutDir, DEFAULT_MEM_TABLE_SIZE);
 
-        dataLsmTree = new LynxDbLsmTree(dataLsmTreeOptions);
-        timeoutLsmTree = new LynxDbLsmTree(timeoutLsmTreeOptions);
+        dataTable = new LynxDbLsmTree(dataLsmTreeOptions);
+        timeoutTable = new LynxDbLsmTree(timeoutLsmTreeOptions);
 
         initMethod(clazz);
     }
@@ -55,11 +55,11 @@ public class BaseStorageEngine {
     }
 
     public HashMap<String, byte[]> findAffectKey(MessageKey messageKey) {
-        return dataLsmTree.find(messageKey.key(), messageKey.columnFamily());
+        return dataTable.find(messageKey.key(), messageKey.columnFamily());
     }
 
     public byte[] findTimeoutValue(MessageKey messageKey) {
-        return timeoutLsmTree.find(
+        return timeoutTable.find(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN
@@ -69,7 +69,7 @@ public class BaseStorageEngine {
     public void insertTimeoutKey(TimeoutValue timeoutValue) {
         MessageKey messageKey = timeoutValue.messageKey();
 
-        timeoutLsmTree.insert(
+        timeoutTable.insert(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN,
@@ -78,7 +78,7 @@ public class BaseStorageEngine {
     }
 
     public void removeTimeoutKey(MessageKey messageKey) {
-        timeoutLsmTree.delete(
+        timeoutTable.delete(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN
@@ -86,7 +86,7 @@ public class BaseStorageEngine {
     }
 
     public void removeData(MessageKey messageKey) {
-        dataLsmTree.delete(
+        dataTable.delete(
                 messageKey.key(),
                 messageKey.columnFamily()
         );

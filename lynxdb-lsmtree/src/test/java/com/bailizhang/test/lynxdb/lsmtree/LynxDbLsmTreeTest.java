@@ -191,7 +191,7 @@ class LynxDbLsmTreeTest {
         String column = COLUMN + 1;
         byte[] beginKey = G.I.toBytes(KEY + 5001);
 
-        HashMap<byte[], HashMap<String, byte[]>> multiKeys = lsmTree.range(
+        HashMap<byte[], HashMap<String, byte[]>> multiKeys = lsmTree.rangeNext(
                 COLUMN_FAMILY,
                 column,
                 beginKey,

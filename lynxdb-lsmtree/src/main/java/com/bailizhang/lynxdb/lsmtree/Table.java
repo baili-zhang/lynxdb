@@ -9,7 +9,14 @@ public interface Table {
     byte[] find(byte[] key, String columnFamily, String column);
     HashMap<String, byte[]> find(byte[] key, String columnFamily);
 
-    HashMap<byte[], HashMap<String, byte[]>> range(
+    HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+            String columnFamily,
+            String mainColumn,
+            byte[] beginKey,
+            int limit
+    );
+
+    HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,

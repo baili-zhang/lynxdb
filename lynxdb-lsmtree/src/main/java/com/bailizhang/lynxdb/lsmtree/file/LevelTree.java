@@ -113,7 +113,7 @@ public class LevelTree {
         return false;
     }
 
-    public List<Key> range(
+    public List<Key> rangeNext(
             byte[] beginKey,
             int limit,
             HashSet<Key> deletedKeys,
@@ -124,7 +124,7 @@ public class LevelTree {
 
         PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
         while(level != null) {
-            List<Key> keys = level.range(beginKey, limit, deletedKeys, existedKeys);
+            List<Key> keys = level.rangeNext(beginKey, limit, deletedKeys, existedKeys);
             priorityQueue.addAll(keys);
 
             level = levels.get(++ levelNo);
