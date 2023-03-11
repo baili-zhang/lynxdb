@@ -364,7 +364,70 @@ public class LynxDbConnection {
             byte[] beginKey,
             int limit
     ) {
-        throw new UnsupportedOperationException();
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LdtpMethod.RANGE_NEXT);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(mainColumn);
+        bytesList.appendVarBytes(beginKey);
+        bytesList.appendRawInt(limit);
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        if (buffer.get() != LdtpCode.MULTI_KEYS) {
+            throw new RuntimeException();
+        }
+
+        HashMap<byte[], HashMap<String, byte[]>> multiKeys = new HashMap<>();
+
+        while(BufferUtils.isNotOver(buffer)) {
+            byte[] key = BufferUtils.getBytes(buffer);
+            int size = buffer.getInt();
+
+            HashMap<String, byte[]> multiColumns = new HashMap<>();
+            multiKeys.put(key, multiColumns);
+
+            while((size --) > 0) {
+                String column = BufferUtils.getString(buffer);
+                byte[] value = BufferUtils.getBytes(buffer);
+                multiColumns.put(column, value);
+            }
+        }
+
+        return multiKeys;
+    }
+
+    public boolean existKey(
+            byte[] key,
+            String columnFamily,
+            String mainColumn
+    ) {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LdtpMethod.EXIST_KEY);
+        bytesList.appendVarBytes(key);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(mainColumn);
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        return switch (buffer.get()) {
+            case LdtpCode.TRUE -> true;
+            case LdtpCode.FALSE -> false;
+            default -> throw new RuntimeException();
+        };
     }
 
     @Override
