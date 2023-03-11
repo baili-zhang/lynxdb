@@ -7,13 +7,14 @@ import java.util.HashMap;
  */
 public interface Table {
     byte[] find(byte[] key, String columnFamily, String column);
-    HashMap<String, byte[]> find(byte[] key, String columnFamily);
+    HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumn);
 
     HashMap<byte[], HashMap<String, byte[]>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
-            int limit
+            int limit,
+            String... findColumns
     );
 
     HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
@@ -27,7 +28,7 @@ public interface Table {
     void insert(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns);
 
     void delete(byte[] key, String columnFamily, String column);
-    void delete(byte[] key, String columnFamily);
+    void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns);
 
     boolean existKey(
             byte[] key,

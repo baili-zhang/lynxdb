@@ -45,9 +45,9 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public HashMap<String, byte[]> find(byte[] key, String columnFamily) {
+    public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        return region.findAllColumnsByKey(key);
+        return region.findMultiColumns(key, findColumns);
     }
 
     @Override
@@ -55,7 +55,8 @@ public class LynxDbLsmTree implements Table {
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
-            int limit
+            int limit,
+            String... findColumns
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
@@ -65,7 +66,7 @@ public class LynxDbLsmTree implements Table {
         HashMap<byte[], HashMap<String, byte[]>> values = new HashMap<>();
 
         for(byte[] key : keys) {
-            HashMap<String, byte[]> multiColumns = region.findAllColumnsByKey(key);
+            HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
             values.put(key, multiColumns);
         }
 
@@ -112,9 +113,9 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public void delete(byte[] key, String columnFamily) {
+    public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        region.deleteAllColumnsByKey(key);
+        region.deleteMultiColumns(key, deleteColumns);
     }
 
     @Override

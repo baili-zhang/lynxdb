@@ -97,7 +97,7 @@ class LynxDbLsmTreeTest {
 
         String key = KEY + 500;
 
-        HashMap<String, byte[]> multiColumns = lsmTree.find(
+        HashMap<String, byte[]> multiColumns = lsmTree.findMultiColumns(
                 G.I.toBytes(key),
                 COLUMN_FAMILY
         );
@@ -118,7 +118,7 @@ class LynxDbLsmTreeTest {
                 column
         );
 
-        HashMap<String, byte[]> multiColumns = lsmTree.find(
+        HashMap<String, byte[]> multiColumns = lsmTree.findMultiColumns(
                 G.I.toBytes(key),
                 COLUMN_FAMILY
         );

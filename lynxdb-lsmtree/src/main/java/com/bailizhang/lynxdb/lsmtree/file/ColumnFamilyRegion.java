@@ -5,8 +5,7 @@ import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class ColumnFamilyRegion {
     public final static String COLUMNS_DIR = "columns";
@@ -43,10 +42,21 @@ public class ColumnFamilyRegion {
         );
     }
 
-    public HashMap<String, byte[]> findAllColumnsByKey(byte[] key) {
+    public HashMap<String, byte[]> findMultiColumns(byte[] key, String... findColumns) {
         HashMap<String, byte[]> multiColumns = new HashMap<>();
 
-        columnRegions.forEach((column, columnRegion) -> {
+        Collection<ColumnRegion> findColumnRegions;
+        if(findColumns == null || findColumns.length == 0) {
+            findColumnRegions = columnRegions.values();
+        } else {
+            findColumnRegions = new ArrayList<>();
+            for(String findColumn : findColumns) {
+                ColumnRegion columnRegion = columnRegions.get(findColumn);
+                findColumnRegions.add(columnRegion);
+            }
+        }
+
+        findColumnRegions.forEach(columnRegion -> {
             byte[] value;
 
             try {
@@ -56,7 +66,7 @@ public class ColumnFamilyRegion {
                     return;
                 }
 
-                multiColumns.put(column, value);
+                multiColumns.put(columnRegion.column(), value);
             } catch (DeletedException ignored) {
             }
         });
@@ -64,7 +74,19 @@ public class ColumnFamilyRegion {
         return multiColumns;
     }
 
-    public void deleteAllColumnsByKey(byte[] key) {
-        columnRegions.values().forEach(region -> region.delete(key));
+    public void deleteMultiColumns(byte[] key, String... deleteColumns) {
+        Collection<ColumnRegion> deleteColumnRegions;
+
+        if(deleteColumns == null || deleteColumns.length == 0) {
+            deleteColumnRegions = columnRegions.values();
+        } else {
+            deleteColumnRegions = new ArrayList<>();
+            for(String deleteColumn : deleteColumns) {
+                ColumnRegion columnRegion = columnRegions.get(deleteColumn);
+                deleteColumnRegions.add(columnRegion);
+            }
+        }
+
+        deleteColumnRegions.forEach(region -> region.delete(key));
     }
 }

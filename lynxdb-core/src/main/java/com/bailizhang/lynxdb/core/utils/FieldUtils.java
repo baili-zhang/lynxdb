@@ -20,16 +20,24 @@ public interface FieldUtils {
         }
     }
 
-    static <T> void set(T obj, String name, String value) {
+    static void set(Object obj, String name, String value) {
         Class<?> clazz = obj.getClass();
         try {
             Field field = clazz.getDeclaredField(name);
-            if(field.getType() == value.getClass()) {
-                field.setAccessible(true);
+            set(obj, field, value);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static void set(Object obj, Field field, String value) {
+        if(field.getType() == value.getClass()) {
+            field.setAccessible(true);
+            try {
                 field.set(obj, value);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
         }
     }
 }
