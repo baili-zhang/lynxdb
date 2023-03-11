@@ -1,1 +1,1 @@
-java -Xmx2g -Xms2g -jar lib/lynxdb-server-2023.2.4-snapshot.jar
+java -Xmx2g -Xms2g -jar lib/lynxdb-server-2023.3.11-snapshot.jar
