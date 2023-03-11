@@ -61,8 +61,9 @@ public interface FileUtils {
         createDirIfNotExisted(file);
     }
 
-    static File createDirIfNotExisted(String dir, String subDir) {
-        File file = new File(dir, subDir);
+    static File createDirIfNotExisted(String dir, String... subDirs) {
+        Path path = Path.of(dir, subDirs);
+        File file = path.toFile();
         createDirIfNotExisted(file);
         return file;
     }

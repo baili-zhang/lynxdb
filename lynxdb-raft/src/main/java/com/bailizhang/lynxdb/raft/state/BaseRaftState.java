@@ -4,15 +4,11 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.common.RaftRole;
 import com.bailizhang.lynxdb.raft.common.StateMachine;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
 import java.util.ServiceLoader;
 
 public class BaseRaftState {
-    private static final Logger logger = LogManager.getLogger("BaseRaftState");
-
     private static final String CURRENT_TERM = "current_term";
 
     protected static final StateMachine stateMachine;
@@ -74,8 +70,6 @@ public class BaseRaftState {
     public void raftRole(RaftRole role) {
         RaftRole oldRaftRole = raftRole;
         raftRole = role;
-
-        logger.info("Transform raftRole from [{}] to [{}]", oldRaftRole, raftRole);
     }
 
     public String logDir() {

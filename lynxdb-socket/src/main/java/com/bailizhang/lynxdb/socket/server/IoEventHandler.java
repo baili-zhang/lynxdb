@@ -4,8 +4,8 @@ import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -16,7 +16,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 public class IoEventHandler implements Runnable {
-    private static final Logger logger = LogManager.getLogger("IoEventHandler");
+    private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);
 
     private final SocketContext context;
     private final CountDownSync latch;
@@ -41,8 +41,6 @@ public class IoEventHandler implements Runnable {
             SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
             key.attach(new ReadableSocketRequest(key));
         }
-
-        logger.info("Client {} has connected to server.", channel.getRemoteAddress());
     }
 
     /* 每次读一个请求 */
@@ -58,7 +56,6 @@ public class IoEventHandler implements Runnable {
             selectionKey.cancel();
             latch.countDown();
             /* 打印客户端断开连接的日志 */
-            logger.info("Client {} has disconnected from server.", address);
             return;
         }
 
@@ -66,14 +63,12 @@ public class IoEventHandler implements Runnable {
             /* 是否断开连接 */
             if (!request.isKeepConnection()) {
                 selectionKey.cancel();
-                logger.info("Client {} exit from server.", address);
                 return;
             }
             /* 处理Socket请求 */
             handler.handleRequest(request);
             /* 未写回完成的请求数量加一 */
             context.increaseRequestCount();
-            logger.info("Request {} read completed.", request);
         }
     }
 
@@ -88,9 +83,8 @@ public class IoEventHandler implements Runnable {
                 context.pollResponse();
                 context.decreaseRequestCount();
 
-                logger.info("Send socket response: {} to client.", response);
+                logger.info("Write response completed to client, response: {}", response);
             } else {
-                /* 如果mdtpResponse没写完，说明写缓存已经写满了 */
                 break;
             }
         }

@@ -16,8 +16,6 @@ import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.result.RedirectResult;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -27,8 +25,6 @@ import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.IS_DONE;
 import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.NOT_DONE;
 
 public class RaftServerHandler implements SocketServerHandler {
-    private final static Logger logger = LogManager.getLogger("RaftServerHandler");
-
     private final RaftState raftState;
     private final RaftServer raftServer;
 

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2023.1.4-alpha</version>
+        <version>2023.3.11-snapshot</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -42,6 +42,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
@@ -115,7 +116,17 @@
     <dependencies>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-server</artifactId>
+            <artifactId>lynxdb-lsmtree</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-socket</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-ldtp</artifactId>
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>

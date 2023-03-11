@@ -1,27 +1,23 @@
 package com.bailizhang.lynxdb.cmd.printer;
 
+import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
 
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public interface Printer {
-    static void printPrompt(SelectionKey current) {
-        if(current == null) {
+    static void printPrompt(LynxDbConnection connection) {
+        if(connection == null) {
             System.out.print("Moonlight> ");
         } else {
-            try {
-                String address = ((SocketChannel) current.channel()).getRemoteAddress().toString();
-                String prompt = String.format("[%s] Moonlight> ", address);
-                System.out.print(prompt);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            String prompt = String.format("[%s] Moonlight> ", connection);
+            System.out.print(prompt);
         }
     }
 
@@ -61,18 +57,39 @@ public interface Printer {
         new TablePrinter(table).print();
     }
 
-    static void printDbValues(List<DbValue> dbValues) {
+    static void printDbValues(HashMap<String, byte[]> multiColumns) {
         List<List<String>> table = new ArrayList<>();
         List<String> header = List.of("Column", "Value");
         table.add(header);
-        dbValues.forEach(dbValue -> {
-            List<String> row = List.of(
-                    G.I.toString(dbValue.column()),
-                    G.I.toString(dbValue.value())
-            );
+        multiColumns.forEach((column, value) -> {
+            List<String> row = new ArrayList<>();
+            row.add(column);
+            row.add(G.I.toString(value));
             table.add(row);
         });
 
         Printer.printTable(table);
+    }
+
+    static void printMultiKeys(HashMap<byte[], HashMap<String,byte[]>> multiKeys) {
+        List<List<String>> table = new ArrayList<>();
+        List<String> header = List.of("Key", "Column", "Value");
+        table.add(header);
+
+        multiKeys.forEach((key, multiColumns) -> {
+            multiColumns.forEach((column, value) -> {
+                List<String> row = new ArrayList<>();
+                row.add(G.I.toString(key));
+                row.add(column);
+                row.add(G.I.toString(value));
+                table.add(row);
+            });
+        });
+
+        Printer.printTable(table);
+    }
+
+    static void printBoolean(boolean isExisted) {
+        System.out.println(isExisted);
     }
 }

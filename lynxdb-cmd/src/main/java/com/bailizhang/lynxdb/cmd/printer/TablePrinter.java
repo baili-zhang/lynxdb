@@ -38,15 +38,13 @@ public class TablePrinter {
         for(List<String> row : table) {
             int i = 0;
             for(String cell : row) {
+                cell = cell == null ? "null" : cell;
                 width.set(i, Math.max(cell.length(), width.get(i)));
                 i ++;
             }
         }
 
-
-        for (int i = 0; i < width.size(); i++) {
-            width.set(i, width.get(i) + MARGIN * 2);
-        }
+        width.replaceAll(integer -> integer + MARGIN * 2);
     }
 
     private void printLine() {
@@ -67,6 +65,8 @@ public class TablePrinter {
 
         int i = 0;
         for (String cell : row) {
+            cell = cell == null ? "null" : cell;
+
             int w = width.get(i ++);
             int spaceCount = w - cell.length();
 

@@ -26,7 +26,7 @@ class LogRegionTest {
     @BeforeEach
     void setUp() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        LogOptions options = new LogOptions(INT_LENGTH);
+        LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
 
         FileUtils.createDirIfNotExisted(BASE_DIR);
 

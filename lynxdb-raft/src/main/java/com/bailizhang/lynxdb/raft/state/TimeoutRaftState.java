@@ -4,14 +4,10 @@ import com.bailizhang.lynxdb.core.timeout.Timeout;
 import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.timeout.ElectionTask;
 import com.bailizhang.lynxdb.raft.timeout.HeartbeatTask;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TimeoutRaftState extends LogRaftState {
-    private static final Logger logger = LogManager.getLogger("TimeoutRaftState");
-
     private static final String HEARTBEAT_TIMEOUT_NAME = "HeartBeat_Timeout";
     private static final String ELECTION_TIMEOUT_NAME = "Election_Timeout";
 
@@ -46,11 +42,8 @@ public class TimeoutRaftState extends LogRaftState {
             heartbeatThread.start();
             electionThread.start();
 
-            logger.info("Election Mode is [{}], raft role is: [{}]", electionMode, raftRole);
             return;
         }
-
-        logger.info("Election Mode is [{}], Do not start Timeout.", electionMode);
     }
 
     public void resetElectionTimeout() {

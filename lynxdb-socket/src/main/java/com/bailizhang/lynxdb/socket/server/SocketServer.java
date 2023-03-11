@@ -4,8 +4,6 @@ import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -20,8 +18,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketServer extends Executor<WritableSocketResponse> {
-    private static final Logger logger = LogManager.getLogger("SocketServer");
-
     private final SocketServerConfig config;
     private final ThreadPoolExecutor executor;
     private final Selector selector;
@@ -82,7 +78,6 @@ public class SocketServer extends Executor<WritableSocketResponse> {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
             if(Thread.interrupted()) {
-                logger.info("Socket server has bean interrupted.");
             }
 
             Set<SelectionKey> selectionKeys = selector.selectedKeys();
@@ -112,7 +107,6 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                 if(!key.isValid()) {
                     SocketAddress address = ((SocketChannel)key.channel()).getRemoteAddress();
                     contexts.remove(key);
-                    logger.info("Delete response queue from [responses](map) of {}.", address);
                 }
             }
 
@@ -126,7 +120,6 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                 SelectionKey selectionKey = response.selectionKey();
 
                 if(selectionKey == null) {
-                    logger.warn("SelectionKey is null, response: {}", response);
                     continue;
                 }
 

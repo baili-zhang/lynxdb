@@ -1,6 +1,7 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
+
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -63,6 +64,10 @@ public class AffectKeyRegistry {
 
     public List<SelectionKey> selectionKeys(MessageKey messageKey) {
         HashSet<SelectionKey> selectionKeys = affectKeyMap.get(messageKey);
+
+        if(selectionKeys == null) {
+            return new ArrayList<>();
+        }
 
         List<SelectionKey> invalid = new ArrayList<>();
         List<SelectionKey> valid = new ArrayList<>();

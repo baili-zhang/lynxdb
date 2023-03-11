@@ -8,9 +8,11 @@ core/temp/
 
 # db file
 **/data/*
+timeoutData
 
 # idea
 .idea/
+*.iml
 
 # Compiled class file
 *.class

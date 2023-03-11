@@ -15,7 +15,7 @@ public interface BufferUtils {
     byte EMPTY_BYTE = (byte) 0x00;
 
     static String getString(ByteBuffer buffer) {
-        return new String(BufferUtils.getBytes(buffer));
+        return G.I.toString(BufferUtils.getBytes(buffer));
     }
 
     static byte[] getBytes(ByteBuffer buffer) {

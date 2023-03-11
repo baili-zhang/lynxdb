@@ -6,8 +6,8 @@ import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.server.mode.cluster.ClusterLynxDbServer;
 import com.bailizhang.lynxdb.server.mode.single.SingleLynxDbServer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -15,9 +15,9 @@ import static com.bailizhang.lynxdb.server.context.Configuration.CLUSTER;
 import static com.bailizhang.lynxdb.server.context.Configuration.SINGLE;
 
 public class LynxDbMainServer {
-    private static final Logger logger = LogManager.getLogger("MoonlightServer");
+    private static final Logger logger = LoggerFactory.getLogger(LynxDbMainServer.class);
 
-    private static final String VERSION = "2023.1.4-alpha";
+    private static final String VERSION = "2023.3.11-snapshot";
 
     private final LynxDbServer server;
 

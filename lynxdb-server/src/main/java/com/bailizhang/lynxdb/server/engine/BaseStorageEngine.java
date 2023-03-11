@@ -1,13 +1,11 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.lsmtree.LsmTree;
+import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.lsmtree.config.Options;
-import com.bailizhang.lynxdb.server.annotations.LdtpMethod;
+import com.bailizhang.lynxdb.lsmtree.Table;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.server.context.Configuration;
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
@@ -16,15 +14,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 
 public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
-    private static final byte[] TIMEOUT_COLUMN = G.I.toBytes("timeout");
+    private static final String TIMEOUT_COLUMN = "timeout";
 
-    protected final LsmTree dataLsmTree;
-    protected final LsmTree timeoutLsmTree;
+    protected final Table dataTable;
+    protected final Table timeoutTable;
 
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
@@ -35,10 +32,11 @@ public class BaseStorageEngine {
         String dataDir = config.dataDir();
         String timeoutDir = config.timeoutDir();
 
-        Options options = new Options(DEFAULT_MEM_TABLE_SIZE);
+        LsmTreeOptions dataLsmTreeOptions = new LsmTreeOptions(dataDir, DEFAULT_MEM_TABLE_SIZE);
+        LsmTreeOptions timeoutLsmTreeOptions = new LsmTreeOptions(timeoutDir, DEFAULT_MEM_TABLE_SIZE);
 
-        dataLsmTree = new LynxDbLsmTree(dataDir, options);
-        timeoutLsmTree = new LynxDbLsmTree(timeoutDir, options);
+        dataTable = new LynxDbLsmTree(dataLsmTreeOptions);
+        timeoutTable = new LynxDbLsmTree(timeoutLsmTreeOptions);
 
         initMethod(clazz);
     }
@@ -46,7 +44,7 @@ public class BaseStorageEngine {
     public synchronized QueryResult doQuery(QueryParams params) {
         Method doQueryMethod = methodMap.get(params.method());
         if(doQueryMethod == null) {
-            throw new RuntimeException("Not Supported mdtp method.");
+            throw new RuntimeException("Not supported ldtp method.");
         }
 
         try {
@@ -56,12 +54,12 @@ public class BaseStorageEngine {
         }
     }
 
-    public List<DbValue> findAffectKey(MessageKey messageKey) {
-        return dataLsmTree.find(messageKey.key(), messageKey.columnFamily());
+    public HashMap<String, byte[]> findAffectKey(MessageKey messageKey) {
+        return dataTable.find(messageKey.key(), messageKey.columnFamily());
     }
 
     public byte[] findTimeoutValue(MessageKey messageKey) {
-        return timeoutLsmTree.find(
+        return timeoutTable.find(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN
@@ -71,7 +69,7 @@ public class BaseStorageEngine {
     public void insertTimeoutKey(TimeoutValue timeoutValue) {
         MessageKey messageKey = timeoutValue.messageKey();
 
-        timeoutLsmTree.insert(
+        timeoutTable.insert(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN,
@@ -80,7 +78,7 @@ public class BaseStorageEngine {
     }
 
     public void removeTimeoutKey(MessageKey messageKey) {
-        timeoutLsmTree.delete(
+        timeoutTable.delete(
                 messageKey.key(),
                 messageKey.columnFamily(),
                 TIMEOUT_COLUMN
@@ -88,7 +86,7 @@ public class BaseStorageEngine {
     }
 
     public void removeData(MessageKey messageKey) {
-        dataLsmTree.delete(
+        dataTable.delete(
                 messageKey.key(),
                 messageKey.columnFamily()
         );

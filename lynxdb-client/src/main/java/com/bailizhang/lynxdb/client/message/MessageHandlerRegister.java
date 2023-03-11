@@ -1,14 +1,16 @@
 package com.bailizhang.lynxdb.client.message;
 
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
+
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.bailizhang.lynxdb.server.engine.message.MessageType.AFFECT;
-import static com.bailizhang.lynxdb.server.engine.message.MessageType.TIMEOUT;
+import static com.bailizhang.lynxdb.ldtp.message.MessageType.AFFECT;
+import static com.bailizhang.lynxdb.ldtp.message.MessageType.TIMEOUT;
+
 
 public class MessageHandlerRegister {
 

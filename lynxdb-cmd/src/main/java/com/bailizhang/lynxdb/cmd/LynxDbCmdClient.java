@@ -1,35 +1,37 @@
 package com.bailizhang.lynxdb.cmd;
 
 import com.bailizhang.lynxdb.client.LynxDbClient;
+import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
-import com.bailizhang.lynxdb.lsmtree.common.DbValue;
-import com.bailizhang.lynxdb.server.engine.message.MessageKey;
-import com.bailizhang.lynxdb.server.engine.affect.AffectValue;
+import com.bailizhang.lynxdb.ldtp.message.MessageKey;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
+    private static final String CONNECT = "connect";
+    private static final String DISCONNECT = "disconnect";
+
     private static final String FIND = "find";
     private static final String INSERT = "insert";
     private static final String DELETE = "delete";
     private static final String REGISTER = "register";
     private static final String DEREGISTER = "deregister";
+    private static final String RANGE_NEXT = "range-next";
+    private static final String EXIST = "exist";
     private static final String EXIT = "exit";
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
-    private static final String HOST = "127.0.0.1";
-    private static final int PORT = 7820;
-    private static final int MESSAGE_PORT = 7263;
-
     private final LynxDbClient client = new LynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
+
+    private LynxDbConnection current;
 
     public LynxDbCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
@@ -37,22 +39,46 @@ public class LynxDbCmdClient extends Shutdown {
 
     public void start() {
         client.start();
-        client.connect(HOST, PORT);
-        client.registerConnect(HOST, MESSAGE_PORT);
 
         while (isNotShutdown()) {
-            Printer.printPrompt(client.selectionKey());
+            Printer.printPrompt(current);
 
             String line = scanner.nextLine();
-            LynxDbCommand command = new LynxDbCommand(client, line);
+            LynxDbCommand command = new LynxDbCommand(line);
+
+            if(current == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
+                Printer.printNotConnectServer();
+                continue;
+            }
 
             switch (command.name()) {
+                case CONNECT -> {
+                    String address = G.I.toString(command.key());
+                    ServerNode node = ServerNode.from(address);
+                    client.connect(node);
+                    current = client.connection(node);
+                }
+
+                case DISCONNECT -> {
+                    current.disconnect();
+                    current = null;
+                }
+
                 case FIND -> {
                     if(command.length() == 3) {
-                        List<DbValue> dbValues = command.findByKey();
-                        Printer.printDbValues(dbValues);
+                        HashMap<String, byte[]> multiColumns = current.find(
+                                command.key(),
+                                command.columnFamily()
+                        );
+
+                        Printer.printDbValues(multiColumns);
                     } else if(command.length() == 4) {
-                        byte[] value = command.find();
+                        byte[] value = current.find(
+                                command.key(),
+                                command.columnFamily(),
+                                command.column()
+                        );
+
                         Printer.printRawMessage(G.I.toString(value));
                     } else {
                         Printer.printError(ERROR_COMMAND);
@@ -64,7 +90,13 @@ public class LynxDbCmdClient extends Shutdown {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.insert();
+
+                    current.insert(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column(),
+                            command.value()
+                    );
                 }
 
                 case DELETE -> {
@@ -72,7 +104,12 @@ public class LynxDbCmdClient extends Shutdown {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.delete();
+
+                    current.delete(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column()
+                    );
                 }
 
                 case REGISTER -> {
@@ -82,13 +119,13 @@ public class LynxDbCmdClient extends Shutdown {
                     }
 
                     byte[] key = command.key();
-                    byte[] columnFamily = command.columnFamily();
+                    String columnFamily = command.columnFamily();
 
                     MessageKey messageKey = new MessageKey(key, columnFamily);
-                    AffectHandler handler = new AffectHandler(client);
+                    AffectHandler handler = new AffectHandler();
                     client.registerAffectHandler(messageKey, handler);
 
-                    command.register();
+                    current.register(key, columnFamily);
                 }
 
                 case DEREGISTER -> {
@@ -96,11 +133,50 @@ public class LynxDbCmdClient extends Shutdown {
                         Printer.printError(ERROR_COMMAND);
                         break;
                     }
-                    command.deregister();
+
+                    current.deregister(
+                            command.key(),
+                            command.columnFamily()
+                    );
+                }
+
+                case RANGE_NEXT -> {
+                    if(command.length() != 5) {
+                        Printer.printError(ERROR_COMMAND);
+                        break;
+                    }
+
+                    String columnFamily = command.array()[1];
+                    String mainColumn = command.array()[2];
+                    byte[] key = G.I.toBytes(command.array()[3]);
+                    int limit = Integer.parseInt(command.array()[4]);
+
+                    var multiKeys = current.rangeNext(
+                            columnFamily,
+                            mainColumn,
+                            key,
+                            limit
+                    );
+
+                    Printer.printMultiKeys(multiKeys);
+                }
+
+                case EXIST -> {
+                    if(command.length() != 4) {
+                        Printer.printError(ERROR_COMMAND);
+                        break;
+                    }
+
+                    boolean isExisted = current.existKey(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column()
+                    );
+
+                    Printer.printBoolean(isExisted);
                 }
 
                 case EXIT -> {
-                    command.exit();
                     shutdown();
                 }
 

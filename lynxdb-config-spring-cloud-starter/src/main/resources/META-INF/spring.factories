@@ -1,2 +1,0 @@
-org.springframework.boot.SpringApplicationRunListener=\
-com.bailizhang.lynxdb.config.springcloud.starter.LynxDbConfigClientBootstrap

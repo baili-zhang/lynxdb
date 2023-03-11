@@ -1,12 +1,8 @@
 package com.bailizhang.lynxdb.raft.state;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class CoreRaftState extends TimeoutRaftState {
-    private static final Logger logger = LogManager.getLogger("CoreRaftState");
-
     protected final ServerNode currentNode;
 
     protected volatile ServerNode leaderNode;

@@ -6,10 +6,10 @@ import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.bailizhang.lynxdb.server.mode.LynxDbServer.MESSAGE_SERIAL;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
+
 
 public class ClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,

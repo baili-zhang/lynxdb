@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2023.1.4-alpha</version>
+        <version>2023.3.11-snapshot</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -20,18 +20,23 @@
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-server</artifactId>
+            <artifactId>lynxdb-core</artifactId>
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <scope>compile</scope>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-lsmtree</artifactId>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>compile</scope>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-ldtp</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-socket</artifactId>
+            <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -72,9 +77,31 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${graalvm.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>native-image</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>com.bailizhang.lynxdb.cmd.LynxDbCmdClient</mainClass>
+                    <imageName>lynxdb-cli</imageName>
+                    <buildArgs>
+                        --no-fallback
+                    </buildArgs>
+                    <skip>false</skip>
                 </configuration>
             </plugin>
         </plugins>
