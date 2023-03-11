@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -90,7 +89,7 @@ public class LynxDbConnection {
 
         return switch (buffer.get()) {
             case BYTE_ARRAY -> BufferUtils.getRemaining(buffer);
-            case LdtpCode.NULL -> null;
+            case NULL -> null;
             default -> throw new RuntimeException();
         };
     }
@@ -395,7 +394,13 @@ public class LynxDbConnection {
 
             while((size --) > 0) {
                 String column = BufferUtils.getString(buffer);
-                byte[] value = BufferUtils.getBytes(buffer);
+                byte flag = buffer.get();
+
+                byte[] value = switch (flag) {
+                    case BYTE_ARRAY -> BufferUtils.getBytes(buffer);
+                    case NULL -> null;
+                    default -> throw new RuntimeException();
+                };
                 multiColumns.put(column, value);
             }
         }

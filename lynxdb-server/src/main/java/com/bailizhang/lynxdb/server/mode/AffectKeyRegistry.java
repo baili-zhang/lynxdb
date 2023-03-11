@@ -65,6 +65,10 @@ public class AffectKeyRegistry {
     public List<SelectionKey> selectionKeys(MessageKey messageKey) {
         HashSet<SelectionKey> selectionKeys = affectKeyMap.get(messageKey);
 
+        if(selectionKeys == null) {
+            return new ArrayList<>();
+        }
+
         List<SelectionKey> invalid = new ArrayList<>();
         List<SelectionKey> valid = new ArrayList<>();
 

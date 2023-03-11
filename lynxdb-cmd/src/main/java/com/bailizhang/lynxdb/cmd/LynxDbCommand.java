@@ -2,6 +2,9 @@ package com.bailizhang.lynxdb.cmd;
 
 import com.bailizhang.lynxdb.core.common.G;
 
+/**
+ * TODO: 重写这个类
+ */
 public class LynxDbCommand {
     private final String[] commands;
 
@@ -27,6 +30,9 @@ public class LynxDbCommand {
 
     public byte[] value() {
         return commands.length < 5 ? null : G.I.toBytes(commands[4]);
+    }
+    public String[] array() {
+        return commands;
     }
 
     public int length() {

@@ -70,4 +70,26 @@ public interface Printer {
 
         Printer.printTable(table);
     }
+
+    static void printMultiKeys(HashMap<byte[], HashMap<String,byte[]>> multiKeys) {
+        List<List<String>> table = new ArrayList<>();
+        List<String> header = List.of("Key", "Column", "Value");
+        table.add(header);
+
+        multiKeys.forEach((key, multiColumns) -> {
+            multiColumns.forEach((column, value) -> {
+                List<String> row = new ArrayList<>();
+                row.add(G.I.toString(key));
+                row.add(column);
+                row.add(G.I.toString(value));
+                table.add(row);
+            });
+        });
+
+        Printer.printTable(table);
+    }
+
+    static void printBoolean(boolean isExisted) {
+        System.out.println(isExisted);
+    }
 }

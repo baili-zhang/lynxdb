@@ -2,10 +2,8 @@ package com.bailizhang.lynxdb.lsmtree.entry;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
 import java.util.zip.CRC32C;
 
 public record IndexEntry(

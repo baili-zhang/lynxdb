@@ -8,9 +8,7 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.ldtp.message.MessageType;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public record AffectValue(
         MessageKey messageKey,

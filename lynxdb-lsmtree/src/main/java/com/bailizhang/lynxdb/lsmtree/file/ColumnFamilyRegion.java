@@ -51,6 +51,11 @@ public class ColumnFamilyRegion {
 
             try {
                 value = columnRegion.find(key);
+
+                if(value == null) {
+                    return;
+                }
+
                 multiColumns.put(column, value);
             } catch (DeletedException ignored) {
             }

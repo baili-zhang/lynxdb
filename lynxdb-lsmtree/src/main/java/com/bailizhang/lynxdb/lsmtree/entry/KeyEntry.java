@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.lsmtree.entry;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

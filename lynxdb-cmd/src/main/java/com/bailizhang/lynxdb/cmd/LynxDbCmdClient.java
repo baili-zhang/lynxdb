@@ -11,7 +11,6 @@ import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
@@ -23,6 +22,8 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String DELETE = "delete";
     private static final String REGISTER = "register";
     private static final String DEREGISTER = "deregister";
+    private static final String RANGE_NEXT = "range-next";
+    private static final String EXIST = "exist";
     private static final String EXIT = "exit";
 
     private static final String ERROR_COMMAND = "Invalid Command";
@@ -137,6 +138,42 @@ public class LynxDbCmdClient extends Shutdown {
                             command.key(),
                             command.columnFamily()
                     );
+                }
+
+                case RANGE_NEXT -> {
+                    if(command.length() != 5) {
+                        Printer.printError(ERROR_COMMAND);
+                        break;
+                    }
+
+                    String columnFamily = command.array()[1];
+                    String mainColumn = command.array()[2];
+                    byte[] key = G.I.toBytes(command.array()[3]);
+                    int limit = Integer.parseInt(command.array()[4]);
+
+                    var multiKeys = current.rangeNext(
+                            columnFamily,
+                            mainColumn,
+                            key,
+                            limit
+                    );
+
+                    Printer.printMultiKeys(multiKeys);
+                }
+
+                case EXIST -> {
+                    if(command.length() != 4) {
+                        Printer.printError(ERROR_COMMAND);
+                        break;
+                    }
+
+                    boolean isExisted = current.existKey(
+                            command.key(),
+                            command.columnFamily(),
+                            command.column()
+                    );
+
+                    Printer.printBoolean(isExisted);
                 }
 
                 case EXIT -> {

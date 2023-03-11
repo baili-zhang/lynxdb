@@ -8,7 +8,6 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.List;
 
 public class AffectHandler implements MessageHandler {
 
