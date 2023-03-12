@@ -15,10 +15,7 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 
@@ -178,7 +175,7 @@ public class ColumnRegion {
         priorityQueue.addAll(imKeys);
         priorityQueue.addAll(lKeys);
 
-        List<byte[]> range = new ArrayList<>();
+        List<Key> range = new ArrayList<>();
 
         for(int i = 0; i < limit; i ++) {
             Key key = priorityQueue.poll();
@@ -187,10 +184,11 @@ public class ColumnRegion {
                 break;
             }
 
-            range.add(key.bytes());
+            range.add(key);
         }
 
-        return range;
+        range.sort(Key::compareTo);
+        return range.stream().map(Key::bytes).toList();
     }
 
     public String columnFamily() {

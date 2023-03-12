@@ -209,9 +209,9 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(MULTI_KEYS);
 
-        for(var entry : multiKeys.entrySet()) {
-            byte[] key = entry.getKey();
-            var multiColumns = entry.getValue();
+        for(var pair : multiKeys) {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
             int size = multiColumns.size();
 
             bytesList.appendVarBytes(key);

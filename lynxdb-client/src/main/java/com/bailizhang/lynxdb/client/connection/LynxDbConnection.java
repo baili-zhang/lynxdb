@@ -7,6 +7,7 @@ import com.bailizhang.lynxdb.client.annotation.LynxDbMainColumn;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
@@ -346,7 +347,7 @@ public class LynxDbConnection {
         }
     }
 
-    public HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
@@ -377,14 +378,14 @@ public class LynxDbConnection {
             throw new RuntimeException();
         }
 
-        HashMap<byte[], HashMap<String, byte[]>> multiKeys = new HashMap<>();
+        List<Pair<byte[], HashMap<String, byte[]>>> multiKeys = new ArrayList<>();
 
         while(BufferUtils.isNotOver(buffer)) {
             byte[] key = BufferUtils.getBytes(buffer);
             int size = buffer.getInt();
 
             HashMap<String, byte[]> multiColumns = new HashMap<>();
-            multiKeys.put(key, multiColumns);
+            multiKeys.add(new Pair<>(key, multiColumns));
 
             while((size --) > 0) {
                 String column = BufferUtils.getString(buffer);
@@ -417,7 +418,10 @@ public class LynxDbConnection {
 
         var multiKeys = rangeNext(columnFamily, mainColumn, beginKey, limit, findColumns);
 
-        multiKeys.forEach((key, multiColumns) -> {
+        multiKeys.forEach(pair -> {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
+
             T obj = ReflectionUtils.newObj(clazz);
 
             FieldUtils.set(obj, field, G.I.toString(key));

@@ -1,6 +1,9 @@
 package com.bailizhang.lynxdb.lsmtree;
 
+import com.bailizhang.lynxdb.core.common.Pair;
+
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * 支持：列族，列
@@ -9,7 +12,7 @@ public interface Table {
     byte[] find(byte[] key, String columnFamily, String column);
     HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumn);
 
-    HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+    List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
@@ -17,7 +20,7 @@ public interface Table {
             String... findColumns
     );
 
-    HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
+    List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,

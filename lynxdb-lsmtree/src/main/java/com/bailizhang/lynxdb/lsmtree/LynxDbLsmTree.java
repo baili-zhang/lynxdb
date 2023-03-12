@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree;
 
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
@@ -7,6 +8,7 @@ import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnRegion;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +53,7 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
@@ -63,18 +65,18 @@ public class LynxDbLsmTree implements Table {
 
         List<byte[]> keys = mainColumnRegion.rangeNext(beginKey, limit);
 
-        HashMap<byte[], HashMap<String, byte[]>> values = new HashMap<>();
+        List<Pair<byte[], HashMap<String, byte[]>>> values = new ArrayList<>();
 
         for(byte[] key : keys) {
             HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
-            values.put(key, multiColumns);
+            values.add(new Pair<>(key, multiColumns));
         }
 
         return values;
     }
 
     @Override
-    public HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
