@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree;
 
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
@@ -7,6 +8,7 @@ import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnRegion;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,35 +47,36 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public HashMap<String, byte[]> find(byte[] key, String columnFamily) {
+    public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        return region.findAllColumnsByKey(key);
+        return region.findMultiColumns(key, findColumns);
     }
 
     @Override
-    public HashMap<byte[], HashMap<String, byte[]>> rangeNext(
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
-            int limit
+            int limit,
+            String... findColumns
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
 
         List<byte[]> keys = mainColumnRegion.rangeNext(beginKey, limit);
 
-        HashMap<byte[], HashMap<String, byte[]>> values = new HashMap<>();
+        List<Pair<byte[], HashMap<String, byte[]>>> values = new ArrayList<>();
 
         for(byte[] key : keys) {
-            HashMap<String, byte[]> multiColumns = region.findAllColumnsByKey(key);
-            values.put(key, multiColumns);
+            HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
+            values.add(new Pair<>(key, multiColumns));
         }
 
         return values;
     }
 
     @Override
-    public HashMap<byte[], HashMap<String, byte[]>> rangeBefore(
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
             byte[] beginKey,
@@ -112,9 +115,9 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
-    public void delete(byte[] key, String columnFamily) {
+    public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        region.deleteAllColumnsByKey(key);
+        region.deleteMultiColumns(key, deleteColumns);
     }
 
     @Override

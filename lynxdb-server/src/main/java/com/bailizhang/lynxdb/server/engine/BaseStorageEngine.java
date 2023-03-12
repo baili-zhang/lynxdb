@@ -55,7 +55,7 @@ public class BaseStorageEngine {
     }
 
     public HashMap<String, byte[]> findAffectKey(MessageKey messageKey) {
-        return dataTable.find(messageKey.key(), messageKey.columnFamily());
+        return dataTable.findMultiColumns(messageKey.key(), messageKey.columnFamily());
     }
 
     public byte[] findTimeoutValue(MessageKey messageKey) {
@@ -86,7 +86,7 @@ public class BaseStorageEngine {
     }
 
     public void removeData(MessageKey messageKey) {
-        dataTable.delete(
+        dataTable.deleteMultiColumns(
                 messageKey.key(),
                 messageKey.columnFamily()
         );

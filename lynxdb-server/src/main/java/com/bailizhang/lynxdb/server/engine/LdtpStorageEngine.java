@@ -12,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
@@ -36,7 +38,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         byte[] value = dataTable.find(key, columnFamily, column);
 
-        logger.debug("Find by dbKey: {}, columnFamily: {}, column: {}, value is: {}.",
+        logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
         BytesList bytesList = new BytesList();
@@ -51,21 +53,31 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, null);
     }
 
-    @LdtpMethod(FIND_BY_KEY_CF)
-    public QueryResult doFindByKeyCf(QueryParams params) {
+    @LdtpMethod(FIND_MULTI_COLUMNS)
+    public QueryResult doFindMultiColumns(QueryParams params) {
         byte[] data = params.content();
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
         String columnFamily = BufferUtils.getString(buffer);
+        String[] findColumns = null;
 
-        return doFindByKeyCf(key, columnFamily);
+        if(BufferUtils.isNotOver(buffer)) {
+            List<String> columns = new ArrayList<>();
+            while(BufferUtils.isNotOver(buffer)) {
+                String findColumn = BufferUtils.getString(buffer);
+                columns.add(findColumn);
+            }
+            findColumns = columns.toArray(String[]::new);
+        }
+
+        return doFindMultiColumns(key, columnFamily, findColumns);
     }
 
-    public QueryResult doFindByKeyCf(byte[] key, String columnFamily) {
-        HashMap<String, byte[]> multiColumns = dataTable.find(key, columnFamily);
+    public QueryResult doFindMultiColumns(byte[] key, String columnFamily, String... findColumns) {
+        HashMap<String, byte[]> multiColumns = dataTable.findMultiColumns(key, columnFamily, findColumns);
 
-        logger.debug("Find by dbKey: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
+        logger.debug("Find by key: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(MULTI_COLUMNS);
@@ -84,7 +96,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String column = BufferUtils.getString(buffer);
         byte[] value = BufferUtils.getBytes(buffer);
 
-        logger.debug("Insert dbKey: {}, columnFamily: {}, column: {}, value: {}.",
+        logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
         dataTable.insert(key, columnFamily, column, value);
@@ -95,8 +107,8 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
-    @LdtpMethod(INSERT_MULTI_COLUMN)
-    public QueryResult doInsertMultiColumn(QueryParams params) {
+    @LdtpMethod(INSERT_MULTI_COLUMNS)
+    public QueryResult doInsertMultiColumns(QueryParams params) {
         byte[] data = params.content();
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
@@ -112,7 +124,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             multiColumns.put(column, value);
         }
 
-        logger.debug("Insert dbKey: {}, columnFamily: {}, multiColumns: {}.",
+        logger.debug("Insert key: {}, columnFamily: {}, multiColumns: {}.",
                 G.I.toString(key), columnFamily, multiColumns);
 
         dataTable.insert(key, columnFamily, multiColumns);
@@ -132,7 +144,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String columnFamily = BufferUtils.getString(buffer);
         String column = BufferUtils.getString(buffer);
 
-        logger.debug("Delete dbKey: {}, columnFamily: {}, column: {}.",
+        logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
                 G.I.toString(key), columnFamily, column);
 
         dataTable.delete(key, columnFamily, column);
@@ -143,18 +155,28 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
-    @LdtpMethod(DELETE_MULTI_COLUMN)
-    public QueryResult doDeleteMultiColumn(QueryParams params) {
+    @LdtpMethod(DELETE_MULTI_COLUMNS)
+    public QueryResult doDeleteMultiColumns(QueryParams params) {
         byte[] data = params.content();
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         byte[] key = BufferUtils.getBytes(buffer);
         String columnFamily = BufferUtils.getString(buffer);
+        String[] deleteColumns = null;
 
-        logger.debug("Delete dbKey: {}, columnFamily: {}.",
-                G.I.toString(key), columnFamily);
+        if(!BufferUtils.isNotOver(buffer)) {
+            List<String> columns = new ArrayList<>();
+            while(!BufferUtils.isNotOver(buffer)) {
+                String column = BufferUtils.getString(buffer);
+                columns.add(column);
+            }
+            deleteColumns = columns.toArray(String[]::new);
+        }
 
-        dataTable.delete(key, columnFamily);
+        logger.debug("Delete dbKey: {}, columnFamily: {}, deleteColumns: {}.",
+                G.I.toString(key), columnFamily, deleteColumns);
+
+        dataTable.deleteMultiColumns(key, columnFamily, deleteColumns);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -171,15 +193,25 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         String mainColumn = BufferUtils.getString(buffer);
         byte[] beginKey = BufferUtils.getBytes(buffer);
         int limit = buffer.getInt();
+        String[] findColumns = null;
 
-        var multiKeys = dataTable.rangeNext(columnFamily, mainColumn, beginKey, limit);
+        if(!BufferUtils.isNotOver(buffer)) {
+            List<String> columns = new ArrayList<>();
+            while(!BufferUtils.isNotOver(buffer)) {
+                String column = BufferUtils.getString(buffer);
+                columns.add(column);
+            }
+            findColumns = columns.toArray(String[]::new);
+        }
+
+        var multiKeys = dataTable.rangeNext(columnFamily, mainColumn, beginKey, limit, findColumns);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(MULTI_KEYS);
 
-        for(var entry : multiKeys.entrySet()) {
-            byte[] key = entry.getKey();
-            var multiColumns = entry.getValue();
+        for(var pair : multiKeys) {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
             int size = multiColumns.size();
 
             bytesList.appendVarBytes(key);
@@ -212,6 +244,12 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, null);
     }
 
+    /**
+     * Append multiColumns to bytesList
+     *
+     * @param bytesList bytesList
+     * @param multiColumns multiColumns
+     */
     private void appendMultiColumns(
             BytesList bytesList,
             HashMap<String, byte[]> multiColumns

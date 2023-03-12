@@ -9,11 +9,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface LdtpMethod {
     byte FIND_BY_KEY_CF_COLUMN          = (byte) 0x01;
-    byte FIND_BY_KEY_CF                 = (byte) 0x02;
+    byte FIND_MULTI_COLUMNS             = (byte) 0x02;
     byte INSERT                         = (byte) 0x03;
-    byte INSERT_MULTI_COLUMN            = (byte) 0x04;
+    byte INSERT_MULTI_COLUMNS           = (byte) 0x04;
     byte DELETE                         = (byte) 0x05;
-    byte DELETE_MULTI_COLUMN            = (byte) 0x06;
+    byte DELETE_MULTI_COLUMNS           = (byte) 0x06;
     byte RANGE_NEXT                     = (byte) 0x07;
     byte RANGE_BEFORE                   = (byte) 0x08;
     byte EXIST_KEY                      = (byte) 0x09;

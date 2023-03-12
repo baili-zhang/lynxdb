@@ -17,7 +17,7 @@ import static com.bailizhang.lynxdb.server.context.Configuration.SINGLE;
 public class LynxDbMainServer {
     private static final Logger logger = LoggerFactory.getLogger(LynxDbMainServer.class);
 
-    private static final String VERSION = "2023.3.11-snapshot";
+    private static final String VERSION = "2023.3.12-alpha";
 
     private final LynxDbServer server;
 

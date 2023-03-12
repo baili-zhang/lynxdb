@@ -66,7 +66,7 @@ public class LynxDbCmdClient extends Shutdown {
 
                 case FIND -> {
                     if(command.length() == 3) {
-                        HashMap<String, byte[]> multiColumns = current.find(
+                        HashMap<String, byte[]> multiColumns = current.findMultiColumns(
                                 command.key(),
                                 command.columnFamily()
                         );

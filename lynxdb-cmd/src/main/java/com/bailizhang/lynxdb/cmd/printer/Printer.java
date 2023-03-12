@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.cmd.printer;
 
 import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Pair;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -71,13 +72,14 @@ public interface Printer {
         Printer.printTable(table);
     }
 
-    static void printMultiKeys(HashMap<byte[], HashMap<String,byte[]>> multiKeys) {
+    static void printMultiKeys(List<Pair<byte[], HashMap<String, byte[]>>> multiKeys) {
         List<List<String>> table = new ArrayList<>();
         List<String> header = List.of("Key", "Column", "Value");
         table.add(header);
 
-        multiKeys.forEach((key, multiColumns) -> {
-            multiColumns.forEach((column, value) -> {
+        multiKeys.forEach(pair -> {
+            byte[] key = pair.left();
+            pair.right().forEach((column, value) -> {
                 List<String> row = new ArrayList<>();
                 row.add(G.I.toString(key));
                 row.add(column);
