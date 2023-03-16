@@ -1,5 +1,6 @@
 module lynxdb.socket {
     requires static lynxdb.core;
+    requires static lynxdb.timewheel;
 
     requires org.slf4j;
 
@@ -11,4 +12,5 @@ module lynxdb.socket {
     exports com.bailizhang.lynxdb.socket.response;
     exports com.bailizhang.lynxdb.socket.result;
     exports com.bailizhang.lynxdb.socket.server;
+    exports com.bailizhang.lynxdb.socket.timewheel;
 }
