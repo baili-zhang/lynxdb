@@ -6,6 +6,8 @@ module lynxdb.raft {
     requires static lynxdb.socket;
     requires static lynxdb.timewheel;
 
+    requires org.slf4j;
+
     exports com.bailizhang.lynxdb.raft.client;
     exports com.bailizhang.lynxdb.raft.common;
     exports com.bailizhang.lynxdb.raft.request;

@@ -1,45 +1,57 @@
 package com.bailizhang.lynxdb.server.context;
 
+import com.bailizhang.lynxdb.core.utils.FieldUtils;
+import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Configuration {
-    public static final String CLUSTER = "cluster";
-    public static final String SINGLE = "single";
 
-    private static final String DEFAULT_CONFIG_DIR = System.getProperty("user.dir") + "/config";
-    private static final String DEFAULT_RAFT_LOG_DIR = System.getProperty("user.dir") + "/logs/raft";
-    private static final String DEFAULT_FILENAME = "app.cfg";
-    private static final String BASE_DIR = "[base]";
+    public interface Default {
+        String CLUSTER = "cluster";
+        String SINGLE = "single";
 
-    private static final String SEPARATOR = "=";
+        String LEADER = "leader";
 
-    private static final String HOST = "host";
-    private static final String PORT = "port";
-    private static final String DATA_DIR = "data_dir";
-    private static final String TIMEOUT_DIR = "timeout_dir";
-    private static final String RUNNING_MODE = "running_mode";
-    private static final String ELECTION_MODE = "election_mode";
+        String USER_DIR = System.getProperty("user.dir");
 
-    private final ServerNode currentNode;
+        String FILENAME = "app.cfg";
 
-    private String host;
-    private int port;
+        String CONFIG_DIR = USER_DIR + "/config";
+        String DATA_DIR = USER_DIR + "/data/base";
+        String TIMEOUT_DIR = USER_DIR + "/date/timeout";
+        String RAFT_DIR = USER_DIR + "/data/raft";
+        String BASE_DIR = "[base]";
 
-    private String dataDir;
-    private String timeoutDir;
-    private final String raftLogDir;
+        String SEPARATOR = "=";
+    }
 
-    private String runningMode;
-    private String electionMode;
+    // 反射修改 final 字段后读取时还是初始值，因为 final 字段被内联优化了
+    // return runningMode;  => return "single";
 
+    private String host = "127.0.0.1";
+    private int port = 7820;
+    private int messagePort = 7263;
+
+    private String dataDir = Default.DATA_DIR;
+    private String timeoutDir = Default.TIMEOUT_DIR;
+
+    private String runningMode = Default.SINGLE;
+    private String electionMode = Default.LEADER;
+    private String raftLogDir = Default.RAFT_DIR;
+
+    // TODO
     private final Charset charset = StandardCharsets.UTF_8;
 
     private static class Holder {
@@ -48,6 +60,31 @@ public class Configuration {
         static {
             try {
                 instance = new Configuration();
+
+                FileUtils.createDirIfNotExisted(Default.CONFIG_DIR);
+                File configFile = FileUtils.createFileIfNotExisted(
+                        Default.CONFIG_DIR,
+                        Default.FILENAME
+                );
+
+                BufferedReader reader = new BufferedReader(new FileReader(configFile));
+
+                String line;
+                while((line = reader.readLine()) != null) {
+                    String[] item = line.trim().split(Default.SEPARATOR);
+                    if(item.length != 2) {
+                        String message = String.format("Value of \"%s\" can not contain \"=\".", item[0].trim());
+                        throw new RuntimeException(message);
+                    }
+
+                    String key = item[0].trim();
+                    String value = item[1].trim();
+
+                    value = value.replace(Default.BASE_DIR, Default.USER_DIR);
+
+                    FieldUtils.set(instance, key, value);
+                }
+
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -58,50 +95,15 @@ public class Configuration {
         return Holder.instance;
     }
 
-    private Configuration() throws IOException {
-        this(DEFAULT_CONFIG_DIR, DEFAULT_FILENAME);
+    private Configuration() {
     }
 
-    private Configuration(String dirname, String filename) throws IOException {
-        Path path = Path.of(dirname, filename);
-        File configFile = path.toFile();
-        if(!configFile.exists()) {
-            throw new RuntimeException("\"app.cfg\" file is not existed.");
-        }
-
-        BufferedReader reader = new BufferedReader(new FileReader(configFile));
-
-        String line;
-        while((line = reader.readLine()) != null) {
-            String[] item = line.trim().split(SEPARATOR);
-            if(item.length != 2) {
-                String message = String.format("Value of \"%s\" can not contain \"=\".", item[0].trim());
-                throw new RuntimeException(message);
-            }
-
-            String key = item[0].trim();
-            String value = item[1].trim();
-
-            switch (key.toLowerCase()) {
-                case HOST -> host = value;
-                case PORT -> port = Integer.parseInt(value);
-                case DATA_DIR -> dataDir = value.startsWith(BASE_DIR)
-                        ? value.replace(BASE_DIR, System.getProperty("user.dir"))
-                        : value;
-                case TIMEOUT_DIR -> timeoutDir = value.startsWith(BASE_DIR)
-                        ? value.replace(BASE_DIR, System.getProperty("user.dir"))
-                        : value;
-                case RUNNING_MODE -> runningMode = value;
-                case ELECTION_MODE -> electionMode = value;
-            }
-        }
-
-        raftLogDir = DEFAULT_RAFT_LOG_DIR;
-        currentNode = new ServerNode(host, port);
-    }
 
     public ServerNode currentNode() {
-        return currentNode;
+        return new ServerNode(host, port);
+    }
+    public int messagePort() {
+        return messagePort;
     }
 
     public String dataDir() {
@@ -130,26 +132,27 @@ public class Configuration {
 
     @Override
     public String toString() {
-        String template = """
-                {
-                    host: %s,
-                    port: %d,
-                    dataDir: "%s",
-                    raftLogDir: "%s",
-                    runningMode: %s,
-                    electionMode: %s,
-                    charset: %s
-                }""";
+        Field[] fields = this.getClass().getDeclaredFields();
 
-        return String.format(
-                template,
-                host,
-                port,
-                dataDir,
-                raftLogDir,
-                runningMode,
-                electionMode,
-                charset
-        );
+        StringBuilder builder = new StringBuilder();
+        builder.append("{");
+        builder.append("\n");
+
+        List<String> items = new ArrayList<>();
+
+        for(Field field : fields) {
+            String key = field.getName();
+            Object value = FieldUtils.get(this, field);
+
+            items.add("  " + key + ": " + value);
+        }
+
+        String body = String.join(",\n", items);
+
+        builder.append(body);
+        builder.append("\n");
+        builder.append("}");
+
+        return builder.toString();
     }
 }

@@ -3,36 +3,54 @@ package com.bailizhang.lynxdb.raft.core;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
+import com.bailizhang.lynxdb.raft.client.RaftClient;
+import com.bailizhang.lynxdb.raft.request.AppendEntries;
+import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
+import com.bailizhang.lynxdb.raft.request.RequestVote;
+import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
 import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RaftRpcHandler {
+    private static final Logger logger = LoggerFactory.getLogger(RaftRpcHandler.class);
+
     private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
 
 
     private final int electionIntervalMillis;
+    private final RaftClient client;
+
+    private final ServerNode current;
 
     private TimeoutTask electionTask;
     private TimeoutTask heartbeatTask;
 
-    public RaftRpcHandler() {
+    public RaftRpcHandler(RaftClient raftClient, ServerNode currentNode) {
         electionIntervalMillis = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
+
+        logger.info("Election interval time: {}", electionIntervalMillis);
+
+        client = raftClient;
+        current = currentNode;
     }
 
     public RequestVoteResult handlePreVote(
             int term,
-            ServerNode candidate, //TODO
+            ServerNode candidate,
             int lastLogIndex,
             int lastLogTerm
     ) {
@@ -40,6 +58,8 @@ public class RaftRpcHandler {
         int currentTerm = raftState.currentTerm().get();
         ServerNode votedFor = raftState.voteFor().get();
         LogGroup log = raftState.log();
+
+
 
         if(term < currentTerm || (term == currentTerm && votedFor != null)) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
@@ -153,13 +173,50 @@ public class RaftRpcHandler {
         SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
         timeWheel.register(electionTime, this::election);
         timeWheel.register(heartbeatTime, this::heartbeat);
+
+        logger.info("Register election and heartbeat timeout task.");
     }
 
     private void election() {
+        logger.info("Run election task, time: {}", System.currentTimeMillis());
 
+        RaftState raftState = RaftStateHolder.raftState();
+        int term = raftState.currentTerm().get();
+        LogGroup log = raftState.log();
+
+        RequestVoteArgs args = new RequestVoteArgs(
+                term + 1,
+                current,
+                log.maxGlobalIndex(),
+                ByteArrayUtils.toInt(log.lastLogExtraData())
+        );
+
+        RequestVote requestVote = new RequestVote(args);
+        client.broadcast(requestVote);
     }
 
     private void heartbeat() {
+        logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
 
+        RaftState raftState = RaftStateHolder.raftState();
+        int term = raftState.currentTerm().get();
+        LogGroup log = raftState.log();
+        int leaderCommit = raftState.commitIndex().get();
+
+        var matchedIndex = raftState.matchedIndex();
+
+        matchedIndex.forEach(((selectionKey, commit) -> {
+            AppendEntriesArgs args = new AppendEntriesArgs(
+                    term,
+                    current,
+                    log.maxGlobalIndex(),
+                    ByteArrayUtils.toInt(log.lastLogExtraData()),
+                    new ArrayList<>(),
+                    leaderCommit
+            );
+
+            AppendEntries appendEntries = new AppendEntries(selectionKey, args);
+            client.send(appendEntries);
+        }));
     }
 }

@@ -33,11 +33,25 @@ public interface FieldUtils {
     static void set(Object obj, Field field, String value) {
         if(field.getType() == value.getClass()) {
             field.setAccessible(true);
+            Class<?> type = field.getType();
+
             try {
-                field.set(obj, value);
+                field.set(obj, convert(value, type));
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    static Object convert(String value, Class<?> type) {
+        if(type == String.class) {
+            return value;
+        } else if (type == Integer.class || type == int.class) {
+            return Integer.parseInt(value);
+        } else if (type == Long.class || type == long.class) {
+            return Long.parseLong(value);
+        } else {
+            throw new RuntimeException();
         }
     }
 }

@@ -22,6 +22,7 @@ import com.bailizhang.lynxdb.socket.result.RedirectResult;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;

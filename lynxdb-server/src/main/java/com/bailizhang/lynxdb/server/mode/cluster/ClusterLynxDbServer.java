@@ -10,10 +10,14 @@ import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class ClusterLynxDbServer implements LynxDbServer {
+    private static final Logger logger = LoggerFactory.getLogger(ClusterLynxDbServer.class);
+
     private final RaftServer raftServer;
     private final RaftClient raftClient;
     private final RaftRpcHandler raftRpcHandler;
@@ -22,17 +26,19 @@ public class ClusterLynxDbServer implements LynxDbServer {
         Configuration config = Configuration.getInstance();
         ServerNode current = config.currentNode();
 
-        raftRpcHandler = new RaftRpcHandler();
-
         raftClient = new RaftClient();
-        raftServer = new RaftServer(current, raftClient);
+        raftServer = new RaftServer(current);
+
+        raftRpcHandler = new RaftRpcHandler(raftClient, current);
 
         raftServer.setHandler(new RaftServerHandler(raftServer, raftRpcHandler));
-        raftServer.setClientHandler(new RaftClientHandler(raftRpcHandler));
+        raftClient.setHandler(new RaftClientHandler(raftRpcHandler));
     }
 
     @Override
     public void run() {
+        logger.info("Run LynxDB cluster server.");
+
         SocketTimeWheel socketTimeWheel = SocketTimeWheel.timeWheel();
         socketTimeWheel.start();
 
