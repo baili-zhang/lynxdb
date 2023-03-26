@@ -1,4 +1,4 @@
-package com.bailizhang.test.lynxdb.lsmtree;
+package com.bailizhang.lynxdb.lsmtree;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;

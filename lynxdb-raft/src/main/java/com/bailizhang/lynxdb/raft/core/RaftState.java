@@ -18,7 +18,6 @@ public record RaftState(
         ConcurrentHashMap<SelectionKey, Integer> nextIndex,
         ConcurrentHashMap<SelectionKey, Integer> matchedIndex,
         AtomicReference<ServerNode> voteFor,
-        AtomicReference<ServerNode> leader,
-        LogGroup log
+        AtomicReference<ServerNode> leader
 ) {
 }

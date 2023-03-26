@@ -2,41 +2,35 @@ package com.bailizhang.lynxdb.core.log;
 
 public class LogGroupOptions {
     private final int extraDataLength;
-    private Integer logRegionSize;
-    private boolean forceAfterEachAppend = false;
-    private boolean forceAfterRegionFull = true;
+    private Integer regionCapacity;
+    private boolean force = false;
 
     public LogGroupOptions(int extraDataLength) {
         this.extraDataLength = extraDataLength;
-        this.logRegionSize = null;
+        this.regionCapacity = null;
     }
 
     public int extraDataLength() {
         return extraDataLength;
     }
 
-    public void logRegionSize(int val) {
-        if(val <= 0 || logRegionSize != null) {
+    public void regionCapacity(int val) {
+        if(val <= 0 || regionCapacity != null) {
             return;
         }
 
-        logRegionSize = val;
+        regionCapacity = val;
     }
 
-    public Integer logRegionSize() {
-        return logRegionSize;
+    public Integer regionCapacityOrDefault(int defaultValue) {
+        return regionCapacity == null ? defaultValue : regionCapacity;
     }
 
-    public void forceAfterEachAppend(boolean val) {
-        forceAfterEachAppend = val;
-        forceAfterRegionFull = false;
+    public void force(boolean val) {
+        force = val;
     }
 
-    public boolean forceAfterEachAppend() {
-        return forceAfterEachAppend;
-    }
-
-    public boolean forceAfterRegionFull() {
-        return forceAfterRegionFull;
+    public boolean isForce() {
+        return force;
     }
 }

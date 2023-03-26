@@ -16,8 +16,7 @@ public class RaftStateHolder {
             new ConcurrentHashMap<>(),
             new ConcurrentHashMap<>(),
             new AtomicReference<>(),
-            new AtomicReference<>(),
-            new LogGroup(null, null)
+            new AtomicReference<>()
     );
 
     public static RaftState raftState() {

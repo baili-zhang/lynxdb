@@ -2,8 +2,12 @@ package com.bailizhang.lynxdb.raft.core;
 
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
+import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
+import com.bailizhang.lynxdb.raft.utils.SpiUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
+import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
@@ -21,6 +25,8 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+
 public class RaftRpcHandler {
     private static final Logger logger = LoggerFactory.getLogger(RaftRpcHandler.class);
 
@@ -32,20 +38,28 @@ public class RaftRpcHandler {
     private final int electionIntervalMillis;
     private final RaftClient client;
 
-    private final ServerNode current;
+    private final LogGroup raftLog;
+
+    private final StateMachine stateMachine;
+    private final RaftConfiguration raftConfig;
 
     private TimeoutTask electionTask;
     private TimeoutTask heartbeatTask;
 
-    public RaftRpcHandler(RaftClient raftClient, ServerNode currentNode) {
+    public RaftRpcHandler(RaftClient raftClient) {
         electionIntervalMillis = ((int) (Math.random() *
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
 
-        logger.info("Election interval time: {}", electionIntervalMillis);
+        logger.info("Election interval time: {} ms", electionIntervalMillis);
 
         client = raftClient;
-        current = currentNode;
+
+        stateMachine = SpiUtils.serviceLoad(StateMachine.class);
+        raftConfig = SpiUtils.serviceLoad(RaftConfiguration.class);
+
+        LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
+        raftLog = new LogGroup(raftConfig.logDir(), options);
     }
 
     public RequestVoteResult handlePreVote(
@@ -57,16 +71,13 @@ public class RaftRpcHandler {
         RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
         ServerNode votedFor = raftState.voteFor().get();
-        LogGroup log = raftState.log();
-
-
 
         if(term < currentTerm || (term == currentTerm && votedFor != null)) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
         }
 
-        int lastIndex = log.maxGlobalIndex();
-        int lastTerm = ByteArrayUtils.toInt(log.lastLogExtraData());
+        int lastIndex = raftLog.maxGlobalIndex();
+        int lastTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
 
         if(lastLogIndex > lastIndex || (lastLogIndex == lastIndex && lastLogTerm > lastTerm)) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
@@ -84,14 +95,13 @@ public class RaftRpcHandler {
         RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
         ServerNode votedFor = raftState.voteFor().get();
-        LogGroup log = raftState.log();
 
         if(term < currentTerm || (term == currentTerm && votedFor != null)) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
         }
 
-        int lastIndex = log.maxGlobalIndex();
-        int lastTerm = ByteArrayUtils.toInt(log.lastLogExtraData());
+        int lastIndex = raftLog.maxGlobalIndex();
+        int lastTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
 
         if(lastLogIndex > lastIndex || (lastLogIndex == lastIndex && lastLogTerm > lastTerm)) {
             if(raftState.voteFor().compareAndSet(votedFor, candidate)) {
@@ -113,14 +123,13 @@ public class RaftRpcHandler {
         RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
         ServerNode leaderNode = raftState.leader().get();
-        LogGroup log = raftState.log();
 
         if(term < currentTerm || (leaderNode != null && !leaderNode.equals(leader))) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
         }
 
-        int preIndex = log.maxGlobalIndex();
-        int preTerm = ByteArrayUtils.toInt(log.lastLogExtraData());
+        int preIndex = raftLog.maxGlobalIndex();
+        int preTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
 
         if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
@@ -182,13 +191,14 @@ public class RaftRpcHandler {
 
         RaftState raftState = RaftStateHolder.raftState();
         int term = raftState.currentTerm().get();
-        LogGroup log = raftState.log();
+
+        byte[] extraData = raftLog.lastExtraData();
 
         RequestVoteArgs args = new RequestVoteArgs(
                 term + 1,
-                current,
-                log.maxGlobalIndex(),
-                ByteArrayUtils.toInt(log.lastLogExtraData())
+                raftConfig.currentNode(),
+                raftLog.maxGlobalIndex(),
+                ByteArrayUtils.toInt(raftLog.lastExtraData())
         );
 
         RequestVote requestVote = new RequestVote(args);
@@ -200,7 +210,6 @@ public class RaftRpcHandler {
 
         RaftState raftState = RaftStateHolder.raftState();
         int term = raftState.currentTerm().get();
-        LogGroup log = raftState.log();
         int leaderCommit = raftState.commitIndex().get();
 
         var matchedIndex = raftState.matchedIndex();
@@ -208,9 +217,9 @@ public class RaftRpcHandler {
         matchedIndex.forEach(((selectionKey, commit) -> {
             AppendEntriesArgs args = new AppendEntriesArgs(
                     term,
-                    current,
-                    log.maxGlobalIndex(),
-                    ByteArrayUtils.toInt(log.lastLogExtraData()),
+                    raftConfig.currentNode(),
+                    raftLog.maxGlobalIndex(),
+                    ByteArrayUtils.toInt(raftLog.lastExtraData()),
                     new ArrayList<>(),
                     leaderCommit
             );

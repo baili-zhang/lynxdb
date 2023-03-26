@@ -59,7 +59,7 @@ public class ColumnRegion {
             // 初始化 wal log group
             String walDir = Path.of(dir, WAL_DIR).toString();
             LogGroupOptions logOptions = new LogGroupOptions(WAL_EXTRA_DATA_LENGTH);
-            logOptions.logRegionSize(options.memTableSize());
+            logOptions.regionCapacity(options.memTableSize());
 
             walLog = new LogGroup(walDir, logOptions);
             recoverFromWal();

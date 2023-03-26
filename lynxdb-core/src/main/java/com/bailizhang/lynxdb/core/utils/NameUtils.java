@@ -13,6 +13,10 @@ public interface NameUtils {
 
     static int id(String name) {
         String id = name.replace(FileUtils.LOG_SUFFIX, EMPTY_STR);
-        return Integer.parseInt(id);
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
