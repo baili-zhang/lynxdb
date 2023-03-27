@@ -1,66 +1,53 @@
 package com.bailizhang.lynxdb.server.ldtp;
 
-import com.bailizhang.lynxdb.raft.common.RaftCommend;
+import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
+import com.bailizhang.lynxdb.lsmtree.Table;
+import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.raft.common.StateMachine;
-import com.bailizhang.lynxdb.raft.server.RaftServer;
-import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
-import com.bailizhang.lynxdb.server.engine.params.QueryParams;
-import com.bailizhang.lynxdb.server.engine.result.QueryResult;
+import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-/**
- * TODO: 异步执行会不会存在数据丢失的问题？
- *
- * 客户端 -> Raft 层 -> 状态机 -> Raft 层 -> 客户端
- */
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.CLUSTER_MEMBER_CHANGE;
+
 public class LdtpStateMachine implements StateMachine {
-    public static final String C_OLD_NEW = "c_old_new";
+    private static final String RAFT_COLUMN_FAMILY = "RAFT";
+    private static final String MEMBERS_COLUMN = "members";
+    private static final byte[] MEMBERS_KEY = G.I.toBytes("clusterMembers");
 
-    private static final LdtpStorageEngine storageEngine = new LdtpStorageEngine();
-
-    private RaftServer raftServer;
+    private final Table clusterTable;
 
     public LdtpStateMachine() {
-    }
-
-    public void raftServer(RaftServer server) {
-        raftServer = server;
-    }
-
-    @Override
-    public void metaSet(String key, byte[] value) {
+        Configuration config = Configuration.getInstance();
+        LsmTreeOptions options = new LsmTreeOptions(config.raftDir());
+        clusterTable = new LynxDbLsmTree(options);
     }
 
     @Override
-    public List<ServerNode> clusterNodes() {
-        return null;
-    }
+    public void apply(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        byte flag = buffer.get();
 
-    @Override
-    public void apply(List<RaftCommend> entries) {
-        for (RaftCommend entry : entries) {
-            ByteBuffer buffer = ByteBuffer.wrap(entry.data());
-            QueryParams params = QueryParams.parse(buffer);
-            QueryResult result = storageEngine.doQuery(params);
-            WritableSocketResponse response = new WritableSocketResponse(
-                    entry.selectionKey(),
-                    entry.serial(),
-                    result.data()
+        if (flag == CLUSTER_MEMBER_CHANGE) {
+            byte[] members = BufferUtils.getRemaining(buffer);
+            clusterTable.insert(
+                    MEMBERS_KEY,
+                    RAFT_COLUMN_FAMILY,
+                    MEMBERS_COLUMN,
+                    members
             );
-            raftServer.offerInterruptibly(response);
+        } else {
+            throw new UnsupportedOperationException();
         }
     }
 
     @Override
-    public void apply0(List<byte[]> commands) {
-        for(byte[] command : commands) {
-            ByteBuffer buffer = ByteBuffer.wrap(command);
-            QueryParams params = QueryParams.parse(buffer);
-            storageEngine.doQuery(params);
-        }
+    public List<ServerNode> clusterMembers() {
+        byte[] value = clusterTable.find(MEMBERS_KEY, RAFT_COLUMN_FAMILY, MEMBERS_COLUMN);
+        return ServerNode.parseNodeList(value);
     }
 }

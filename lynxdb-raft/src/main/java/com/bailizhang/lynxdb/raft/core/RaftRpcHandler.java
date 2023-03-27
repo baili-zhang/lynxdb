@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.core;
 
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
@@ -22,6 +23,7 @@ import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +63,17 @@ public class RaftRpcHandler {
 
         LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
         raftLog = new LogGroup(raftConfig.logDir(), options);
+
+        List<ServerNode> members = stateMachine.clusterMembers();
+        RaftState raftState = RaftStateHolder.raftState();
+        members.forEach(member -> {
+            try {
+                LynxDbFuture<SelectionKey> future = raftClient.connect(member);
+                raftState.matchedIndex().put(future.get(), 0);
+            } catch (IOException e) {
+                logger.error("Connect member {} failed.", member, e);
+            }
+        });
     }
 
     public RequestVoteResult handlePreVote(
@@ -71,9 +84,8 @@ public class RaftRpcHandler {
     ) {
         RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
-        ServerNode votedFor = raftState.voteFor().get();
 
-        if(term < currentTerm || (term == currentTerm && votedFor != null)) {
+        if(term <= currentTerm) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
         }
 

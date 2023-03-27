@@ -11,7 +11,7 @@ public class LynxDbRaftConfiguration implements RaftConfiguration {
     public LynxDbRaftConfiguration() {
         electionMode = Configuration.getInstance().electionMode();
         currentNode = Configuration.getInstance().currentNode();
-        logDir = Configuration.getInstance().raftLogDir();
+        logDir = Configuration.getInstance().raftDir();
     }
 
     @Override

@@ -14,6 +14,10 @@ public class LsmTreeOptions {
         this(BASE_DIR, DEFAULT_MEM_TABLE_SIZE);
     }
 
+    public LsmTreeOptions(String baseDir) {
+        this(baseDir, DEFAULT_MEM_TABLE_SIZE);
+    }
+
     public LsmTreeOptions(String baseDir, int memTableSize) {
         this.baseDir = baseDir;
         this.memTableSize = memTableSize;

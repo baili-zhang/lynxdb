@@ -2,7 +2,6 @@ package com.bailizhang.lynxdb.server.context;
 
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.io.BufferedReader;
@@ -12,7 +11,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,10 +44,10 @@ public class Configuration {
 
     private String dataDir = Default.DATA_DIR;
     private String timeoutDir = Default.TIMEOUT_DIR;
+    private String raftDir = Default.RAFT_DIR;
 
     private String runningMode = Default.SINGLE;
     private String electionMode = Default.LEADER;
-    private String raftLogDir = Default.RAFT_DIR;
 
     // TODO
     private final Charset charset = StandardCharsets.UTF_8;
@@ -122,8 +120,8 @@ public class Configuration {
         return charset;
     }
 
-    public String raftLogDir() {
-        return raftLogDir;
+    public String raftDir() {
+        return raftDir;
     }
 
     public String runningMode() {
