@@ -20,7 +20,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 public class LogRegion {
 
     private interface Default {
-        int DATA_BLOCK_SIZE = 1024;
+        int DATA_BLOCK_SIZE = 1024 * 1024;
         int CAPACITY = 2000;
     }
 
@@ -189,38 +189,38 @@ public class LogRegion {
 
         LogDataEntry dataEntry = new LogDataEntry(data, dataCrc32c);
 
-        MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
-        int remaining = dataByteBuffer.remaining();
-        byte[] dateEntryBytes = dataEntry.toBytes();
-
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
 
-        if(remaining < dataLength) {
+        MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
+        dataByteBuffer.position(dataBlockBegin);
+
+        byte[] dataEntryBytes = dataEntry.toBytes();
+        int dataOffset = 0;
+
+        while(dataOffset < dataEntryBytes.length) {
             // 写入最后一个数据块的剩余空间
-            dataByteBuffer.put(dataBlockBegin, dateEntryBytes, 0, remaining);
+            int writeLength = Math.min(dataByteBuffer.remaining(), dataEntryBytes.length - dataOffset);
+            dataByteBuffer.put(dataEntryBytes, dataOffset, writeLength);
+            dataOffset += writeLength;
+
             dataBuffer.saveSnapshot(dataByteBuffer);
 
             if(options.isForce()) {
                 dataBuffer.force();
             }
 
-            // TODO: 处理超大数据块
+            if(dataOffset < dataEntryBytes.length) {
+                // 写入一个新的数据块
+                dataBuffer = new MappedBuffer(
+                        path,
+                        (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
+                        Default.DATA_BLOCK_SIZE
+                );
 
-            // 写入一个新的数据块
-            dataBuffer = new MappedBuffer(
-                    path,
-                    (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
-                    Default.DATA_BLOCK_SIZE
-            );
-
-            dataBuffers.add(dataBuffer);
-            dataByteBuffer = dataBuffer.getBuffer();
-            dataByteBuffer.put(0, dateEntryBytes, remaining, dataLength - remaining);
-        } else {
-            dataByteBuffer.put(dataBlockBegin, dateEntryBytes, 0, dataLength);
+                dataBuffers.add(dataBuffer);
+                dataByteBuffer = dataBuffer.getBuffer();
+            }
         }
-
-        dataBuffer.saveSnapshot(dataByteBuffer);
 
         if(options.isForce()) {
             dataByteBuffer.force();
@@ -251,9 +251,8 @@ public class LogRegion {
         LogIndex logIndex = logIndex(globalIndex);
         int dataBegin = logIndex.dataBegin();
         int dataLength = logIndex.dataLength();
-        int rawDataLength = dataLength - LONG_LENGTH;   // 减去 crc32c 校验位的长度
 
-        byte[] data = new byte[rawDataLength];
+        byte[] data = new byte[dataLength];
         int bufferIdx = dataBegin / Default.DATA_BLOCK_SIZE;
 
         if(bufferIdx >= dataBuffers.size()) {
@@ -264,41 +263,38 @@ public class LogRegion {
         MappedByteBuffer buffer = dataBuffer.getBuffer();
 
         buffer.position(dataBegin - bufferIdx * Default.DATA_BLOCK_SIZE);
-        int remaining = buffer.remaining();
+        int dataOffset = 0;
 
-        if(remaining < rawDataLength) {
-            buffer.get(data, 0, remaining);
-            dataBuffer = dataBuffers.get(bufferIdx + 1);
-            buffer = dataBuffer.getBuffer();
-            buffer.get(0, data, remaining, rawDataLength - remaining);
-        } else {
-            buffer.get(data, 0, rawDataLength);
+        while (dataOffset < dataLength) {
+            int readLength = Math.min(buffer.remaining(), dataLength - dataOffset);
+            buffer.get(data, dataOffset, readLength);
+            dataOffset += readLength;
+
+            if(dataOffset < dataLength) {
+                dataBuffer = dataBuffers.get(++ bufferIdx);
+                buffer = dataBuffer.getBuffer();
+                buffer.position(0);
+            }
         }
 
-        remaining = buffer.remaining();
         byte[] crc32cBytes = new byte[LONG_LENGTH];
-
-        if(remaining < LONG_LENGTH) {
-            buffer.get(crc32cBytes, 0, remaining);
-            dataBuffer = dataBuffers.get(bufferIdx + 1);
-            buffer = dataBuffer.getBuffer();
-            buffer.get(0, crc32cBytes, remaining, LONG_LENGTH - remaining);
-        } else {
-            buffer.get(crc32cBytes, 0, LONG_LENGTH);
-        }
-
+        System.arraycopy(data, dataLength - LONG_LENGTH, crc32cBytes, 0, LONG_LENGTH);
         long originCrc32C = ByteArrayUtils.toLong(crc32cBytes);
 
         CRC32C crc32C = new CRC32C();
-        crc32C.update(data);
+        crc32C.update(data, 0, dataLength - LONG_LENGTH);
 
         if(crc32C.getValue() != originCrc32C) {
             throw new RuntimeException("File entry data wrong.");
         }
 
+        int rawDataLength = dataLength - LONG_LENGTH;
+        byte[] rawData = new byte[rawDataLength];
+        System.arraycopy(data, 0, rawData, 0, rawDataLength);
+
         return new LogEntry(
                 logIndex,
-                data
+                rawData
         );
     }
 

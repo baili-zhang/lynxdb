@@ -11,9 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
 public interface BufferUtils {
-    byte[] EMPTY_BYTES = new byte[0];
-    byte EMPTY_BYTE = (byte) 0x00;
-
     static String getString(ByteBuffer buffer) {
         return G.I.toString(BufferUtils.getBytes(buffer));
     }

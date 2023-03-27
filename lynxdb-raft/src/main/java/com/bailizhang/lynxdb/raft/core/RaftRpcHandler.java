@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.raft.core;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.raft.utils.SpiUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
@@ -193,12 +194,13 @@ public class RaftRpcHandler {
         int term = raftState.currentTerm().get();
 
         byte[] extraData = raftLog.lastExtraData();
+        int lastLogTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
 
         RequestVoteArgs args = new RequestVoteArgs(
                 term + 1,
                 raftConfig.currentNode(),
                 raftLog.maxGlobalIndex(),
-                ByteArrayUtils.toInt(raftLog.lastExtraData())
+                lastLogTerm
         );
 
         RequestVote requestVote = new RequestVote(args);

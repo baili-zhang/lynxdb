@@ -30,7 +30,7 @@ public class Configuration {
 
         String CONFIG_DIR = USER_DIR + "/config";
         String DATA_DIR = USER_DIR + "/data/base";
-        String TIMEOUT_DIR = USER_DIR + "/date/timeout";
+        String TIMEOUT_DIR = USER_DIR + "/data/timeout";
         String RAFT_DIR = USER_DIR + "/data/raft";
         String BASE_DIR = "[base]";
 
