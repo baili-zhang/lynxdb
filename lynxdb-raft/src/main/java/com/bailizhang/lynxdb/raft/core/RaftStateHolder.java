@@ -1,7 +1,5 @@
 package com.bailizhang.lynxdb.raft.core;
 
-import com.bailizhang.lynxdb.core.log.LogGroup;
-
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;

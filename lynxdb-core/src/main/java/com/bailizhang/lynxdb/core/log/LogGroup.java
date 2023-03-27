@@ -134,7 +134,7 @@ public class LogGroup implements Iterable<LogEntry> {
         }
     }
 
-    public int maxGlobalIndex() {
+    public int maxGlobalIdx() {
         return lastRegion().globalIdxEnd();
     }
 
@@ -195,8 +195,8 @@ public class LogGroup implements Iterable<LogEntry> {
                 options
         );
 
-        region.globalIdxBegin(maxGlobalIndex() + 1);
-        region.globalIdxEnd(maxGlobalIndex());
+        region.globalIdxBegin(maxGlobalIdx() + 1);
+        region.globalIdxEnd(maxGlobalIdx());
 
         logRegions.add(region);
     }
@@ -216,7 +216,7 @@ public class LogGroup implements Iterable<LogEntry> {
 
         @Override
         public boolean hasNext() {
-            return globalIndex <= logGroup.maxGlobalIndex();
+            return globalIndex <= logGroup.maxGlobalIdx();
         }
 
         @Override

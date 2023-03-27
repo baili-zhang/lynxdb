@@ -11,4 +11,10 @@ public interface StateMachine {
     void apply(byte[] data);
 
     List<ServerNode> clusterMembers();
+
+    void addClusterMember(ServerNode current);
+
+    int currentTerm();
+
+    void currentTerm(int term);
 }

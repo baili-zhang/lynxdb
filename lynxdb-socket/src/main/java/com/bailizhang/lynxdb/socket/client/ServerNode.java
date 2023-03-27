@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.socket.client;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,7 @@ public record ServerNode (String host, int port) {
         return new ServerNode(info[0], Integer.parseInt(info[1]));
     }
 
-    public static byte[] nodeListToBytes(List<ServerNode> currentNodes) {
+    public static byte[] nodesToBytes(Collection<ServerNode> currentNodes) {
         String total = currentNodes.stream().map(ServerNode::toString)
                 .collect(Collectors.joining(" "));
         return total.getBytes(StandardCharsets.UTF_8);

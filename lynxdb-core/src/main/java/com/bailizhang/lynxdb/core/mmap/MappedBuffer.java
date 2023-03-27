@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.core.mmap;
 import com.bailizhang.lynxdb.core.utils.FileChannelUtils;
 
 import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;

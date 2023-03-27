@@ -29,7 +29,9 @@ public class Configuration {
         String CONFIG_DIR = USER_DIR + "/config";
         String DATA_DIR = USER_DIR + "/data/base";
         String TIMEOUT_DIR = USER_DIR + "/data/timeout";
-        String RAFT_DIR = USER_DIR + "/data/raft";
+        String RAFT_LOGS_DIR = USER_DIR + "/data/raft/logs";
+        String RAFT_META_DIR = USER_DIR + "/data/raft/meta";
+
         String BASE_DIR = "[base]";
 
         String SEPARATOR = "=";
@@ -44,7 +46,8 @@ public class Configuration {
 
     private String dataDir = Default.DATA_DIR;
     private String timeoutDir = Default.TIMEOUT_DIR;
-    private String raftDir = Default.RAFT_DIR;
+    private String raftLogsDir = Default.RAFT_LOGS_DIR;
+    private String raftMetaDir = Default.RAFT_META_DIR;
 
     private String runningMode = Default.SINGLE;
     private String electionMode = Default.LEADER;
@@ -120,8 +123,12 @@ public class Configuration {
         return charset;
     }
 
-    public String raftDir() {
-        return raftDir;
+    public String raftLogsDir() {
+        return raftLogsDir;
+    }
+
+    public String raftMetaDir() {
+        return raftMetaDir;
     }
 
     public String runningMode() {

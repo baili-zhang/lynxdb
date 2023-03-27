@@ -22,15 +22,7 @@ import com.bailizhang.lynxdb.socket.result.RedirectResult;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.IS_DONE;
-import static com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs.NOT_DONE;
 
 public class RaftServerHandler implements SocketServerHandler {
     private final RaftServer raftServer;

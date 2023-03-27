@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.server.mode.single;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
-import com.bailizhang.lynxdb.server.mode.cluster.ClusterLynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.socket.server.SocketServerConfig;
@@ -42,6 +41,6 @@ public class SingleLynxDbServer implements LynxDbServer {
 
         Executor.start(server);
         Executor.start(engine);
-        Executor.start(timeWheel);
+        Executor.startRunnable(timeWheel);
     }
 }

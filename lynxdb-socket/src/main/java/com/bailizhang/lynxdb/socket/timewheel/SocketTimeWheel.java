@@ -18,12 +18,16 @@ public class SocketTimeWheel {
     }
 
     public TimeoutTask register(long time, Runnable runnable) {
-        TimeoutTask task = new TimeoutTask(time, runnable);
+        return register(time, null, runnable);
+    }
+
+    public TimeoutTask register(long time, Object identifier, Runnable runnable) {
+        TimeoutTask task = new TimeoutTask(time, identifier, runnable);
         timeWheel.register(task);
         return task;
     }
 
     public void start() {
-        Executor.start(timeWheel);
+        Executor.startRunnable(timeWheel);
     }
 }

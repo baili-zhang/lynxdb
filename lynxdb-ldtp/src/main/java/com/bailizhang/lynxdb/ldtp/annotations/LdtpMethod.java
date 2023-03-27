@@ -19,6 +19,8 @@ public @interface LdtpMethod {
     byte EXIST_KEY                      = (byte) 0x09;
 
     byte CLUSTER_MEMBER_CHANGE          = (byte) 0x0a;
+    byte CLUSTER_MEMBER_ADD             = (byte) 0x0b;
+    byte JOIN                           = (byte) 0x0c;
 
     byte value();
 }

@@ -204,6 +204,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         shutdown();
     }
 
+    @Override
     protected void doAfterExecute() {
         executor.shutdown();
     }

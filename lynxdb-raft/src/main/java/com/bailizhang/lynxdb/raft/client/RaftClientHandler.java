@@ -1,27 +1,21 @@
 package com.bailizhang.lynxdb.raft.client;
 
-import com.bailizhang.lynxdb.raft.core.RaftRpcHandler;
+import com.bailizhang.lynxdb.raft.core.RaftRpcResultHandler;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_FAILED;
-import static com.bailizhang.lynxdb.raft.result.AppendEntriesResult.IS_SUCCESS;
 import static com.bailizhang.lynxdb.raft.result.RaftResult.*;
-import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.IS_VOTE_GRANTED;
-import static com.bailizhang.lynxdb.raft.result.RequestVoteResult.NOT_VOTE_GRANTED;
 
 public class RaftClientHandler implements SocketClientHandler {
-    private final RaftRpcHandler raftRpcHandler;
+    private final RaftRpcResultHandler raftRpcResultHandler = new RaftRpcResultHandler();
 
-    public RaftClientHandler(RaftRpcHandler handler) {
-        raftRpcHandler = handler;
+    public RaftClientHandler() {
     }
 
     @Override
@@ -43,7 +37,7 @@ public class RaftClientHandler implements SocketClientHandler {
                 int term = result.term();
                 byte voteGranted = result.voteGranted();
 
-                raftRpcHandler.handleRequestVoteResult(selectionKey, term, voteGranted);
+                raftRpcResultHandler.handleRequestVoteResult(selectionKey, term, voteGranted);
             }
 
             case APPEND_ENTRIES_RESULT -> {
@@ -51,14 +45,14 @@ public class RaftClientHandler implements SocketClientHandler {
                 int term = result.term();
                 byte voteGranted = result.success();
 
-                raftRpcHandler.handleAppendEntriesResult(selectionKey, term, voteGranted);
+                raftRpcResultHandler.handleAppendEntriesResult(selectionKey, term, voteGranted);
             }
 
             case INSTALL_SNAPSHOT_RESULT -> {
                 InstallSnapshotResult result = InstallSnapshotResult.from(buffer);
                 int term = result.term();
 
-                raftRpcHandler.handleInstallSnapshotResult(selectionKey, term);
+                raftRpcResultHandler.handleInstallSnapshotResult(selectionKey, term);
             }
 
             default -> throw new UnsupportedOperationException();

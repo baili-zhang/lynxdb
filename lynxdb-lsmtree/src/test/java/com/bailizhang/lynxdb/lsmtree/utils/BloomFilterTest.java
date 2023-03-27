@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.lsmtree.utils;
 
-import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
