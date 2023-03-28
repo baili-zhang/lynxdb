@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.raft.core;
 
-import com.bailizhang.lynxdb.raft.common.RaftRole;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.channels.SelectionKey;

@@ -153,17 +153,17 @@ public class LogGroup implements Iterable<LogEntry> {
      *
      * @param extraData extra data
      * @param data data
-     * @return global index
+     * @return global idx
      */
     public synchronized int append(byte[] extraData, byte[] data) {
         LogRegion region = lastRegion();
-        int globalIndex = region.append(extraData, data);
+        int globalIdx = region.append(extraData, data);
 
         if(region.isFull()) {
             createNextRegion();
         }
 
-        return globalIndex;
+        return globalIdx;
     }
 
     public int append(byte[] extraData, BytesListConvertible convertible) {

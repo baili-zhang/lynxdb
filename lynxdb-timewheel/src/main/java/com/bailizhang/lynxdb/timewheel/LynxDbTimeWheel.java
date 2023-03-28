@@ -6,11 +6,15 @@ import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
 import com.bailizhang.lynxdb.timewheel.types.LowerTimeWheel;
 import com.bailizhang.lynxdb.timewheel.types.TimeWheel;
 import com.bailizhang.lynxdb.timewheel.types.TopperTimeWheel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class LynxDbTimeWheel extends Shutdown implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(LynxDbTimeWheel.class);
+
     private static final int INTERVAL_MILLS = 10;
     private static final int HOURS_PER_DAY = 24;
     private static final int MINUTES_PER_HOUR = 60;
@@ -62,14 +66,17 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
             return;
         }
 
-        if(task.identifier() == null) {
+        if(task == null || task.identifier() == null) {
             return;
         }
 
         int remain = second.unregister(task);
         if(remain == TimeWheel.SUCCESS) {
+            logger.info("Unregister timeout task success, task: {}", task);
             return;
         }
+
+        logger.info("Unregister timeout task failed, task: {}", task);
     }
 
     @Override

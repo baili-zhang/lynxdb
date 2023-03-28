@@ -27,6 +27,14 @@ public class SocketTimeWheel {
         return task;
     }
 
+    public void unregister(long time, Object identifier) {
+        timeWheel.unregister(time, identifier);
+    }
+
+    public void unregister(TimeoutTask task) {
+        timeWheel.unregister(task);
+    }
+
     public void start() {
         Executor.startRunnable(timeWheel);
     }

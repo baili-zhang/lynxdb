@@ -41,6 +41,8 @@ public class IoEventHandler implements Runnable {
             SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
             key.attach(new ReadableSocketRequest(key));
         }
+
+        logger.info("Accept socket {} connect.", channel.getRemoteAddress());
     }
 
     /* 每次读一个请求 */

@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.common;
+package com.bailizhang.lynxdb.raft.core;
 
 public enum RaftRole {
     FOLLOWER,

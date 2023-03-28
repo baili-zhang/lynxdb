@@ -4,11 +4,9 @@ import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
-import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
-import com.bailizhang.lynxdb.raft.common.RaftRole;
-import com.bailizhang.lynxdb.raft.common.StateMachine;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.PreVote;
@@ -16,7 +14,9 @@ import com.bailizhang.lynxdb.raft.request.PreVoteArgs;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
 import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
-import com.bailizhang.lynxdb.raft.utils.SpiUtils;
+import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.spi.RaftSpiService;
+import com.bailizhang.lynxdb.raft.spi.StateMachine;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
 import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
@@ -47,11 +48,8 @@ public class RaftRpcHandler {
 
     private final LogGroup raftLog;
 
-    private final StateMachine stateMachine;
-    private final RaftConfiguration raftConfig;
-
     private TimeoutTask electionTask;
-    private TimeoutTask heartbeatTask;
+    private volatile TimeoutTask heartbeatTask;
 
     public RaftRpcHandler() {
         electionIntervalMillis = ((int) (Math.random() *
@@ -62,8 +60,8 @@ public class RaftRpcHandler {
 
         client = RaftClient.client();
 
-        stateMachine = SpiUtils.serviceLoad(StateMachine.class);
-        raftConfig = SpiUtils.serviceLoad(RaftConfiguration.class);
+        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
+        StateMachine stateMachine = RaftSpiService.stateMachine();
 
         LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
         raftLog = new LogGroup(raftConfig.logsDir(), options);
@@ -170,6 +168,12 @@ public class RaftRpcHandler {
         return null;
     }
 
+    public int persistenceClientRequest(byte[] data) {
+        RaftState raftState = RaftStateHolder.raftState();
+        int term = raftState.currentTerm().get();
+        return raftLog.append(BufferUtils.toBytes(term), data);
+    }
+
     public void registerTimeoutTasks() {
         long current = System.currentTimeMillis();
         long electionTime = current + electionIntervalMillis;
@@ -185,6 +189,9 @@ public class RaftRpcHandler {
 
     public void connectClusterMembers() {
         RaftState raftState = RaftStateHolder.raftState();
+        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
+        StateMachine stateMachine = RaftSpiService.stateMachine();
+
         List<ServerNode> members = stateMachine.clusterMembers();
 
         members.forEach(member -> {
@@ -203,13 +210,16 @@ public class RaftRpcHandler {
     }
 
     private void election() {
+        RaftState raftState = RaftStateHolder.raftState();
+        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
+        StateMachine stateMachine = RaftSpiService.stateMachine();
+
         List<ServerNode> nodes = stateMachine.clusterMembers();
 
         logger.info("Run election task, time: {}, cluster nodes: {}",
                 System.currentTimeMillis(), nodes);
 
         ServerNode current = raftConfig.currentNode();
-        RaftState raftState = RaftStateHolder.raftState();
         AtomicReference<RaftRole> role = raftState.role();
 
         String runningMode = raftConfig.electionMode();
@@ -219,7 +229,8 @@ public class RaftRpcHandler {
             return;
         }
 
-        if(nodes.isEmpty() && RunningMode.LEADER.equals(runningMode)) {
+        if((nodes.isEmpty() || (nodes.size() == 1 && nodes.contains(current)))
+                && RunningMode.LEADER.equals(runningMode)) {
             // 如果当前没有节点，并且 runningMode 为 leader
             // 则直接将当前节点的角色升级成 leader
             if(role.compareAndSet(null, RaftRole.LEADER)) {
@@ -252,15 +263,39 @@ public class RaftRpcHandler {
         electionTask = timeWheel.register(nextElectionTime, ELECTION_TIMEOUT, this::election);
     }
 
-    private void heartbeat() {
-        logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
+    /**
+     * TODO: 线程安全需要测试和分析
+     */
+    public synchronized void heartbeat() {
+        SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
+        timeWheel.unregister(heartbeatTask);
 
         RaftState raftState = RaftStateHolder.raftState();
+        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
+        StateMachine stateMachine = RaftSpiService.stateMachine();
+
+        logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
+
         int term = raftState.currentTerm().get();
-        int leaderCommit = raftState.commitIndex().get();
+        AtomicInteger commitIndex = raftState.commitIndex();
+        int lastCommitIndex = commitIndex.get();
 
         var matchedIndex = raftState.matchedIndex();
 
+        // 如果当前没有 follower 节点
+        if(matchedIndex.isEmpty()) {
+            int lastLogIdx = raftLog.maxGlobalIdx();
+            if(!commitIndex.compareAndSet(lastCommitIndex, lastLogIdx)) {
+                throw new RuntimeException();
+            }
+
+            UncommittedClientRequests requests = UncommittedClientRequests.requests();
+            List<ClientRequest> needApplyRequests = requests.pollUntil(lastLogIdx);
+            stateMachine.apply(needApplyRequests);
+            return;
+        }
+
+        // 如果有 follower 节点，则需要发送 AppendEntries 请求
         matchedIndex.forEach(((selectionKey, commit) -> {
             AppendEntriesArgs args = new AppendEntriesArgs(
                     term,
@@ -268,11 +303,14 @@ public class RaftRpcHandler {
                     raftLog.maxGlobalIdx(),
                     ByteArrayUtils.toInt(raftLog.lastExtraData()),
                     new ArrayList<>(),
-                    leaderCommit
+                    lastCommitIndex
             );
 
             AppendEntries appendEntries = new AppendEntries(selectionKey, args);
             client.send(appendEntries);
         }));
+
+        long nextHeartbeatTime = electionTask.time() + electionIntervalMillis;
+        electionTask = timeWheel.register(nextHeartbeatTime, ELECTION_TIMEOUT, this::election);
     }
 }

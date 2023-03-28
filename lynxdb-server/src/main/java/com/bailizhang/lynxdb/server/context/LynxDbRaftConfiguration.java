@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.server.context;
 
-import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 public class LynxDbRaftConfiguration implements RaftConfiguration {

@@ -11,6 +11,7 @@ import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
 import java.io.IOException;
 
 public class RaftServer extends SocketServer {
+
     public RaftServer(ServerNode current) throws IOException {
         super(new SocketServerConfig(current.port()));
     }

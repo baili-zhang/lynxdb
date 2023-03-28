@@ -8,9 +8,9 @@ module lynxdb.server {
 
     requires org.slf4j;
 
-    provides com.bailizhang.lynxdb.raft.common.StateMachine
+    provides com.bailizhang.lynxdb.raft.spi.StateMachine
             with com.bailizhang.lynxdb.server.ldtp.LdtpStateMachine;
-    provides com.bailizhang.lynxdb.raft.common.RaftConfiguration
+    provides com.bailizhang.lynxdb.raft.spi.RaftConfiguration
             with com.bailizhang.lynxdb.server.context.LynxDbRaftConfiguration;
 
     opens com.bailizhang.lynxdb.server.context to lynxdb.core;

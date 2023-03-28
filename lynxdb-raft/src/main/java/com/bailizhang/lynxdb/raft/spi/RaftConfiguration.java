@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.raft.common;
+package com.bailizhang.lynxdb.raft.spi;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 

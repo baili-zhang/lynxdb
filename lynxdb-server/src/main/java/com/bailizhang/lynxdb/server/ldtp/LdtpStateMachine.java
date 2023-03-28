@@ -6,8 +6,10 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
-import com.bailizhang.lynxdb.raft.common.StateMachine;
+import com.bailizhang.lynxdb.raft.core.ClientRequest;
+import com.bailizhang.lynxdb.raft.spi.StateMachine;
 import com.bailizhang.lynxdb.server.context.Configuration;
+import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.nio.ByteBuffer;
@@ -23,6 +25,9 @@ public class LdtpStateMachine implements StateMachine {
     private static final byte[] MEMBERS_KEY = G.I.toBytes("clusterMembers");
     private static final byte[] CURRENT_TERM = G.I.toBytes("currentTerm");
 
+    // TODO: 能不能改成不是静态变量？
+    private static LdtpEngineExecutor engineExecutor;
+
     private final Table clusterTable;
 
     public LdtpStateMachine() {
@@ -31,29 +36,43 @@ public class LdtpStateMachine implements StateMachine {
         clusterTable = new LynxDbLsmTree(options);
     }
 
+    public static void engineExecutor(LdtpEngineExecutor executor) {
+        engineExecutor = executor;
+    }
+
     @Override
-    public void apply(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte flag = buffer.get();
+    public void apply(List<ClientRequest> requests) {
+        for(ClientRequest request : requests) {
+            byte[] data = request.data();
 
-        switch (flag) {
-            case CLUSTER_MEMBER_CHANGE -> {
-                byte[] members = BufferUtils.getRemaining(buffer);
-                clusterTable.insert(
-                        MEMBERS_KEY,
-                        RAFT_COLUMN_FAMILY,
-                        META_INFO_COLUMN,
-                        members
-                );
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            byte flag = buffer.get();
+
+            switch (flag) {
+                case CLUSTER_MEMBER_CHANGE -> {
+                    byte[] members = BufferUtils.getRemaining(buffer);
+                    clusterTable.insert(
+                            MEMBERS_KEY,
+                            RAFT_COLUMN_FAMILY,
+                            META_INFO_COLUMN,
+                            members
+                    );
+                }
+
+                case JOIN -> {
+                    byte[] val = BufferUtils.getRemaining(buffer);
+                    ServerNode leader = ServerNode.from(G.I.toString(val));
+
+                }
+
+                default -> {
+                    if(engineExecutor == null) {
+                        throw new RuntimeException();
+                    }
+
+                    engineExecutor.offerInterruptibly(request);
+                }
             }
-
-            case JOIN -> {
-                byte[] val = BufferUtils.getRemaining(buffer);
-                ServerNode leader = ServerNode.from(G.I.toString(val));
-
-            }
-
-            default -> throw new UnsupportedOperationException();
         }
     }
 

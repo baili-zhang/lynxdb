@@ -12,8 +12,7 @@ import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
-import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
-import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
+import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,24 +27,24 @@ import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
 import static com.bailizhang.lynxdb.socket.code.Request.*;
 
-public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractLdtpEngine.class);
+public class LdtpEngineExecutor extends Executor<SocketRequest> {
+    private static final Logger logger = LoggerFactory.getLogger(LdtpEngineExecutor.class);
 
     private static final String TASKS_THREAD_NAME = "tasks-thread";
 
     private final SocketServer server;
     private final LdtpStorageEngine engine;
-    private final LynxDbTimeWheel timeWheel;
+    private final SocketTimeWheel timeWheel;
 
     private final ConcurrentLinkedQueue<Runnable> tasksQueue;
     private final Thread tasksThread;
 
     private final AffectKeyRegistry affectKeyRegistry;
 
-    public AbstractLdtpEngine(SocketServer socketServer, LynxDbTimeWheel lynxDbTimeWheel) {
+    public LdtpEngineExecutor(SocketServer socketServer) {
         server = socketServer;
         engine = new LdtpStorageEngine();
-        timeWheel = lynxDbTimeWheel;
+        timeWheel = SocketTimeWheel.timeWheel();
         tasksQueue = new ConcurrentLinkedQueue<>();
         affectKeyRegistry = new AffectKeyRegistry();
         tasksThread = new Thread(this::runTask, TASKS_THREAD_NAME);
@@ -182,13 +181,11 @@ public abstract class AbstractLdtpEngine extends Executor<SocketRequest> {
         MessageKey messageKey = timeoutValue.messageKey();
         long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
 
-        TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
+        timeWheel.register(timestamp, messageKey, () -> {
             sendTimeoutValueToClient(messageKey, selectionKey);
             engine.removeTimeoutKey(messageKey);
             engine.removeData(messageKey);
         });
-
-        timeWheel.register(task);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
