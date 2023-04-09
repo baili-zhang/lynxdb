@@ -17,43 +17,47 @@ import java.util.List;
 public class Configuration {
 
     public interface Default {
-        String CLUSTER = "cluster";
-        String SINGLE = "single";
+        String CLUSTER                  = "cluster";
+        String SINGLE                   = "single";
 
-        String LEADER = "leader";
+        String LEADER                   = "leader";
 
-        String USER_DIR = System.getProperty("user.dir");
+        String USER_DIR                 = System.getProperty("user.dir");
 
-        String FILENAME = "app.cfg";
+        String FILENAME                 = "app.cfg";
 
-        String CONFIG_DIR = USER_DIR + "/config";
-        String DATA_DIR = USER_DIR + "/data/base";
-        String TIMEOUT_DIR = USER_DIR + "/data/timeout";
-        String RAFT_LOGS_DIR = USER_DIR + "/data/raft/logs";
-        String RAFT_META_DIR = USER_DIR + "/data/raft/meta";
+        String HOST                     = "127.0.0.1";
+        String PORT                     = "7820";
+        String MESSAGE_PORT             = "7263";
 
-        String BASE_DIR = "[base]";
+        String CONFIG_DIR               = USER_DIR + "/config";
+        String DATA_DIR                 = USER_DIR + "/data/base";
+        String TIMEOUT_DIR              = USER_DIR + "/data/timeout";
+        String RAFT_LOGS_DIR            = USER_DIR + "/data/raft/logs";
+        String RAFT_META_DIR            = USER_DIR + "/data/raft/meta";
 
-        String SEPARATOR = "=";
+        String BASE_DIR                 = "[base]";
+
+        String SEPARATOR                = "=";
     }
 
     // 反射修改 final 字段后读取时还是初始值，因为 final 字段被内联优化了
     // return runningMode;  => return "single";
 
-    private String host = "127.0.0.1";
-    private int port = 7820;
-    private int messagePort = 7263;
+    private String host             = Default.HOST;
+    private String port             = Default.PORT;
+    private String messagePort      = Default.MESSAGE_PORT;
 
-    private String dataDir = Default.DATA_DIR;
-    private String timeoutDir = Default.TIMEOUT_DIR;
-    private String raftLogsDir = Default.RAFT_LOGS_DIR;
-    private String raftMetaDir = Default.RAFT_META_DIR;
+    private String dataDir          = Default.DATA_DIR;
+    private String timeoutDir       = Default.TIMEOUT_DIR;
+    private String raftLogsDir      = Default.RAFT_LOGS_DIR;
+    private String raftMetaDir      = Default.RAFT_META_DIR;
 
-    private String runningMode = Default.SINGLE;
-    private String electionMode = Default.LEADER;
+    private String runningMode      = Default.SINGLE;
+    private String electionMode     = Default.LEADER;
 
     // TODO
-    private final Charset charset = StandardCharsets.UTF_8;
+    private final Charset charset   = StandardCharsets.UTF_8;
 
     private static class Holder {
         private static final Configuration instance;
@@ -101,10 +105,10 @@ public class Configuration {
 
 
     public ServerNode currentNode() {
-        return new ServerNode(host, port);
+        return new ServerNode(host, Integer.parseInt(port));
     }
     public int messagePort() {
-        return messagePort;
+        return Integer.parseInt(messagePort);
     }
 
     public String dataDir() {

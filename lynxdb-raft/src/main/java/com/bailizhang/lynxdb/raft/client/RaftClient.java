@@ -5,7 +5,14 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.raft.core.RaftRole;
 import com.bailizhang.lynxdb.raft.core.RaftState;
 import com.bailizhang.lynxdb.raft.core.RaftStateHolder;
+import com.bailizhang.lynxdb.raft.request.ClusterMemberAdd;
+import com.bailizhang.lynxdb.raft.request.ClusterMemberAddArgs;
+import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.spi.RaftSpiService;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
+
+import java.nio.channels.SelectionKey;
 
 public class RaftClient extends SocketClient {
     private static final RaftClient client = new RaftClient();
@@ -36,5 +43,15 @@ public class RaftClient extends SocketClient {
             return;
         }
         super.broadcast(message.toBytesList());
+    }
+
+    public void sendClusterMemberAdd(SelectionKey leader) {
+        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
+        ServerNode current = raftConfig.currentNode();
+
+        ClusterMemberAddArgs args = new ClusterMemberAddArgs(current);
+        ClusterMemberAdd request = new ClusterMemberAdd(leader, args);
+
+        send(request);
     }
 }

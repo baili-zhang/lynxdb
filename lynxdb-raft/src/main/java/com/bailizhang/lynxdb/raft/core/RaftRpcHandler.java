@@ -150,9 +150,6 @@ public class RaftRpcHandler {
 
         List<byte[]> commends = entries.stream().map(LogEntry::data).toList();
 
-//        stateMachine.apply0(commends);
-//        commitIndex.set(leaderCommit);
-
         return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
     }
 
@@ -225,12 +222,12 @@ public class RaftRpcHandler {
         String runningMode = raftConfig.electionMode();
 
         // 如果 runningMode 是 follow，则不需要启动下一轮的超时计时器
-        if(RunningMode.FOLLOWER.equals(runningMode)) {
+        if(ElectionMode.FOLLOWER.equals(runningMode)) {
             return;
         }
 
         if((nodes.isEmpty() || (nodes.size() == 1 && nodes.contains(current)))
-                && RunningMode.LEADER.equals(runningMode)) {
+                && ElectionMode.LEADER.equals(runningMode)) {
             // 如果当前没有节点，并且 runningMode 为 leader
             // 则直接将当前节点的角色升级成 leader
             if(role.compareAndSet(null, RaftRole.LEADER)) {

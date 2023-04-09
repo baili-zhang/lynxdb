@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 
 public class ClientRequest extends SocketRequest {
     private final int idx;
+
     public ClientRequest(SelectionKey key, int idx, int serial, byte[] data) {
         super(key);
 

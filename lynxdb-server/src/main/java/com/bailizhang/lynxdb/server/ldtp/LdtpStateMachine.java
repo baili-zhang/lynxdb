@@ -12,12 +12,8 @@ import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
-
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.CLUSTER_MEMBER_CHANGE;
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.JOIN;
 
 public class LdtpStateMachine implements StateMachine {
     private static final String RAFT_COLUMN_FAMILY = "RAFT";
@@ -43,36 +39,11 @@ public class LdtpStateMachine implements StateMachine {
     @Override
     public void apply(List<ClientRequest> requests) {
         for(ClientRequest request : requests) {
-            byte[] data = request.data();
-
-            ByteBuffer buffer = ByteBuffer.wrap(data);
-            byte flag = buffer.get();
-
-            switch (flag) {
-                case CLUSTER_MEMBER_CHANGE -> {
-                    byte[] members = BufferUtils.getRemaining(buffer);
-                    clusterTable.insert(
-                            MEMBERS_KEY,
-                            RAFT_COLUMN_FAMILY,
-                            META_INFO_COLUMN,
-                            members
-                    );
-                }
-
-                case JOIN -> {
-                    byte[] val = BufferUtils.getRemaining(buffer);
-                    ServerNode leader = ServerNode.from(G.I.toString(val));
-
-                }
-
-                default -> {
-                    if(engineExecutor == null) {
-                        throw new RuntimeException();
-                    }
-
-                    engineExecutor.offerInterruptibly(request);
-                }
+            if(engineExecutor == null) {
+                throw new RuntimeException();
             }
+
+            engineExecutor.offerInterruptibly(request);
         }
     }
 
@@ -87,7 +58,7 @@ public class LdtpStateMachine implements StateMachine {
     }
 
     @Override
-    public void addClusterMember(ServerNode current) {
+    public void addClusterMember(ServerNode member) {
         byte[] value = clusterTable.find(
                 MEMBERS_KEY,
                 RAFT_COLUMN_FAMILY,
@@ -97,7 +68,7 @@ public class LdtpStateMachine implements StateMachine {
         List<ServerNode> members = ServerNode.parseNodeList(value);
 
         HashSet<ServerNode> memberSet = new HashSet<>(members);
-        memberSet.add(current);
+        memberSet.add(member);
 
         byte[] newValue = ServerNode.nodesToBytes(memberSet);
 

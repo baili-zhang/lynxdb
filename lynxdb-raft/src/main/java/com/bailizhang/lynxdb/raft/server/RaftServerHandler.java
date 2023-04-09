@@ -1,16 +1,15 @@
 package com.bailizhang.lynxdb.raft.server;
 
+import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.core.*;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
 import com.bailizhang.lynxdb.raft.request.RaftRequest;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
-import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
-import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
-import com.bailizhang.lynxdb.raft.result.LeaderNotExistedResult;
-import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
+import com.bailizhang.lynxdb.raft.result.*;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
@@ -19,6 +18,7 @@ import com.bailizhang.lynxdb.socket.result.RedirectResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.List;
@@ -52,6 +52,8 @@ public class RaftServerHandler implements SocketServerHandler {
                     handleAppendEntriesRpc(selectionKey, serial, buffer);
             case RaftRequest.INSTALL_SNAPSHOT ->
                     handleInstallSnapshot(selectionKey, serial, buffer);
+            case RaftRequest.CONTACT_LEADER ->
+                    handleContactLeader(selectionKey, serial, buffer);
             case RaftRequest.CLIENT_REQUEST ->
                     handleClientRequest(selectionKey, serial, buffer);
         }
@@ -140,6 +142,39 @@ public class RaftServerHandler implements SocketServerHandler {
         );
 
         WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        raftServer.offerInterruptibly(response);
+    }
+
+    private void handleContactLeader(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        RaftClient client = RaftClient.client();
+
+        String nodeStr = BufferUtils.getRemainingString(buffer);
+        ServerNode node = ServerNode.from(nodeStr);
+
+        SelectionKey leader;
+
+        try {
+            LynxDbFuture<SelectionKey> future = client.connect(node);
+            leader = future.get();
+        } catch (IOException e) {
+            ContactLeaderResult result = new ContactLeaderResult(ContactLeaderResult.IS_FAILED);
+            WritableSocketResponse response = new WritableSocketResponse(
+                    selectionKey,
+                    serial,
+                    result
+            );
+            raftServer.offerInterruptibly(response);
+            return;
+        }
+
+        client.sendClusterMemberAdd(leader);
+
+        ContactLeaderResult result = new ContactLeaderResult(ContactLeaderResult.IS_SUCCESS);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result
+        );
         raftServer.offerInterruptibly(response);
     }
 
