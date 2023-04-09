@@ -23,8 +23,6 @@ public class Configuration {
         String CLUSTER                  = "cluster";
         String SINGLE                   = "single";
 
-        String LEADER                   = "leader";
-
         String USER_DIR                 = System.getProperty("user.dir");
 
         String FILENAME                 = "app.cfg";
@@ -57,7 +55,7 @@ public class Configuration {
     private String raftMetaDir      = Default.RAFT_META_DIR;
 
     private String runningMode      = Default.SINGLE;
-    private String electionMode     = Default.LEADER;
+    private String initClusterMembers;
 
     // TODO
     private final Charset charset   = StandardCharsets.UTF_8;
@@ -136,8 +134,8 @@ public class Configuration {
         return timeoutDir;
     }
 
-    public String electionMode() {
-        return electionMode;
+    public String initClusterMembers() {
+        return initClusterMembers;
     }
 
     public Charset charset() {

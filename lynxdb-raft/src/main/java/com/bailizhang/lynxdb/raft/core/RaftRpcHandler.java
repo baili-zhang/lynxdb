@@ -208,7 +208,6 @@ public class RaftRpcHandler {
 
     private void election() {
         RaftState raftState = RaftStateHolder.raftState();
-        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
         StateMachine stateMachine = RaftSpiService.stateMachine();
 
         List<ServerNode> nodes = stateMachine.clusterMembers();
@@ -216,26 +215,7 @@ public class RaftRpcHandler {
         logger.info("Run election task, time: {}, cluster nodes: {}",
                 System.currentTimeMillis(), nodes);
 
-        ServerNode current = raftConfig.currentNode();
         AtomicReference<RaftRole> role = raftState.role();
-
-        String runningMode = raftConfig.electionMode();
-
-        // 如果 runningMode 是 follow，则不需要启动下一轮的超时计时器
-        if(ElectionMode.FOLLOWER.equals(runningMode)) {
-            return;
-        }
-
-        if((nodes.isEmpty() || (nodes.size() == 1 && nodes.contains(current)))
-                && ElectionMode.LEADER.equals(runningMode)) {
-            // 如果当前没有节点，并且 runningMode 为 leader
-            // 则直接将当前节点的角色升级成 leader
-            if(role.compareAndSet(null, RaftRole.LEADER)) {
-                stateMachine.addClusterMember(current);
-                logger.info("Upgrade raft role to leader.");
-                return;
-            }
-        }
 
         // 转换成 candidate, 并发起预投票
         role.set(RaftRole.CANDIDATE);

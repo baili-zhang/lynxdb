@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 public record ServerNode (String host, int port) {
     private static final String SEPARATOR = ":";
+    private static final String DELIMITER = ",";
 
     @Override
     public String toString() {
@@ -27,8 +28,17 @@ public record ServerNode (String host, int port) {
 
     public static byte[] nodesToBytes(Collection<ServerNode> currentNodes) {
         String total = currentNodes.stream().map(ServerNode::toString)
-                .collect(Collectors.joining(" "));
+                .collect(Collectors.joining(DELIMITER));
         return total.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public static List<ServerNode> parseNodeList(String value) {
+        if(value == null) {
+            return new ArrayList<>();
+        }
+
+        String[] nodes = value.trim().split(DELIMITER);
+        return Arrays.stream(nodes).map(ServerNode::from).toList();
     }
 
     public static List<ServerNode> parseNodeList(byte[] value) {
@@ -37,7 +47,6 @@ public record ServerNode (String host, int port) {
         }
 
         String total = new String(value);
-        String[] nodes = total.trim().split("\\s+");
-        return Arrays.stream(nodes).map(ServerNode::from).toList();
+        return parseNodeList(total);
     }
 }

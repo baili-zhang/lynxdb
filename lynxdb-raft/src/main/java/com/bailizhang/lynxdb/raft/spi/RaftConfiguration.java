@@ -2,8 +2,10 @@ package com.bailizhang.lynxdb.raft.spi;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
+import java.util.List;
+
 public interface RaftConfiguration {
-    String electionMode();
+    List<ServerNode> initClusterMembers();
 
     ServerNode currentNode();
 
