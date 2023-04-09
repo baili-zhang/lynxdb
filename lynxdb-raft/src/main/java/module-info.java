@@ -5,6 +5,7 @@ module lynxdb.raft {
     requires static lynxdb.core;
     requires static lynxdb.socket;
     requires static lynxdb.timewheel;
+    requires lynxdb.ldtp;
 
     requires org.slf4j;
 

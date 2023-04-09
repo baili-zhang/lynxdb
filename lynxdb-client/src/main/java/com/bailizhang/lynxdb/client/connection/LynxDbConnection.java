@@ -25,7 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
-import static com.bailizhang.lynxdb.socket.code.Request.*;
+import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.DEREGISTER;
+import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.REGISTER;
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
 
 /**
  * TODO: 2000 行以后再分成多个类
@@ -77,7 +80,7 @@ public class LynxDbConnection {
 
     public byte[] find(byte[] key, String columnFamily, String column) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.FIND_BY_KEY_CF_COLUMN);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -100,7 +103,7 @@ public class LynxDbConnection {
 
     public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(FIND_MULTI_COLUMNS);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -178,7 +181,7 @@ public class LynxDbConnection {
 
     public void insert(byte[] key, String columnFamily, String column, byte[] value) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -199,7 +202,7 @@ public class LynxDbConnection {
 
     public void insert(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(columnFamily);
@@ -254,7 +257,7 @@ public class LynxDbConnection {
 
     public void delete(byte[] key, String columnFamily, String column) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(DELETE);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -274,7 +277,7 @@ public class LynxDbConnection {
 
     public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(DELETE_MULTI_COLUMNS);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -313,7 +316,8 @@ public class LynxDbConnection {
 
     public void register(byte[] key, String columnFamily) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(REGISTER_KEY);
+        bytesList.appendRawByte(KEY_REGISTER);
+        bytesList.appendRawByte(REGISTER);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
 
@@ -331,7 +335,8 @@ public class LynxDbConnection {
 
     public void deregister(byte[] key, String columnFamily) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(DEREGISTER_KEY);
+        bytesList.appendRawByte(KEY_REGISTER);
+        bytesList.appendRawByte(DEREGISTER);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
 
@@ -355,7 +360,7 @@ public class LynxDbConnection {
             String... findColumns
     ) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.RANGE_NEXT);
         bytesList.appendVarStr(columnFamily);
         bytesList.appendVarStr(mainColumn);
@@ -442,7 +447,7 @@ public class LynxDbConnection {
             String mainColumn
     ) {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(CLIENT_REQUEST);
+        bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.EXIST_KEY);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
@@ -475,6 +480,23 @@ public class LynxDbConnection {
         byte[] key = G.I.toBytes((String) FieldUtils.get(obj, keyField));
 
         return existKey(key, columnFamily, mainColumn);
+    }
+
+    public void join(String node) {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(RAFT_RPC);
+        bytesList.appendRawByte(JOIN_CLUSTER);
+        bytesList.appendRawStr(node);
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        // todo
     }
 
     @Override

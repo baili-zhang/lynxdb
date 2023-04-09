@@ -37,6 +37,11 @@
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.bailizhang.lynxdb</groupId>
+            <artifactId>lynxdb-ldtp</artifactId>
+            <version>${lynxdb.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

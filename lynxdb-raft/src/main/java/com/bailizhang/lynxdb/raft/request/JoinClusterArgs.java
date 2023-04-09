@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-public record ClusterMemberAddArgs(
+public record JoinClusterArgs(
         ServerNode current
 ) implements BytesListConvertible {
     @Override

@@ -3,9 +3,10 @@ package com.bailizhang.lynxdb.raft.result;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
-import static com.bailizhang.lynxdb.raft.result.RaftResult.CONTACT_LEADER_RESULT;
+import static com.bailizhang.lynxdb.raft.result.RaftResult.JOIN_CLUSTER_RESULT;
 
-public record ContactLeaderResult(
+
+public record JoinClusterResult(
         byte flag
 ) implements BytesListConvertible {
     public static final byte IS_SUCCESS = (byte) 0x01;
@@ -14,7 +15,7 @@ public record ContactLeaderResult(
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(CONTACT_LEADER_RESULT);
+        bytesList.appendRawByte(JOIN_CLUSTER_RESULT);
         bytesList.appendRawByte(flag);
         return bytesList;
     }

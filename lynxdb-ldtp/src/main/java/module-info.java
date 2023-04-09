@@ -5,4 +5,5 @@ module lynxdb.ldtp {
     exports com.bailizhang.lynxdb.ldtp.affect;
     exports com.bailizhang.lynxdb.ldtp.annotations;
     exports com.bailizhang.lynxdb.ldtp.message;
+    exports com.bailizhang.lynxdb.ldtp.request;
 }

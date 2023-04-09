@@ -26,6 +26,7 @@ public class ClusterLynxDbServer implements LynxDbServer {
         engineExecutor = new LdtpEngineExecutor(raftServer);
 
         LdtpStateMachine.engineExecutor(engineExecutor);
+        LdtpStateMachine.raftServer(raftServer);
     }
 
     @Override

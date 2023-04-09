@@ -1,15 +1,14 @@
 package com.bailizhang.lynxdb.raft.server;
 
-import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.log.LogEntry;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.core.*;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
-import com.bailizhang.lynxdb.raft.request.RaftRequest;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
-import com.bailizhang.lynxdb.raft.result.*;
+import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
+import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
+import com.bailizhang.lynxdb.raft.result.LeaderNotExistedResult;
+import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
@@ -18,10 +17,13 @@ import com.bailizhang.lynxdb.socket.result.RedirectResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.List;
+
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.*;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 public class RaftServerHandler implements SocketServerHandler {
     private static final Logger logger = LoggerFactory.getLogger(RaftServerHandler.class);
@@ -41,21 +43,25 @@ public class RaftServerHandler implements SocketServerHandler {
         byte[] data = request.data();
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
+        byte type = buffer.get();
+
+        switch (type) {
+            case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
+            case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+            default -> throw new RuntimeException();
+        }
+    }
+
+    private void handleRaftRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         byte method = buffer.get();
 
         switch (method) {
-            case RaftRequest.PRE_VOTE ->
-                    handlePreVoteRpc(selectionKey, serial, buffer);
-            case RaftRequest.REQUEST_VOTE ->
-                    handleRequestVoteRpc(selectionKey, serial, buffer);
-            case RaftRequest.APPEND_ENTRIES ->
-                    handleAppendEntriesRpc(selectionKey, serial, buffer);
-            case RaftRequest.INSTALL_SNAPSHOT ->
-                    handleInstallSnapshot(selectionKey, serial, buffer);
-            case RaftRequest.CONTACT_LEADER ->
-                    handleContactLeader(selectionKey, serial, buffer);
-            case RaftRequest.CLIENT_REQUEST ->
-                    handleClientRequest(selectionKey, serial, buffer);
+            case PRE_VOTE -> handlePreVoteRpc(selectionKey, serial, buffer);
+            case REQUEST_VOTE -> handleRequestVoteRpc(selectionKey, serial, buffer);
+            case APPEND_ENTRIES -> handleAppendEntriesRpc(selectionKey, serial, buffer);
+            case INSTALL_SNAPSHOT -> handleInstallSnapshot(selectionKey, serial, buffer);
+            case JOIN_CLUSTER -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
+            default -> throw new RuntimeException();
         }
     }
 
@@ -145,40 +151,7 @@ public class RaftServerHandler implements SocketServerHandler {
         raftServer.offerInterruptibly(response);
     }
 
-    private void handleContactLeader(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        RaftClient client = RaftClient.client();
-
-        String nodeStr = BufferUtils.getRemainingString(buffer);
-        ServerNode node = ServerNode.from(nodeStr);
-
-        SelectionKey leader;
-
-        try {
-            LynxDbFuture<SelectionKey> future = client.connect(node);
-            leader = future.get();
-        } catch (IOException e) {
-            ContactLeaderResult result = new ContactLeaderResult(ContactLeaderResult.IS_FAILED);
-            WritableSocketResponse response = new WritableSocketResponse(
-                    selectionKey,
-                    serial,
-                    result
-            );
-            raftServer.offerInterruptibly(response);
-            return;
-        }
-
-        client.sendClusterMemberAdd(leader);
-
-        ContactLeaderResult result = new ContactLeaderResult(ContactLeaderResult.IS_SUCCESS);
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                result
-        );
-        raftServer.offerInterruptibly(response);
-    }
-
-    private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleNeedPersistenceRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         RaftState raftState = RaftStateHolder.raftState();
         RaftRole role = raftState.role().get();
 
@@ -186,14 +159,14 @@ public class RaftServerHandler implements SocketServerHandler {
 
         // 如果当前角色为 leader
         if(role == RaftRole.LEADER) {
-            byte[] data = BufferUtils.getRemaining(buffer);
+            byte[] data = buffer.array();
             int idx = raftRpcHandler.persistenceClientRequest(data);
 
             ClientRequest request = new ClientRequest(
                     selectionKey,
                     idx,
                     serial,
-                    buffer.array()
+                    data
             );
 
             UncommittedClientRequests requests = UncommittedClientRequests.requests();
@@ -202,10 +175,14 @@ public class RaftServerHandler implements SocketServerHandler {
             logger.info("Add client request to UncommittedClientRequests.");
 
             raftRpcHandler.heartbeat();
-
             return;
         }
 
+        handleIfNotLeader(selectionKey, serial);
+    }
+
+    private void handleIfNotLeader(SelectionKey selectionKey, int serial) {
+        RaftState raftState = RaftStateHolder.raftState();
         ServerNode leader = raftState.leader().get();
 
         // 如果当前 leader 存在，则将客户端请求重定向到 leader

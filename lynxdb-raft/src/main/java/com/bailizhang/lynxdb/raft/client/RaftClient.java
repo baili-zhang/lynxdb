@@ -5,8 +5,8 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.raft.core.RaftRole;
 import com.bailizhang.lynxdb.raft.core.RaftState;
 import com.bailizhang.lynxdb.raft.core.RaftStateHolder;
-import com.bailizhang.lynxdb.raft.request.ClusterMemberAdd;
-import com.bailizhang.lynxdb.raft.request.ClusterMemberAddArgs;
+import com.bailizhang.lynxdb.raft.request.JoinCluster;
+import com.bailizhang.lynxdb.raft.request.JoinClusterArgs;
 import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.spi.RaftSpiService;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
@@ -49,8 +49,8 @@ public class RaftClient extends SocketClient {
         RaftConfiguration raftConfig = RaftSpiService.raftConfig();
         ServerNode current = raftConfig.currentNode();
 
-        ClusterMemberAddArgs args = new ClusterMemberAddArgs(current);
-        ClusterMemberAdd request = new ClusterMemberAdd(leader, args);
+        JoinClusterArgs args = new JoinClusterArgs(current);
+        JoinCluster request = new JoinCluster(leader, args);
 
         send(request);
     }

@@ -3,6 +3,8 @@ package com.bailizhang.lynxdb.server.context;
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Configuration {
+    private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
 
     public interface Default {
         String CLUSTER                  = "cluster";
@@ -64,13 +67,17 @@ public class Configuration {
 
         static {
             try {
-                instance = new Configuration();
+                String filename = configFilename();
+
+                logger.info("Config file name: {}", filename);
 
                 FileUtils.createDirIfNotExisted(Default.CONFIG_DIR);
                 File configFile = FileUtils.createFileIfNotExisted(
                         Default.CONFIG_DIR,
-                        Default.FILENAME
+                        filename
                 );
+
+                instance = new Configuration();
 
                 BufferedReader reader = new BufferedReader(new FileReader(configFile));
 
@@ -93,6 +100,16 @@ public class Configuration {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        private static String configFilename() {
+            String filename = System.getProperty("lynxdb.config.filename");
+
+            if(filename == null) {
+                return Default.FILENAME;
+            }
+
+            return filename;
         }
     }
 

@@ -5,7 +5,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.INSTALL_SNAPSHOT;
+import static com.bailizhang.lynxdb.raft.result.RaftResult.INSTALL_SNAPSHOT_RESULT;
 
 public record InstallSnapshotResult(
         int term
@@ -14,7 +14,7 @@ public record InstallSnapshotResult(
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
-        bytesList.appendRawByte(INSTALL_SNAPSHOT);
+        bytesList.appendRawByte(INSTALL_SNAPSHOT_RESULT);
         bytesList.appendRawInt(term);
 
         return bytesList;

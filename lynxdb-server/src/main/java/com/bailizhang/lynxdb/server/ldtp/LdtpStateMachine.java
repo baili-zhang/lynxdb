@@ -7,13 +7,23 @@ import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.raft.core.ClientRequest;
+import com.bailizhang.lynxdb.raft.result.JoinClusterResult;
+import com.bailizhang.lynxdb.raft.server.RaftServer;
 import com.bailizhang.lynxdb.raft.spi.StateMachine;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.util.HashSet;
 import java.util.List;
+
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.LEAVE_CLUSTER;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 public class LdtpStateMachine implements StateMachine {
     private static final String RAFT_COLUMN_FAMILY = "RAFT";
@@ -23,6 +33,7 @@ public class LdtpStateMachine implements StateMachine {
 
     // TODO: 能不能改成不是静态变量？
     private static LdtpEngineExecutor engineExecutor;
+    private static RaftServer raftServer;
 
     private final Table clusterTable;
 
@@ -36,6 +47,10 @@ public class LdtpStateMachine implements StateMachine {
         engineExecutor = executor;
     }
 
+    public static void raftServer(RaftServer server) {
+        raftServer = server;
+    }
+
     @Override
     public void apply(List<ClientRequest> requests) {
         for(ClientRequest request : requests) {
@@ -43,8 +58,46 @@ public class LdtpStateMachine implements StateMachine {
                 throw new RuntimeException();
             }
 
-            engineExecutor.offerInterruptibly(request);
+            SelectionKey selectionKey = request.selectionKey();
+            int serial = request.serial();
+
+            ByteBuffer buffer = ByteBuffer.wrap(request.data());
+            byte type = buffer.get();
+
+            switch (type) {
+                case LDTP_METHOD -> engineExecutor.offerInterruptibly(request);
+                case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+                default -> throw new RuntimeException();
+            }
         }
+    }
+
+    private void handleRaftRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        byte method = buffer.get();
+
+        switch (method) {
+            case JOIN_CLUSTER -> handleJoinCluster(selectionKey, serial, buffer);
+            case LEAVE_CLUSTER -> handleLeaveCluster(selectionKey, serial, buffer);
+            default -> throw new RuntimeException();
+        }
+    }
+
+    private void handleJoinCluster(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        String node = BufferUtils.getRemainingString(buffer);
+        ServerNode newMember = ServerNode.from(node);
+        addClusterMember(newMember);
+
+        JoinClusterResult result = new JoinClusterResult(JoinClusterResult.IS_SUCCESS);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result
+        );
+        raftServer.offerInterruptibly(response);
+    }
+
+    private void handleLeaveCluster(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

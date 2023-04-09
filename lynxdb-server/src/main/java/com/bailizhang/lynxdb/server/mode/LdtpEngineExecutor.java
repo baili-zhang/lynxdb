@@ -25,7 +25,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
-import static com.bailizhang.lynxdb.socket.code.Request.*;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
 
 public class LdtpEngineExecutor extends Executor<SocketRequest> {
     private static final Logger logger = LoggerFactory.getLogger(LdtpEngineExecutor.class);
@@ -72,27 +72,18 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         byte flag = buffer.get();
 
         switch (flag) {
-            case CLIENT_REQUEST -> {
-                tasksQueue.offer(() -> handleClientRequest(selectionKey, serial, buffer));
+            case LDTP_METHOD -> {
+                tasksQueue.offer(() -> handleLdtpMethod(selectionKey, serial, buffer));
                 LockSupport.unpark(tasksThread);
             }
 
-            case REGISTER_KEY -> {
-                tasksQueue.offer(() -> handleRegisterKey(selectionKey, serial, buffer));
-                LockSupport.unpark(tasksThread);
-            }
-            case DEREGISTER_KEY -> {
-                tasksQueue.offer(() -> handleDeregisterKey(selectionKey, serial, buffer));
+            case KEY_REGISTER -> {
+                tasksQueue.offer(() -> handleKeyRegister(selectionKey, serial, buffer));
                 LockSupport.unpark(tasksThread);
             }
 
-            case SET_TIMEOUT_KEY -> {
-                tasksQueue.offer(() -> handleSetTimeoutKey(selectionKey, serial, buffer));
-                LockSupport.unpark(tasksThread);
-            }
-
-            case REMOVE_TIMEOUT_KEY -> {
-                tasksQueue.offer(() -> handleRemoveTimeoutKey(selectionKey, serial, buffer));
+            case KEY_TIMEOUT -> {
+                tasksQueue.offer(() -> handleKeyTimeout(selectionKey, serial, buffer));
                 LockSupport.unpark(tasksThread);
             }
 
@@ -112,7 +103,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         }
     }
 
-    private void handleClientRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleLdtpMethod(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         QueryParams queryParams = QueryParams.parse(buffer);
 
         logger.info("Handle client request, params: {}", queryParams);
@@ -140,6 +131,16 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         }
 
         sendAffectValueToRegisterClient(messageKey);
+    }
+
+    private void handleKeyRegister(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+
+    private void handleKeyTimeout(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        // TODO
+        throw new UnsupportedOperationException();
     }
 
     private void handleRegisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {

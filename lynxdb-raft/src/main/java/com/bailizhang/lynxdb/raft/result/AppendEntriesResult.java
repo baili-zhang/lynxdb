@@ -5,7 +5,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.APPEND_ENTRIES;
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.APPEND_ENTRIES;
 
 public record AppendEntriesResult(
         int term,

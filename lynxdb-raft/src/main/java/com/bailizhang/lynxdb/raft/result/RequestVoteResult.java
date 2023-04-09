@@ -5,7 +5,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.REQUEST_VOTE;
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.REQUEST_VOTE;
 
 public record RequestVoteResult(
         int term,
