@@ -10,7 +10,7 @@ import com.bailizhang.lynxdb.socket.response.SocketResponse;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import static com.bailizhang.lynxdb.raft.result.RaftResult.*;
+import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.*;
 
 public class RaftClientHandler implements SocketClientHandler {
     private final RaftRpcResultHandler raftRpcResultHandler = new RaftRpcResultHandler();

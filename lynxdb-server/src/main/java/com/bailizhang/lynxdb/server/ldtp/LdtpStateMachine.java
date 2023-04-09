@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.server.ldtp;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
+import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
@@ -87,7 +88,7 @@ public class LdtpStateMachine implements StateMachine {
         ServerNode newMember = ServerNode.from(node);
         addClusterMember(newMember);
 
-        JoinClusterResult result = new JoinClusterResult(JoinClusterResult.IS_SUCCESS);
+        JoinClusterResult result = new JoinClusterResult(LdtpCode.TRUE);
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,

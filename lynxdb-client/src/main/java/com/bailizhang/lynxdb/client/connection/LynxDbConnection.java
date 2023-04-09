@@ -29,6 +29,7 @@ import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.DEREGISTER;
 import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.REGISTER;
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
 import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
+import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.JOIN_CLUSTER_RESULT;
 
 /**
  * TODO: 2000 行以后再分成多个类
@@ -496,7 +497,12 @@ public class LynxDbConnection {
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
-        // todo
+        byte type = buffer.get();
+        byte success = buffer.get();
+
+        if(type != JOIN_CLUSTER_RESULT || success != TRUE) {
+            throw new RuntimeException();
+        }
     }
 
     @Override

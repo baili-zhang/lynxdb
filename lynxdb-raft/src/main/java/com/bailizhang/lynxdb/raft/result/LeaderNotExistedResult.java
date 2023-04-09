@@ -3,7 +3,8 @@ package com.bailizhang.lynxdb.raft.result;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
-import static com.bailizhang.lynxdb.raft.result.RaftResult.LEADER_NOT_EXISTED_RESULT;
+import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.LEADER_NOT_EXISTED_RESULT;
+
 
 public record LeaderNotExistedResult() implements BytesListConvertible {
     @Override

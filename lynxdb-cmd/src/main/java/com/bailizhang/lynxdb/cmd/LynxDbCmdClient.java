@@ -112,12 +112,12 @@ public class LynxDbCmdClient extends Shutdown {
     }
 
     private void handleFind(LynxDbCommand command) throws ErrorFormatCommand {
-        String key = command.poll();
-        String columnFamily = command.poll();
-
         if(command.argsSize() != 2 && command.argsSize() != 3) {
             throw new ErrorFormatCommand();
         }
+
+        String key = command.poll();
+        String columnFamily = command.poll();
 
         try {
             String column = command.poll();

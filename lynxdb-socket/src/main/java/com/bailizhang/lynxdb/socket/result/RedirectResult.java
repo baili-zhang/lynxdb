@@ -4,7 +4,7 @@ import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
-import static com.bailizhang.lynxdb.socket.code.Result.REDIRECT;
+import static com.bailizhang.lynxdb.ldtp.result.ResultType.REDIRECT;
 
 public record RedirectResult(ServerNode other) implements BytesListConvertible {
     @Override

@@ -5,7 +5,8 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.result.RaftResult.INSTALL_SNAPSHOT_RESULT;
+import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.INSTALL_SNAPSHOT_RESULT;
+
 
 public record InstallSnapshotResult(
         int term
