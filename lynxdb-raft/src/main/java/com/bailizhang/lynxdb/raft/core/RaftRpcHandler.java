@@ -2,10 +2,6 @@ package com.bailizhang.lynxdb.raft.core;
 
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.log.LogEntry;
-import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogGroupOptions;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.request.AppendEntries;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
@@ -30,7 +26,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.FALSE;
+import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.TRUE;
 
 public class RaftRpcHandler {
     private static final Logger logger = LoggerFactory.getLogger(RaftRpcHandler.class);
@@ -44,9 +41,13 @@ public class RaftRpcHandler {
 
 
     private final int electionIntervalMillis;
-    private final RaftClient client;
 
-    private final LogGroup raftLog;
+    private final RaftState raftState;
+    private final RaftConfiguration raftConfig;
+    private final StateMachine stateMachine;
+    private final RaftClient client;
+    private final SocketTimeWheel timeWheel;
+    private final RaftLog raftLog;
 
     private TimeoutTask electionTask;
     private volatile TimeoutTask heartbeatTask;
@@ -60,17 +61,17 @@ public class RaftRpcHandler {
 
         client = RaftClient.client();
 
-        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
-        StateMachine stateMachine = RaftSpiService.stateMachine();
+        raftConfig = RaftSpiService.raftConfig();
+        stateMachine = RaftSpiService.stateMachine();
 
-        LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
-        raftLog = new LogGroup(raftConfig.logsDir(), options);
+        timeWheel = SocketTimeWheel.timeWheel();
+        raftLog = RaftLog.raftLog();
 
-        if(raftLog.maxGlobalIdx() == 0) {
-            stateMachine.currentTerm(1);
+        if(raftLog.maxIndex() == 0) {
+            stateMachine.currentTerm(0);
         }
 
-        RaftState raftState = RaftStateHolder.raftState();
+        raftState = RaftStateHolder.raftState();
 
         int currentTerm = stateMachine.currentTerm();
         raftState.currentTerm().set(currentTerm);
@@ -85,19 +86,17 @@ public class RaftRpcHandler {
         int currentTerm = raftState.currentTerm().get();
 
         if(term <= currentTerm) {
-            return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+            return new RequestVoteResult(currentTerm, FALSE);
         }
 
-        int lastIndex = raftLog.maxGlobalIdx();
+        int lastIndex = raftLog.maxIndex();
+        int maxLogTerm = raftLog.maxTerm();
 
-        byte[] extraData = raftLog.lastExtraData();
-        int lastTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
-
-        if(lastLogIndex > lastIndex || (lastLogIndex == lastIndex && lastLogTerm > lastTerm)) {
-            return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
+        if(lastLogIndex >= lastIndex && lastLogTerm >= maxLogTerm) {
+            return new RequestVoteResult(currentTerm, TRUE);
         }
 
-        return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+        return new RequestVoteResult(currentTerm, FALSE);
     }
 
     public RequestVoteResult handleRequestVote(
@@ -106,24 +105,23 @@ public class RaftRpcHandler {
             int lastLogIndex,
             int lastLogTerm
     ) {
-        RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
         ServerNode votedFor = raftState.voteFor().get();
 
         if(term < currentTerm || (term == currentTerm && votedFor != null)) {
-            return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+            return new RequestVoteResult(currentTerm, FALSE);
         }
 
-        int lastIndex = raftLog.maxGlobalIdx();
-        int lastTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
+        int lastIndex = raftLog.maxIndex();
+        int lastTerm = raftLog.maxTerm();
 
         if(lastLogIndex > lastIndex || (lastLogIndex == lastIndex && lastLogTerm > lastTerm)) {
             if(raftState.voteFor().compareAndSet(votedFor, candidate)) {
-                return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
+                return new RequestVoteResult(currentTerm, TRUE);
             }
         }
 
-        return new RequestVoteResult(currentTerm, RequestVoteResult.NOT_VOTE_GRANTED);
+        return new RequestVoteResult(currentTerm, FALSE);
     }
 
     public AppendEntriesResult handleAppendEntries(
@@ -134,7 +132,6 @@ public class RaftRpcHandler {
             List<LogEntry> entries,
             int leaderCommit
     ) {
-        RaftState raftState = RaftStateHolder.raftState();
         int currentTerm = raftState.currentTerm().get();
         ServerNode leaderNode = raftState.leader().get();
 
@@ -142,8 +139,8 @@ public class RaftRpcHandler {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
         }
 
-        int preIndex = raftLog.maxGlobalIdx();
-        int preTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
+        int preIndex = raftLog.maxIndex();
+        int preTerm = raftLog.maxTerm();
 
         if(preIndex != prevLogIndex || preTerm != prevLogTerm) {
             return new AppendEntriesResult(currentTerm, AppendEntriesResult.IS_FAILED);
@@ -167,16 +164,13 @@ public class RaftRpcHandler {
     }
 
     public int persistenceClientRequest(byte[] data) {
-        RaftState raftState = RaftStateHolder.raftState();
         int term = raftState.currentTerm().get();
-        return raftLog.append(BufferUtils.toBytes(term), data);
+        return raftLog.append(term, data);
     }
 
     public void registerElectionTimeoutTask() {
         long current = System.currentTimeMillis();
         long electionTime = current + electionIntervalMillis;
-
-        SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
 
         electionTask = timeWheel.register(electionTime, ELECTION_TIMEOUT, this::election);
 
@@ -184,10 +178,6 @@ public class RaftRpcHandler {
     }
 
     public void connectNotConnectedMembers() {
-        RaftState raftState = RaftStateHolder.raftState();
-        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
-        StateMachine stateMachine = RaftSpiService.stateMachine();
-
         List<ServerNode> members = stateMachine.clusterMembers();
 
         members.forEach(member -> {
@@ -222,9 +212,6 @@ public class RaftRpcHandler {
         // 尝试连接未连接的节点
         connectNotConnectedMembers();
 
-        RaftState raftState = RaftStateHolder.raftState();
-        StateMachine stateMachine = RaftSpiService.stateMachine();
-
         List<ServerNode> nodes = stateMachine.clusterMembers();
 
         logger.info("Run election task, time: {}, cluster nodes: {}",
@@ -237,19 +224,14 @@ public class RaftRpcHandler {
 
         int term = raftState.currentTerm().get();
 
-        byte[] extraData = raftLog.lastExtraData();
-        int lastLogTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
-
         PreVoteArgs args = new PreVoteArgs(
                 term + 1,
-                raftLog.maxGlobalIdx(),
-                lastLogTerm
+                raftLog.maxIndex(),
+                raftLog.maxTerm()
         );
 
         PreVote preVote = new PreVote(args);
         client.broadcast(preVote);
-
-        SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
 
         long nextElectionTime = electionTask.time() + electionIntervalMillis;
         electionTask = timeWheel.register(nextElectionTime, ELECTION_TIMEOUT, this::election);
@@ -259,11 +241,7 @@ public class RaftRpcHandler {
      * TODO: 线程安全需要测试和分析
      */
     public synchronized void heartbeat() {
-        SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
         timeWheel.unregister(heartbeatTask);
-
-        RaftState raftState = RaftStateHolder.raftState();
-        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
 
         // 连接集群中的还未连接上的其他节点
         connectNotConnectedMembers();
@@ -275,9 +253,7 @@ public class RaftRpcHandler {
         int lastCommitIndex = commitIndex.get();
 
         var matchedIndex = raftState.matchedIndex();
-
-        byte[] extraData = raftLog.lastExtraData();
-        int lastLogTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
+        int lastLogTerm = raftLog.maxTerm();
 
         List<SelectionKey> invalid = new ArrayList<>();
 
@@ -291,7 +267,7 @@ public class RaftRpcHandler {
             AppendEntriesArgs args = new AppendEntriesArgs(
                     term,
                     raftConfig.currentNode(),
-                    raftLog.maxGlobalIdx(),
+                    raftLog.maxIndex(),
                     lastLogTerm,
                     new ArrayList<>(),
                     lastCommitIndex
