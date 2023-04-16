@@ -1,39 +1,39 @@
 package com.bailizhang.lynxdb.server.mode.cluster;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.client.RaftClient;
-import com.bailizhang.lynxdb.raft.client.RaftClientHandler;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
-import com.bailizhang.lynxdb.raft.server.RaftServerHandler;
-import com.bailizhang.lynxdb.raft.state.RaftState;
 import com.bailizhang.lynxdb.server.context.Configuration;
+import com.bailizhang.lynxdb.server.ldtp.LdtpStateMachine;
+import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class ClusterLynxDbServer implements LynxDbServer {
+    private static final Logger logger = LoggerFactory.getLogger(ClusterLynxDbServer.class);
+
     private final RaftServer raftServer;
-    private final RaftClient raftClient;
+    private final LdtpEngineExecutor engineExecutor;
 
     public ClusterLynxDbServer() throws IOException {
         Configuration config = Configuration.getInstance();
         ServerNode current = config.currentNode();
 
-        raftClient = new RaftClient();
-        raftServer = new RaftServer(current, raftClient);
+        raftServer = new RaftServer(current);
+        engineExecutor = new LdtpEngineExecutor(raftServer);
 
-        RaftState raftState = RaftState.getInstance();
-        raftState.raftClient(raftClient);
-        raftState.raftServer(raftServer);
-
-        raftServer.setHandler(new RaftServerHandler(raftServer));
-        raftServer.setClientHandler(new RaftClientHandler());
+        LdtpStateMachine.engineExecutor(engineExecutor);
+        LdtpStateMachine.raftServer(raftServer);
     }
 
     @Override
     public void run() {
+        logger.info("Run LynxDB cluster server.");
+
         Executor.start(raftServer);
-        Executor.start(raftClient);
+        Executor.start(engineExecutor);
     }
 }

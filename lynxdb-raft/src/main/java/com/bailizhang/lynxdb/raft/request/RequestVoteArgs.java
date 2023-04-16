@@ -18,6 +18,7 @@ public record RequestVoteArgs(
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList();
 
+        bytesList.appendRawInt(term);
         bytesList.appendVarStr(candidate.toString());
 
         bytesList.appendRawInt(lastLogIndex);

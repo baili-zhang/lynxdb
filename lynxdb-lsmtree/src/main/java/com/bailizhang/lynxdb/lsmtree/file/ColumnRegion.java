@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
@@ -15,7 +15,10 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 
@@ -59,7 +62,7 @@ public class ColumnRegion {
             // 初始化 wal log group
             String walDir = Path.of(dir, WAL_DIR).toString();
             LogGroupOptions logOptions = new LogGroupOptions(WAL_EXTRA_DATA_LENGTH);
-            logOptions.logRegionSize(options.memTableSize());
+            logOptions.regionCapacity(options.memTableSize());
 
             walLog = new LogGroup(walDir, logOptions);
             recoverFromWal();
@@ -93,7 +96,7 @@ public class ColumnRegion {
         if(options.wal()) {
             WalEntry walEntry = WalEntry.from(KeyEntry.EXISTED, key, value, valueGlobalIndex);
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(BufferUtils.EMPTY_BYTES, data);
+            maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);
@@ -103,7 +106,7 @@ public class ColumnRegion {
         KeyEntry keyEntry = KeyEntry.from(
                 KeyEntry.DELETED,
                 key,
-                BufferUtils.EMPTY_BYTES,
+                ByteArrayUtils.EMPTY_BYTES,
                 -1
         );
 
@@ -112,11 +115,11 @@ public class ColumnRegion {
             WalEntry walEntry = WalEntry.from(
                     KeyEntry.DELETED,
                     key,
-                    BufferUtils.EMPTY_BYTES,
+                    ByteArrayUtils.EMPTY_BYTES,
                     -1
             );
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(BufferUtils.EMPTY_BYTES, data);
+            maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);

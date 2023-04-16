@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static com.bailizhang.lynxdb.server.context.Configuration.CLUSTER;
-import static com.bailizhang.lynxdb.server.context.Configuration.SINGLE;
+import static com.bailizhang.lynxdb.server.context.Configuration.Default.CLUSTER;
+import static com.bailizhang.lynxdb.server.context.Configuration.Default.SINGLE;
 
 public class LynxDbMainServer {
     private static final Logger logger = LoggerFactory.getLogger(LynxDbMainServer.class);

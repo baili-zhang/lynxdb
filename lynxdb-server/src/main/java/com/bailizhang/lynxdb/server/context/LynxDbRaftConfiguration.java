@@ -1,22 +1,28 @@
 package com.bailizhang.lynxdb.server.context;
 
-import com.bailizhang.lynxdb.raft.common.RaftConfiguration;
+import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
+import java.util.List;
+
 public class LynxDbRaftConfiguration implements RaftConfiguration {
-    private final String electionMode;
+    private final List<ServerNode> initClusterMembers;
     private final ServerNode currentNode;
-    private final String logDir;
+    private final String logsDir;
+    private final String metaDir;
 
     public LynxDbRaftConfiguration() {
-        electionMode = Configuration.getInstance().electionMode();
+        String members = Configuration.getInstance().initClusterMembers();
+
+        initClusterMembers = ServerNode.parseNodeList(members);
         currentNode = Configuration.getInstance().currentNode();
-        logDir = Configuration.getInstance().raftLogDir();
+        logsDir = Configuration.getInstance().raftLogsDir();
+        metaDir = Configuration.getInstance().raftMetaDir();
     }
 
     @Override
-    public String electionMode() {
-        return electionMode;
+    public List<ServerNode> initClusterMembers() {
+        return initClusterMembers;
     }
 
     @Override
@@ -25,7 +31,12 @@ public class LynxDbRaftConfiguration implements RaftConfiguration {
     }
 
     @Override
-    public String logDir() {
-        return logDir;
+    public String logsDir() {
+        return logsDir;
+    }
+
+    @Override
+    public String metaDir() {
+        return metaDir;
     }
 }

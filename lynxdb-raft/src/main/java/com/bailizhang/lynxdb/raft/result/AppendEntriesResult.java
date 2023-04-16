@@ -5,18 +5,15 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.APPEND_ENTRIES;
+import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.APPEND_ENTRIES;
 
 public record AppendEntriesResult(
         int term,
         byte success
 ) implements BytesListConvertible {
-    public static final byte IS_SUCCESS = (byte) 0x01;
-    public static final byte IS_FAILED = (byte) 0x02;
-
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
 
         bytesList.appendRawByte(APPEND_ENTRIES);
         bytesList.appendRawInt(term);

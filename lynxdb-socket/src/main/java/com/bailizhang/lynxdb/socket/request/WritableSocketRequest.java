@@ -14,8 +14,12 @@ import java.nio.channels.SocketChannel;
 public class WritableSocketRequest extends NioSelectionKey implements Writable {
     private final ByteBuffer buffer;
 
-    public WritableSocketRequest(SelectionKey key, byte status,
-                                 int serial, byte[] data) {
+    public WritableSocketRequest(
+            SelectionKey key,
+            byte status,
+            int serial,
+            byte[] data
+    ) {
         super(key);
 
         BytesList bytesList = new BytesList();
@@ -26,8 +30,11 @@ public class WritableSocketRequest extends NioSelectionKey implements Writable {
         buffer = ByteBuffer.wrap(bytesList.toBytes());
     }
 
-    public WritableSocketRequest(byte status, int serial,
-                                 NioMessage message) {
+    public WritableSocketRequest(
+            byte status,
+            int serial,
+            NioMessage message
+    ) {
         super(message.selectionKey());
 
         BytesList bytesList = new BytesList();

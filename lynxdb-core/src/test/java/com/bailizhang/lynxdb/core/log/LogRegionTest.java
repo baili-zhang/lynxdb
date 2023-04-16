@@ -22,17 +22,17 @@ class LogRegionTest {
     private static final String COMMAND = "command";
 
     private LogRegion logRegion;
+    private LogGroupOptions options;
 
     @BeforeEach
     void setUp() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        LogGroupOptions options = new LogGroupOptions(INT_LENGTH);
+        options = new LogGroupOptions(INT_LENGTH);
+        options.regionCapacity(200);
 
         FileUtils.createDirIfNotExisted(BASE_DIR);
 
         logRegion = new LogRegion(1, BASE_DIR, options);
-        logRegion.globalIndexBegin(GLOBAL_INDEX_BEGIN);
-        logRegion.globalIndexEnd(GLOBAL_INDEX_BEGIN - 1);
     }
 
     @AfterEach
@@ -44,13 +44,21 @@ class LogRegionTest {
     void append() {
         for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
             byte[] extraData = BufferUtils.toBytes(i);
-            logRegion.append(extraData, G.I.toBytes(COMMAND + i));
+
+            String temp = COMMAND.repeat(1024) + i;
+
+            logRegion.append(extraData, G.I.toBytes(temp));
         }
 
-        for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
+        int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();
+
+        for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT; i ++) {
             LogEntry entry = logRegion.readEntry(GLOBAL_INDEX_BEGIN + i);
             assert Arrays.equals(entry.index().extraData(), BufferUtils.toBytes(i));
-            assert Arrays.equals(entry.data(), G.I.toBytes(COMMAND + i));
+
+            String temp = COMMAND.repeat(1024) + i;
+
+            assert Arrays.equals(entry.data(), G.I.toBytes(temp));
         }
     }
 }

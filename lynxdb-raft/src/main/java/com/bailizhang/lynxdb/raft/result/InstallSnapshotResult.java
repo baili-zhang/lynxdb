@@ -5,16 +5,17 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 
 import java.nio.ByteBuffer;
 
-import static com.bailizhang.lynxdb.raft.request.RaftRequest.INSTALL_SNAPSHOT;
+import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.INSTALL_SNAPSHOT_RESULT;
+
 
 public record InstallSnapshotResult(
         int term
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
 
-        bytesList.appendRawByte(INSTALL_SNAPSHOT);
+        bytesList.appendRawByte(INSTALL_SNAPSHOT_RESULT);
         bytesList.appendRawInt(term);
 
         return bytesList;

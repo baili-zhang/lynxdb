@@ -4,6 +4,8 @@ import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,6 +20,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SocketServer extends Executor<WritableSocketResponse> {
+    private static final Logger logger = LoggerFactory.getLogger(SocketServer.class);
+
     private final SocketServerConfig config;
     private final ThreadPoolExecutor executor;
     private final Selector selector;
@@ -107,6 +111,8 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                 if(!key.isValid()) {
                     SocketAddress address = ((SocketChannel)key.channel()).getRemoteAddress();
                     contexts.remove(key);
+
+                    logger.info("Client {} is disconnect, Remove socket context", address);
                 }
             }
 

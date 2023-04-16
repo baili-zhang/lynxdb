@@ -1,41 +1,58 @@
 package com.bailizhang.lynxdb.cmd;
 
-import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.cmd.exception.ErrorFormatCommand;
 
-/**
- * TODO: 重写这个类
- */
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Queue;
+
+
 public class LynxDbCommand {
-    private final String[] commands;
+    private final String name;
+    private final Queue<String> args = new LinkedList<>();
 
-    public LynxDbCommand(String line) {
-        commands = line.trim().split("\\s+");
+    public LynxDbCommand(String line) throws ErrorFormatCommand {
+        String[] str = line.trim().split("\\s+");
+
+        if(str.length == 0) {
+            throw new ErrorFormatCommand();
+        }
+
+        name = str[0].toLowerCase();
+        args.addAll(Arrays.asList(str).subList(1, str.length));
     }
 
     public String name() {
-        return commands.length < 1 ? null : commands[0].toLowerCase();
+        return name;
     }
 
-    public byte[] key() {
-        return commands.length < 2 ? null : G.I.toBytes(commands[1]);
+    public String poll() throws ErrorFormatCommand {
+        String str = args.poll();
+
+        if(str == null) {
+            throw new ErrorFormatCommand();
+        }
+
+        return str;
     }
 
-    public String columnFamily() {
-        return commands.length < 3 ? null : commands[2];
+    public int pollInt() throws ErrorFormatCommand {
+        String str = poll();
+
+        try {
+            return Integer.parseInt(str);
+        } catch (NumberFormatException e) {
+            throw new ErrorFormatCommand();
+        }
     }
 
-    public String column() {
-        return commands.length < 4 ? null : commands[3];
+    public void checkArgsSize(int size) throws ErrorFormatCommand {
+        if(args.size() != size) {
+            throw new ErrorFormatCommand();
+        }
     }
 
-    public byte[] value() {
-        return commands.length < 5 ? null : G.I.toBytes(commands[4]);
-    }
-    public String[] array() {
-        return commands;
-    }
-
-    public int length() {
-        return commands.length;
+    public int argsSize() {
+        return args.size();
     }
 }

@@ -9,7 +9,7 @@ import java.util.List;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
 
-public class BytesList implements BytesConvertible, BytesArrayConvertible {
+public class BytesList implements BytesConvertible {
     public static final byte RAW = (byte) 0x01;
     public static final byte VAR = (byte) 0x02;
 
@@ -118,8 +118,7 @@ public class BytesList implements BytesConvertible, BytesArrayConvertible {
         return buffer.array();
     }
 
-    @Override
-    public List<byte[]> toBytesList() {
+    public List<byte[]> toList() {
         LinkedList<byte[]> bytesList = new LinkedList<>();
 
         for(BytesNode<?> node : bytesNodes) {
@@ -150,6 +149,10 @@ public class BytesList implements BytesConvertible, BytesArrayConvertible {
         }
 
         return bytesList;
+    }
+
+    public boolean withoutLength() {
+        return !withLength;
     }
 
     private static class BytesNode<V> {

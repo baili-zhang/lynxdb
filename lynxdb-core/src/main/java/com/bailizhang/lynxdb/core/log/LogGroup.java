@@ -2,22 +2,18 @@ package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.core.utils.NameUtils;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Objects;
-
-import static com.bailizhang.lynxdb.core.utils.BufferUtils.EMPTY_BYTES;
 
 /**
  * TODO: 1. 应该保证多线程安全, 2. 每条记录添加 CRC 校验，3. 容量 size 检查
  */
 public class LogGroup implements Iterable<LogEntry> {
-    public static final int DEFAULT_FILE_THRESHOLD = 4 * 1024 * 1024;
-
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
     private static final int BEGIN_GLOBAL_LOG_INDEX = 1;
 
@@ -47,20 +43,7 @@ public class LogGroup implements Iterable<LogEntry> {
 
         if(filenames != null) {
             Integer[] logRegionIds = Arrays.stream(filenames)
-                    .map(filename -> {
-                        if(!filename.endsWith(FileUtils.LOG_SUFFIX)) {
-                            return null;
-                        }
-
-                        String name = filename.replace(FileUtils.LOG_SUFFIX, "");
-
-                        try {
-                            return Integer.parseInt(name);
-                        } catch (Exception ignore) {
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
+                    .map(NameUtils::id)
                     .toArray(Integer[]::new);
 
             if(logRegionIds.length != 0) {
@@ -93,8 +76,8 @@ public class LogGroup implements Iterable<LogEntry> {
                 options
         );
 
-        region.globalIndexBegin(BEGIN_GLOBAL_LOG_INDEX);
-        region.globalIndexEnd(BEGIN_GLOBAL_LOG_INDEX - 1);
+        region.globalIdxBegin(BEGIN_GLOBAL_LOG_INDEX);
+        region.globalIdxEnd(BEGIN_GLOBAL_LOG_INDEX - 1);
 
         logRegions.add(region);
     }
@@ -114,16 +97,16 @@ public class LogGroup implements Iterable<LogEntry> {
         LinkedList<LogEntry> entries = new LinkedList<>();
 
         for(LogRegion region : logRegions) {
-            if(beginGlobalIndex > region.globalIndexEnd()) {
+            if(beginGlobalIndex > region.globalIdxEnd()) {
                 continue;
             }
 
-            if(endGlobalIndex < region.globalIndexBegin()) {
+            if(endGlobalIndex < region.globalIdxBegin()) {
                 break;
             }
 
-            int begin = Math.max(region.globalIndexBegin(), beginGlobalIndex);
-            int end = Math.min(region.globalIndexEnd(), endGlobalIndex);
+            int begin = Math.max(region.globalIdxBegin(), beginGlobalIndex);
+            int end = Math.min(region.globalIdxEnd(), endGlobalIndex);
             for(int globalIndex = begin; globalIndex <= end; globalIndex ++) {
                 LogEntry entry = region.readEntry(globalIndex);
                 entries.add(entry);
@@ -142,7 +125,7 @@ public class LogGroup implements Iterable<LogEntry> {
         while(true) {
             LogRegion logRegion = logRegions.getFirst();
 
-            if(globalIndex <= logRegion.globalIndexEnd()) {
+            if(globalIndex <= logRegion.globalIdxEnd()) {
                 break;
             }
 
@@ -151,12 +134,12 @@ public class LogGroup implements Iterable<LogEntry> {
         }
     }
 
-    public int maxGlobalIndex() {
-        return lastRegion().globalIndexEnd();
+    public int maxGlobalIdx() {
+        return lastRegion().globalIdxEnd();
     }
 
-    public byte[] lastLogExtraData() {
-        return EMPTY_BYTES;
+    public byte[] lastExtraData() {
+        return lastRegion().lastExtraData();
     }
 
     public void delete() {
@@ -170,20 +153,17 @@ public class LogGroup implements Iterable<LogEntry> {
      *
      * @param extraData extra data
      * @param data data
-     * @return global index
+     * @return global idx
      */
     public synchronized int append(byte[] extraData, byte[] data) {
         LogRegion region = lastRegion();
-        int globalIndex = region.append(extraData, data);
+        int globalIdx = region.append(extraData, data);
 
         if(region.isFull()) {
-            if(options.forceAfterRegionFull()) {
-                region.force();
-            }
             createNextRegion();
         }
 
-        return globalIndex;
+        return globalIdx;
     }
 
     public int append(byte[] extraData, BytesListConvertible convertible) {
@@ -208,18 +188,17 @@ public class LogGroup implements Iterable<LogEntry> {
         return logRegions.get(logRegions.size() - 1);
     }
 
-    private LogRegion createNextRegion() {
+    private void createNextRegion() {
         LogRegion region = new LogRegion(
                 ++ endRegionId,
                 groupDir,
                 options
         );
 
-        region.globalIndexBegin(maxGlobalIndex() + 1);
-        region.globalIndexEnd(maxGlobalIndex());
+        region.globalIdxBegin(maxGlobalIdx() + 1);
+        region.globalIdxEnd(maxGlobalIdx());
 
         logRegions.add(region);
-        return region;
     }
 
     private static class LogGroupIterator implements Iterator<LogEntry> {
@@ -232,12 +211,12 @@ public class LogGroup implements Iterable<LogEntry> {
             this.logGroup = logGroup;
             LogRegion region = logGroup.beginRegion();
             regionId = region.id();
-            globalIndex = region.globalIndexBegin();
+            globalIndex = region.globalIdxBegin();
         }
 
         @Override
         public boolean hasNext() {
-            return globalIndex <= logGroup.maxGlobalIndex();
+            return globalIndex <= logGroup.maxGlobalIdx();
         }
 
         @Override
@@ -248,12 +227,10 @@ public class LogGroup implements Iterable<LogEntry> {
 
             LogEntry logEntry;
             LogRegion region = logGroup.getRegion(regionId);
-            if(globalIndex <= region.globalIndexEnd()) {
-                logEntry = region.readEntry(globalIndex);
-            } else {
-                region = logGroup.getRegion(++ regionId);
-                logEntry = region.readEntry(globalIndex);
+            if (globalIndex > region.globalIdxEnd()) {
+                region = logGroup.getRegion(++regionId);
             }
+            logEntry = region.readEntry(globalIndex);
 
             globalIndex ++;
             return logEntry;

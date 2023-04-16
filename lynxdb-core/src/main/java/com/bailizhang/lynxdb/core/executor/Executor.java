@@ -18,9 +18,9 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         thread.start();
     }
 
-    public static void start(Runnable executor) {
-        String name = executor.getClass().getSimpleName();
-        Thread thread = new Thread(executor, name);
+    public static void startRunnable(Runnable runnable) {
+        String name = runnable.getClass().getSimpleName();
+        Thread thread = new Thread(runnable, name);
         thread.start();
     }
 

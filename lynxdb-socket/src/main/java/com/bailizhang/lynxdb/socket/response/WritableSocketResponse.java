@@ -46,7 +46,7 @@ public class WritableSocketResponse extends NioMessage implements Writable {
             BytesList list,
             Object extraData
     ) {
-        super(selectionKey);
+        super(true, selectionKey);
         bytesList.appendRawInt(serial);
         bytesList.append(list);
 

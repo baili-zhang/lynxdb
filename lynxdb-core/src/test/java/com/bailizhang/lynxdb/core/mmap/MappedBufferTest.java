@@ -5,10 +5,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
 class MappedBufferTest {
-    private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/data/temp";
     private static final String FILENAME = "MappedBufferTest.log";
     private MappedBuffer mappedBuffer;
 
@@ -27,7 +28,18 @@ class MappedBufferTest {
     }
 
     @Test
-    void get() {
-        mappedBuffer.getBuffer();
+    void testGC() {
+        // 测试时需要改成弱引用
+        func();
+        System.gc();
+        MappedByteBuffer nextBuffer = mappedBuffer.getBuffer();
+        assert nextBuffer.position() != 0;
+    }
+
+    void func() {
+        MappedByteBuffer buffer = mappedBuffer.getBuffer();
+        buffer.put(new byte[]{0x01});
+        System.gc();
+        mappedBuffer.saveSnapshot(buffer);
     }
 }
