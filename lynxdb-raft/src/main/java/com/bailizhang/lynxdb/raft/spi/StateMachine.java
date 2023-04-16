@@ -15,6 +15,8 @@ public interface StateMachine {
 
     void addClusterMember(ServerNode current);
 
+    void addClusterMembers(List<ServerNode> members);
+
     int currentTerm();
 
     void currentTerm(int term);

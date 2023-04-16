@@ -135,6 +135,18 @@ public class LdtpStateMachine implements StateMachine {
     }
 
     @Override
+    public void addClusterMembers(List<ServerNode> members) {
+        byte[] value = ServerNode.nodesToBytes(members);
+
+        clusterTable.insert(
+                MEMBERS_KEY,
+                RAFT_COLUMN_FAMILY,
+                META_INFO_COLUMN,
+                value
+        );
+    }
+
+    @Override
     public int currentTerm() {
         byte[] val = clusterTable.find(
                 CURRENT_TERM,

@@ -1,12 +1,16 @@
 package com.bailizhang.lynxdb.raft.spi;
 
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
 public class RaftSpiService {
+    private static final Logger logger = LoggerFactory.getLogger(RaftSpiService.class);
+
     private static final int MIN_MEMBERS_SIZE = 3;
 
     private static final RaftSpiService service = new RaftSpiService();
@@ -21,10 +25,14 @@ public class RaftSpiService {
         List<ServerNode> initClusterMembers = stateMachine.clusterMembers();
         if(initClusterMembers.isEmpty()) {
             initClusterMembers = raftConfig.initClusterMembers();
-        }
 
-        if(initClusterMembers.size() < MIN_MEMBERS_SIZE) {
-            throw new RuntimeException();
+            if(initClusterMembers.size() < MIN_MEMBERS_SIZE) {
+                throw new RuntimeException();
+            }
+
+            logger.info("Set init cluster members {}.", initClusterMembers);
+
+            stateMachine.addClusterMembers(initClusterMembers);
         }
     }
 

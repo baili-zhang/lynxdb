@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.core.*;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
+import com.bailizhang.lynxdb.raft.request.PreVoteArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
@@ -48,7 +49,11 @@ public class RaftServerHandler implements SocketServerHandler {
         switch (type) {
             case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
             case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
-            default -> throw new RuntimeException();
+            default -> {
+                logger.info("Type is: {}", type);
+
+                throw new RuntimeException();
+            }
         }
     }
 
@@ -66,16 +71,14 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     private void handlePreVoteRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        RequestVoteArgs args = RequestVoteArgs.from(buffer);
+        PreVoteArgs args = PreVoteArgs.from(buffer);
 
         int term = args.term();
-        ServerNode candidate  = args.candidate();
         int lastLogIndex = args.lastLogIndex();
         int lastLogTerm = args.lastLogTerm();
 
         RequestVoteResult result = raftRpcHandler.handlePreVote(
                 term,
-                candidate,
                 lastLogIndex,
                 lastLogTerm
         );

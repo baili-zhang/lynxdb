@@ -20,6 +20,7 @@ public class RaftClientHandler implements SocketClientHandler {
 
     @Override
     public void handleConnected(SelectionKey selectionKey) {
+
     }
 
     @Override

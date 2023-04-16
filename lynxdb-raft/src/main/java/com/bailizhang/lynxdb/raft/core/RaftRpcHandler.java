@@ -78,7 +78,6 @@ public class RaftRpcHandler {
 
     public RequestVoteResult handlePreVote(
             int term,
-            ServerNode candidate,
             int lastLogIndex,
             int lastLogTerm
     ) {
@@ -90,7 +89,9 @@ public class RaftRpcHandler {
         }
 
         int lastIndex = raftLog.maxGlobalIdx();
-        int lastTerm = ByteArrayUtils.toInt(raftLog.lastExtraData());
+
+        byte[] extraData = raftLog.lastExtraData();
+        int lastTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
 
         if(lastLogIndex > lastIndex || (lastLogIndex == lastIndex && lastLogTerm > lastTerm)) {
             return new RequestVoteResult(currentTerm, RequestVoteResult.IS_VOTE_GRANTED);
@@ -171,20 +172,18 @@ public class RaftRpcHandler {
         return raftLog.append(BufferUtils.toBytes(term), data);
     }
 
-    public void registerTimeoutTasks() {
+    public void registerElectionTimeoutTask() {
         long current = System.currentTimeMillis();
         long electionTime = current + electionIntervalMillis;
-        long heartbeatTime = current + HEARTBEAT_INTERVAL_MILLIS;
 
         SocketTimeWheel timeWheel = SocketTimeWheel.timeWheel();
 
         electionTask = timeWheel.register(electionTime, ELECTION_TIMEOUT, this::election);
-        heartbeatTask = timeWheel.register(heartbeatTime, HEARTBEAT_TIMEOUT, this::heartbeat);
 
-        logger.info("Register election and heartbeat timeout task.");
+        logger.info("Register election timeout task.");
     }
 
-    public void connectClusterMembers() {
+    public void connectNotConnectedMembers() {
         RaftState raftState = RaftStateHolder.raftState();
         RaftConfiguration raftConfig = RaftSpiService.raftConfig();
         StateMachine stateMachine = RaftSpiService.stateMachine();
@@ -197,16 +196,32 @@ public class RaftRpcHandler {
                 return;
             }
 
+            if(client.isConnected(member)) {
+                return;
+            }
+
+            logger.info("Try to connect member {}", member);
+
             try {
                 LynxDbFuture<SelectionKey> future = client.connect(member);
-                raftState.matchedIndex().put(future.get(), 0);
+                SelectionKey key = future.get();
+
+                if(key.isValid()) {
+                    raftState.matchedIndex().put(key, 0);
+                    return;
+                }
             } catch (IOException e) {
-                logger.error("Connect member {} failed.", member, e);
+                logger.error("Connect member {} catch exception.", member, e);
             }
+
+            logger.error("Connect member {} failed.", member);
         });
     }
 
     private void election() {
+        // 尝试连接未连接的节点
+        connectNotConnectedMembers();
+
         RaftState raftState = RaftStateHolder.raftState();
         StateMachine stateMachine = RaftSpiService.stateMachine();
 
@@ -249,7 +264,9 @@ public class RaftRpcHandler {
 
         RaftState raftState = RaftStateHolder.raftState();
         RaftConfiguration raftConfig = RaftSpiService.raftConfig();
-        StateMachine stateMachine = RaftSpiService.stateMachine();
+
+        // 连接集群中的还未连接上的其他节点
+        connectNotConnectedMembers();
 
         logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
 
@@ -259,26 +276,23 @@ public class RaftRpcHandler {
 
         var matchedIndex = raftState.matchedIndex();
 
-        // 如果当前没有 follower 节点
-        if(matchedIndex.isEmpty()) {
-            int lastLogIdx = raftLog.maxGlobalIdx();
-            if(!commitIndex.compareAndSet(lastCommitIndex, lastLogIdx)) {
-                throw new RuntimeException();
-            }
+        byte[] extraData = raftLog.lastExtraData();
+        int lastLogTerm = extraData == null ? 0 : ByteArrayUtils.toInt(extraData);
 
-            UncommittedClientRequests requests = UncommittedClientRequests.requests();
-            List<ClientRequest> needApplyRequests = requests.pollUntil(lastLogIdx);
-            stateMachine.apply(needApplyRequests);
-            return;
-        }
+        List<SelectionKey> invalid = new ArrayList<>();
 
         // 如果有 follower 节点，则需要发送 AppendEntries 请求
         matchedIndex.forEach(((selectionKey, commit) -> {
+            if(!selectionKey.isValid()) {
+                invalid.add(selectionKey);
+                return;
+            }
+
             AppendEntriesArgs args = new AppendEntriesArgs(
                     term,
                     raftConfig.currentNode(),
                     raftLog.maxGlobalIdx(),
-                    ByteArrayUtils.toInt(raftLog.lastExtraData()),
+                    lastLogTerm,
                     new ArrayList<>(),
                     lastCommitIndex
             );
@@ -287,7 +301,9 @@ public class RaftRpcHandler {
             client.send(appendEntries);
         }));
 
-        long nextHeartbeatTime = electionTask.time() + electionIntervalMillis;
-        electionTask = timeWheel.register(nextHeartbeatTime, ELECTION_TIMEOUT, this::election);
+        invalid.forEach(matchedIndex::remove);
+
+        long nextHeartbeatTime = heartbeatTask.time() + HEARTBEAT_INTERVAL_MILLIS;
+        heartbeatTask = timeWheel.register(nextHeartbeatTime, HEARTBEAT_TIMEOUT, this::heartbeat);
     }
 }

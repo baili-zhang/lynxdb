@@ -8,7 +8,7 @@ import java.nio.channels.SelectionKey;
 public abstract class NioMessage extends NioSelectionKey
         implements BytesListConvertible {
 
-    protected final BytesList bytesList = new BytesList();
+    protected final BytesList bytesList = new BytesList(false);
 
     public NioMessage(SelectionKey key) {
         super(key);

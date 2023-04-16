@@ -27,10 +27,8 @@ public class RaftServer extends SocketServer {
         RaftClient raftClient = RaftClient.client();
         Executor.start(raftClient);
 
-        // 连接集群的节点
-        raftRpcHandler.connectClusterMembers();
         // 注册定时器任务
-        raftRpcHandler.registerTimeoutTasks();
+        raftRpcHandler.registerElectionTimeoutTask();
 
         super.doBeforeExecute();
     }

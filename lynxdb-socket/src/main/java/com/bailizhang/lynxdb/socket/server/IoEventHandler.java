@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -48,7 +47,6 @@ public class IoEventHandler implements Runnable {
     /* 每次读一个请求 */
     private void doRead() throws Exception {
         ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
-        SocketAddress address = ((SocketChannel) selectionKey.channel()).getRemoteAddress();
 
         /* 从socket channel中读取数据 */
         try {
