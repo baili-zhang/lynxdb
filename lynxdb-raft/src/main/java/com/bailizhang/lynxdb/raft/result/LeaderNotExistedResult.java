@@ -9,7 +9,7 @@ import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.LEADER_NOT_EXISTED
 public record LeaderNotExistedResult() implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LEADER_NOT_EXISTED_RESULT);
         return bytesList;
     }

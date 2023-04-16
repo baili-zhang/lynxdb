@@ -14,7 +14,7 @@ public record PreVoteResult(
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
 
         bytesList.appendRawByte(RAFT_RPC);
         bytesList.appendRawByte(PRE_VOTE_RESULT);

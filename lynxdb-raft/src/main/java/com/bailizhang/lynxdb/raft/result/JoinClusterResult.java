@@ -10,7 +10,7 @@ public record JoinClusterResult(
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(JOIN_CLUSTER_RESULT);
         bytesList.appendRawByte(flag);
         return bytesList;

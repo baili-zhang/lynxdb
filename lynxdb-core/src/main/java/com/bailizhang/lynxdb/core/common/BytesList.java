@@ -151,6 +151,10 @@ public class BytesList implements BytesConvertible {
         return bytesList;
     }
 
+    public boolean withoutLength() {
+        return !withLength;
+    }
+
     private static class BytesNode<V> {
         private final byte type;
         private final V value;

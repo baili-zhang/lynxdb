@@ -13,7 +13,7 @@ public record InstallSnapshotResult(
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
 
         bytesList.appendRawByte(INSTALL_SNAPSHOT_RESULT);
         bytesList.appendRawInt(term);

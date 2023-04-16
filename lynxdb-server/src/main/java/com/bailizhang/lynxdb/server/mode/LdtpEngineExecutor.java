@@ -12,7 +12,8 @@ import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
-import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
+import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
+import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
     private final SocketServer server;
     private final LdtpStorageEngine engine;
-    private final SocketTimeWheel timeWheel;
+    private final LynxDbTimeWheel timeWheel;
 
     private final ConcurrentLinkedQueue<Runnable> tasksQueue;
     private final Thread tasksThread;
@@ -44,7 +45,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
     public LdtpEngineExecutor(SocketServer socketServer) {
         server = socketServer;
         engine = new LdtpStorageEngine();
-        timeWheel = SocketTimeWheel.timeWheel();
+        timeWheel = new LynxDbTimeWheel();
         tasksQueue = new ConcurrentLinkedQueue<>();
         affectKeyRegistry = new AffectKeyRegistry();
         tasksThread = new Thread(this::runTask, TASKS_THREAD_NAME);
@@ -182,11 +183,13 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         MessageKey messageKey = timeoutValue.messageKey();
         long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
 
-        timeWheel.register(timestamp, messageKey, () -> {
+        TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
             sendTimeoutValueToClient(messageKey, selectionKey);
             engine.removeTimeoutKey(messageKey);
             engine.removeData(messageKey);
         });
+
+        timeWheel.register(task);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);

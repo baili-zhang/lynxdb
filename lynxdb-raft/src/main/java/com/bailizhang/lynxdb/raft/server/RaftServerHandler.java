@@ -6,10 +6,7 @@ import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
 import com.bailizhang.lynxdb.raft.request.InstallSnapshotArgs;
 import com.bailizhang.lynxdb.raft.request.PreVoteArgs;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
-import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
-import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
-import com.bailizhang.lynxdb.raft.result.LeaderNotExistedResult;
-import com.bailizhang.lynxdb.raft.result.RequestVoteResult;
+import com.bailizhang.lynxdb.raft.result.*;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
@@ -77,7 +74,7 @@ public class RaftServerHandler implements SocketServerHandler {
         int lastLogIndex = args.lastLogIndex();
         int lastLogTerm = args.lastLogTerm();
 
-        RequestVoteResult result = raftRpcHandler.handlePreVote(
+        PreVoteResult result = raftRpcHandler.handlePreVote(
                 term,
                 lastLogIndex,
                 lastLogTerm
@@ -177,7 +174,7 @@ public class RaftServerHandler implements SocketServerHandler {
 
             logger.info("Add client request to UncommittedClientRequests.");
 
-            raftRpcHandler.heartbeat();
+            RaftTimeWheel.timeWheel().heartbeat();
             return;
         }
 

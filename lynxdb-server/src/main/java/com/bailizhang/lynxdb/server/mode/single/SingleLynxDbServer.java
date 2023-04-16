@@ -1,13 +1,13 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.raft.core.RaftTimeWheel;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.socket.server.SocketServerConfig;
-import com.bailizhang.lynxdb.socket.timewheel.SocketTimeWheel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +37,8 @@ public class SingleLynxDbServer implements LynxDbServer {
     public void run() {
         logger.info("Run LynxDB single server.");
 
-        SocketTimeWheel socketTimeWheel = SocketTimeWheel.timeWheel();
-        socketTimeWheel.start();
+        RaftTimeWheel raftTimeWheel = RaftTimeWheel.timeWheel();
+        raftTimeWheel.start();
 
         Executor.start(server);
         Executor.start(engineExecutor);

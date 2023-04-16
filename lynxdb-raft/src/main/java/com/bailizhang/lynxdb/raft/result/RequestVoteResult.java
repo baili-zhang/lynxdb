@@ -6,6 +6,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import java.nio.ByteBuffer;
 
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.REQUEST_VOTE;
+import static com.bailizhang.lynxdb.ldtp.result.ResultType.RAFT_RPC;
 
 public record RequestVoteResult(
         int term,
@@ -13,8 +14,9 @@ public record RequestVoteResult(
 ) implements BytesListConvertible {
     @Override
     public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        BytesList bytesList = new BytesList(false);
 
+        bytesList.appendRawByte(RAFT_RPC);
         bytesList.appendRawByte(REQUEST_VOTE);
         bytesList.appendRawInt(term);
         bytesList.appendRawByte(voteGranted);

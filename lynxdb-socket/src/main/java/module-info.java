@@ -12,5 +12,4 @@ module lynxdb.socket {
     exports com.bailizhang.lynxdb.socket.response;
     exports com.bailizhang.lynxdb.socket.result;
     exports com.bailizhang.lynxdb.socket.server;
-    exports com.bailizhang.lynxdb.socket.timewheel;
 }
