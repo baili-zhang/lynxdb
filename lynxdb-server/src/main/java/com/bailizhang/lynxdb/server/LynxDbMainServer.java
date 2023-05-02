@@ -8,6 +8,7 @@ import com.bailizhang.lynxdb.server.mode.cluster.ClusterLynxDbServer;
 import com.bailizhang.lynxdb.server.mode.single.SingleLynxDbServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import java.io.IOException;
 

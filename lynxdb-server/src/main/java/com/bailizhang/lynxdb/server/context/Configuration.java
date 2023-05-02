@@ -11,8 +11,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -165,6 +167,10 @@ public class Configuration {
         List<String> items = new ArrayList<>();
 
         for(Field field : fields) {
+            if(Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+
             String key = field.getName();
             Object value = FieldUtils.get(this, field);
 

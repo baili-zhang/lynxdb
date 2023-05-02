@@ -13,7 +13,6 @@ public class RaftStateHolder {
             new HashSet<>(),
             new ConcurrentHashMap<>(),
             new ConcurrentHashMap<>(),
-            new AtomicReference<>(),
             new AtomicReference<>()
     );
 

@@ -91,7 +91,7 @@ public class RaftTimeWheel {
                 return;
             }
 
-            logger.info("Try to connect member {}", member);
+            logger.trace("Try to connect member {}", member);
 
             try {
                 LynxDbFuture<SelectionKey> future = client.connect(member);
@@ -105,7 +105,7 @@ public class RaftTimeWheel {
                 logger.error("Connect member {} catch exception.", member, e);
             }
 
-            logger.error("Connect member {} failed.", member);
+            logger.trace("Connect member {} failed.", member);
         });
     }
 
@@ -115,7 +115,7 @@ public class RaftTimeWheel {
 
         List<ServerNode> nodes = stateMachine.clusterMembers();
 
-        logger.info("Run election task, time: {}, cluster nodes: {}",
+        logger.trace("Run election task, time: {}, cluster nodes: {}",
                 System.currentTimeMillis(), nodes);
 
         AtomicReference<RaftRole> role = raftState.role();

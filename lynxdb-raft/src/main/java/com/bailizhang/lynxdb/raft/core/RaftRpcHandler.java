@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.core;
 
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
@@ -38,6 +39,7 @@ public class RaftRpcHandler {
         raftState.currentTerm().set(currentTerm);
     }
 
+    @CheckThreadSafety
     public PreVoteResult handlePreVote(
             int term,
             int lastLogIndex,
@@ -60,6 +62,7 @@ public class RaftRpcHandler {
         return new PreVoteResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public RequestVoteResult handleRequestVote(
             int term,
             ServerNode candidate,
@@ -67,24 +70,22 @@ public class RaftRpcHandler {
             int lastLogTerm
     ) {
         int currentTerm = raftState.currentTerm().get();
-        ServerNode votedFor = raftState.voteFor().get();
-
-        if(term < currentTerm || (term == currentTerm && votedFor != null)) {
+        if(term < currentTerm) {
             return new RequestVoteResult(currentTerm, FALSE);
         }
 
         int lastIndex = raftLog.maxIndex();
         int lastTerm = raftLog.maxTerm();
 
-        if(lastLogIndex >= lastIndex && lastLogTerm >= lastTerm) {
-            if(raftState.voteFor().compareAndSet(votedFor, candidate)) {
-                return new RequestVoteResult(currentTerm, TRUE);
-            }
+        if(lastLogIndex >= lastIndex && lastLogTerm >= lastTerm
+                && stateMachine.voteForIfNull(term, candidate)) {
+            return new RequestVoteResult(currentTerm, TRUE);
         }
 
         return new RequestVoteResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public AppendEntriesResult handleAppendEntries(
             int term,
             ServerNode leader,
@@ -112,6 +113,7 @@ public class RaftRpcHandler {
         return new AppendEntriesResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public InstallSnapshotResult handleInstallSnapshot(
             int term,
             ServerNode leader,
@@ -124,6 +126,7 @@ public class RaftRpcHandler {
         return null;
     }
 
+    @CheckThreadSafety
     public int persistenceClientRequest(byte[] data) {
         int term = raftState.currentTerm().get();
         return raftLog.append(term, data);

@@ -1,11 +1,13 @@
 package com.bailizhang.lynxdb.raft.core;
 
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.spi.RaftSpiService;
 import com.bailizhang.lynxdb.raft.spi.StateMachine;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,14 +32,22 @@ public class RaftRpcResultHandler {
         raftLog = RaftLog.raftLog();
     }
 
+    @CheckThreadSafety
     public void handlePreVoteResult(
             SelectionKey selectionKey,
             int term,
             byte voteGranted
     ) {
-        logger.info("Handle preVote result, term: {}, voteGranted:{}.", term, voteGranted == TRUE);
+        logger.info("Handle preVote result, term: {}, voteGranted: {}.", term, voteGranted == TRUE);
 
         if(voteGranted != TRUE) {
+            return;
+        }
+
+        ServerNode current = raftConfig.currentNode();
+
+        if(!stateMachine.voteForIfNull(term, current)) {
+            logger.info("Has vote for node: {}", stateMachine.voteFor());
             return;
         }
 
@@ -46,7 +56,7 @@ public class RaftRpcResultHandler {
 
         RequestVoteArgs args = new RequestVoteArgs(
                 currentTerm,
-                raftConfig.currentNode(),
+                current,
                 raftLog.maxIndex(),
                 raftLog.maxTerm()
         );
@@ -55,6 +65,7 @@ public class RaftRpcResultHandler {
         client.broadcast(requestVote);
     }
 
+    @CheckThreadSafety
     public void handleRequestVoteResult(
             SelectionKey selectionKey,
             int term,
@@ -71,11 +82,11 @@ public class RaftRpcResultHandler {
         int clusterSize = stateMachine.clusterMembers().size();
 
         if(votedCount > ((clusterSize >> 1) + 1)) {
-            raftState.role().compareAndSet(RaftRole.CANDIDATE, RaftRole.LEADER);
-            RaftTimeWheel.timeWheel().heartbeat();
+            raftState.changeRoleToLeader();
         }
     }
 
+    @CheckThreadSafety
     public void handleAppendEntriesResult(
             SelectionKey selectionKey,
             int term,
@@ -84,6 +95,7 @@ public class RaftRpcResultHandler {
 
     }
 
+    @CheckThreadSafety
     public void handleInstallSnapshotResult(SelectionKey selectionKey, int term) {
     }
 }
