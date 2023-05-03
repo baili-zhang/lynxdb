@@ -19,6 +19,7 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -31,9 +32,9 @@ import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 public class LdtpStateMachine implements StateMachine {
     private static final String RAFT_COLUMN_FAMILY = "RAFT";
     private static final String META_INFO_COLUMN = "metaInfo";
+    private static final String VOTE_FOR = "voteFor";
     private static final byte[] MEMBERS_KEY = G.I.toBytes("clusterMembers");
     private static final byte[] CURRENT_TERM = G.I.toBytes("currentTerm");
-    private static final byte[] VOTE_FOR = G.I.toBytes("voteFor");
 
     // TODO: 能不能改成不是静态变量？
     private static LdtpEngineExecutor engineExecutor;
@@ -76,6 +77,7 @@ public class LdtpStateMachine implements StateMachine {
         }
     }
 
+    @CheckThreadSafety
     @Override
     public synchronized List<ServerNode> clusterMembers() {
         byte[] value = raftMetaTable.find(
@@ -121,6 +123,7 @@ public class LdtpStateMachine implements StateMachine {
         );
     }
 
+    @CheckThreadSafety
     @Override
     public synchronized int currentTerm() {
         byte[] val = raftMetaTable.find(
@@ -147,11 +150,13 @@ public class LdtpStateMachine implements StateMachine {
     }
 
     @Override
-    public synchronized ServerNode voteFor() {
+    public synchronized ServerNode voteFor(int term) {
+        byte[] key = BufferUtils.toBytes(term);
+
         byte[] value = raftMetaTable.find(
-                VOTE_FOR,
+                key,
                 RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN
+                VOTE_FOR
         );
 
         return value == null ? null : ServerNode.from(G.I.toString(value));
@@ -163,34 +168,27 @@ public class LdtpStateMachine implements StateMachine {
             throw new RuntimeException();
         }
 
-        boolean existed = raftMetaTable.existKey(
-                VOTE_FOR,
+        byte[] key = BufferUtils.toBytes(term);
+        byte[] findValue = raftMetaTable.find(
+                key,
                 RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN
+                VOTE_FOR
         );
 
-        if(existed) {
+        byte[] value = G.I.toBytes(node.toString());
+
+        if(findValue != null && !Arrays.equals(findValue, value)) {
             return false;
         }
 
-        byte[] value = G.I.toBytes(node.toString());
         raftMetaTable.insert(
-                VOTE_FOR,
+                key,
                 RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN,
+                VOTE_FOR,
                 value
         );
 
         return true;
-    }
-
-    @Override
-    public void clearVoteFor() {
-        raftMetaTable.delete(
-                VOTE_FOR,
-                RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN
-        );
     }
 
     private void handleRaftRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {

@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public record RaftState(
         AtomicReference<RaftRole> role,
-        AtomicInteger currentTerm,
         AtomicInteger commitIndex,
         HashSet<SelectionKey> votedNodes,
         ConcurrentHashMap<SelectionKey, Integer> nextIndex,
@@ -23,7 +22,7 @@ public record RaftState(
 
     public void changeRoleToLeader() {
         role.compareAndSet(RaftRole.CANDIDATE, RaftRole.LEADER);
-        RaftTimeWheel.timeWheel().heartbeat();
+        RaftTimeWheel.timeWheel().resetHeartbeat();
 
         logger.info("Upgrade role from candidate to leader.");
     }

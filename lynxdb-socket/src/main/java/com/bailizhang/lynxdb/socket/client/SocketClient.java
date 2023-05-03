@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.socket.client;
 
 import com.bailizhang.lynxdb.core.common.BytesConvertible;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
@@ -68,6 +69,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
+    @CheckThreadSafety
     public synchronized LynxDbFuture<SelectionKey> connect(ServerNode node) throws IOException {
         SocketAddress address = new InetSocketAddress(node.host(), node.port());
         SocketChannel socketChannel = SocketChannel.open();
@@ -115,7 +117,16 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
     @Override
     public void offerInterruptibly(WritableSocketRequest request) {
+        SelectionKey selectionKey = request.selectionKey();;
+
         ConnectionContext context = contexts.get(request.selectionKey());
+        if(context == null) {
+            if(!selectionKey.isValid()) {
+                return;
+            }
+            throw new RuntimeException();
+        }
+
         context.offerRequest(request);
         interrupt();
     }
@@ -155,6 +166,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         return requestSerial;
     }
 
+    @CheckThreadSafety
     public synchronized void broadcast(BytesConvertible message) {
         byte[] data = message.toBytes();
         int broadcastSerial = serial.incrementAndGet();

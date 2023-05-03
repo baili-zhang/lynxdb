@@ -28,10 +28,12 @@ public class RaftTimeWheel {
 
     private static final String HEARTBEAT_TIMEOUT = "heartbeatTimeout";
     private static final String ELECTION_TIMEOUT = "electionTimeout";
+    private static final String CONNECT_MEMBERS_TIMEOUT = "connectMemberTimeout";
 
     private static final int HEARTBEAT_INTERVAL_MILLIS = 80;
     private static final int ELECTION_MIN_INTERVAL_MILLIS = 150;
     private static final int ELECTION_MAX_INTERVAL_MILLIS = 300;
+    private static final int CONNECT_MEMBERS_INTERVAL_MILLIS = 1000;
 
     private static final RaftTimeWheel RAFT_TIME_WHEEL = new RaftTimeWheel();
 
@@ -45,8 +47,9 @@ public class RaftTimeWheel {
 
     private final int electionIntervalMillis;
 
-    private volatile TimeoutTask electionTask;
-    private volatile TimeoutTask heartbeatTask;
+    private final AtomicReference<TimeoutTask> electionTask;
+    private final AtomicReference<TimeoutTask> heartbeatTask;
+    private final AtomicReference<TimeoutTask> connectMemberTask;
 
     public static RaftTimeWheel timeWheel() {
         return RAFT_TIME_WHEEL;
@@ -65,20 +68,16 @@ public class RaftTimeWheel {
                 (ELECTION_MAX_INTERVAL_MILLIS - ELECTION_MIN_INTERVAL_MILLIS)))
                 + ELECTION_MIN_INTERVAL_MILLIS;
 
+        electionTask = new AtomicReference<>();
+        heartbeatTask = new AtomicReference<>();
+        connectMemberTask = new AtomicReference<>();
+
         logger.info("Election interval time: {} ms", electionIntervalMillis);
     }
 
-    public void registerElectionTimeoutTask() {
-        long current = System.currentTimeMillis();
-        long electionTime = current + electionIntervalMillis;
+    public void connectMembers() {
+        resetConnectMembers();
 
-        electionTask = new TimeoutTask(electionTime, ELECTION_TIMEOUT, this::election);
-        timeWheel.register(electionTask);
-
-        logger.info("Register election timeout task.");
-    }
-
-    public void connectNotConnectedMembers() {
         List<ServerNode> members = stateMachine.clusterMembers();
 
         members.forEach(member -> {
@@ -110,8 +109,7 @@ public class RaftTimeWheel {
     }
 
     private void election() {
-        // 尝试连接未连接的节点
-        connectNotConnectedMembers();
+        resetElection();
 
         List<ServerNode> nodes = stateMachine.clusterMembers();
 
@@ -123,10 +121,10 @@ public class RaftTimeWheel {
         // 转换成 candidate, 并发起预投票
         role.set(RaftRole.CANDIDATE);
 
-        int term = raftState.currentTerm().get();
+        int term = stateMachine.currentTerm();
 
         PreVoteArgs args = new PreVoteArgs(
-                term + 1,
+                term,
                 raftLog.maxIndex(),
                 raftLog.maxTerm()
         );
@@ -134,23 +132,15 @@ public class RaftTimeWheel {
         PreVote preVote = new PreVote(args);
         client.broadcast(preVote);
 
-        long nextElectionTime = electionTask.time() + electionIntervalMillis;
-        electionTask = new TimeoutTask(nextElectionTime, ELECTION_TIMEOUT, this::election);
-        timeWheel.register(electionTask);
+        logger.info("Send PRE VOTE rpc to cluster members.");
     }
 
-    /**
-     * TODO: 线程安全需要测试和分析
-     */
-    public synchronized void heartbeat() {
-        timeWheel.unregister(heartbeatTask);
-
-        // 连接集群中的还未连接上的其他节点
-        connectNotConnectedMembers();
+    public void heartbeat() {
+        resetHeartbeat();
 
         logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
 
-        int term = raftState.currentTerm().get();
+        int term = stateMachine.currentTerm();
         AtomicInteger commitIndex = raftState.commitIndex();
         int lastCommitIndex = commitIndex.get();
 
@@ -180,10 +170,66 @@ public class RaftTimeWheel {
         }));
 
         invalid.forEach(matchedIndex::remove);
+    }
 
-        long nextHeartbeatTime = heartbeatTask.time() + HEARTBEAT_INTERVAL_MILLIS;
-        heartbeatTask = new TimeoutTask(nextHeartbeatTime, HEARTBEAT_TIMEOUT, this::heartbeat);
-        timeWheel.register(heartbeatTask);
+    public void resetElection() {
+        long runTaskTime = System.currentTimeMillis() + electionIntervalMillis;
+
+        if(electionTask.get() == null) {
+            TimeoutTask task = new TimeoutTask(
+                    runTaskTime,
+                    ELECTION_TIMEOUT,
+                    this::election
+            );
+
+            electionTask.set(task);
+            timeWheel.register(task);
+            logger.info("Register election timeout task.");
+            return;
+        }
+
+        electionTask.set(timeWheel.reset(electionTask.get(), runTaskTime));
+        logger.trace("Reset election timeout task.");
+    }
+
+    public void resetHeartbeat() {
+        long runTaskTime = System.currentTimeMillis() + HEARTBEAT_INTERVAL_MILLIS;
+
+        if(heartbeatTask.get() == null) {
+            TimeoutTask task = new TimeoutTask(
+                    runTaskTime,
+                    HEARTBEAT_TIMEOUT,
+                    this::heartbeat
+            );
+
+            heartbeatTask.set(task);
+            timeWheel.register(task);
+            logger.info("Register heartbeat timeout task.");
+            return;
+        }
+
+        heartbeatTask.set(timeWheel.reset(heartbeatTask.get(), runTaskTime));
+        logger.info("Reset heartbeat timeout task, resetTime: {}", runTaskTime);
+    }
+
+    public void resetConnectMembers() {
+        long runTaskTime = System.currentTimeMillis() + CONNECT_MEMBERS_INTERVAL_MILLIS;
+
+        if(connectMemberTask.get() == null) {
+            TimeoutTask task = new TimeoutTask(
+                    runTaskTime,
+                    CONNECT_MEMBERS_TIMEOUT,
+                    this::connectMembers
+            );
+
+            connectMemberTask.set(task);
+            timeWheel.register(task);
+            logger.info("Register connect member timeout task.");
+            return;
+        }
+
+        connectMemberTask.set(timeWheel.reset(connectMemberTask.get(), runTaskTime));
+        logger.trace("Reset connect member timeout task.");
     }
 
     public void start() {

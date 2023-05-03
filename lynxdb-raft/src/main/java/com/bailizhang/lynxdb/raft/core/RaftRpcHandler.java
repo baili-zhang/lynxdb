@@ -34,9 +34,6 @@ public class RaftRpcHandler {
         }
 
         raftState = RaftStateHolder.raftState();
-
-        int currentTerm = stateMachine.currentTerm();
-        raftState.currentTerm().set(currentTerm);
     }
 
     @CheckThreadSafety
@@ -45,10 +42,9 @@ public class RaftRpcHandler {
             int lastLogIndex,
             int lastLogTerm
     ) {
-        RaftState raftState = RaftStateHolder.raftState();
-        int currentTerm = raftState.currentTerm().get();
+        int currentTerm = stateMachine.currentTerm();
 
-        if(term <= currentTerm) {
+        if(term < currentTerm) {
             return new PreVoteResult(currentTerm, FALSE);
         }
 
@@ -69,7 +65,7 @@ public class RaftRpcHandler {
             int lastLogIndex,
             int lastLogTerm
     ) {
-        int currentTerm = raftState.currentTerm().get();
+        int currentTerm = stateMachine.currentTerm();
         if(term < currentTerm) {
             return new RequestVoteResult(currentTerm, FALSE);
         }
@@ -94,12 +90,14 @@ public class RaftRpcHandler {
             List<LogEntry> entries,
             int leaderCommit
     ) {
-        int currentTerm = raftState.currentTerm().get();
+        int currentTerm = stateMachine.currentTerm();
         ServerNode leaderNode = raftState.leader().get();
 
         if(term < currentTerm || (leaderNode != null && !leaderNode.equals(leader))) {
             return new AppendEntriesResult(currentTerm, FALSE);
         }
+
+        RaftTimeWheel.timeWheel().resetHeartbeat();
 
         int preIndex = raftLog.maxIndex();
         int preTerm = raftLog.maxTerm();
@@ -128,7 +126,7 @@ public class RaftRpcHandler {
 
     @CheckThreadSafety
     public int persistenceClientRequest(byte[] data) {
-        int term = raftState.currentTerm().get();
+        int term = stateMachine.currentTerm();
         return raftLog.append(term, data);
     }
 }

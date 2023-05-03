@@ -21,9 +21,7 @@ public interface StateMachine {
 
     void currentTerm(int term);
 
-    ServerNode voteFor();
+    ServerNode voteFor(int term);
 
     boolean voteForIfNull(int term, ServerNode node);
-
-    void clearVoteFor();
 }

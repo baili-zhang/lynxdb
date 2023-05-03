@@ -44,15 +44,15 @@ public class RaftRpcResultHandler {
             return;
         }
 
+        int currentTerm = stateMachine.currentTerm();
+        stateMachine.currentTerm(++ currentTerm);
+
         ServerNode current = raftConfig.currentNode();
 
-        if(!stateMachine.voteForIfNull(term, current)) {
-            logger.info("Has vote for node: {}", stateMachine.voteFor());
+        if(!stateMachine.voteForIfNull(currentTerm, current)) {
+            logger.info("Has vote for node: {}", stateMachine.voteFor(currentTerm));
             return;
         }
-
-        int currentTerm = raftState.currentTerm().incrementAndGet();
-        stateMachine.currentTerm(currentTerm);
 
         RequestVoteArgs args = new RequestVoteArgs(
                 currentTerm,
@@ -63,6 +63,8 @@ public class RaftRpcResultHandler {
 
         RequestVote requestVote = new RequestVote(args);
         client.broadcast(requestVote);
+
+        logger.info("Send request vote rpc to cluster members.");
     }
 
     @CheckThreadSafety
@@ -81,7 +83,10 @@ public class RaftRpcResultHandler {
         int votedCount = votedNodes.size();
         int clusterSize = stateMachine.clusterMembers().size();
 
-        if(votedCount > ((clusterSize >> 1) + 1)) {
+        boolean isVotedCountEnough = (votedCount + 1) >= ((clusterSize >> 1) + 1);
+        logger.info("Can upgrade role to leader: {}.", isVotedCountEnough);
+
+        if(isVotedCountEnough) {
             raftState.changeRoleToLeader();
         }
     }
@@ -92,7 +97,7 @@ public class RaftRpcResultHandler {
             int term,
             byte voteGranted
     ) {
-
+        RaftTimeWheel.timeWheel().resetHeartbeat();
     }
 
     @CheckThreadSafety
