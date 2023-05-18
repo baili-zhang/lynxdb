@@ -135,11 +135,46 @@ public class Level {
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys
     ) {
-        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+        return range(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                null,
+                SsTable::rangeNext
+        );
+    }
+
+    public List<Key> rangeBefore(
+            byte[] endKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        return range(
+                endKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                Comparator.reverseOrder(),
+                SsTable::rangeBefore
+        );
+    }
+
+    private List<Key> range(
+            byte[] baseKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys,
+            Comparator<Key> comparator,
+            RangeOperator operator
+    ) {
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(comparator);
 
         for(SsTable ssTable : ssTables) {
-            List<Key> keys = ssTable.rangeNext(
-                    beginKey,
+            List<Key> keys = operator.doRange(
+                    ssTable,
+                    baseKey,
                     limit,
                     deletedKeys,
                     existedKeys
@@ -188,5 +223,16 @@ public class Level {
                 valueFileGroup
         );
         ssTables.addFirst(ssTable);
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<Key> doRange(
+                SsTable ssTable,
+                byte[] baseKey,
+                int limit,
+                HashSet<Key> deletedKeys,
+                HashSet<Key> existedKeys
+        );
     }
 }

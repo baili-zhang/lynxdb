@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
@@ -230,11 +231,42 @@ public class SsTable {
             HashSet<Key> existedKeys
     ) {
         int idx = findIdxBiggerThan(beginKey);
+        return range(
+                idx,
+                limit,
+                deletedKeys,
+                existedKeys,
+                true
+        );
+    }
 
+    public List<Key> rangeBefore(
+            byte[] endKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        int idx = findIdxLessThan(endKey);
+        return range(
+                idx,
+                limit,
+                deletedKeys,
+                existedKeys,
+                false
+        );
+    }
+
+    private List<Key> range(
+            int idx,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys,
+            boolean isRangeNext
+    ) {
         List<Key> range = new ArrayList<>();
 
         while (limit > 0 && idx < size()) {
-            IndexEntry indexEntry = findIndexEntry(idx ++);
+            IndexEntry indexEntry = findIndexEntry(isRangeNext ? idx ++ : idx --);
             KeyEntry keyEntry = findKeyEntry(indexEntry);
 
             Key key = new Key(keyEntry.key());
@@ -256,7 +288,6 @@ public class SsTable {
 
         return range;
     }
-
 
     private static int ssTableSize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
@@ -284,6 +315,22 @@ public class SsTable {
     }
 
     private int findIdxBiggerThan(byte[] key) {
+        Pair<KeyEntry, Integer> result = binarySearch(key);
+        KeyEntry midKeyEntry = result.left();
+        int idx = result.right();
+
+        return Arrays.equals(key, midKeyEntry.key()) ? idx + 1 : idx;
+    }
+
+    private int findIdxLessThan(byte[] key) {
+        Pair<KeyEntry, Integer> result = binarySearch(key);
+        KeyEntry midKeyEntry = result.left();
+        int idx = result.right();
+
+        return Arrays.equals(key, midKeyEntry.key()) ? idx - 1 : idx;
+    }
+
+    private Pair<KeyEntry, Integer> binarySearch(byte[] key) {
         int begin = 0, end = size() - 1, mid, idx = size();
 
         IndexEntry midIndexEntry;
@@ -306,7 +353,7 @@ public class SsTable {
             throw new RuntimeException();
         }
 
-        return Arrays.equals(key, midKeyEntry.key()) ? idx + 1 : idx;
+        return new Pair<>(midKeyEntry, idx);
     }
 
     private int size() {

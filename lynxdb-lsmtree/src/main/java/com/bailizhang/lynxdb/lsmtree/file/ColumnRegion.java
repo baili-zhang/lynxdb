@@ -149,89 +149,25 @@ public class ColumnRegion {
     }
 
     public List<byte[]> rangeNext(byte[] beginKey, int limit) {
-        HashSet<Key> existedKeys = new HashSet<>();
-        HashSet<Key> deletedKeys = new HashSet<>();
-
-        List<Key> mKeys = mutable.rangeNext(
+        return range(
                 beginKey,
                 limit,
-                deletedKeys,
-                existedKeys
+                Comparator.naturalOrder(),
+                mutable::rangeNext,
+                immutable::rangeNext,
+                levelTree::rangeNext
         );
-
-        List<Key> imKeys = immutable == null
-                ? new ArrayList<>()
-                : immutable.rangeNext(beginKey, limit, deletedKeys, existedKeys);
-
-        List<Key> lKeys = levelTree.rangeNext(
-                beginKey,
-                limit,
-                deletedKeys,
-                existedKeys
-        );
-
-        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
-        priorityQueue.addAll(mKeys);
-        priorityQueue.addAll(imKeys);
-        priorityQueue.addAll(lKeys);
-
-        List<Key> range = new ArrayList<>();
-
-        for(int i = 0; i < limit; i ++) {
-            Key key = priorityQueue.poll();
-
-            if(key == null) {
-                break;
-            }
-
-            range.add(key);
-        }
-
-        range.sort(Key::compareTo);
-        return range.stream().map(Key::bytes).toList();
     }
 
-    public List<byte[]> rangeBefore(byte[] beginKey, int limit) {
-        HashSet<Key> existedKeys = new HashSet<>();
-        HashSet<Key> deletedKeys = new HashSet<>();
-
-        List<Key> mKeys = mutable.rangeBefore(
-                beginKey,
+    public List<byte[]> rangeBefore(byte[] endKey, int limit) {
+        return range(
+                endKey,
                 limit,
-                deletedKeys,
-                existedKeys
+                Comparator.reverseOrder(),
+                mutable::rangeBefore,
+                immutable::rangeBefore,
+                levelTree::rangeBefore
         );
-
-        List<Key> imKeys = immutable == null
-                ? new ArrayList<>()
-                : immutable.rangeBefore(beginKey, limit, deletedKeys, existedKeys);
-
-        List<Key> lKeys = levelTree.rangeBefore(
-                beginKey,
-                limit,
-                deletedKeys,
-                existedKeys
-        );
-
-        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(Comparator.reverseOrder());
-        priorityQueue.addAll(mKeys);
-        priorityQueue.addAll(imKeys);
-        priorityQueue.addAll(lKeys);
-
-        List<Key> range = new ArrayList<>();
-
-        for(int i = 0; i < limit; i ++) {
-            Key key = priorityQueue.poll();
-
-            if(key == null) {
-                break;
-            }
-
-            range.add(key);
-        }
-
-        range.sort(Comparator.reverseOrder());
-        return range.stream().map(Key::bytes).toList();
     }
 
     public String columnFamily() {
@@ -240,6 +176,56 @@ public class ColumnRegion {
 
     public String column() {
         return column;
+    }
+
+    private List<byte[]> range(
+            byte[] beginKey,
+            int limit,
+            Comparator<Key> comparator,
+            RangeOperator mutableRangeOperator,
+            RangeOperator immutableRangeOperator,
+            RangeOperator levelTreeRangeOperator
+    ) {
+        HashSet<Key> existedKeys = new HashSet<>();
+        HashSet<Key> deletedKeys = new HashSet<>();
+
+        List<Key> mKeys = mutableRangeOperator.doRange(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
+
+        List<Key> imKeys = immutable == null
+                ? new ArrayList<>()
+                : immutableRangeOperator.doRange(beginKey, limit, deletedKeys, existedKeys);
+
+        List<Key> lKeys = levelTreeRangeOperator.doRange(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
+
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(comparator);
+        priorityQueue.addAll(mKeys);
+        priorityQueue.addAll(imKeys);
+        priorityQueue.addAll(lKeys);
+
+        List<Key> range = new ArrayList<>();
+
+        for(int i = 0; i < limit; i ++) {
+            Key key = priorityQueue.poll();
+
+            if(key == null) {
+                break;
+            }
+
+            range.add(key);
+        }
+
+        range.sort(comparator);
+        return range.stream().map(Key::bytes).toList();
     }
 
     private void recoverFromWal() {
@@ -251,5 +237,15 @@ public class ColumnRegion {
 
             insertIntoMemTableAndMerge(keyEntry, -1);
         }
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<Key> doRange(
+                byte[] baseKey,
+                int limit,
+                HashSet<Key> deletedKeys,
+                HashSet<Key> existedKeys
+        );
     }
 }

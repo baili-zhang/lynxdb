@@ -119,12 +119,46 @@ public class LevelTree {
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys
     ) {
+        return range(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                null,
+                Level::rangeNext
+        );
+    }
+
+    public List<Key> rangeBefore(
+            byte[] endKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        return range(
+                endKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                Comparator.reverseOrder(),
+                Level::rangeBefore
+        );
+    }
+
+    private List<Key> range(
+            byte[] baseKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys,
+            Comparator<Key> comparator,
+            RangeOperator operator
+    ) {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
-        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(comparator);
         while(level != null) {
-            List<Key> keys = level.rangeNext(beginKey, limit, deletedKeys, existedKeys);
+            List<Key> keys = operator.doRange(level, baseKey, limit, deletedKeys, existedKeys);
             priorityQueue.addAll(keys);
 
             level = levels.get(++ levelNo);
@@ -145,12 +179,14 @@ public class LevelTree {
         return range;
     }
 
-    public List<Key> rangeBefore(
-            byte[] beginKey,
-            int limit,
-            HashSet<Key> deletedKeys,
-            HashSet<Key> existedKeys
-    ) {
-        throw new UnsupportedOperationException();
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<Key> doRange(
+                Level level,
+                byte[] baseKey,
+                int limit,
+                HashSet<Key> deletedKeys,
+                HashSet<Key> existedKeys
+        );
     }
 }
