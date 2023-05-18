@@ -144,4 +144,13 @@ public class LevelTree {
 
         return range;
     }
+
+    public List<Key> rangeBefore(
+            byte[] beginKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        throw new UnsupportedOperationException();
+    }
 }

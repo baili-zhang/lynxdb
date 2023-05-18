@@ -204,7 +204,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             findColumns = columns.toArray(String[]::new);
         }
 
-        var multiKeys = dataTable.rangeNext(columnFamily, mainColumn, beginKey, limit, findColumns);
+        var multiKeys = dataTable.rangeNext(
+                columnFamily,
+                mainColumn,
+                beginKey,
+                limit,
+                findColumns
+        );
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(MULTI_KEYS);
@@ -224,7 +230,46 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
     @LdtpMethod(RANGE_BEFORE)
     public QueryResult doRangeBefore(QueryParams params) {
-        throw new UnsupportedOperationException();
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        String columnFamily = BufferUtils.getString(buffer);
+        String mainColumn = BufferUtils.getString(buffer);
+        byte[] endKey = BufferUtils.getBytes(buffer);
+        int limit = buffer.getInt();
+        String[] findColumns = null;
+
+        if(!BufferUtils.isNotOver(buffer)) {
+            List<String> columns = new ArrayList<>();
+            while(!BufferUtils.isNotOver(buffer)) {
+                String column = BufferUtils.getString(buffer);
+                columns.add(column);
+            }
+            findColumns = columns.toArray(String[]::new);
+        }
+
+        var multiKeys = dataTable.rangeBefore(
+                columnFamily,
+                mainColumn,
+                endKey,
+                limit,
+                findColumns
+        );
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(MULTI_KEYS);
+
+        for(var pair : multiKeys) {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
+            int size = multiColumns.size();
+
+            bytesList.appendVarBytes(key);
+            bytesList.appendRawInt(size);
+            appendMultiColumns(bytesList, multiColumns);
+        }
+
+        return new QueryResult(bytesList, null);
     }
 
     @LdtpMethod(EXIST_KEY)

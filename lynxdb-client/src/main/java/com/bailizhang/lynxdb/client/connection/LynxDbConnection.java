@@ -409,7 +409,12 @@ public class LynxDbConnection {
         return multiKeys;
     }
 
-    public <T> List<T> rangeNext(Class<T> clazz, byte[] beginKey, int limit, String... findColumns) {
+    public <T> List<T> rangeNext(
+            Class<T> clazz,
+            byte[] beginKey,
+            int limit,
+            String... findColumns
+    ) {
         List<T> objs = new ArrayList<>();
 
         Field field = findKeyField(clazz);
@@ -423,6 +428,100 @@ public class LynxDbConnection {
         }
 
         var multiKeys = rangeNext(columnFamily, mainColumn, beginKey, limit, findColumns);
+
+        multiKeys.forEach(pair -> {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
+
+            T obj = ReflectionUtils.newObj(clazz);
+
+            FieldUtils.set(obj, field, G.I.toString(key));
+
+            multiColumns.forEach((column, value) -> {
+                FieldUtils.set(obj, column, G.I.toString(value));
+            });
+
+            objs.add(obj);
+        });
+
+        return objs;
+    }
+
+    public List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
+            String columnFamily,
+            String mainColumn,
+            byte[] endKey,
+            int limit,
+            String... findColumns
+    ) {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(LDTP_METHOD);
+        bytesList.appendRawByte(RANGE_BEFORE);
+        bytesList.appendVarStr(columnFamily);
+        bytesList.appendVarStr(mainColumn);
+        bytesList.appendVarBytes(endKey);
+        bytesList.appendRawInt(limit);
+
+        for(String findColumn : findColumns) {
+            bytesList.appendVarStr(findColumn);
+        }
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        if (buffer.get() != LdtpCode.MULTI_KEYS) {
+            throw new RuntimeException();
+        }
+
+        List<Pair<byte[], HashMap<String, byte[]>>> multiKeys = new ArrayList<>();
+
+        while(BufferUtils.isNotOver(buffer)) {
+            byte[] key = BufferUtils.getBytes(buffer);
+            int size = buffer.getInt();
+
+            HashMap<String, byte[]> multiColumns = new HashMap<>();
+            multiKeys.add(new Pair<>(key, multiColumns));
+
+            while((size --) > 0) {
+                String column = BufferUtils.getString(buffer);
+                byte flag = buffer.get();
+
+                byte[] value = switch (flag) {
+                    case BYTE_ARRAY -> BufferUtils.getBytes(buffer);
+                    case NULL -> null;
+                    default -> throw new RuntimeException();
+                };
+                multiColumns.put(column, value);
+            }
+        }
+
+        return multiKeys;
+    }
+
+    public <T> List<T> rangeBefore(
+            Class<T> clazz,
+            byte[] endKey,
+            int limit,
+            String... findColumns
+    ) {
+        List<T> objs = new ArrayList<>();
+
+        Field field = findKeyField(clazz);
+        String columnFamily = findColumnFamily(clazz);
+        String mainColumn = findMainColumn(clazz);
+
+        List<Field> columnFields = findColumnFields(clazz);
+
+        if(findColumns.length == 0) {
+            findColumns = columnFields.stream().map(Field::getName).toArray(String[]::new);
+        }
+
+        var multiKeys = rangeBefore(columnFamily, mainColumn, endKey, limit, findColumns);
 
         multiKeys.forEach(pair -> {
             byte[] key = pair.left();

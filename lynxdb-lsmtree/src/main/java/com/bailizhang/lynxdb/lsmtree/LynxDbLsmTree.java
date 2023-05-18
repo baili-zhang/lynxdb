@@ -79,10 +79,23 @@ public class LynxDbLsmTree implements Table {
     public List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
-            byte[] beginKey,
-            int limit
+            byte[] endKey,
+            int limit,
+            String... findColumns
     ) {
-        throw new UnsupportedOperationException();
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
+        ColumnRegion mainColumnRegion = region.findColumnRegion(columnFamily);
+
+        List<byte[]> keys = mainColumnRegion.rangeBefore(endKey, limit);
+
+        List<Pair<byte[], HashMap<String, byte[]>>> values = new ArrayList<>();
+
+        for(byte[] key : keys) {
+            HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
+            values.add(new Pair<>(key, multiColumns));
+        }
+
+        return values;
     }
 
     @Override

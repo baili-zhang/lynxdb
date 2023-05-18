@@ -15,10 +15,7 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 
@@ -191,6 +188,49 @@ public class ColumnRegion {
         }
 
         range.sort(Key::compareTo);
+        return range.stream().map(Key::bytes).toList();
+    }
+
+    public List<byte[]> rangeBefore(byte[] beginKey, int limit) {
+        HashSet<Key> existedKeys = new HashSet<>();
+        HashSet<Key> deletedKeys = new HashSet<>();
+
+        List<Key> mKeys = mutable.rangeBefore(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
+
+        List<Key> imKeys = immutable == null
+                ? new ArrayList<>()
+                : immutable.rangeBefore(beginKey, limit, deletedKeys, existedKeys);
+
+        List<Key> lKeys = levelTree.rangeBefore(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys
+        );
+
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(Comparator.reverseOrder());
+        priorityQueue.addAll(mKeys);
+        priorityQueue.addAll(imKeys);
+        priorityQueue.addAll(lKeys);
+
+        List<Key> range = new ArrayList<>();
+
+        for(int i = 0; i < limit; i ++) {
+            Key key = priorityQueue.poll();
+
+            if(key == null) {
+                break;
+            }
+
+            range.add(key);
+        }
+
+        range.sort(Comparator.reverseOrder());
         return range.stream().map(Key::bytes).toList();
     }
 
