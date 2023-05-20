@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.core.RaftTimeWheel;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
