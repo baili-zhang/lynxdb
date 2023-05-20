@@ -37,9 +37,6 @@ public class SingleLynxDbServer implements LynxDbServer {
     public void run() {
         logger.info("Run LynxDB single server.");
 
-        RaftTimeWheel raftTimeWheel = RaftTimeWheel.timeWheel();
-        raftTimeWheel.start();
-
         Executor.start(server);
         Executor.start(engineExecutor);
     }

@@ -247,7 +247,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         int limit = buffer.getInt();
         String[] findColumns = null;
 
-        if(!BufferUtils.isNotOver(buffer)) {
+        if(BufferUtils.isNotOver(buffer)) {
             List<String> columns = new ArrayList<>();
             while(!BufferUtils.isNotOver(buffer)) {
                 String column = BufferUtils.getString(buffer);

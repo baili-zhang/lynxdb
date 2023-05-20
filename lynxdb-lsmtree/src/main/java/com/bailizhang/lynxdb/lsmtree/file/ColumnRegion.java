@@ -154,7 +154,7 @@ public class ColumnRegion {
                 limit,
                 Comparator.naturalOrder(),
                 mutable::rangeNext,
-                immutable::rangeNext,
+                immutable == null ? null : immutable::rangeNext,
                 levelTree::rangeNext
         );
     }
@@ -165,7 +165,7 @@ public class ColumnRegion {
                 limit,
                 Comparator.reverseOrder(),
                 mutable::rangeBefore,
-                immutable::rangeBefore,
+                immutable == null ? null : immutable::rangeNext,
                 levelTree::rangeBefore
         );
     }
@@ -196,7 +196,7 @@ public class ColumnRegion {
                 existedKeys
         );
 
-        List<Key> imKeys = immutable == null
+        List<Key> imKeys = immutableRangeOperator == null
                 ? new ArrayList<>()
                 : immutableRangeOperator.doRange(beginKey, limit, deletedKeys, existedKeys);
 
