@@ -265,7 +265,7 @@ public class SsTable {
     ) {
         List<Key> range = new ArrayList<>();
 
-        while (limit > 0 && idx < size()) {
+        while (limit > 0 && idx < size() && idx >= 0) {
             IndexEntry indexEntry = findIndexEntry(isRangeNext ? idx ++ : idx --);
             KeyEntry keyEntry = findKeyEntry(indexEntry);
 

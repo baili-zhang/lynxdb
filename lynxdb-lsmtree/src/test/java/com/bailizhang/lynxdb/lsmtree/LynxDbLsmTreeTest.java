@@ -198,4 +198,21 @@ class LynxDbLsmTreeTest {
 
         assert multiKeys.size() == 10;
     }
+
+    @Test
+    void testFunc07() {
+        insert();
+
+        String column = COLUMN + 1;
+        byte[] endKey = G.I.toBytes(KEY + 5001);
+
+        var multiKeys = lsmTree.rangeBefore(
+                COLUMN_FAMILY,
+                column,
+                endKey,
+                10
+        );
+
+        assert multiKeys.size() == 10;
+    }
 }
