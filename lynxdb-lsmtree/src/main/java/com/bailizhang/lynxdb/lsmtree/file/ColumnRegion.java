@@ -224,7 +224,7 @@ public class ColumnRegion {
             range.add(key);
         }
 
-        range.sort(comparator);
+        range.sort(Key::compareTo);
         return range.stream().map(Key::bytes).toList();
     }
 

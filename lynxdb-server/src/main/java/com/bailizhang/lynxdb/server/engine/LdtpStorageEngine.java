@@ -187,15 +187,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
     @LdtpMethod(RANGE_NEXT)
     public QueryResult doRangeNext(QueryParams params) {
-        logger.info("Handle range next.");
-
         return range(params, dataTable::rangeNext);
     }
 
     @LdtpMethod(RANGE_BEFORE)
     public QueryResult doRangeBefore(QueryParams params) {
-        logger.info("Handle range before.");
-
         return range(params, dataTable::rangeBefore);
     }
 
