@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.raft.core.RaftTimeWheel;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
@@ -36,9 +35,6 @@ public class SingleLynxDbServer implements LynxDbServer {
     @Override
     public void run() {
         logger.info("Run LynxDB single server.");
-
-        RaftTimeWheel raftTimeWheel = RaftTimeWheel.timeWheel();
-        raftTimeWheel.start();
 
         Executor.start(server);
         Executor.start(engineExecutor);

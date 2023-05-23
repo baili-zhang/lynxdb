@@ -23,8 +23,9 @@ public interface Table {
     List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
-            byte[] beginKey,
-            int limit
+            byte[] endKey,
+            int limit,
+            String... findColumns
     );
 
     void insert(byte[] key, String columnFamily, String column, byte[] value);

@@ -6,6 +6,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import java.nio.ByteBuffer;
 
 import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.INSTALL_SNAPSHOT_RESULT;
+import static com.bailizhang.lynxdb.ldtp.result.ResultType.RAFT_RPC;
 
 
 public record InstallSnapshotResult(
@@ -15,6 +16,7 @@ public record InstallSnapshotResult(
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
 
+        bytesList.appendRawByte(RAFT_RPC);
         bytesList.appendRawByte(INSTALL_SNAPSHOT_RESULT);
         bytesList.appendRawInt(term);
 

@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
@@ -186,45 +187,12 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
     @LdtpMethod(RANGE_NEXT)
     public QueryResult doRangeNext(QueryParams params) {
-        byte[] data = params.content();
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-
-        String columnFamily = BufferUtils.getString(buffer);
-        String mainColumn = BufferUtils.getString(buffer);
-        byte[] beginKey = BufferUtils.getBytes(buffer);
-        int limit = buffer.getInt();
-        String[] findColumns = null;
-
-        if(!BufferUtils.isNotOver(buffer)) {
-            List<String> columns = new ArrayList<>();
-            while(!BufferUtils.isNotOver(buffer)) {
-                String column = BufferUtils.getString(buffer);
-                columns.add(column);
-            }
-            findColumns = columns.toArray(String[]::new);
-        }
-
-        var multiKeys = dataTable.rangeNext(columnFamily, mainColumn, beginKey, limit, findColumns);
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(MULTI_KEYS);
-
-        for(var pair : multiKeys) {
-            byte[] key = pair.left();
-            var multiColumns = pair.right();
-            int size = multiColumns.size();
-
-            bytesList.appendVarBytes(key);
-            bytesList.appendRawInt(size);
-            appendMultiColumns(bytesList, multiColumns);
-        }
-
-        return new QueryResult(bytesList, null);
+        return range(params, dataTable::rangeNext);
     }
 
     @LdtpMethod(RANGE_BEFORE)
     public QueryResult doRangeBefore(QueryParams params) {
-        throw new UnsupportedOperationException();
+        return range(params, dataTable::rangeBefore);
     }
 
     @LdtpMethod(EXIST_KEY)
@@ -264,5 +232,62 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 bytesList.appendVarBytes(value);
             }
         });
+    }
+
+    private QueryResult range(QueryParams params, RangeOperator operator) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        String columnFamily = BufferUtils.getString(buffer);
+        String mainColumn = BufferUtils.getString(buffer);
+        byte[] baseKey = BufferUtils.getBytes(buffer);
+        int limit = buffer.getInt();
+        String[] findColumns = null;
+
+        if(BufferUtils.isNotOver(buffer)) {
+            List<String> columns = new ArrayList<>();
+            while(BufferUtils.isNotOver(buffer)) {
+                String column = BufferUtils.getString(buffer);
+                columns.add(column);
+            }
+            findColumns = columns.toArray(String[]::new);
+        }
+
+        logger.info("Do range search, columnFamily: {}, mainColumn: {}, baseKey: {}, limit: {}, findColumns: {}.",
+                columnFamily, mainColumn, G.I.toString(baseKey), limit, findColumns);
+
+        var multiKeys = operator.doRange(
+                columnFamily,
+                mainColumn,
+                baseKey,
+                limit,
+                findColumns
+        );
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(MULTI_KEYS);
+
+        for(var pair : multiKeys) {
+            byte[] key = pair.left();
+            var multiColumns = pair.right();
+            int size = multiColumns.size();
+
+            bytesList.appendVarBytes(key);
+            bytesList.appendRawInt(size);
+            appendMultiColumns(bytesList, multiColumns);
+        }
+
+        return new QueryResult(bytesList, null);
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<Pair<byte[], HashMap<String, byte[]>>> doRange(
+                String columnFamily,
+                String mainColumn,
+                byte[] baseKey,
+                int limit,
+                String... findColumns
+        );
     }
 }

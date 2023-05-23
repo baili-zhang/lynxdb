@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.core;
 
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.result.AppendEntriesResult;
 import com.bailizhang.lynxdb.raft.result.InstallSnapshotResult;
@@ -33,20 +34,17 @@ public class RaftRpcHandler {
         }
 
         raftState = RaftStateHolder.raftState();
-
-        int currentTerm = stateMachine.currentTerm();
-        raftState.currentTerm().set(currentTerm);
     }
 
+    @CheckThreadSafety
     public PreVoteResult handlePreVote(
             int term,
             int lastLogIndex,
             int lastLogTerm
     ) {
-        RaftState raftState = RaftStateHolder.raftState();
-        int currentTerm = raftState.currentTerm().get();
+        int currentTerm = stateMachine.currentTerm();
 
-        if(term <= currentTerm) {
+        if(term < currentTerm) {
             return new PreVoteResult(currentTerm, FALSE);
         }
 
@@ -60,31 +58,30 @@ public class RaftRpcHandler {
         return new PreVoteResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public RequestVoteResult handleRequestVote(
             int term,
             ServerNode candidate,
             int lastLogIndex,
             int lastLogTerm
     ) {
-        int currentTerm = raftState.currentTerm().get();
-        ServerNode votedFor = raftState.voteFor().get();
-
-        if(term < currentTerm || (term == currentTerm && votedFor != null)) {
+        int currentTerm = stateMachine.currentTerm();
+        if(term < currentTerm) {
             return new RequestVoteResult(currentTerm, FALSE);
         }
 
         int lastIndex = raftLog.maxIndex();
         int lastTerm = raftLog.maxTerm();
 
-        if(lastLogIndex >= lastIndex && lastLogTerm >= lastTerm) {
-            if(raftState.voteFor().compareAndSet(votedFor, candidate)) {
-                return new RequestVoteResult(currentTerm, TRUE);
-            }
+        if(lastLogIndex >= lastIndex && lastLogTerm >= lastTerm
+                && stateMachine.voteForIfNull(term, candidate)) {
+            return new RequestVoteResult(currentTerm, TRUE);
         }
 
         return new RequestVoteResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public AppendEntriesResult handleAppendEntries(
             int term,
             ServerNode leader,
@@ -93,12 +90,14 @@ public class RaftRpcHandler {
             List<LogEntry> entries,
             int leaderCommit
     ) {
-        int currentTerm = raftState.currentTerm().get();
+        int currentTerm = stateMachine.currentTerm();
         ServerNode leaderNode = raftState.leader().get();
 
         if(term < currentTerm || (leaderNode != null && !leaderNode.equals(leader))) {
             return new AppendEntriesResult(currentTerm, FALSE);
         }
+
+        RaftTimeWheel.timeWheel().resetHeartbeat();
 
         int preIndex = raftLog.maxIndex();
         int preTerm = raftLog.maxTerm();
@@ -112,6 +111,7 @@ public class RaftRpcHandler {
         return new AppendEntriesResult(currentTerm, FALSE);
     }
 
+    @CheckThreadSafety
     public InstallSnapshotResult handleInstallSnapshot(
             int term,
             ServerNode leader,
@@ -124,8 +124,9 @@ public class RaftRpcHandler {
         return null;
     }
 
+    @CheckThreadSafety
     public int persistenceClientRequest(byte[] data) {
-        int term = raftState.currentTerm().get();
+        int term = stateMachine.currentTerm();
         return raftLog.append(term, data);
     }
 }

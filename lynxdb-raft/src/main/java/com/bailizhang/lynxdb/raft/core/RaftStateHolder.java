@@ -9,11 +9,9 @@ public class RaftStateHolder {
     public static final RaftState raftState = new RaftState(
             new AtomicReference<>(),
             new AtomicInteger(),
-            new AtomicInteger(),
             new HashSet<>(),
             new ConcurrentHashMap<>(),
             new ConcurrentHashMap<>(),
-            new AtomicReference<>(),
             new AtomicReference<>()
     );
 

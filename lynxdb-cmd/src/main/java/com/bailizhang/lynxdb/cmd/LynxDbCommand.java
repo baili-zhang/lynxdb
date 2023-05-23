@@ -46,8 +46,22 @@ public class LynxDbCommand {
         }
     }
 
+    public String[] pollRemaining() {
+        if(args.size() > 0) {
+            return args.toArray(String[]::new);
+        }
+
+        return new String[0];
+    }
+
     public void checkArgsSize(int size) throws ErrorFormatCommand {
         if(args.size() != size) {
+            throw new ErrorFormatCommand();
+        }
+    }
+
+    public void checkArgsSizeMoreThan(int size) throws ErrorFormatCommand {
+        if(args.size() < size) {
             throw new ErrorFormatCommand();
         }
     }

@@ -1,5 +1,9 @@
 [
   {
+    "name": "com.bailizhang.lynxdb.server.context.Configuration",
+    "allDeclaredFields": true
+  },
+  {
     "name":"com.bailizhang.lynxdb.server.engine.LdtpStorageEngine",
     "methods":[
       {
@@ -7,7 +11,7 @@
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },
       {
-        "name":"doFindByKeyCf",
+        "name":"doFindMultiColumns",
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },
       {
@@ -15,11 +19,27 @@
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },
       {
+        "name":"doInsertMultiColumns",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
         "name":"doDelete",
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },
       {
-        "name":"doDeleteMultiColumn",
+        "name":"doDeleteMultiColumns",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doRangeNext",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doRangeBefore",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
+        "name":"doExistKey",
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       }
     ]

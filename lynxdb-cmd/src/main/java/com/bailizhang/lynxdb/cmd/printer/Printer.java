@@ -15,9 +15,9 @@ import java.util.List;
 public interface Printer {
     static void printPrompt(LynxDbConnection connection) {
         if(connection == null) {
-            System.out.print("Moonlight> ");
+            System.out.print("LynxDB-cli> ");
         } else {
-            String prompt = String.format("[%s] Moonlight> ", connection);
+            String prompt = String.format("[%s] LynxDB-cli> ", connection);
             System.out.print(prompt);
         }
     }

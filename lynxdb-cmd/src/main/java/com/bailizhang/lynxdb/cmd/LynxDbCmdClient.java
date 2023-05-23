@@ -24,6 +24,7 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String REGISTER = "register";
     private static final String DEREGISTER = "deregister";
     private static final String RANGE_NEXT = "range-next";
+    private static final String RANGE_BEFORE = "range-before";
     private static final String EXIST = "exist";
     private static final String EXIT = "exit";
     private static final String JOIN = "join";
@@ -80,18 +81,19 @@ public class LynxDbCmdClient extends Shutdown {
         String name = command.name();
 
         switch (name) {
-            case CONNECT    -> handleConnect(command);
-            case DISCONNECT -> handleDisconnect(command);
-            case FIND       -> handleFind(command);
-            case INSERT     -> handleInsert(command);
-            case DELETE     -> handleDelete(command);
-            case REGISTER   -> handleRegister(command);
-            case DEREGISTER -> handleDeregister(command);
-            case RANGE_NEXT -> handleRangeNext(command);
-            case EXIST      -> handleExist(command);
-            case JOIN       -> handleJoin(command);
-            case EXIT       -> handleExit(command);
-            default         -> Printer.printError(ERROR_COMMAND);
+            case CONNECT        -> handleConnect(command);
+            case DISCONNECT     -> handleDisconnect(command);
+            case FIND           -> handleFind(command);
+            case INSERT         -> handleInsert(command);
+            case DELETE         -> handleDelete(command);
+            case REGISTER       -> handleRegister(command);
+            case DEREGISTER     -> handleDeregister(command);
+            case RANGE_NEXT     -> handleRangeNext(command);
+            case RANGE_BEFORE   -> handleRangeBefore(command);
+            case EXIST          -> handleExist(command);
+            case JOIN           -> handleJoin(command);
+            case EXIT           -> handleExit(command);
+            default             -> Printer.printError(ERROR_COMMAND);
         }
     }
 
@@ -99,7 +101,15 @@ public class LynxDbCmdClient extends Shutdown {
         command.checkArgsSize(1);
 
         String address = command.poll();
-        ServerNode node = ServerNode.from(address);
+        ServerNode node;
+
+        try {
+            node = ServerNode.from(address);
+        } catch (RuntimeException e) {
+            Printer.printNotConnectServer();
+            return;
+        }
+
         client.connect(node);
         current = client.connection(node);
     }
@@ -194,18 +204,40 @@ public class LynxDbCmdClient extends Shutdown {
     }
 
     private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand {
-        command.checkArgsSize(4);
+        command.checkArgsSizeMoreThan(4);
 
         String columnFamily = command.poll();
         String mainColumn = command.poll();
         String key = command.poll();
         int limit = command.pollInt();
+        String[] findColumns = command.pollRemaining();
 
         var multiKeys = current.rangeNext(
                 columnFamily,
                 mainColumn,
                 G.I.toBytes(key),
-                limit
+                limit,
+                findColumns
+        );
+
+        Printer.printMultiKeys(multiKeys);
+    }
+
+    private void handleRangeBefore(LynxDbCommand command) throws ErrorFormatCommand {
+        command.checkArgsSizeMoreThan(4);
+
+        String columnFamily = command.poll();
+        String mainColumn = command.poll();
+        String key = command.poll();
+        int limit = command.pollInt();
+        String[] findColumns = command.pollRemaining();
+
+        var multiKeys = current.rangeBefore(
+                columnFamily,
+                mainColumn,
+                G.I.toBytes(key),
+                limit,
+                findColumns
         );
 
         Printer.printMultiKeys(multiKeys);

@@ -15,10 +15,7 @@ import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 
@@ -152,28 +149,65 @@ public class ColumnRegion {
     }
 
     public List<byte[]> rangeNext(byte[] beginKey, int limit) {
+        return range(
+                beginKey,
+                limit,
+                Comparator.naturalOrder(),
+                mutable::rangeNext,
+                immutable == null ? null : immutable::rangeNext,
+                levelTree::rangeNext
+        );
+    }
+
+    public List<byte[]> rangeBefore(byte[] endKey, int limit) {
+        return range(
+                endKey,
+                limit,
+                Comparator.reverseOrder(),
+                mutable::rangeBefore,
+                immutable == null ? null : immutable::rangeNext,
+                levelTree::rangeBefore
+        );
+    }
+
+    public String columnFamily() {
+        return columnFamily;
+    }
+
+    public String column() {
+        return column;
+    }
+
+    private List<byte[]> range(
+            byte[] beginKey,
+            int limit,
+            Comparator<Key> comparator,
+            RangeOperator mutableRangeOperator,
+            RangeOperator immutableRangeOperator,
+            RangeOperator levelTreeRangeOperator
+    ) {
         HashSet<Key> existedKeys = new HashSet<>();
         HashSet<Key> deletedKeys = new HashSet<>();
 
-        List<Key> mKeys = mutable.rangeNext(
+        List<Key> mKeys = mutableRangeOperator.doRange(
                 beginKey,
                 limit,
                 deletedKeys,
                 existedKeys
         );
 
-        List<Key> imKeys = immutable == null
+        List<Key> imKeys = immutableRangeOperator == null
                 ? new ArrayList<>()
-                : immutable.rangeNext(beginKey, limit, deletedKeys, existedKeys);
+                : immutableRangeOperator.doRange(beginKey, limit, deletedKeys, existedKeys);
 
-        List<Key> lKeys = levelTree.rangeNext(
+        List<Key> lKeys = levelTreeRangeOperator.doRange(
                 beginKey,
                 limit,
                 deletedKeys,
                 existedKeys
         );
 
-        PriorityQueue<Key> priorityQueue = new PriorityQueue<>();
+        PriorityQueue<Key> priorityQueue = new PriorityQueue<>(comparator);
         priorityQueue.addAll(mKeys);
         priorityQueue.addAll(imKeys);
         priorityQueue.addAll(lKeys);
@@ -194,14 +228,6 @@ public class ColumnRegion {
         return range.stream().map(Key::bytes).toList();
     }
 
-    public String columnFamily() {
-        return columnFamily;
-    }
-
-    public String column() {
-        return column;
-    }
-
     private void recoverFromWal() {
         for(LogEntry entry : walLog) {
             ByteBuffer buffer = ByteBuffer.wrap(entry.data());
@@ -211,5 +237,15 @@ public class ColumnRegion {
 
             insertIntoMemTableAndMerge(keyEntry, -1);
         }
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<Key> doRange(
+                byte[] baseKey,
+                int limit,
+                HashSet<Key> deletedKeys,
+                HashSet<Key> existedKeys
+        );
     }
 }

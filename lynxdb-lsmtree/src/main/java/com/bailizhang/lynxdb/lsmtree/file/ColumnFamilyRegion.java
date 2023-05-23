@@ -55,7 +55,9 @@ public class ColumnFamilyRegion {
             findColumnRegions = new ArrayList<>();
             for(String findColumn : findColumns) {
                 ColumnRegion columnRegion = columnRegions.get(findColumn);
-                findColumnRegions.add(columnRegion);
+                if(columnRegion != null) {
+                    findColumnRegions.add(columnRegion);
+                }
             }
         }
 

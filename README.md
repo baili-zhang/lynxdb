@@ -2,6 +2,8 @@
 
 LynxDB is a light-weight distributed storage system implemented in the Java language and based on the Raft protocol. LynxDB supports (key, column family, column, value) structured storage.
 
+[中文文档](docs/v1/Chinese.md)
+
 ## Running LynxDB
 
 The server startup script under Windows system is `start-server.bat` , and the client startup script is `start-client.bat`.

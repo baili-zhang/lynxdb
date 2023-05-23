@@ -87,12 +87,43 @@ public class MemTable {
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys
     ) {
-        Key key = new Key(beginKey);
+        return range(
+                beginKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                skipListMap::higherEntry
+        );
+    }
+
+    public List<Key> rangeBefore(
+            byte[] endKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys
+    ) {
+        return range(
+                endKey,
+                limit,
+                deletedKeys,
+                existedKeys,
+                skipListMap::lowerEntry
+        );
+    }
+
+    private List<Key> range(
+            byte[] baseKey,
+            int limit,
+            HashSet<Key> deletedKeys,
+            HashSet<Key> existedKeys,
+            RangeOperator operator
+    ) {
+        Key key = new Key(baseKey);
 
         List<Key> keys = new ArrayList<>();
 
         while(limit > 0) {
-            Map.Entry<Key, KeyEntry> entry = skipListMap.higherEntry(key);
+            Map.Entry<Key, KeyEntry> entry = operator.doRange(key);
 
             if(entry == null) {
                 break;
@@ -117,5 +148,10 @@ public class MemTable {
         }
 
         return keys;
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        Map.Entry<Key, KeyEntry> doRange(Key key);
     }
 }

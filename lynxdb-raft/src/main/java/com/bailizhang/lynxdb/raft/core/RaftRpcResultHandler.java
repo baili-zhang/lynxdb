@@ -1,11 +1,13 @@
 package com.bailizhang.lynxdb.raft.core;
 
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.raft.client.RaftClient;
 import com.bailizhang.lynxdb.raft.request.RequestVote;
 import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.spi.RaftConfiguration;
 import com.bailizhang.lynxdb.raft.spi.RaftSpiService;
 import com.bailizhang.lynxdb.raft.spi.StateMachine;
+import com.bailizhang.lynxdb.socket.client.ServerNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,31 +32,42 @@ public class RaftRpcResultHandler {
         raftLog = RaftLog.raftLog();
     }
 
+    @CheckThreadSafety
     public void handlePreVoteResult(
             SelectionKey selectionKey,
             int term,
             byte voteGranted
     ) {
-        logger.info("Handle preVote result, term: {}, voteGranted:{}.", term, voteGranted == TRUE);
+        logger.info("Handle preVote result, term: {}, voteGranted: {}.", term, voteGranted == TRUE);
 
         if(voteGranted != TRUE) {
             return;
         }
 
-        int currentTerm = raftState.currentTerm().incrementAndGet();
-        stateMachine.currentTerm(currentTerm);
+        int currentTerm = stateMachine.currentTerm();
+        stateMachine.currentTerm(++ currentTerm);
+
+        ServerNode current = raftConfig.currentNode();
+
+        if(!stateMachine.voteForIfNull(currentTerm, current)) {
+            logger.info("Has vote for node: {}", stateMachine.voteFor(currentTerm));
+            return;
+        }
 
         RequestVoteArgs args = new RequestVoteArgs(
                 currentTerm,
-                raftConfig.currentNode(),
+                current,
                 raftLog.maxIndex(),
                 raftLog.maxTerm()
         );
 
         RequestVote requestVote = new RequestVote(args);
         client.broadcast(requestVote);
+
+        logger.info("Send request vote rpc to cluster members.");
     }
 
+    @CheckThreadSafety
     public void handleRequestVoteResult(
             SelectionKey selectionKey,
             int term,
@@ -70,20 +83,24 @@ public class RaftRpcResultHandler {
         int votedCount = votedNodes.size();
         int clusterSize = stateMachine.clusterMembers().size();
 
-        if(votedCount > ((clusterSize >> 1) + 1)) {
-            raftState.role().compareAndSet(RaftRole.CANDIDATE, RaftRole.LEADER);
-            RaftTimeWheel.timeWheel().heartbeat();
+        boolean isVotedCountEnough = (votedCount + 1) >= ((clusterSize >> 1) + 1);
+        logger.info("Can upgrade role to leader: {}.", isVotedCountEnough);
+
+        if(isVotedCountEnough) {
+            raftState.changeRoleToLeader();
         }
     }
 
+    @CheckThreadSafety
     public void handleAppendEntriesResult(
             SelectionKey selectionKey,
             int term,
             byte voteGranted
     ) {
-
+        RaftTimeWheel.timeWheel().resetHeartbeat();
     }
 
+    @CheckThreadSafety
     public void handleInstallSnapshotResult(SelectionKey selectionKey, int term) {
     }
 }

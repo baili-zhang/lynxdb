@@ -60,29 +60,32 @@ public class LynxDbLsmTree implements Table {
             int limit,
             String... findColumns
     ) {
-        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
-
-        List<byte[]> keys = mainColumnRegion.rangeNext(beginKey, limit);
-
-        List<Pair<byte[], HashMap<String, byte[]>>> values = new ArrayList<>();
-
-        for(byte[] key : keys) {
-            HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
-            values.add(new Pair<>(key, multiColumns));
-        }
-
-        return values;
+        return range(
+                columnFamily,
+                mainColumn,
+                beginKey,
+                limit,
+                ColumnRegion::rangeNext,
+                findColumns
+        );
     }
 
     @Override
     public List<Pair<byte[], HashMap<String, byte[]>>> rangeBefore(
             String columnFamily,
             String mainColumn,
-            byte[] beginKey,
-            int limit
+            byte[] endKey,
+            int limit,
+            String... findColumns
     ) {
-        throw new UnsupportedOperationException();
+        return range(
+                columnFamily,
+                mainColumn,
+                endKey,
+                limit,
+                ColumnRegion::rangeBefore,
+                findColumns
+        );
     }
 
     @Override
@@ -136,6 +139,38 @@ public class LynxDbLsmTree implements Table {
         return regions.computeIfAbsent(
                 columnFamily,
                 v -> new ColumnFamilyRegion(columnFamily, options)
+        );
+    }
+
+    private List<Pair<byte[], HashMap<String, byte[]>>> range(
+            String columnFamily,
+            String mainColumn,
+            byte[] baseKey,
+            int limit,
+            RangeOperator operator,
+            String... findColumns
+    ) {
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
+        ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
+
+        List<byte[]> keys = operator.doRange(mainColumnRegion, baseKey, limit);
+
+        List<Pair<byte[], HashMap<String, byte[]>>> values = new ArrayList<>();
+
+        for(byte[] key : keys) {
+            HashMap<String, byte[]> multiColumns = region.findMultiColumns(key, findColumns);
+            values.add(new Pair<>(key, multiColumns));
+        }
+
+        return values;
+    }
+
+    @FunctionalInterface
+    private interface RangeOperator {
+        List<byte[]> doRange(
+                ColumnRegion columnRegion,
+                byte[] baseKey,
+                int limit
         );
     }
 }

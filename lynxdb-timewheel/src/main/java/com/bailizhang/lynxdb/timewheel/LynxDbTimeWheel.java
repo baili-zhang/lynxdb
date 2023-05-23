@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.timewheel;
 
+import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.core.utils.TimeUtils;
 import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
@@ -39,7 +40,7 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         second = new LowerTimeWheel(TEN_MILLIS_PER_SECOND, secondMillis, minute);
     }
 
-    /** 保证线程安全 */
+    @CheckThreadSafety
     public synchronized void register(TimeoutTask task) {
         if(!initialized) {
             return;
@@ -60,7 +61,7 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         unregister(new TimeoutTask(time, identifier, null));
     }
 
-    /** 保证线程安全 */
+    @CheckThreadSafety
     public synchronized void unregister(TimeoutTask task) {
         if(!initialized) {
             return;
@@ -77,6 +78,20 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
         }
 
         logger.info("Unregister timeout task failed, task: {}", task);
+    }
+
+    @CheckThreadSafety
+    public synchronized TimeoutTask reset(TimeoutTask task, long resetTime) {
+        unregister(task);
+
+        TimeoutTask resetTask = new TimeoutTask(
+                resetTime,
+                task.identifier(),
+                task.runnableTask()
+        );
+
+        register(resetTask);
+        return resetTask;
     }
 
     @Override

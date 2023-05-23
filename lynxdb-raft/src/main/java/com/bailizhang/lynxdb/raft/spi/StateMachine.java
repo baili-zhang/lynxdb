@@ -20,4 +20,8 @@ public interface StateMachine {
     int currentTerm();
 
     void currentTerm(int term);
+
+    ServerNode voteFor(int term);
+
+    boolean voteForIfNull(int term, ServerNode node);
 }

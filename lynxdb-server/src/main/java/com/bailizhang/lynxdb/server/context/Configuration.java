@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -45,16 +46,16 @@ public class Configuration {
     // 反射修改 final 字段后读取时还是初始值，因为 final 字段被内联优化了
     // return runningMode;  => return "single";
 
-    private String host             = Default.HOST;
-    private String port             = Default.PORT;
-    private String messagePort      = Default.MESSAGE_PORT;
+    private String host;
+    private String port;
+    private String messagePort;
 
-    private String dataDir          = Default.DATA_DIR;
-    private String timeoutDir       = Default.TIMEOUT_DIR;
-    private String raftLogsDir      = Default.RAFT_LOGS_DIR;
-    private String raftMetaDir      = Default.RAFT_META_DIR;
+    private String dataDir;
+    private String timeoutDir;
+    private String raftLogsDir;
+    private String raftMetaDir;
 
-    private String runningMode      = Default.SINGLE;
+    private String runningMode;
     private String initClusterMembers;
 
     // TODO
@@ -76,6 +77,7 @@ public class Configuration {
                 );
 
                 instance = new Configuration();
+                instance.initDefaultValue();
 
                 BufferedReader reader = new BufferedReader(new FileReader(configFile));
 
@@ -165,6 +167,10 @@ public class Configuration {
         List<String> items = new ArrayList<>();
 
         for(Field field : fields) {
+            if(Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+
             String key = field.getName();
             Object value = FieldUtils.get(this, field);
 
@@ -178,5 +184,18 @@ public class Configuration {
         builder.append("}");
 
         return builder.toString();
+    }
+
+    private void initDefaultValue() {
+        host = Default.HOST;
+        port = Default.PORT;
+        messagePort = Default.MESSAGE_PORT;
+
+        dataDir = Default.DATA_DIR;
+        timeoutDir = Default.TIMEOUT_DIR;
+        raftLogsDir = Default.RAFT_LOGS_DIR;
+        raftMetaDir = Default.RAFT_META_DIR;
+
+        runningMode = Default.SINGLE;
     }
 }

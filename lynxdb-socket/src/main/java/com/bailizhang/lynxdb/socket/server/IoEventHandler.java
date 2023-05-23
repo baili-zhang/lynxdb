@@ -83,7 +83,7 @@ public class IoEventHandler implements Runnable {
                 context.pollResponse();
                 context.decreaseRequestCount();
 
-                logger.info("Write response completed to client, response: {}", response);
+                logger.trace("Write response completed to client, response: {}", response);
             } else {
                 break;
             }

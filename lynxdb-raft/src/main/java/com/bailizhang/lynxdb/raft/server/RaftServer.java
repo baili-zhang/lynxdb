@@ -28,7 +28,8 @@ public class RaftServer extends SocketServer {
         Executor.start(raftClient);
 
         // 注册定时器任务
-        timeWheel.registerElectionTimeoutTask();
+        timeWheel.resetElection();
+        timeWheel.resetConnectMembers();
 
         super.doBeforeExecute();
     }

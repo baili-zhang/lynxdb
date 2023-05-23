@@ -27,6 +27,10 @@ public class TimeoutTask implements Comparable<TimeoutTask> {
         return identifier;
     }
 
+    public Runnable runnableTask() {
+        return runnableTask;
+    }
+
     public void doTask() {
         runnableTask.run();
     }
