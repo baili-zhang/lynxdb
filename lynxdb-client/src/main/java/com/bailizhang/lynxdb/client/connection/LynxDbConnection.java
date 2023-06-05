@@ -143,14 +143,13 @@ public class LynxDbConnection {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T find(T findObj, String... columns) {
-        Class<T> clazz = (Class<T>) findObj.getClass();
-        T obj = ReflectionUtils.newObj(clazz);
+    public <T> T find(String key, Class<T> type, String... columns) {
+        T obj = ReflectionUtils.newObj(type);
 
-        String columnFamily = findColumnFamily(clazz);
-        Field keyField = findKeyField(clazz);
+        String columnFamily = findColumnFamily(type);
+        Field keyField = findKeyField(type);
 
-        List<Field> columnFields = findColumnFields(clazz);
+        List<Field> columnFields = findColumnFields(type);
         String[] findColumns;
 
         if(columns.length == 0) {
@@ -159,11 +158,9 @@ public class LynxDbConnection {
             findColumns = columns;
         }
 
-        String key = (String) FieldUtils.get(findObj, keyField);
-
         HashMap<String, byte[]> multiColumns = findMultiColumns(G.I.toBytes(key), columnFamily, findColumns);
 
-        String mainColumn = findMainColumn(clazz);
+        String mainColumn = findMainColumn(type);
         if(multiColumns.get(mainColumn) == null) {
             return null;
         }
