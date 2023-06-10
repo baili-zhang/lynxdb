@@ -101,7 +101,7 @@
                     <buildArgs>
                         --no-fallback
                     </buildArgs>
-                    <skip>false</skip>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>

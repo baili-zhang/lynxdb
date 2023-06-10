@@ -306,7 +306,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
                 contexts.remove(selectionKey);
 
                 LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
-                future.value(selectionKey);
+                future.cancel(false);
 
                 try {
                     handler.handleConnectFailure(selectionKey);

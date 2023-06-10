@@ -5,7 +5,6 @@ import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -19,8 +18,11 @@ import java.nio.charset.StandardCharsets;
 @ConditionalOnClass(LynxDbConnection.class)
 @EnableConfigurationProperties(LynxDbProperties.class)
 public class LynxDbAutoConfiguration {
-    @Autowired
-    private LynxDbProperties properties;
+    private final LynxDbProperties properties;
+
+    public LynxDbAutoConfiguration(LynxDbProperties properties) {
+        this.properties = properties;
+    }
 
     @Bean
     @ConditionalOnMissingBean

@@ -15,12 +15,16 @@ import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
@@ -35,6 +39,8 @@ import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.JOIN_CLUSTER_RESUL
  * TODO: 2000 行以后再分成多个类
  */
 public class LynxDbConnection {
+    private static final Logger logger = LoggerFactory.getLogger(LynxDbConnection.class);
+
     private final ServerNode serverNode;
 
     // TODO 需要检测已经失效的 selectionKey
@@ -56,18 +62,29 @@ public class LynxDbConnection {
 
     public void connect() {
         if(selectionKey != null && selectionKey.isValid()) {
+            logger.error("Has not connect to server or connection is inValid.");
             return;
         }
 
         try {
             LynxDbFuture<SelectionKey> future = socketClient.connect(serverNode);
             selectionKey = future.get();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException | CancellationException e) {
+            logger.error("Failed to connect LynxDB server, address: {}.", serverNode, e);
         }
     }
 
     public SelectionKey selectionKey() {
+        futureMap.forEach((key, futures) -> {
+            if(key.isValid()) {
+                return;
+            }
+
+            futures.forEach((serial, future) -> {
+                future.cancel(false);
+            });
+        });
+
         if(selectionKey == null || !selectionKey.isValid()) {
             connect();
         }
@@ -142,7 +159,6 @@ public class LynxDbConnection {
         return multiColumns;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T find(String key, Class<T> type, String... columns) {
         T obj = ReflectionUtils.newObj(type);
 
