@@ -16,9 +16,10 @@ public class ClientHandler implements SocketClientHandler {
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
     private final MessageReceiver messageReceiver;
 
-    public ClientHandler(ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map,
-                         MessageReceiver receiver) {
+    public ClientHandler(
+            ConcurrentHashMap<SelectionKey, ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map,
+            MessageReceiver receiver
+    ) {
         futureMap = map;
         messageReceiver = receiver;
     }
@@ -30,7 +31,8 @@ public class ClientHandler implements SocketClientHandler {
 
     @Override
     public void handleDisconnect(SelectionKey selectionKey) {
-        futureMap.remove(selectionKey);
+        var futures = futureMap.remove(selectionKey);
+        futures.forEach((serial, future) -> future.cancel(false));
     }
 
     @Override

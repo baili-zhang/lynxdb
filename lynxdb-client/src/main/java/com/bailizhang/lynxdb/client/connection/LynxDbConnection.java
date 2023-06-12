@@ -4,13 +4,11 @@ import com.bailizhang.lynxdb.client.annotation.LynxDbColumn;
 import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.client.annotation.LynxDbMainColumn;
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.core.common.LynxDbFuture;
-import com.bailizhang.lynxdb.core.common.Pair;
+import com.bailizhang.lynxdb.core.common.*;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
+import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
@@ -20,8 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.ConnectException;
 import java.nio.ByteBuffer;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -35,15 +33,11 @@ import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
 import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
 import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.JOIN_CLUSTER_RESULT;
 
-/**
- * TODO: 2000 行以后再分成多个类
- */
-public class LynxDbConnection {
-    private static final Logger logger = LoggerFactory.getLogger(LynxDbConnection.class);
 
+@CheckThreadSafety
+public class LynxDbConnection {
     private final ServerNode serverNode;
 
-    // TODO 需要检测已经失效的 selectionKey
     private final ConcurrentHashMap<SelectionKey, ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
 
     private SelectionKey selectionKey;
@@ -60,9 +54,8 @@ public class LynxDbConnection {
         futureMap = map;
     }
 
-    public void connect() {
-        if(selectionKey != null && selectionKey.isValid()) {
-            logger.error("Has not connect to server or connection is inValid.");
+    public synchronized void connect() throws ConnectException {
+        if(SocketUtils.isValid(selectionKey)) {
             return;
         }
 
@@ -70,22 +63,16 @@ public class LynxDbConnection {
             LynxDbFuture<SelectionKey> future = socketClient.connect(serverNode);
             selectionKey = future.get();
         } catch (IOException | CancellationException e) {
-            logger.error("Failed to connect LynxDB server, address: {}.", serverNode, e);
+            throw new ConnectException("Failed to connect LynxDB server, address: " + serverNode);
         }
     }
 
-    public SelectionKey selectionKey() {
-        futureMap.forEach((key, futures) -> {
-            if(key.isValid()) {
-                return;
-            }
+    public ServerNode serverNode() {
+        return serverNode;
+    }
 
-            futures.forEach((serial, future) -> {
-                future.cancel(false);
-            });
-        });
-
-        if(selectionKey == null || !selectionKey.isValid()) {
+    public SelectionKey selectionKey() throws ConnectException {
+        if(SocketUtils.isInvalid(selectionKey)) {
             connect();
         }
 
@@ -96,7 +83,7 @@ public class LynxDbConnection {
         socketClient.disconnect(selectionKey);
     }
 
-    public byte[] find(byte[] key, String columnFamily, String column) {
+    public byte[] find(byte[] key, String columnFamily, String column) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.FIND_BY_KEY_CF_COLUMN);
@@ -119,7 +106,7 @@ public class LynxDbConnection {
         };
     }
 
-    public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) {
+    public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(FIND_MULTI_COLUMNS);
@@ -159,7 +146,7 @@ public class LynxDbConnection {
         return multiColumns;
     }
 
-    public <T> T find(String key, Class<T> type, String... columns) {
+    public <T> T find(String key, Class<T> type, String... columns) throws ConnectException {
         T obj = ReflectionUtils.newObj(type);
 
         String columnFamily = findColumnFamily(type);
@@ -193,7 +180,7 @@ public class LynxDbConnection {
         return obj;
     }
 
-    public void insert(byte[] key, String columnFamily, String column, byte[] value) {
+    public void insert(byte[] key, String columnFamily, String column, byte[] value) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT);
@@ -214,7 +201,7 @@ public class LynxDbConnection {
         }
     }
 
-    public void insert(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns) {
+    public void insert(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
@@ -238,7 +225,7 @@ public class LynxDbConnection {
         }
     }
 
-    public void insert(Object obj, String... columns) {
+    public void insert(Object obj, String... columns) throws ConnectException {
         Class<?> clazz = obj.getClass();
 
         String columnFamily = findColumnFamily(clazz);
@@ -269,7 +256,7 @@ public class LynxDbConnection {
         insert(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
     }
 
-    public void delete(byte[] key, String columnFamily, String column) {
+    public void delete(byte[] key, String columnFamily, String column) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(DELETE);
@@ -289,7 +276,7 @@ public class LynxDbConnection {
         }
     }
 
-    public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) {
+    public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(DELETE_MULTI_COLUMNS);
@@ -312,7 +299,7 @@ public class LynxDbConnection {
         }
     }
 
-    public void delete(Object obj, String... deleteColumns) {
+    public void delete(Object obj, String... deleteColumns) throws ConnectException {
         Class<?> clazz = obj.getClass();
 
         Field keyField = findKeyField(clazz);
@@ -328,7 +315,7 @@ public class LynxDbConnection {
         deleteMultiColumns(key, columnFamily, deleteColumns);
     }
 
-    public void register(byte[] key, String columnFamily) {
+    public void register(byte[] key, String columnFamily) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(KEY_REGISTER);
         bytesList.appendRawByte(REGISTER);
@@ -347,7 +334,7 @@ public class LynxDbConnection {
         }
     }
 
-    public void deregister(byte[] key, String columnFamily) {
+    public void deregister(byte[] key, String columnFamily) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(KEY_REGISTER);
         bytesList.appendRawByte(DEREGISTER);
@@ -372,7 +359,7 @@ public class LynxDbConnection {
             byte[] beginKey,
             int limit,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         return range(
                 columnFamily,
                 mainColumn,
@@ -388,7 +375,7 @@ public class LynxDbConnection {
             byte[] beginKey,
             int limit,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         return range(
                 clazz,
                 beginKey,
@@ -404,7 +391,7 @@ public class LynxDbConnection {
             byte[] endKey,
             int limit,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         return range(
                 columnFamily,
                 mainColumn,
@@ -420,7 +407,7 @@ public class LynxDbConnection {
             byte[] endKey,
             int limit,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         return range(
                 clazz,
                 endKey,
@@ -434,7 +421,7 @@ public class LynxDbConnection {
             byte[] key,
             String columnFamily,
             String mainColumn
-    ) {
+    ) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.EXIST_KEY);
@@ -459,7 +446,7 @@ public class LynxDbConnection {
 
     public boolean existKey(
             Object obj
-    ) {
+    ) throws ConnectException {
         Class<?> clazz = obj.getClass();
 
         Field keyField = findKeyField(clazz);
@@ -471,7 +458,7 @@ public class LynxDbConnection {
         return existKey(key, columnFamily, mainColumn);
     }
 
-    public void join(String node) {
+    public void join(String node) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(RAFT_RPC);
         bytesList.appendRawByte(JOIN_CLUSTER);
@@ -505,7 +492,7 @@ public class LynxDbConnection {
             int limit,
             byte method,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(method);
@@ -561,7 +548,7 @@ public class LynxDbConnection {
             int limit,
             RangeOperator operator,
             String... findColumns
-    ) {
+    ) throws ConnectException {
         List<T> objs = new ArrayList<>();
 
         Field field = findKeyField(clazz);
@@ -696,6 +683,6 @@ public class LynxDbConnection {
                 byte[] baseKey,
                 int limit,
                 String... findColumns
-        );
+        ) throws ConnectException;
     }
 }

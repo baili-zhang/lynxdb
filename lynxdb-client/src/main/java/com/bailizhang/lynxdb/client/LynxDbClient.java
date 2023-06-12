@@ -9,6 +9,7 @@ import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 
+import java.net.ConnectException;
 import java.nio.channels.SelectionKey;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,20 +37,16 @@ public class LynxDbClient implements AutoCloseable {
         Executor.start(messageReceiver);
     }
 
-    public LynxDbConnection connect(String host, int port) {
+    public LynxDbConnection createConnection(String host, int port) throws ConnectException {
         ServerNode serverNode = new ServerNode(host, port);
-        return connect(serverNode);
+        return createConnection(serverNode);
     }
 
-    public LynxDbConnection connect(ServerNode serverNode) {
-        LynxDbConnection connection = connections.computeIfAbsent(
+    public LynxDbConnection createConnection(ServerNode serverNode) {
+        return connections.computeIfAbsent(
                 serverNode,
                 node -> new LynxDbConnection(node, socketClient, futureMap)
         );
-
-        connection.connect();
-
-        return connection;
     }
 
     public void disconnect(String host, int port) {
@@ -57,20 +54,6 @@ public class LynxDbClient implements AutoCloseable {
 
         LynxDbConnection connection = connections.get(serverNode);
         connection.disconnect();
-    }
-
-    public LynxDbConnection connection(String host, int port) {
-        ServerNode serverNode = new ServerNode(host, port);
-        return connection(serverNode);
-    }
-
-    public LynxDbConnection connection(ServerNode serverNode) {
-        return connections.get(serverNode);
-    }
-
-    public ConcurrentHashMap<SelectionKey,
-            ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap() {
-        return futureMap;
     }
 
     public void registerAffectHandler(MessageKey messageKey, MessageHandler messageHandler) {

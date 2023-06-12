@@ -43,14 +43,8 @@ public interface Printer {
         System.out.println("INFO: Use \"connect [host]:[port]\" to connect server firstly");
     }
 
-    static void printDisconnect(SelectionKey current) {
-        String address = null;
-        try {
-            address = ((SocketChannel) current.channel()).getRemoteAddress().toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String message = String.format("INFO: Disconnect from [%s]", address);
+    static void printDisconnect(LynxDbConnection connection) {
+        String message = String.format("ERROR: Disconnect from [%s]", connection.serverNode());
         System.out.println(message);
     }
 

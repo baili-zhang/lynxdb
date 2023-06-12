@@ -18,11 +18,13 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +45,10 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
             = new ConcurrentHashMap<>();
+
+    /**
+     * 处理连接的 futures
+     */
     private final ConcurrentHashMap<SelectionKey, LynxDbFuture<SelectionKey>> connectFutureMap
             = new ConcurrentHashMap<>();
 
@@ -117,7 +123,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
     @Override
     public void offerInterruptibly(WritableSocketRequest request) {
-        SelectionKey selectionKey = request.selectionKey();;
+        SelectionKey selectionKey = request.selectionKey();
 
         ConnectionContext context = contexts.get(request.selectionKey());
         if(context == null) {
@@ -136,7 +142,18 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         return send(selectionKey, status, data);
     }
 
+    public final int send(NioMessage message) {
+        SelectionKey selectionKey = message.selectionKey();
+        byte status = SocketRequest.KEEP_CONNECTION;
+
+        return send(selectionKey, status, message.toBytes());
+    }
+
     public final int send(SelectionKey selectionKey, byte status, byte[] data) {
+        if(!selectionKey.isValid()) {
+            throw new CancelledKeyException();
+        }
+
         int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
@@ -147,20 +164,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         );
 
         handler.handleBeforeSend(selectionKey, requestSerial);
-
-        offerInterruptibly(request);
-        return requestSerial;
-    }
-
-    public final int send(NioMessage message) {
-        byte status = SocketRequest.KEEP_CONNECTION;
-        int requestSerial = serial.getAndIncrement();
-
-        WritableSocketRequest request = new WritableSocketRequest(
-                status,
-                requestSerial,
-                message
-        );
 
         offerInterruptibly(request);
         return requestSerial;

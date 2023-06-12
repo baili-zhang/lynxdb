@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
+import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -34,7 +35,7 @@ public class LynxDbCmdClient extends Shutdown {
     private final LynxDbClient client = new LynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
 
-    private LynxDbConnection current;
+    private LynxDbConnection connection;
 
     public LynxDbCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
@@ -44,7 +45,7 @@ public class LynxDbCmdClient extends Shutdown {
         client.start();
 
         while (isNotShutdown()) {
-            Printer.printPrompt(current);
+            Printer.printPrompt(connection);
 
             String line = scanner.nextLine();
 
@@ -57,7 +58,7 @@ public class LynxDbCmdClient extends Shutdown {
                 continue;
             }
 
-            if(current == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
+            if(connection == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
                 Printer.printNotConnectServer();
                 continue;
             }
@@ -66,6 +67,8 @@ public class LynxDbCmdClient extends Shutdown {
                 handleCommand(command);
             } catch (ErrorFormatCommand ignored) {
                 Printer.printError(ERROR_COMMAND);
+            } catch (ConnectException e) {
+                Printer.printDisconnect(connection);
             }
         }
 
@@ -77,7 +80,7 @@ public class LynxDbCmdClient extends Shutdown {
         client.start();
     }
 
-    private void handleCommand(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleCommand(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         String name = command.name();
 
         switch (name) {
@@ -97,7 +100,7 @@ public class LynxDbCmdClient extends Shutdown {
         }
     }
 
-    private void handleConnect(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleConnect(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(1);
 
         String address = command.poll();
@@ -110,18 +113,18 @@ public class LynxDbCmdClient extends Shutdown {
             return;
         }
 
-        client.connect(node);
-        current = client.connection(node);
+        connection = client.createConnection(node);
+        connection.connect();
     }
 
     private void handleDisconnect(LynxDbCommand command) throws ErrorFormatCommand {
         command.checkArgsSize(0);
 
-        current.disconnect();
-        current = null;
+        connection.disconnect();
+        connection = null;
     }
 
-    private void handleFind(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleFind(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         if(command.argsSize() != 2 && command.argsSize() != 3) {
             throw new ErrorFormatCommand();
         }
@@ -131,14 +134,14 @@ public class LynxDbCmdClient extends Shutdown {
 
         try {
             String column = command.poll();
-            byte[] value = current.find(
+            byte[] value = connection.find(
                     G.I.toBytes(key),
                     columnFamily,
                     column
             );
             Printer.printRawMessage(G.I.toString(value));
-        } catch (ErrorFormatCommand ignored) {
-            HashMap<String, byte[]> multiColumns = current.findMultiColumns(
+        } catch (ErrorFormatCommand | ConnectException ignored) {
+            HashMap<String, byte[]> multiColumns = connection.findMultiColumns(
                     G.I.toBytes(key),
                     columnFamily
             );
@@ -146,7 +149,7 @@ public class LynxDbCmdClient extends Shutdown {
         }
     }
 
-    private void handleInsert(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleInsert(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(4);
 
         String key = command.poll();
@@ -154,7 +157,7 @@ public class LynxDbCmdClient extends Shutdown {
         String column = command.poll();
         String value = command.poll();
 
-        current.insert(
+        connection.insert(
                 G.I.toBytes(key),
                 columnFamily,
                 column,
@@ -162,21 +165,21 @@ public class LynxDbCmdClient extends Shutdown {
         );
     }
 
-    private void handleDelete(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleDelete(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(3);
 
         String key = command.poll();
         String columnFamily = command.poll();
         String column = command.poll();
 
-        current.delete(
+        connection.delete(
                 G.I.toBytes(key),
                 columnFamily,
                 column
         );
     }
 
-    private void handleRegister(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRegister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(2);
 
         String key = command.poll();
@@ -188,22 +191,22 @@ public class LynxDbCmdClient extends Shutdown {
         AffectHandler handler = new AffectHandler();
         client.registerAffectHandler(messageKey, handler);
 
-        current.register(keyBytes, columnFamily);
+        connection.register(keyBytes, columnFamily);
     }
 
-    private void handleDeregister(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleDeregister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(2);
 
         String key = command.poll();
         String columnFamily = command.poll();
 
-        current.deregister(
+        connection.deregister(
                 G.I.toBytes(key),
                 columnFamily
         );
     }
 
-    private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSizeMoreThan(4);
 
         String columnFamily = command.poll();
@@ -212,7 +215,7 @@ public class LynxDbCmdClient extends Shutdown {
         int limit = command.pollInt();
         String[] findColumns = command.pollRemaining();
 
-        var multiKeys = current.rangeNext(
+        var multiKeys = connection.rangeNext(
                 columnFamily,
                 mainColumn,
                 G.I.toBytes(key),
@@ -223,7 +226,7 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printMultiKeys(multiKeys);
     }
 
-    private void handleRangeBefore(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRangeBefore(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSizeMoreThan(4);
 
         String columnFamily = command.poll();
@@ -232,7 +235,7 @@ public class LynxDbCmdClient extends Shutdown {
         int limit = command.pollInt();
         String[] findColumns = command.pollRemaining();
 
-        var multiKeys = current.rangeBefore(
+        var multiKeys = connection.rangeBefore(
                 columnFamily,
                 mainColumn,
                 G.I.toBytes(key),
@@ -243,14 +246,14 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printMultiKeys(multiKeys);
     }
 
-    private void handleExist(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleExist(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(3);
 
         String key = command.poll();
         String columnFamily = command.poll();
         String mainColumn = command.poll();
 
-        boolean isExisted = current.existKey(
+        boolean isExisted = connection.existKey(
                 G.I.toBytes(key),
                 columnFamily,
                 mainColumn
@@ -259,11 +262,11 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printBoolean(isExisted);
     }
 
-    private void handleJoin(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleJoin(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(1);
 
         String node = command.poll();
-        current.join(node);
+        connection.join(node);
     }
 
     private void handleExit(LynxDbCommand command) throws ErrorFormatCommand {
