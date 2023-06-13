@@ -5,6 +5,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
@@ -24,10 +25,12 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_WRITE_DATA_TO_SOCKET;
 
 public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
@@ -200,7 +203,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         try {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
-            if(isNotShutdown() && Thread.interrupted()) {
+            if(Thread.interrupted()) {
             }
 
             Set<SelectionKey> keys = selector.selectedKeys();
@@ -324,8 +327,14 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         private void doRead() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
 
+            FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
             try {
-                context.read();
+                if(recorder.isEnable()) {
+                    recorder.recordE(context::read, CLIENT_READ_DATA_FROM_SOCKET);
+                } else {
+                    context.read();
+                }
             } catch (SocketException e) {
                 handleDisconnect();
             }
@@ -339,7 +348,13 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             ConnectionContext context = contexts.get(selectionKey);
             WritableSocketRequest request = context.peekRequest();
 
-            request.write();
+            FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
+            if(recorder.isEnable()) {
+                recorder.recordE(request::write, CLIENT_WRITE_DATA_TO_SOCKET);
+            } else {
+                request.write();
+            }
 
             if(request.isWriteCompleted()) {
                 context.pollRequest();

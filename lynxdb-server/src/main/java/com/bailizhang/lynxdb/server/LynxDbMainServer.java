@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.server;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.server.mode.cluster.ClusterLynxDbServer;
@@ -28,6 +29,7 @@ public class LynxDbMainServer {
         logger.info("Configuration: {}", config);
 
         G.I.converter(new Converter(config.charset()));
+        FlightDataRecorder.enable(config.enableFlightRecorder());
 
         String runningMode = config.runningMode();
         switch (runningMode) {

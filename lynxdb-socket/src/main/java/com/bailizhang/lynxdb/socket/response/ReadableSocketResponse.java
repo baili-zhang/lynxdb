@@ -42,7 +42,7 @@ public class ReadableSocketResponse extends SocketResponse implements Readable {
             serial = serialBuffer.getInt(0);
         }
 
-        if(!BufferUtils.isOver(dataBuffer)) {
+        if(!BufferUtils.isOver(dataBuffer) || dataBuffer.capacity() == 0) {
             channel.read(dataBuffer);
             if(BufferUtils.isOver(dataBuffer)) {
                 data = dataBuffer.array();

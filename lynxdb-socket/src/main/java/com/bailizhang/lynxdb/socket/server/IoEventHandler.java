@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.socket.server;
 
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
@@ -13,6 +14,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.WRITE_DATA_TO_SOCKET;
 
 public class IoEventHandler implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);
@@ -48,9 +52,15 @@ public class IoEventHandler implements Runnable {
     private void doRead() throws Exception {
         ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
 
+        FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
         /* 从socket channel中读取数据 */
         try {
-            request.read();
+            if(recorder.isEnable()) {
+                recorder.recordE(request::read, READ_DATA_FROM_SOCKET);
+            } else {
+                request.read();
+            }
         } catch (SocketException e) {
             /* 取消掉selectionKey */
             selectionKey.cancel();
@@ -76,7 +86,14 @@ public class IoEventHandler implements Runnable {
     private void doWrite() throws Exception {
         while (!context.responseQueueIsEmpty()) {
             WritableSocketResponse response = context.peekResponse();
-            response.write();
+
+            FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
+            if(recorder.isEnable()) {
+                recorder.recordE(response::write, WRITE_DATA_TO_SOCKET);
+            } else {
+                response.write();
+            }
 
             if (response.isWriteCompleted()) {
                 /* 从队列首部移除已经写完的响应 */

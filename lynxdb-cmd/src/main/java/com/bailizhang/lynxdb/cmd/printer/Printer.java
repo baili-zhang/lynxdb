@@ -4,10 +4,7 @@ import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 
-import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

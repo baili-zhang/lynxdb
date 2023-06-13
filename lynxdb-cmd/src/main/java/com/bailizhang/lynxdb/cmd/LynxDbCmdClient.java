@@ -6,13 +6,16 @@ import com.bailizhang.lynxdb.cmd.exception.ErrorFormatCommand;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
@@ -29,6 +32,7 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String EXIST = "exist";
     private static final String EXIT = "exit";
     private static final String JOIN = "join";
+    private static final String FLIGHT_RECORDER = "flight-recorder";
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
@@ -84,19 +88,20 @@ public class LynxDbCmdClient extends Shutdown {
         String name = command.name();
 
         switch (name) {
-            case CONNECT        -> handleConnect(command);
-            case DISCONNECT     -> handleDisconnect(command);
-            case FIND           -> handleFind(command);
-            case INSERT         -> handleInsert(command);
-            case DELETE         -> handleDelete(command);
-            case REGISTER       -> handleRegister(command);
-            case DEREGISTER     -> handleDeregister(command);
-            case RANGE_NEXT     -> handleRangeNext(command);
-            case RANGE_BEFORE   -> handleRangeBefore(command);
-            case EXIST          -> handleExist(command);
-            case JOIN           -> handleJoin(command);
-            case EXIT           -> handleExit(command);
-            default             -> Printer.printError(ERROR_COMMAND);
+            case CONNECT            -> handleConnect(command);
+            case DISCONNECT         -> handleDisconnect(command);
+            case FIND               -> handleFind(command);
+            case INSERT             -> handleInsert(command);
+            case DELETE             -> handleDelete(command);
+            case REGISTER           -> handleRegister(command);
+            case DEREGISTER         -> handleDeregister(command);
+            case RANGE_NEXT         -> handleRangeNext(command);
+            case RANGE_BEFORE       -> handleRangeBefore(command);
+            case EXIST              -> handleExist(command);
+            case JOIN               -> handleJoin(command);
+            case EXIT               -> handleExit(command);
+            case FLIGHT_RECORDER    -> handleFlightRecorder(command);
+            default                 -> Printer.printError(ERROR_COMMAND);
         }
     }
 
@@ -267,6 +272,26 @@ public class LynxDbCmdClient extends Shutdown {
 
         String node = command.poll();
         connection.join(node);
+    }
+
+    private void handleFlightRecorder(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
+        command.checkArgsSize(0);
+        List<Pair<String, Long>> data = connection.flightRecorder();
+
+        List<List<String>> table = new ArrayList<>();
+
+        List<String> header = List.of("Name", "Value");
+        table.add(header);
+
+        data.forEach(pair -> {
+            List<String> row = new ArrayList<>();
+            row.add(pair.left());
+            row.add((double) pair.right() / 1000000 + " ms");
+
+            table.add(row);
+        });
+
+        Printer.printTable(table);
     }
 
     private void handleExit(LynxDbCommand command) throws ErrorFormatCommand {

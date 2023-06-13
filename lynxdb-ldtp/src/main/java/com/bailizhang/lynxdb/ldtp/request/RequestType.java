@@ -8,4 +8,5 @@ public interface RequestType {
     byte RAFT_RPC           = (byte) 0x02;
     byte KEY_REGISTER       = (byte) 0x03;
     byte KEY_TIMEOUT        = (byte) 0x04;
+    byte FLIGHT_RECORDER    = (byte) 0x05;
 }

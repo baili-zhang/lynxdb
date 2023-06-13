@@ -13,8 +13,6 @@ import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -478,6 +476,29 @@ public class LynxDbConnection {
         if(type != JOIN_CLUSTER_RESULT || success != TRUE) {
             throw new RuntimeException();
         }
+    }
+
+    public List<Pair<String, Long>> flightRecorder() throws ConnectException {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(FLIGHT_RECORDER);
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        List<Pair<String, Long>> recordData = new ArrayList<>();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        while (BufferUtils.isNotOver(buffer)) {
+            String name = BufferUtils.getString(buffer);
+            Long value = buffer.getLong();
+
+            recordData.add(new Pair<>(name, value));
+        }
+
+        return recordData;
     }
 
     @Override
