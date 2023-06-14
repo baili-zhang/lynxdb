@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.server.engine;
 
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
@@ -10,10 +11,10 @@ import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.Callable;
 
 
 public class BaseStorageEngine {
@@ -47,9 +48,19 @@ public class BaseStorageEngine {
             throw new RuntimeException("Not supported ldtp method.");
         }
 
+        FlightDataRecorder recorder = FlightDataRecorder.recorder();
+        recorder.count(FlightDataRecorder.ENGINE_QUERY_COUNT);
+
         try {
-            return (QueryResult) doQueryMethod.invoke(this, params);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+            if(recorder.isEnable()) {
+                return (QueryResult) recorder.record(
+                        (Callable<Object>) () -> doQueryMethod.invoke(this, params),
+                        FlightDataRecorder.ENGINE_DO_QUERY_TIME
+                );
+            } else {
+                return (QueryResult) doQueryMethod.invoke(this, params);
+            }
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

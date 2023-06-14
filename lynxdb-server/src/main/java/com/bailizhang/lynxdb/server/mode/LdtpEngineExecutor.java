@@ -115,17 +115,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
         logger.info("Handle client request, params: {}", queryParams);
 
-        QueryResult result;
-
-        FlightDataRecorder recorder = FlightDataRecorder.recorder();
-        if(recorder.isEnable()) {
-            result = recorder.record(
-                    () -> engine.doQuery(queryParams),
-                    FlightDataRecorder.ENGINE_DO_QUERY
-            );
-        } else {
-            result = engine.doQuery(queryParams);
-        }
+        QueryResult result = engine.doQuery(queryParams);
 
         logger.debug("Result is: {}", result);
 

@@ -286,7 +286,12 @@ public class LynxDbCmdClient extends Shutdown {
         data.forEach(pair -> {
             List<String> row = new ArrayList<>();
             row.add(pair.left());
-            row.add((double) pair.right() / 1000000 + " ms");
+
+            if(pair.left().endsWith("Count")) {
+                row.add(String.valueOf(pair.right()));
+            } else {
+                row.add((double) pair.right() / 1000000 + " ms");
+            }
 
             table.add(row);
         });
