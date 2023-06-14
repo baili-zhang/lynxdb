@@ -6,12 +6,16 @@ import com.bailizhang.lynxdb.cmd.exception.ErrorFormatCommand;
 import com.bailizhang.lynxdb.cmd.printer.Printer;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
+import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 public class LynxDbCmdClient extends Shutdown {
@@ -28,13 +32,14 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String EXIST = "exist";
     private static final String EXIT = "exit";
     private static final String JOIN = "join";
+    private static final String FLIGHT_RECORDER = "flight-recorder";
 
     private static final String ERROR_COMMAND = "Invalid Command";
 
     private final LynxDbClient client = new LynxDbClient();
     private final Scanner scanner = new Scanner(System.in);
 
-    private LynxDbConnection current;
+    private LynxDbConnection connection;
 
     public LynxDbCmdClient() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
@@ -44,7 +49,7 @@ public class LynxDbCmdClient extends Shutdown {
         client.start();
 
         while (isNotShutdown()) {
-            Printer.printPrompt(current);
+            Printer.printPrompt(connection);
 
             String line = scanner.nextLine();
 
@@ -57,7 +62,7 @@ public class LynxDbCmdClient extends Shutdown {
                 continue;
             }
 
-            if(current == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
+            if(connection == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
                 Printer.printNotConnectServer();
                 continue;
             }
@@ -66,6 +71,8 @@ public class LynxDbCmdClient extends Shutdown {
                 handleCommand(command);
             } catch (ErrorFormatCommand ignored) {
                 Printer.printError(ERROR_COMMAND);
+            } catch (ConnectException e) {
+                Printer.printDisconnect(connection);
             }
         }
 
@@ -77,27 +84,28 @@ public class LynxDbCmdClient extends Shutdown {
         client.start();
     }
 
-    private void handleCommand(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleCommand(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         String name = command.name();
 
         switch (name) {
-            case CONNECT        -> handleConnect(command);
-            case DISCONNECT     -> handleDisconnect(command);
-            case FIND           -> handleFind(command);
-            case INSERT         -> handleInsert(command);
-            case DELETE         -> handleDelete(command);
-            case REGISTER       -> handleRegister(command);
-            case DEREGISTER     -> handleDeregister(command);
-            case RANGE_NEXT     -> handleRangeNext(command);
-            case RANGE_BEFORE   -> handleRangeBefore(command);
-            case EXIST          -> handleExist(command);
-            case JOIN           -> handleJoin(command);
-            case EXIT           -> handleExit(command);
-            default             -> Printer.printError(ERROR_COMMAND);
+            case CONNECT            -> handleConnect(command);
+            case DISCONNECT         -> handleDisconnect(command);
+            case FIND               -> handleFind(command);
+            case INSERT             -> handleInsert(command);
+            case DELETE             -> handleDelete(command);
+            case REGISTER           -> handleRegister(command);
+            case DEREGISTER         -> handleDeregister(command);
+            case RANGE_NEXT         -> handleRangeNext(command);
+            case RANGE_BEFORE       -> handleRangeBefore(command);
+            case EXIST              -> handleExist(command);
+            case JOIN               -> handleJoin(command);
+            case EXIT               -> handleExit(command);
+            case FLIGHT_RECORDER    -> handleFlightRecorder(command);
+            default                 -> Printer.printError(ERROR_COMMAND);
         }
     }
 
-    private void handleConnect(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleConnect(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(1);
 
         String address = command.poll();
@@ -110,18 +118,18 @@ public class LynxDbCmdClient extends Shutdown {
             return;
         }
 
-        client.connect(node);
-        current = client.connection(node);
+        connection = client.createConnection(node);
+        connection.connect();
     }
 
     private void handleDisconnect(LynxDbCommand command) throws ErrorFormatCommand {
         command.checkArgsSize(0);
 
-        current.disconnect();
-        current = null;
+        connection.disconnect();
+        connection = null;
     }
 
-    private void handleFind(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleFind(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         if(command.argsSize() != 2 && command.argsSize() != 3) {
             throw new ErrorFormatCommand();
         }
@@ -131,14 +139,14 @@ public class LynxDbCmdClient extends Shutdown {
 
         try {
             String column = command.poll();
-            byte[] value = current.find(
+            byte[] value = connection.find(
                     G.I.toBytes(key),
                     columnFamily,
                     column
             );
             Printer.printRawMessage(G.I.toString(value));
-        } catch (ErrorFormatCommand ignored) {
-            HashMap<String, byte[]> multiColumns = current.findMultiColumns(
+        } catch (ErrorFormatCommand | ConnectException ignored) {
+            HashMap<String, byte[]> multiColumns = connection.findMultiColumns(
                     G.I.toBytes(key),
                     columnFamily
             );
@@ -146,7 +154,7 @@ public class LynxDbCmdClient extends Shutdown {
         }
     }
 
-    private void handleInsert(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleInsert(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(4);
 
         String key = command.poll();
@@ -154,7 +162,7 @@ public class LynxDbCmdClient extends Shutdown {
         String column = command.poll();
         String value = command.poll();
 
-        current.insert(
+        connection.insert(
                 G.I.toBytes(key),
                 columnFamily,
                 column,
@@ -162,21 +170,21 @@ public class LynxDbCmdClient extends Shutdown {
         );
     }
 
-    private void handleDelete(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleDelete(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(3);
 
         String key = command.poll();
         String columnFamily = command.poll();
         String column = command.poll();
 
-        current.delete(
+        connection.delete(
                 G.I.toBytes(key),
                 columnFamily,
                 column
         );
     }
 
-    private void handleRegister(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRegister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(2);
 
         String key = command.poll();
@@ -188,22 +196,22 @@ public class LynxDbCmdClient extends Shutdown {
         AffectHandler handler = new AffectHandler();
         client.registerAffectHandler(messageKey, handler);
 
-        current.register(keyBytes, columnFamily);
+        connection.register(keyBytes, columnFamily);
     }
 
-    private void handleDeregister(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleDeregister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(2);
 
         String key = command.poll();
         String columnFamily = command.poll();
 
-        current.deregister(
+        connection.deregister(
                 G.I.toBytes(key),
                 columnFamily
         );
     }
 
-    private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSizeMoreThan(4);
 
         String columnFamily = command.poll();
@@ -212,7 +220,7 @@ public class LynxDbCmdClient extends Shutdown {
         int limit = command.pollInt();
         String[] findColumns = command.pollRemaining();
 
-        var multiKeys = current.rangeNext(
+        var multiKeys = connection.rangeNext(
                 columnFamily,
                 mainColumn,
                 G.I.toBytes(key),
@@ -223,7 +231,7 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printMultiKeys(multiKeys);
     }
 
-    private void handleRangeBefore(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleRangeBefore(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSizeMoreThan(4);
 
         String columnFamily = command.poll();
@@ -232,7 +240,7 @@ public class LynxDbCmdClient extends Shutdown {
         int limit = command.pollInt();
         String[] findColumns = command.pollRemaining();
 
-        var multiKeys = current.rangeBefore(
+        var multiKeys = connection.rangeBefore(
                 columnFamily,
                 mainColumn,
                 G.I.toBytes(key),
@@ -243,14 +251,14 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printMultiKeys(multiKeys);
     }
 
-    private void handleExist(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleExist(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(3);
 
         String key = command.poll();
         String columnFamily = command.poll();
         String mainColumn = command.poll();
 
-        boolean isExisted = current.existKey(
+        boolean isExisted = connection.existKey(
                 G.I.toBytes(key),
                 columnFamily,
                 mainColumn
@@ -259,11 +267,36 @@ public class LynxDbCmdClient extends Shutdown {
         Printer.printBoolean(isExisted);
     }
 
-    private void handleJoin(LynxDbCommand command) throws ErrorFormatCommand {
+    private void handleJoin(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(1);
 
         String node = command.poll();
-        current.join(node);
+        connection.join(node);
+    }
+
+    private void handleFlightRecorder(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
+        command.checkArgsSize(0);
+        List<Pair<String, Long>> data = connection.flightRecorder();
+
+        List<List<String>> table = new ArrayList<>();
+
+        List<String> header = List.of("Name", "Value");
+        table.add(header);
+
+        data.forEach(pair -> {
+            List<String> row = new ArrayList<>();
+            row.add(pair.left());
+
+            if(pair.left().endsWith("Count")) {
+                row.add(String.valueOf(pair.right()));
+            } else {
+                row.add((double) pair.right() / 1000000 + " ms");
+            }
+
+            table.add(row);
+        });
+
+        Printer.printTable(table);
     }
 
     private void handleExit(LynxDbCommand command) throws ErrorFormatCommand {

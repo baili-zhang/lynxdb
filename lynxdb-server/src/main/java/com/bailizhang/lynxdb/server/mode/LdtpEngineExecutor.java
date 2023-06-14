@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.server.mode;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.affect.AffectValue;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
@@ -88,6 +89,11 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
                 LockSupport.unpark(tasksThread);
             }
 
+            case FLIGHT_RECORDER -> {
+                tasksQueue.offer(() -> handleDataRecorder(selectionKey, serial, buffer));
+                LockSupport.unpark(tasksThread);
+            }
+
             default -> throw new RuntimeException();
         }
     }
@@ -142,6 +148,27 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
     private void handleKeyTimeout(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         // TODO
         throw new UnsupportedOperationException();
+    }
+
+    private void handleDataRecorder(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+        assert !buffer.hasRemaining();
+
+        FlightDataRecorder recorder = FlightDataRecorder.recorder();
+        var data = recorder.data();
+
+        BytesList bytesList = new BytesList();
+        data.forEach(pair -> {
+            bytesList.appendVarStr(pair.left());
+            bytesList.appendRawLong(pair.right());
+        });
+
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                bytesList
+        );
+
+        server.offerInterruptibly(response);
     }
 
     private void handleRegisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {

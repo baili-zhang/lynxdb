@@ -5,6 +5,7 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
@@ -18,6 +19,7 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -26,6 +28,9 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_WRITE_DATA_TO_SOCKET;
 
 public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
@@ -43,6 +48,10 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SelectionKey, ConnectionContext> contexts
             = new ConcurrentHashMap<>();
+
+    /**
+     * 处理连接的 futures
+     */
     private final ConcurrentHashMap<SelectionKey, LynxDbFuture<SelectionKey>> connectFutureMap
             = new ConcurrentHashMap<>();
 
@@ -117,7 +126,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
     @Override
     public void offerInterruptibly(WritableSocketRequest request) {
-        SelectionKey selectionKey = request.selectionKey();;
+        SelectionKey selectionKey = request.selectionKey();
 
         ConnectionContext context = contexts.get(request.selectionKey());
         if(context == null) {
@@ -136,7 +145,18 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         return send(selectionKey, status, data);
     }
 
+    public final int send(NioMessage message) {
+        SelectionKey selectionKey = message.selectionKey();
+        byte status = SocketRequest.KEEP_CONNECTION;
+
+        return send(selectionKey, status, message.toBytes());
+    }
+
     public final int send(SelectionKey selectionKey, byte status, byte[] data) {
+        if(!selectionKey.isValid()) {
+            throw new CancelledKeyException();
+        }
+
         int requestSerial = serial.getAndIncrement();
 
         WritableSocketRequest request = new WritableSocketRequest(
@@ -147,20 +167,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         );
 
         handler.handleBeforeSend(selectionKey, requestSerial);
-
-        offerInterruptibly(request);
-        return requestSerial;
-    }
-
-    public final int send(NioMessage message) {
-        byte status = SocketRequest.KEEP_CONNECTION;
-        int requestSerial = serial.getAndIncrement();
-
-        WritableSocketRequest request = new WritableSocketRequest(
-                status,
-                requestSerial,
-                message
-        );
 
         offerInterruptibly(request);
         return requestSerial;
@@ -197,7 +203,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         try {
             selector.select();
             /* 如果线程被中断，则将线程中断位复位 */
-            if(isNotShutdown() && Thread.interrupted()) {
+            if(Thread.interrupted()) {
             }
 
             Set<SelectionKey> keys = selector.selectedKeys();
@@ -306,7 +312,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
                 contexts.remove(selectionKey);
 
                 LynxDbFuture<SelectionKey> future = connectFutureMap.remove(selectionKey);
-                future.value(selectionKey);
+                future.cancel(false);
 
                 try {
                     handler.handleConnectFailure(selectionKey);
@@ -321,8 +327,14 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         private void doRead() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
 
+            FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
             try {
-                context.read();
+                if(recorder.isEnable()) {
+                    recorder.recordE(context::read, CLIENT_READ_DATA_FROM_SOCKET);
+                } else {
+                    context.read();
+                }
             } catch (SocketException e) {
                 handleDisconnect();
             }
@@ -336,7 +348,13 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
             ConnectionContext context = contexts.get(selectionKey);
             WritableSocketRequest request = context.peekRequest();
 
-            request.write();
+            FlightDataRecorder recorder = FlightDataRecorder.recorder();
+
+            if(recorder.isEnable()) {
+                recorder.recordE(request::write, CLIENT_WRITE_DATA_TO_SOCKET);
+            } else {
+                request.write();
+            }
 
             if(request.isWriteCompleted()) {
                 context.pollRequest();

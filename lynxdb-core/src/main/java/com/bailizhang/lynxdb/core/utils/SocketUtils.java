@@ -14,4 +14,12 @@ public interface SocketUtils {
             throw new RuntimeException(e);
         }
     }
+
+    static boolean isValid(SelectionKey selectionKey) {
+        return selectionKey != null && selectionKey.isValid();
+    }
+
+    static boolean isInvalid(SelectionKey selectionKey) {
+        return !isValid(selectionKey);
+    }
 }

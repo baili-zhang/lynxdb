@@ -81,10 +81,7 @@ public class LogRegion {
         int dataBlockCount = dataBlockLength / Default.DATA_BLOCK_SIZE + 1;
 
         for(int i = 0; i < dataBlockCount; i ++) {
-            MappedBuffer dataBuffer = new MappedBuffer(
-                    path,
-                    dataBeginPosition + i * (long) Default.DATA_BLOCK_SIZE,
-                    Default.DATA_BLOCK_SIZE);
+            MappedBuffer dataBuffer = mapDataBlockBuffer(i);
             dataBuffers.add(dataBuffer);
         }
     }
@@ -175,11 +172,7 @@ public class LogRegion {
 
         MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
         if(dataBuffer == null) {
-            dataBuffer = new MappedBuffer(
-                    path,
-                    (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
-                    Default.DATA_BLOCK_SIZE
-            );
+            dataBuffer = mapDataBlockBuffer(dataBuffers.size());
             dataBuffers.add(dataBuffer);
         }
 
@@ -211,11 +204,7 @@ public class LogRegion {
 
             if(dataOffset < dataEntryBytes.length) {
                 // 写入一个新的数据块
-                dataBuffer = new MappedBuffer(
-                        path,
-                        (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
-                        Default.DATA_BLOCK_SIZE
-                );
+                dataBuffer = mapDataBlockBuffer(dataBuffers.size());
 
                 dataBuffers.add(dataBuffer);
                 dataByteBuffer = dataBuffer.getBuffer();
@@ -317,5 +306,13 @@ public class LogRegion {
 
     public boolean isFull() {
         return globalIdxEnd() - globalIdxBegin() + 1 >= capacity;
+    }
+
+    private MappedBuffer mapDataBlockBuffer(int i) {
+        return new MappedBuffer(
+                path,
+                dataBeginPosition + (long) Default.DATA_BLOCK_SIZE * i,
+                Default.DATA_BLOCK_SIZE
+        );
     }
 }

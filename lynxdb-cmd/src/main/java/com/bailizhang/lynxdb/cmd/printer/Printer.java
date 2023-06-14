@@ -4,10 +4,7 @@ import com.bailizhang.lynxdb.client.connection.LynxDbConnection;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 
-import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,14 +40,8 @@ public interface Printer {
         System.out.println("INFO: Use \"connect [host]:[port]\" to connect server firstly");
     }
 
-    static void printDisconnect(SelectionKey current) {
-        String address = null;
-        try {
-            address = ((SocketChannel) current.channel()).getRemoteAddress().toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String message = String.format("INFO: Disconnect from [%s]", address);
+    static void printDisconnect(LynxDbConnection connection) {
+        String message = String.format("ERROR: Disconnect from [%s]", connection.serverNode());
         System.out.println(message);
     }
 

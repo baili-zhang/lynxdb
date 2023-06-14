@@ -41,6 +41,8 @@ public class Configuration {
         String BASE_DIR                 = "[base]";
 
         String SEPARATOR                = "=";
+
+        String TRUE                     = "true";
     }
 
     // 反射修改 final 字段后读取时还是初始值，因为 final 字段被内联优化了
@@ -57,6 +59,7 @@ public class Configuration {
 
     private String runningMode;
     private String initClusterMembers;
+    private String enableFlightRecorder;
 
     // TODO
     private final Charset charset   = StandardCharsets.UTF_8;
@@ -154,6 +157,10 @@ public class Configuration {
 
     public String runningMode() {
         return runningMode;
+    }
+
+    public boolean enableFlightRecorder() {
+        return Default.TRUE.equals(enableFlightRecorder);
     }
 
     @Override
