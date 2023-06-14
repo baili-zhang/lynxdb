@@ -213,7 +213,7 @@ public class LogRegion {
                 // 写入一个新的数据块
                 dataBuffer = new MappedBuffer(
                         path,
-                        (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
+                        dataBeginPosition + (long) Default.DATA_BLOCK_SIZE * dataBuffers.size(),
                         Default.DATA_BLOCK_SIZE
                 );
 
