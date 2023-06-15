@@ -67,5 +67,6 @@ public class LynxDbClient implements AutoCloseable {
     @Override
     public void close() {
         socketClient.close();
+        messageReceiver.shutdown();
     }
 }

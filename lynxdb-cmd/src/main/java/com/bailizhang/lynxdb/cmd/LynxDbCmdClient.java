@@ -62,7 +62,7 @@ public class LynxDbCmdClient extends Shutdown {
                 continue;
             }
 
-            if(connection == null && (!CONNECT.equals(command.name()) || EXIT.equals(command.name()))) {
+            if(connection == null && !CONNECT.equals(command.name()) && !EXIT.equals(command.name())) {
                 Printer.printNotConnectServer();
                 continue;
             }

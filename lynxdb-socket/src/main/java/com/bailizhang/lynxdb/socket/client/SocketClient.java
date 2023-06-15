@@ -239,8 +239,10 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
     }
 
     @Override
-    protected void doAfterExecute() {
+    protected void doAfterShutdown() {
         executor.shutdown();
+
+        logger.info("Socket client has shutdown.");
     }
 
     /* IO线程的线程工厂 */
