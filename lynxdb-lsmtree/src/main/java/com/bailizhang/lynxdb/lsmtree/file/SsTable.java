@@ -196,7 +196,7 @@ public class SsTable {
         int globalIndex = keyEntry.valueGlobalIndex();
         LogEntry entry = valueLogGroup.find(globalIndex);
 
-        return entry.data();
+        return entry == null ? null : entry.data();
     }
 
     public boolean existKey(byte[] key) throws DeletedException {

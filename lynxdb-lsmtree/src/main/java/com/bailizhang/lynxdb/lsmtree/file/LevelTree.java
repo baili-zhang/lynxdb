@@ -1,14 +1,12 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
 import com.bailizhang.lynxdb.core.log.LogGroup;
-import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
-import java.nio.file.Path;
 import java.util.*;
 
 public class LevelTree {
@@ -22,15 +20,10 @@ public class LevelTree {
     private final LogGroup valueFileGroup;
     private final LsmTreeOptions options;
 
-    public LevelTree(String dir, LsmTreeOptions lsmOptions) {
+    public LevelTree(String dir, LogGroup valueLogGroup, LsmTreeOptions lsmOptions) {
         baseDir = dir;
         options = lsmOptions;
-
-        // 初始化 valueFileGroup
-        String valueFileGroupPath = Path.of(baseDir, VALUE_GROUP_NAME).toString();
-        LogGroupOptions logOptions = new LogGroupOptions(EXTRA_DATA_LENGTH);
-
-        valueFileGroup = new LogGroup(valueFileGroupPath, logOptions);
+        valueFileGroup = valueLogGroup;
 
         List<String> subDirs = FileUtils.findSubDirs(baseDir);
         for(String subDir : subDirs) {

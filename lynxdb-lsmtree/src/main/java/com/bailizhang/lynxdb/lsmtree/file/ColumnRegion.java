@@ -53,7 +53,7 @@ public class ColumnRegion {
         valueLog = new LogGroup(valueLogPath, valueLogGroupOptions);
 
         mutable = new MemTable(options);
-        levelTree = new LevelTree(dir, options);
+        levelTree = new LevelTree(dir, valueLog, options);
 
         if(options.wal()) {
             // 初始化 wal log group
