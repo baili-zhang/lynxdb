@@ -5,7 +5,7 @@ public abstract class Shutdown {
     private volatile boolean shutdown = false;
 
     public void shutdown() {
-        doAfterShutdown();
+        handleShutdown();
         shutdown = true;
     }
 
@@ -13,7 +13,7 @@ public abstract class Shutdown {
         return !shutdown;
     }
 
-    protected void doAfterShutdown() {
+    protected void handleShutdown() {
 
     }
 }

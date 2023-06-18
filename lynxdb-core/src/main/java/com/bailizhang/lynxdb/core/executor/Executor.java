@@ -69,17 +69,17 @@ public abstract class Executor<E> extends Shutdown implements Executable<E>, Int
         while(isNotShutdown()) {
             execute();
         }
-        doAfterExecute();
+        doAfterShutdown();
     }
 
-    protected final void doAfterShutdown() {
+    protected final void handleShutdown() {
         interrupt();
     }
 
     protected void doBeforeExecute() {
     }
 
-    protected void doAfterExecute() {
+    protected void doAfterShutdown() {
     }
 
     protected abstract void execute();
