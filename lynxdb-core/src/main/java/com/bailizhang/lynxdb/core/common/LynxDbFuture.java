@@ -5,96 +5,111 @@ import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-@CheckThreadSafety
+@CheckThreadSafety("finished")
 public class LynxDbFuture<T> implements Future<T> {
+    private static final int INIT = 0;
+    private static final int WAITING = 1;
+    private static final int WAITED = 2;
+    private static final int COMPLETED = 3;
+    private static final int CANCELED = 4;
+    private static final int FINAL = 5;
 
-    private final AtomicInteger count = new AtomicInteger(0);
-    private final Node header;
-    private volatile Node tail;
-
-    private volatile Boolean canceled = null;
-    private volatile boolean completed = false;
-    private volatile T value;
+    private volatile int state = 0;
+    private Thread waiterThread = null;
+    private T value;
 
     public LynxDbFuture() {
-        Node node = new Node(null);
-        header = node;
-        tail = node;
     }
 
     public void value(T val) {
-        if(completed) {
-            return;
+        // 不为初始状态
+        if(state != INIT || !STATE.compareAndSet(this, INIT, COMPLETED)) {
+            while (true) {
+                if(state == WAITING) {
+                    Thread.yield();
+                    continue;
+                }
+
+                if(state == WAITED) {
+                    if(!STATE.compareAndSet(this, WAITED, COMPLETED)) {
+                        continue;
+                    }
+
+                    value = val;
+                    STATE.setRelease(this, FINAL);
+                    LockSupport.unpark(waiterThread);
+                    return;
+                }
+
+                throw new RuntimeException();
+            }
         }
 
         value = val;
-
-        if(!completed) {
-            completed = true;
-
-            Node node = header;
-            while(node.next != null) {
-                node = node.next;
-                LockSupport.unpark(node.thread);
-            }
-        }
+        STATE.setRelease(this, FINAL);
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        boolean cancel = CANCELED.compareAndSet(this, null, true);
+        // 如果当前状态不为 INIT
+        if(state != INIT || !STATE.compareAndSet(this, INIT, COMPLETED)) {
+            while (true) {
+                if(state == WAITING) {
+                    Thread.yield();
+                    continue;
+                }
 
-        Node node = header;
-        while(node.next != null) {
-            node = node.next;
+                if(state == WAITED) {
+                    if(!STATE.compareAndSet(this, WAITED, COMPLETED)) {
+                        continue;
+                    }
 
-            if(mayInterruptIfRunning) {
-                node.thread.interrupt();
-            } else {
-                LockSupport.unpark(node.thread);
+                    STATE.setRelease(this, CANCELED);
+                    LockSupport.unpark(waiterThread);
+                    return true;
+                }
+
+                throw new RuntimeException();
             }
         }
 
-        return cancel;
+        STATE.setRelease(this, CANCELED);
+        return true;
     }
 
     @Override
     public boolean isCancelled() {
-        return canceled != null && canceled;
+        return state == CANCELED;
     }
 
     @Override
     public boolean isDone() {
-        return completed;
+        return state == COMPLETED;
     }
 
     @Override
     public T get() {
-        while (!completed && !isCancelled()) {
-            Thread thread = Thread.currentThread();
-            Node node = new Node(thread);
-            Node t = tail;
+        if(waiterThread != null && waiterThread != Thread.currentThread()) {
+            throw new RuntimeException();
+        }
 
-            while(!TAIL.compareAndSet(this, t, node)) {
-                Thread.yield();
-                t = tail;
-            }
-
-            t.next = node;
-            node.prev = t;
-
-            count.getAndIncrement();
+        if(STATE.compareAndSet(this, INIT, WAITING)) {
+            waiterThread = Thread.currentThread();
+            STATE.setRelease(this, WAITED);
             LockSupport.park();
         }
 
-        if(isCancelled()) {
-            throw new CancellationException();
+        while (state == COMPLETED) {
+            Thread.yield();
         }
 
-        return value;
+        return switch (state) {
+            case FINAL -> value;
+            case CANCELED -> throw new CancellationException();
+            default -> throw new RuntimeException();
+        };
     }
 
     @Override
@@ -102,28 +117,12 @@ public class LynxDbFuture<T> implements Future<T> {
         throw new UnsupportedOperationException();
     }
 
-    public int blockedThreadCount() {
-        return count.get();
-    }
-
-    private static class Node {
-        private Node prev;
-        private Node next;
-        private final Thread thread;
-
-        Node(Thread thd) {
-            thread = thd;
-        }
-    }
-
-    private static final VarHandle TAIL;
-    private static final VarHandle CANCELED;
+    private static final VarHandle STATE;
 
     static {
         try {
             MethodHandles.Lookup lookup = MethodHandles.lookup();
-            TAIL = lookup.findVarHandle(LynxDbFuture.class, "tail", Node.class);
-            CANCELED = lookup.findVarHandle(LynxDbFuture.class, "canceled", Boolean.class);
+            STATE = lookup.findVarHandle(LynxDbFuture.class, "state", int.class);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
