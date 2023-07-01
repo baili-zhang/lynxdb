@@ -30,6 +30,7 @@ public interface Table {
 
     void insert(byte[] key, String columnFamily, String column, byte[] value);
     void insert(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns);
+    boolean insertIfNotExisted(byte[] key, String columnFamily, HashMap<String,byte[]> multiColumns);
 
     void delete(byte[] key, String columnFamily, String column);
     void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns);

@@ -256,6 +256,66 @@ public class LynxDbConnection {
         insert(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
     }
 
+    public boolean insertIfNotExisted(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns)
+            throws ConnectException {
+        BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(LDTP_METHOD);
+        bytesList.appendRawByte(LdtpMethod.INSERT_IF_NOT_EXISTED);
+        bytesList.appendVarBytes(key);
+        bytesList.appendVarBytes(columnFamily);
+
+        multiColumns.forEach((column, value) -> {
+            bytesList.appendVarStr(column);
+            bytesList.appendVarBytes(value);
+        });
+
+        SelectionKey selectionKey = selectionKey();
+        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+
+        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
+        byte[] data = future.get();
+
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        byte flag = buffer.get();
+
+        return switch (flag) {
+            case TRUE -> true;
+            case FALSE -> false;
+            default -> throw new RuntimeException();
+        };
+    }
+
+    public boolean insertIfNotExisted(Object obj, String... columns) throws ConnectException {
+        Class<?> clazz = obj.getClass();
+
+        String columnFamily = findColumnFamily(clazz);
+        Field keyField = findKeyField(clazz);
+        List<Field> columnFields = findColumnFields(clazz);
+
+        List<Field> insertColumnFields;
+
+        if(columns.length == 0) {
+            insertColumnFields = columnFields;
+        } else {
+            HashSet<String> insertColumnSet = new HashSet<>(Arrays.asList(columns));
+            insertColumnFields = columnFields.stream()
+                    .filter(field -> insertColumnSet.contains(field.getName()))
+                    .toList();
+        }
+
+        String key = (String) FieldUtils.get(obj, keyField);
+
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
+        for(Field field : insertColumnFields) {
+            String column = field.getName();
+            String value = (String) FieldUtils.get(obj, field);
+
+            multiColumns.put(column, G.I.toBytes(value));
+        }
+
+        return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
+    }
+
     public void delete(byte[] key, String columnFamily, String column) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);

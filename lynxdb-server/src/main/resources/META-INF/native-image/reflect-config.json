@@ -23,6 +23,10 @@
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },
       {
+        "name":"doInsertIfNotExisted",
+        "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
+      },
+      {
         "name":"doDelete",
         "parameterTypes":["com.bailizhang.lynxdb.server.engine.params.QueryParams"]
       },

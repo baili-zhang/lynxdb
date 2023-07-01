@@ -136,6 +136,34 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         return new QueryResult(bytesList, new MessageKey(key, columnFamily));
     }
 
+    @LdtpMethod(INSERT_IF_NOT_EXISTED)
+    public QueryResult doInsertIfNotExisted(QueryParams params) {
+        byte[] data = params.content();
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
+        byte[] key = BufferUtils.getBytes(buffer);
+        String columnFamily = BufferUtils.getString(buffer);
+
+        HashMap<String, byte[]> multiColumns = new HashMap<>();
+
+        while(BufferUtils.isNotOver(buffer)) {
+            String column = BufferUtils.getString(buffer);
+            byte[] value = BufferUtils.getBytes(buffer);
+
+            multiColumns.put(column, value);
+        }
+
+        logger.debug("Insert if not existed, key: {}, columnFamily: {}, multiColumns: {}.",
+                G.I.toString(key), columnFamily, multiColumns);
+
+        boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns);
+
+        BytesList bytesList = new BytesList();
+        bytesList.appendRawByte(success ? TRUE : FALSE);
+
+        return new QueryResult(bytesList, success ? new MessageKey(key, columnFamily) : null);
+    }
+
     @LdtpMethod(DELETE)
     public QueryResult doDelete(QueryParams params) {
         byte[] data = params.content();

@@ -111,6 +111,25 @@ public class LynxDbLsmTree implements Table {
     }
 
     @Override
+    public boolean insertIfNotExisted(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns) {
+        ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
+
+        for(String column : multiColumns.keySet()) {
+            ColumnRegion columnRegion = region.findColumnRegion(column);
+            if(columnRegion.existKey(key)) {
+                return false;
+            }
+        }
+
+        multiColumns.forEach((column, value) -> {
+            ColumnRegion columnRegion = region.findColumnRegion(column);
+            columnRegion.insert(key, value);
+        });
+
+        return true;
+    }
+
+    @Override
     public void delete(byte[] key, String columnFamily, String column) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         ColumnRegion columnRegion = region.findColumnRegion(column);
