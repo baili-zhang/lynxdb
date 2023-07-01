@@ -15,6 +15,8 @@ import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -36,6 +38,8 @@ import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.JOIN_CLUSTER_RESUL
 
 @CheckThreadSafety
 public class LynxDbConnection {
+    private static final Logger logger = LoggerFactory.getLogger(LynxDbConnection.class);
+
     private final ServerNode serverNode;
 
     private final ConcurrentHashMap<SelectionKey, ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
@@ -65,6 +69,8 @@ public class LynxDbConnection {
         } catch (IOException | CancellationException e) {
             throw new ConnectException("Failed to connect LynxDB server, address: " + serverNode);
         }
+
+        logger.info("Has connected to LynxDB server, address: {}", serverNode);
     }
 
     public ServerNode serverNode() {
