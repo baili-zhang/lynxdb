@@ -5,6 +5,8 @@ import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.client.annotation.LynxDbMainColumn;
 import com.bailizhang.lynxdb.core.common.*;
+import com.bailizhang.lynxdb.core.health.RecordOption;
+import com.bailizhang.lynxdb.core.health.RecordUnit;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
@@ -478,7 +480,7 @@ public class LynxDbConnection {
         }
     }
 
-    public List<Pair<String, Long>> flightRecorder() throws ConnectException {
+    public List<Pair<RecordOption, Long>> flightRecorder() throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(FLIGHT_RECORDER);
 
@@ -488,14 +490,16 @@ public class LynxDbConnection {
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
 
-        List<Pair<String, Long>> recordData = new ArrayList<>();
+        List<Pair<RecordOption, Long>> recordData = new ArrayList<>();
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         while (BufferUtils.isNotOver(buffer)) {
             String name = BufferUtils.getString(buffer);
-            Long value = buffer.getLong();
+            byte flag = buffer.get();
+            long value = buffer.getLong();
 
-            recordData.add(new Pair<>(name, value));
+            RecordOption option = new RecordOption(name, RecordUnit.find(flag));
+            recordData.add(new Pair<>(option, value));
         }
 
         return recordData;

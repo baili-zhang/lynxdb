@@ -158,7 +158,8 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
         BytesList bytesList = new BytesList();
         data.forEach(pair -> {
-            bytesList.appendVarStr(pair.left());
+            bytesList.appendVarStr(pair.left().name());
+            bytesList.appendRawByte(pair.left().unit().value());
             bytesList.appendRawLong(pair.right());
         });
 

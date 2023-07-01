@@ -8,6 +8,7 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
+import com.bailizhang.lynxdb.core.health.RecordOption;
 import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
@@ -276,7 +277,7 @@ public class LynxDbCmdClient extends Shutdown {
 
     private void handleFlightRecorder(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(0);
-        List<Pair<String, Long>> data = connection.flightRecorder();
+        List<Pair<RecordOption, Long>> data = connection.flightRecorder();
 
         List<List<String>> table = new ArrayList<>();
 
@@ -285,13 +286,11 @@ public class LynxDbCmdClient extends Shutdown {
 
         data.forEach(pair -> {
             List<String> row = new ArrayList<>();
-            row.add(pair.left());
+            RecordOption option = pair.left();
+            long val = pair.right();
 
-            if(pair.left().endsWith("Count")) {
-                row.add(String.valueOf(pair.right()));
-            } else {
-                row.add((double) pair.right() / 1000000 + " ms");
-            }
+            row.add(String.format("%s (%s)", option.name(), option.unit().unitName()));
+            row.add(String.valueOf(val));
 
             table.add(row);
         });
