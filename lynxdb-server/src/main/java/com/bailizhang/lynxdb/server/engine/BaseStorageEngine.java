@@ -2,14 +2,13 @@ package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
-import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
 import com.bailizhang.lynxdb.lsmtree.Table;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
+import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -19,10 +18,10 @@ import java.util.concurrent.Callable;
 
 public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
-    private static final String TIMEOUT_COLUMN = "timeout";
 
     protected final Table dataTable;
     protected final Table timeoutTable;
+    protected final LynxDbTimeWheel timeWheel;
 
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
@@ -38,6 +37,7 @@ public class BaseStorageEngine {
 
         dataTable = new LynxDbLsmTree(dataLsmTreeOptions);
         timeoutTable = new LynxDbLsmTree(timeoutLsmTreeOptions);
+        timeWheel = new LynxDbTimeWheel();
 
         initMethod(clazz);
     }
@@ -63,44 +63,6 @@ public class BaseStorageEngine {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public HashMap<String, byte[]> findAffectKey(MessageKey messageKey) {
-        return dataTable.findMultiColumns(messageKey.key(), messageKey.columnFamily());
-    }
-
-    public byte[] findTimeoutValue(MessageKey messageKey) {
-        return timeoutTable.find(
-                messageKey.key(),
-                messageKey.columnFamily(),
-                TIMEOUT_COLUMN
-        );
-    }
-
-    public void insertTimeoutKey(TimeoutValue timeoutValue) {
-        MessageKey messageKey = timeoutValue.messageKey();
-
-        timeoutTable.insert(
-                messageKey.key(),
-                messageKey.columnFamily(),
-                TIMEOUT_COLUMN,
-                timeoutValue.value()
-        );
-    }
-
-    public void removeTimeoutKey(MessageKey messageKey) {
-        timeoutTable.delete(
-                messageKey.key(),
-                messageKey.columnFamily(),
-                TIMEOUT_COLUMN
-        );
-    }
-
-    public void removeData(MessageKey messageKey) {
-        dataTable.deleteMultiColumns(
-                messageKey.key(),
-                messageKey.columnFamily()
-        );
     }
 
     private void initMethod(Class<? extends BaseStorageEngine> clazz) {
