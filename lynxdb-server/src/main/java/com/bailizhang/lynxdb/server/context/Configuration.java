@@ -34,7 +34,6 @@ public class Configuration {
 
         String CONFIG_DIR               = USER_DIR + "/config";
         String DATA_DIR                 = USER_DIR + "/data/base";
-        String TIMEOUT_DIR              = USER_DIR + "/data/timeout";
         String RAFT_LOGS_DIR            = USER_DIR + "/data/raft/logs";
         String RAFT_META_DIR            = USER_DIR + "/data/raft/meta";
 
@@ -53,7 +52,6 @@ public class Configuration {
     private String messagePort;
 
     private String dataDir;
-    private String timeoutDir;
     private String raftLogsDir;
     private String raftMetaDir;
 
@@ -135,10 +133,6 @@ public class Configuration {
         return dataDir;
     }
 
-    public String timeoutDir() {
-        return timeoutDir;
-    }
-
     public String initClusterMembers() {
         return initClusterMembers;
     }
@@ -199,7 +193,6 @@ public class Configuration {
         messagePort = Default.MESSAGE_PORT;
 
         dataDir = Default.DATA_DIR;
-        timeoutDir = Default.TIMEOUT_DIR;
         raftLogsDir = Default.RAFT_LOGS_DIR;
         raftMetaDir = Default.RAFT_META_DIR;
 

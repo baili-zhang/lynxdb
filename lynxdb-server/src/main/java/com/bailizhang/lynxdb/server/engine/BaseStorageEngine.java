@@ -19,8 +19,6 @@ public class BaseStorageEngine {
     private static final int DEFAULT_MEM_TABLE_SIZE = 4000;
 
     protected final Table dataTable;
-    protected final Table timeoutTable;
-
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
     /* TODO: Cache 以后再实现 */
@@ -28,13 +26,9 @@ public class BaseStorageEngine {
     public BaseStorageEngine(Class<? extends BaseStorageEngine> clazz) {
         Configuration config = Configuration.getInstance();
         String dataDir = config.dataDir();
-        String timeoutDir = config.timeoutDir();
 
         LsmTreeOptions dataLsmTreeOptions = new LsmTreeOptions(dataDir, DEFAULT_MEM_TABLE_SIZE);
-        LsmTreeOptions timeoutLsmTreeOptions = new LsmTreeOptions(timeoutDir, DEFAULT_MEM_TABLE_SIZE);
-
         dataTable = new LynxDbLsmTree(dataLsmTreeOptions);
-        timeoutTable = new LynxDbLsmTree(timeoutLsmTreeOptions);
 
         initMethod(clazz);
     }
