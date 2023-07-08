@@ -29,8 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.*;
 import static com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod.*;
-import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.DEREGISTER;
-import static com.bailizhang.lynxdb.ldtp.request.KeyRegister.REGISTER;
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
 import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
 import static com.bailizhang.lynxdb.ldtp.result.RaftRpcResult.JOIN_CLUSTER_RESULT;
@@ -186,13 +184,35 @@ public class LynxDbConnection {
         return obj;
     }
 
-    public void insert(byte[] key, String columnFamily, String column, byte[] value) throws ConnectException {
+    public void insert(
+            byte[] key,
+            String columnFamily,
+            String column,
+            byte[] value
+    ) throws ConnectException {
+        insert(
+                key,
+                columnFamily,
+                column,
+                -1L,
+                value
+        );
+    }
+
+    public void insert(
+            byte[] key,
+            String columnFamily,
+            String column,
+            long timeout,
+            byte[] value
+    ) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT);
         bytesList.appendVarBytes(key);
         bytesList.appendVarStr(columnFamily);
         bytesList.appendVarStr(column);
+        bytesList.appendRawLong(timeout);
         bytesList.appendVarBytes(value);
 
         SelectionKey selectionKey = selectionKey();
@@ -207,12 +227,31 @@ public class LynxDbConnection {
         }
     }
 
-    public void insert(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns) throws ConnectException {
+    public void insert(
+            byte[] key,
+            byte[] columnFamily,
+            HashMap<String, byte[]> multiColumns
+    ) throws ConnectException {
+        insert(
+                key,
+                columnFamily,
+                -1,
+                multiColumns
+        );
+    }
+
+    public void insert(
+            byte[] key,
+            byte[] columnFamily,
+            long timeout,
+            HashMap<String, byte[]> multiColumns
+    ) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(columnFamily);
+        bytesList.appendRawLong(timeout);
 
         multiColumns.forEach((column, value) -> {
             bytesList.appendVarStr(column);
@@ -232,6 +271,14 @@ public class LynxDbConnection {
     }
 
     public void insert(Object obj, String... columns) throws ConnectException {
+        insert(obj, -1, columns);
+    }
+
+    public void insert(
+            Object obj,
+            long timeout,
+            String... columns
+    ) throws ConnectException {
         Class<?> clazz = obj.getClass();
 
         String columnFamily = findColumnFamily(clazz);
@@ -259,16 +306,34 @@ public class LynxDbConnection {
             multiColumns.put(column, G.I.toBytes(value));
         }
 
-        insert(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
+        insert(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
     }
 
-    public boolean insertIfNotExisted(byte[] key, byte[] columnFamily, HashMap<String, byte[]> multiColumns)
-            throws ConnectException {
+    public boolean insertIfNotExisted(
+            byte[] key,
+            byte[] columnFamily,
+            HashMap<String, byte[]> multiColumns
+    ) throws ConnectException {
+        return insertIfNotExisted(
+                key,
+                columnFamily,
+                -1,
+                multiColumns
+        );
+    }
+
+    public boolean insertIfNotExisted(
+            byte[] key,
+            byte[] columnFamily,
+            long timeout,
+            HashMap<String, byte[]> multiColumns
+    ) throws ConnectException {
         BytesList bytesList = new BytesList(false);
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT_IF_NOT_EXISTED);
         bytesList.appendVarBytes(key);
         bytesList.appendVarBytes(columnFamily);
+        bytesList.appendRawLong(timeout);
 
         multiColumns.forEach((column, value) -> {
             bytesList.appendVarStr(column);
@@ -291,7 +356,18 @@ public class LynxDbConnection {
         };
     }
 
-    public boolean insertIfNotExisted(Object obj, String... columns) throws ConnectException {
+    public boolean insertIfNotExisted(
+            Object obj,
+            String... columns
+    ) throws ConnectException {
+        return insertIfNotExisted(obj, -1, columns);
+    }
+
+    public boolean insertIfNotExisted(
+            Object obj,
+            long timeout,
+            String... columns
+    ) throws ConnectException {
         Class<?> clazz = obj.getClass();
 
         String columnFamily = findColumnFamily(clazz);
@@ -319,7 +395,7 @@ public class LynxDbConnection {
             multiColumns.put(column, G.I.toBytes(value));
         }
 
-        return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), multiColumns);
+        return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
     }
 
     public void delete(byte[] key, String columnFamily, String column) throws ConnectException {
@@ -379,44 +455,6 @@ public class LynxDbConnection {
         byte[] key = G.I.toBytes((String) FieldUtils.get(obj, keyField));
 
         deleteMultiColumns(key, columnFamily, deleteColumns);
-    }
-
-    public void register(byte[] key, String columnFamily) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(KEY_REGISTER);
-        bytesList.appendRawByte(REGISTER);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-
-        SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
-
-        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
-        byte[] data = future.get();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.VOID) {
-            throw new RuntimeException();
-        }
-    }
-
-    public void deregister(byte[] key, String columnFamily) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(KEY_REGISTER);
-        bytesList.appendRawByte(DEREGISTER);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-
-        SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
-
-        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
-        byte[] data = future.get();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.VOID) {
-            throw new RuntimeException();
-        }
     }
 
     public List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(

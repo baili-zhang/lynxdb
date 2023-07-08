@@ -95,12 +95,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         byte[] key = BufferUtils.getBytes(buffer);
         String columnFamily = BufferUtils.getString(buffer);
         String column = BufferUtils.getString(buffer);
+        long timeout = buffer.getLong();
         byte[] value = BufferUtils.getBytes(buffer);
 
-        logger.debug("Insert key: {}, columnFamily: {}, column: {}, value: {}.",
-                G.I.toString(key), columnFamily, column, G.I.toString(value));
+        logger.debug("Insert key: {}, columnFamily: {}, column: {}, timeout: {}, value: {}.",
+                G.I.toString(key), columnFamily, column, timeout, G.I.toString(value));
 
-        dataTable.insert(key, columnFamily, column, value);
+        dataTable.insert(key, columnFamily, column, value, timeout);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -115,6 +116,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         byte[] key = BufferUtils.getBytes(buffer);
         String columnFamily = BufferUtils.getString(buffer);
+        long timeout = buffer.getLong();
 
         HashMap<String, byte[]> multiColumns = new HashMap<>();
 
@@ -125,10 +127,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             multiColumns.put(column, value);
         }
 
-        logger.debug("Insert key: {}, columnFamily: {}, multiColumns: {}.",
-                G.I.toString(key), columnFamily, multiColumns);
+        logger.debug("Insert key: {}, columnFamily: {}, multiColumns: {}, timeout: {}.",
+                G.I.toString(key), columnFamily, multiColumns, timeout);
 
-        dataTable.insert(key, columnFamily, multiColumns);
+        dataTable.insert(key, columnFamily, multiColumns, timeout);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(VOID);
@@ -143,6 +145,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         byte[] key = BufferUtils.getBytes(buffer);
         String columnFamily = BufferUtils.getString(buffer);
+        long timeout = buffer.getLong();
 
         HashMap<String, byte[]> multiColumns = new HashMap<>();
 
@@ -153,10 +156,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
             multiColumns.put(column, value);
         }
 
-        logger.debug("Insert if not existed, key: {}, columnFamily: {}, multiColumns: {}.",
-                G.I.toString(key), columnFamily, multiColumns);
+        logger.debug("Insert if not existed, key: {}, columnFamily: {}, multiColumns: {}, timeout: {}.",
+                G.I.toString(key), columnFamily, multiColumns, timeout);
 
-        boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns);
+        boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns, timeout);
 
         BytesList bytesList = new BytesList();
         bytesList.appendRawByte(success ? TRUE : FALSE);

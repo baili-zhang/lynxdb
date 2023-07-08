@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.lsmtree.memory;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
 import java.util.ArrayList;
@@ -33,13 +34,17 @@ public class MemTable {
         skipListMap.put(new Key(key), keyEntry);
     }
 
-    public byte[] find(byte[] k) throws DeletedException {
+    public byte[] find(byte[] k) throws DeletedException, TimeoutException {
         Key key = new Key(k);
 
         KeyEntry keyEntry = skipListMap.get(key);
 
         if(keyEntry == null) {
             return null;
+        }
+
+        if(keyEntry.isTimeout()) {
+            throw new TimeoutException();
         }
 
         if(keyEntry.flag() == KeyEntry.DELETED) {
@@ -67,7 +72,7 @@ public class MemTable {
         return new ArrayList<>(skipListMap.values());
     }
 
-    public boolean existKey(byte[] key) throws DeletedException {
+    public boolean existKey(byte[] key) throws DeletedException, TimeoutException {
         KeyEntry entry = skipListMap.get(new Key(key));
 
         if(entry == null) {
@@ -76,6 +81,10 @@ public class MemTable {
 
         if(entry.flag() == KeyEntry.DELETED) {
             throw new DeletedException();
+        }
+
+        if(entry.isTimeout()) {
+            throw new TimeoutException();
         }
 
         return true;

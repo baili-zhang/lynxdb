@@ -17,7 +17,8 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.FLIGHT_RECORDER;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
 
 public class LdtpEngineExecutor extends Executor<SocketRequest> {
     private static final Logger logger = LoggerFactory.getLogger(LdtpEngineExecutor.class);
@@ -42,7 +43,6 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         tasksThread.start();
     }
 
-    // TODO: 抽象到一个通用的执行器中
     @Override
     protected void execute() {
         SocketRequest request = blockPoll();
@@ -59,7 +59,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         byte flag = buffer.get();
 
         switch (flag) {
-            case LDTP_METHOD, KEY_TIMEOUT, KEY_REGISTER -> {
+            case LDTP_METHOD -> {
                 tasksQueue.offer(() -> handleLdtpMethod(selectionKey, serial, buffer));
                 LockSupport.unpark(tasksThread);
             }
@@ -86,27 +86,6 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
     }
 
     private void handleLdtpMethod(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        QueryParams queryParams = QueryParams.parse(buffer);
-
-        logger.info("Handle client request, params: {}", queryParams);
-
-        QueryResult result = engine.doQuery(queryParams);
-
-        logger.debug("Result is: {}", result);
-
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                result.data()
-        );
-
-        logger.info("Offer response to server executor, {}", response);
-
-        // 返回给发起请求的客户端
-        server.offerInterruptibly(response);
-    }
-
-    private void handleKeyTimeout(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
         QueryParams queryParams = QueryParams.parse(buffer);
 
         logger.info("Handle client request, params: {}", queryParams);

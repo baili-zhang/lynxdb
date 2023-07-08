@@ -17,6 +17,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
  * @param flag flag
  * @param key key
  * @param valueGlobalIndex value global index
+ * @param timeout timeout
  * @param crc32c crc32c
  */
 public record KeyEntry(
@@ -24,6 +25,7 @@ public record KeyEntry(
         byte[] key,
         byte[] value, // memTable 需要这个字段，不需要 crc，也不用转成 bytes
         int valueGlobalIndex,
+        long timeout,
         long crc32c
 ) implements Comparable<KeyEntry>, BytesListConvertible {
 
@@ -33,32 +35,41 @@ public record KeyEntry(
     public static final byte[] EXISTED_ARRAY = new byte[]{EXISTED};
     public static final byte[] DELETED_ARRAY = new byte[]{DELETED};
 
-    public static KeyEntry from(byte flag, byte[] key, byte[] value, int valueGlobalIndex) {
+    public static KeyEntry from(
+            byte flag,
+            byte[] key,
+            byte[] value,
+            int valueGlobalIndex,
+            long timeout
+    ) {
         CRC32C crc32C = new CRC32C();
         crc32C.update(key);
         crc32C.update(valueGlobalIndex);
+        crc32C.update(BufferUtils.toBytes(timeout));
 
         long crc32c = crc32C.getValue();
 
-        return new KeyEntry(flag, key, value, valueGlobalIndex, crc32c);
+        return new KeyEntry(
+                flag,
+                key,
+                value,
+                valueGlobalIndex,
+                timeout,
+                crc32c
+        );
     }
 
     public static KeyEntry from(WalEntry walEntry) {
         byte[] key = walEntry.key();
         int valueGlobalIndex = walEntry.valueGlobalIndex();
+        long timeout = walEntry.timeout();
 
-        CRC32C crc32C = new CRC32C();
-        crc32C.update(key);
-        crc32C.update(valueGlobalIndex);
-
-        long crc32c = crc32C.getValue();
-
-        return new KeyEntry(
+        return from(
                 walEntry.flag(),
                 key,
                 walEntry.value(),
                 valueGlobalIndex,
-                crc32c
+                timeout
         );
     }
 
@@ -66,17 +77,26 @@ public record KeyEntry(
         ByteBuffer buffer = ByteBuffer.wrap(data);
         byte[] key = BufferUtils.getBytes(buffer);
         int valueGlobalIndex = buffer.getInt();
+        long timeout = buffer.getLong();
         long crc32c = buffer.getLong();
 
         CRC32C crc32C = new CRC32C();
         crc32C.update(key);
         crc32C.update(valueGlobalIndex);
+        crc32C.update(BufferUtils.toBytes(timeout));
 
         if(crc32c != crc32C.getValue()) {
             throw new RuntimeException("Data Error");
         }
 
-        return new KeyEntry(flag, key, null, valueGlobalIndex, crc32c);
+        return new KeyEntry(
+                flag,
+                key,
+                null,
+                valueGlobalIndex,
+                timeout,
+                crc32c
+        );
     }
 
     @Override
@@ -84,13 +104,18 @@ public record KeyEntry(
         BytesList bytesList = new BytesList(false);
         bytesList.appendVarBytes(key);
         bytesList.appendRawInt(valueGlobalIndex);
+        bytesList.appendRawLong(timeout);
         bytesList.appendRawLong(crc32c);
 
         return bytesList;
     }
 
+    public boolean isTimeout() {
+        return timeout > 0 && timeout < System.currentTimeMillis();
+    }
+
     public int length() {
-        return INT_LENGTH + key.length + INT_LENGTH + LONG_LENGTH;
+        return INT_LENGTH + key.length + INT_LENGTH + LONG_LENGTH + LONG_LENGTH;
     }
 
     @Override

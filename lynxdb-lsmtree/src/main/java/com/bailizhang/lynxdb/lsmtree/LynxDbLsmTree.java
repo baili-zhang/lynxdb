@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion;
 import com.bailizhang.lynxdb.lsmtree.file.ColumnRegion;
 
@@ -41,7 +42,7 @@ public class LynxDbLsmTree implements Table {
 
         try {
             return columnRegion.find(key);
-        } catch (DeletedException ignored) {
+        } catch (DeletedException | TimeoutException o_0) {
             return null;
         }
     }
@@ -93,25 +94,35 @@ public class LynxDbLsmTree implements Table {
             byte[] key,
             String columnFamily,
             String column,
-            byte[] value
+            byte[] value,
+            long timeout
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         ColumnRegion columnRegion = region.findColumnRegion(column);
-        columnRegion.insert(key, value);
+        columnRegion.insert(key, value, timeout);
     }
 
     @Override
-    public void insert(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns) {
+    public void insert(
+            byte[] key,
+            String columnFamily, HashMap<String, byte[]> multiColumns,
+            long timeout
+    ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
 
         multiColumns.forEach((column, value) -> {
             ColumnRegion columnRegion = region.findColumnRegion(column);
-            columnRegion.insert(key, value);
+            columnRegion.insert(key, value, timeout);
         });
     }
 
     @Override
-    public boolean insertIfNotExisted(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns) {
+    public boolean insertIfNotExisted(
+            byte[] key,
+            String columnFamily,
+            HashMap<String, byte[]> multiColumns,
+            long timeout
+    ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
 
         for(String column : multiColumns.keySet()) {
@@ -123,7 +134,7 @@ public class LynxDbLsmTree implements Table {
 
         multiColumns.forEach((column, value) -> {
             ColumnRegion columnRegion = region.findColumnRegion(column);
-            columnRegion.insert(key, value);
+            columnRegion.insert(key, value, timeout);
         });
 
         return true;

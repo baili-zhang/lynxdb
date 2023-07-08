@@ -6,6 +6,7 @@ import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
@@ -91,7 +92,7 @@ public class Level {
         return ssTables.size() >= LEVEL_SSTABLE_COUNT;
     }
 
-    public byte[] find(byte[] key) throws DeletedException {
+    public byte[] find(byte[] key) throws DeletedException, TimeoutException {
         for(SsTable ssTable : ssTables) {
             if(ssTable.contains(key)) {
                 byte[] value = ssTable.find(key);
@@ -119,7 +120,7 @@ public class Level {
         return false;
     }
 
-    public boolean existKey(byte[] key) throws DeletedException {
+    public boolean existKey(byte[] key) throws DeletedException, TimeoutException {
         for(SsTable ssTable : ssTables) {
             if(ssTable.existKey(key)) {
                 return true;

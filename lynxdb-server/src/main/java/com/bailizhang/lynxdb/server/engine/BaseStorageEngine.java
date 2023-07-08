@@ -8,7 +8,6 @@ import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -21,7 +20,6 @@ public class BaseStorageEngine {
 
     protected final Table dataTable;
     protected final Table timeoutTable;
-    protected final LynxDbTimeWheel timeWheel;
 
     protected final HashMap<Byte, Method> methodMap = new HashMap<>();
 
@@ -37,7 +35,6 @@ public class BaseStorageEngine {
 
         dataTable = new LynxDbLsmTree(dataLsmTreeOptions);
         timeoutTable = new LynxDbLsmTree(timeoutLsmTreeOptions);
-        timeWheel = new LynxDbTimeWheel();
 
         initMethod(clazz);
     }

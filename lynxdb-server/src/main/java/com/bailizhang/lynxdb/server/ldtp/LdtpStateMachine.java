@@ -107,7 +107,8 @@ public class LdtpStateMachine implements StateMachine {
                 MEMBERS_KEY,
                 RAFT_COLUMN_FAMILY,
                 META_INFO_COLUMN,
-                newValue
+                newValue,
+                -1
         );
     }
 
@@ -119,7 +120,8 @@ public class LdtpStateMachine implements StateMachine {
                 MEMBERS_KEY,
                 RAFT_COLUMN_FAMILY,
                 META_INFO_COLUMN,
-                value
+                value,
+                -1
         );
     }
 
@@ -145,7 +147,8 @@ public class LdtpStateMachine implements StateMachine {
                 CURRENT_TERM,
                 RAFT_COLUMN_FAMILY,
                 META_INFO_COLUMN,
-                BufferUtils.toBytes(term)
+                BufferUtils.toBytes(term),
+                -1
         );
     }
 
@@ -185,7 +188,8 @@ public class LdtpStateMachine implements StateMachine {
                 key,
                 RAFT_COLUMN_FAMILY,
                 VOTE_FOR,
-                value
+                value,
+                -1
         );
 
         return true;

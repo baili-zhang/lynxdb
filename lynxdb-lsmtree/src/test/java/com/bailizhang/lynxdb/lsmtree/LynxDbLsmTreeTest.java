@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 class LynxDbLsmTreeTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data";
@@ -42,8 +43,7 @@ class LynxDbLsmTreeTest {
         lsmTree.clear();
     }
 
-    @Test
-    void insert() {
+    void insert(long timeout) {
         for(int columnCount = 0; columnCount < COLUMN_COUNT; columnCount ++) {
             String column = COLUMN + columnCount;
 
@@ -55,16 +55,16 @@ class LynxDbLsmTreeTest {
                         G.I.toBytes(key),
                         COLUMN_FAMILY,
                         column,
-                        G.I.toBytes(value)
+                        G.I.toBytes(value),
+                        timeout
                 );
             }
         }
+    }
 
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    @Test
+    void insert() {
+        insert(-1);
     }
 
     @Test
@@ -134,7 +134,8 @@ class LynxDbLsmTreeTest {
                 key,
                 COLUMN_FAMILY,
                 column,
-                value
+                value,
+                -1
         );
 
         insert();
@@ -174,7 +175,7 @@ class LynxDbLsmTreeTest {
         assert !lsmTree.existKey(key, COLUMN_FAMILY, column);
 
         byte[] value = G.I.toBytes("value");
-        lsmTree.insert(key, COLUMN_FAMILY, column, value);
+        lsmTree.insert(key, COLUMN_FAMILY, column, value, -1);
 
         assert lsmTree.existKey(key, COLUMN_FAMILY, column);
 
@@ -214,5 +215,23 @@ class LynxDbLsmTreeTest {
         );
 
         assert multiKeys.size() == 10;
+    }
+
+    @Test
+    void testFunc08() {
+        long deadline = System.currentTimeMillis() + 30 * 1000;
+
+        insert(deadline);
+
+        String key = KEY + 500;
+        String column = COLUMN + 1;
+
+        byte[] findValue = lsmTree.find(G.I.toBytes(key), COLUMN_FAMILY, column);
+        assert Arrays.equals(findValue, G.I.toBytes(key + column));
+
+        LockSupport.parkUntil(deadline);
+        byte[] timeoutValue = lsmTree.find(G.I.toBytes(key), COLUMN_FAMILY, column);
+        assert timeoutValue == null;
+
     }
 }

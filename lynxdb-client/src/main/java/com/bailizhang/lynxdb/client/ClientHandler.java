@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.client;
 
-import com.bailizhang.lynxdb.client.message.MessageReceiver;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
@@ -8,20 +7,14 @@ import com.bailizhang.lynxdb.socket.response.SocketResponse;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
-
-
 public class ClientHandler implements SocketClientHandler {
     private final ConcurrentHashMap<SelectionKey,
             ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> futureMap;
-    private final MessageReceiver messageReceiver;
 
     public ClientHandler(
-            ConcurrentHashMap<SelectionKey, ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map,
-            MessageReceiver receiver
+            ConcurrentHashMap<SelectionKey, ConcurrentHashMap<Integer, LynxDbFuture<byte[]>>> map
     ) {
         futureMap = map;
-        messageReceiver = receiver;
     }
 
     @Override
@@ -49,11 +42,6 @@ public class ClientHandler implements SocketClientHandler {
     public void handleResponse(SocketResponse response) {
         int serial = response.serial();
         byte[] data = response.data();
-
-        if(serial == MESSAGE_SERIAL) {
-            messageReceiver.offerInterruptibly(data);
-            return;
-        }
 
         SelectionKey key = response.selectionKey();
         ConcurrentHashMap<Integer, LynxDbFuture<byte[]>> map = futureMap.get(key);
