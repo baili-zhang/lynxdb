@@ -3,6 +3,7 @@ package com.bailizhang.lynxdb.lsmtree.file;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -72,7 +73,7 @@ public class ColumnFamilyRegion {
                 }
 
                 multiColumns.put(columnRegion.column(), value);
-            } catch (DeletedException ignored) {
+            } catch (DeletedException | TimeoutException ignored) {
             }
         });
 

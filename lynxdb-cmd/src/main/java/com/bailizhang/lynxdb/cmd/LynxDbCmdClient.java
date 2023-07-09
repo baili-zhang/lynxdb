@@ -8,7 +8,7 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
-import com.bailizhang.lynxdb.ldtp.message.MessageKey;
+import com.bailizhang.lynxdb.core.health.RecordOption;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.net.ConnectException;
@@ -25,8 +25,6 @@ public class LynxDbCmdClient extends Shutdown {
     private static final String FIND = "find";
     private static final String INSERT = "insert";
     private static final String DELETE = "delete";
-    private static final String REGISTER = "register";
-    private static final String DEREGISTER = "deregister";
     private static final String RANGE_NEXT = "range-next";
     private static final String RANGE_BEFORE = "range-before";
     private static final String EXIST = "exist";
@@ -93,8 +91,6 @@ public class LynxDbCmdClient extends Shutdown {
             case FIND               -> handleFind(command);
             case INSERT             -> handleInsert(command);
             case DELETE             -> handleDelete(command);
-            case REGISTER           -> handleRegister(command);
-            case DEREGISTER         -> handleDeregister(command);
             case RANGE_NEXT         -> handleRangeNext(command);
             case RANGE_BEFORE       -> handleRangeBefore(command);
             case EXIST              -> handleExist(command);
@@ -184,33 +180,6 @@ public class LynxDbCmdClient extends Shutdown {
         );
     }
 
-    private void handleRegister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
-        command.checkArgsSize(2);
-
-        String key = command.poll();
-        String columnFamily = command.poll();
-
-        byte[] keyBytes = G.I.toBytes(key);
-
-        MessageKey messageKey = new MessageKey(keyBytes, columnFamily);
-        AffectHandler handler = new AffectHandler();
-        client.registerAffectHandler(messageKey, handler);
-
-        connection.register(keyBytes, columnFamily);
-    }
-
-    private void handleDeregister(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
-        command.checkArgsSize(2);
-
-        String key = command.poll();
-        String columnFamily = command.poll();
-
-        connection.deregister(
-                G.I.toBytes(key),
-                columnFamily
-        );
-    }
-
     private void handleRangeNext(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSizeMoreThan(4);
 
@@ -276,7 +245,7 @@ public class LynxDbCmdClient extends Shutdown {
 
     private void handleFlightRecorder(LynxDbCommand command) throws ErrorFormatCommand, ConnectException {
         command.checkArgsSize(0);
-        List<Pair<String, Long>> data = connection.flightRecorder();
+        List<Pair<RecordOption, Long>> data = connection.flightRecorder();
 
         List<List<String>> table = new ArrayList<>();
 
@@ -285,13 +254,11 @@ public class LynxDbCmdClient extends Shutdown {
 
         data.forEach(pair -> {
             List<String> row = new ArrayList<>();
-            row.add(pair.left());
+            RecordOption option = pair.left();
+            long val = pair.right();
 
-            if(pair.left().endsWith("Count")) {
-                row.add(String.valueOf(pair.right()));
-            } else {
-                row.add((double) pair.right() / 1000000 + " ms");
-            }
+            row.add(String.format("%s (%s)", option.name(), option.unit().unitName()));
+            row.add(String.valueOf(val));
 
             table.add(row);
         });

@@ -28,8 +28,25 @@ public interface Table {
             String... findColumns
     );
 
-    void insert(byte[] key, String columnFamily, String column, byte[] value);
-    void insert(byte[] key, String columnFamily, HashMap<String, byte[]> multiColumns);
+    void insert(
+            byte[] key,
+            String columnFamily,
+            String column,
+            byte[] value,
+            long timeout
+    );
+    void insert(
+            byte[] key,
+            String columnFamily,
+            HashMap<String, byte[]> multiColumns,
+            long timeout
+    );
+    boolean insertIfNotExisted(
+            byte[] key,
+            String columnFamily,
+            HashMap<String,byte[]> multiColumns,
+            long timeout
+    );
 
     void delete(byte[] key, String columnFamily, String column);
     void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns);

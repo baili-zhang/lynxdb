@@ -12,11 +12,12 @@ public @interface LdtpMethod {
     byte FIND_MULTI_COLUMNS             = (byte) 0x02;
     byte INSERT                         = (byte) 0x03;
     byte INSERT_MULTI_COLUMNS           = (byte) 0x04;
-    byte DELETE                         = (byte) 0x05;
-    byte DELETE_MULTI_COLUMNS           = (byte) 0x06;
-    byte RANGE_NEXT                     = (byte) 0x07;
-    byte RANGE_BEFORE                   = (byte) 0x08;
-    byte EXIST_KEY                      = (byte) 0x09;
+    byte INSERT_IF_NOT_EXISTED          = (byte) 0x05;
+    byte DELETE                         = (byte) 0x06;
+    byte DELETE_MULTI_COLUMNS           = (byte) 0x07;
+    byte RANGE_NEXT                     = (byte) 0x08;
+    byte RANGE_BEFORE                   = (byte) 0x09;
+    byte EXIST_KEY                      = (byte) 0x0a;
 
     byte value();
 }

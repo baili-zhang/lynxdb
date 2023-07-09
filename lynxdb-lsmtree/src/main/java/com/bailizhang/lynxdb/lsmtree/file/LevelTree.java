@@ -4,6 +4,7 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
@@ -41,7 +42,7 @@ public class LevelTree {
         }
     }
 
-    public byte[] find(byte[] key) throws DeletedException {
+    public byte[] find(byte[] key) throws DeletedException, TimeoutException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 
@@ -88,7 +89,7 @@ public class LevelTree {
      * @param key key
      * @return is existed or not
      */
-    public boolean existKey(byte[] key) throws DeletedException {
+    public boolean existKey(byte[] key) throws DeletedException, TimeoutException {
         int levelNo = LEVEL_BEGIN;
         Level level = levels.get(levelNo);
 

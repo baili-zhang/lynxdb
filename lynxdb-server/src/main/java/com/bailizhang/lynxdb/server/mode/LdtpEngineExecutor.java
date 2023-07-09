@@ -3,31 +3,22 @@ package com.bailizhang.lynxdb.server.mode;
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
-import com.bailizhang.lynxdb.ldtp.affect.AffectValue;
-import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.server.engine.timeout.TimeoutValue;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
-import com.bailizhang.lynxdb.timewheel.LynxDbTimeWheel;
-import com.bailizhang.lynxdb.timewheel.task.TimeoutTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.MESSAGE_SERIAL;
-import static com.bailizhang.lynxdb.ldtp.annotations.LdtpCode.VOID;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.*;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.FLIGHT_RECORDER;
+import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
 
 public class LdtpEngineExecutor extends Executor<SocketRequest> {
     private static final Logger logger = LoggerFactory.getLogger(LdtpEngineExecutor.class);
@@ -36,19 +27,14 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
     private final SocketServer server;
     private final LdtpStorageEngine engine;
-    private final LynxDbTimeWheel timeWheel;
 
     private final ConcurrentLinkedQueue<Runnable> tasksQueue;
     private final Thread tasksThread;
 
-    private final AffectKeyRegistry affectKeyRegistry;
-
     public LdtpEngineExecutor(SocketServer socketServer) {
         server = socketServer;
         engine = new LdtpStorageEngine();
-        timeWheel = new LynxDbTimeWheel();
         tasksQueue = new ConcurrentLinkedQueue<>();
-        affectKeyRegistry = new AffectKeyRegistry();
         tasksThread = new Thread(this::runTask, TASKS_THREAD_NAME);
     }
 
@@ -57,7 +43,6 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         tasksThread.start();
     }
 
-    // TODO: 抽象到一个通用的执行器中
     @Override
     protected void execute() {
         SocketRequest request = blockPoll();
@@ -76,16 +61,6 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         switch (flag) {
             case LDTP_METHOD -> {
                 tasksQueue.offer(() -> handleLdtpMethod(selectionKey, serial, buffer));
-                LockSupport.unpark(tasksThread);
-            }
-
-            case KEY_REGISTER -> {
-                tasksQueue.offer(() -> handleKeyRegister(selectionKey, serial, buffer));
-                LockSupport.unpark(tasksThread);
-            }
-
-            case KEY_TIMEOUT -> {
-                tasksQueue.offer(() -> handleKeyTimeout(selectionKey, serial, buffer));
                 LockSupport.unpark(tasksThread);
             }
 
@@ -129,25 +104,6 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
         // 返回给发起请求的客户端
         server.offerInterruptibly(response);
-
-        // 处理注册监听的 dbKey
-        MessageKey messageKey = result.messageKey();
-
-        if(messageKey == null) {
-            return;
-        }
-
-        sendAffectValueToRegisterClient(messageKey);
-    }
-
-    private void handleKeyRegister(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        // TODO
-        throw new UnsupportedOperationException();
-    }
-
-    private void handleKeyTimeout(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        // TODO
-        throw new UnsupportedOperationException();
     }
 
     private void handleDataRecorder(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
@@ -158,7 +114,8 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
         BytesList bytesList = new BytesList();
         data.forEach(pair -> {
-            bytesList.appendVarStr(pair.left());
+            bytesList.appendVarStr(pair.left().name());
+            bytesList.appendRawByte(pair.left().unit().value());
             bytesList.appendRawLong(pair.right());
         });
 
@@ -171,116 +128,4 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         server.offerInterruptibly(response);
     }
 
-    private void handleRegisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        MessageKey messageKey = MessageKey.from(buffer);
-        affectKeyRegistry.register(selectionKey, messageKey);
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
-
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                bytesList
-        );
-
-        server.offerInterruptibly(response);
-        sendAffectValueToRegisterClient(messageKey);
-    }
-
-    private void handleDeregisterKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        affectKeyRegistry.deregister(selectionKey, MessageKey.from(buffer));
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
-
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                bytesList
-        );
-
-        server.offerInterruptibly(response);
-    }
-
-    private void handleSetTimeoutKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        TimeoutValue timeoutValue = TimeoutValue.from(buffer);
-        engine.insertTimeoutKey(timeoutValue);
-
-        MessageKey messageKey = timeoutValue.messageKey();
-        long timestamp = ByteArrayUtils.toLong(timeoutValue.value());
-
-        TimeoutTask task = new TimeoutTask(timestamp, messageKey, () -> {
-            sendTimeoutValueToClient(messageKey, selectionKey);
-            engine.removeTimeoutKey(messageKey);
-            engine.removeData(messageKey);
-        });
-
-        timeWheel.register(task);
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
-
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                bytesList
-        );
-
-        server.offerInterruptibly(response);
-    }
-
-    private void handleRemoveTimeoutKey(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        MessageKey messageKey = MessageKey.from(buffer);
-
-        byte[] value = engine.findTimeoutValue(messageKey);
-        long timestamp = ByteArrayUtils.toLong(value);
-        engine.removeTimeoutKey(messageKey);
-
-        timeWheel.unregister(timestamp, messageKey);
-
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
-
-        WritableSocketResponse response = new WritableSocketResponse(
-                selectionKey,
-                serial,
-                bytesList
-        );
-
-        server.offerInterruptibly(response);
-    }
-
-    private void sendAffectValueToRegisterClient(MessageKey messageKey) {
-        List<SelectionKey> keys = affectKeyRegistry.selectionKeys(messageKey);
-        HashMap<String, byte[]> multiColumns = engine.findAffectKey(messageKey);
-
-        AffectValue affectValue = new AffectValue(messageKey, multiColumns);
-
-        for(SelectionKey key : keys) {
-            WritableSocketResponse affectResponse = new WritableSocketResponse(
-                    key,
-                    MESSAGE_SERIAL,
-                    affectValue
-            );
-
-            // 返回修改的信息给注册监听的客户端
-            server.offerInterruptibly(affectResponse);
-        }
-    }
-
-    private void sendTimeoutValueToClient(MessageKey messageKey, SelectionKey selectionKey) {
-        byte[] value = engine.findTimeoutValue(messageKey);
-
-        TimeoutValue timeoutValue = new TimeoutValue(messageKey, value);
-
-        WritableSocketResponse affectResponse = new WritableSocketResponse(
-                selectionKey,
-                MESSAGE_SERIAL,
-                timeoutValue
-        );
-
-        // 返回修改的信息给注册监听的客户端
-        server.offerInterruptibly(affectResponse);
-    }
 }

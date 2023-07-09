@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 
@@ -180,7 +181,7 @@ public class SsTable {
         return bloomFilter.isExist(key);
     }
 
-    public byte[] find(byte[] key) throws DeletedException {
+    public byte[] find(byte[] key) throws DeletedException, TimeoutException {
         int idx = findIdx(key);
         if(idx >= size()) {
             return null;
@@ -193,13 +194,17 @@ public class SsTable {
         }
 
         KeyEntry keyEntry = findKeyEntry(indexEntry);
+        if(keyEntry.isTimeout()) {
+            throw new TimeoutException();
+        }
+
         int globalIndex = keyEntry.valueGlobalIndex();
         LogEntry entry = valueLogGroup.find(globalIndex);
 
         return entry == null ? null : entry.data();
     }
 
-    public boolean existKey(byte[] key) throws DeletedException {
+    public boolean existKey(byte[] key) throws DeletedException, TimeoutException {
         if(bloomFilter.isNotExist(key)) {
             return false;
         }
@@ -214,6 +219,10 @@ public class SsTable {
         KeyEntry keyEntry = findKeyEntry(indexEntry);
 
         if(Arrays.equals(key, keyEntry.key())) {
+            if(keyEntry.isTimeout()) {
+                throw new TimeoutException();
+            }
+
             if(indexEntry.flag() == KeyEntry.EXISTED) {
                 return true;
             }

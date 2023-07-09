@@ -9,6 +9,7 @@ import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.entry.WalEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
+import com.bailizhang.lynxdb.lsmtree.exception.TimeoutException;
 import com.bailizhang.lynxdb.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.lsmtree.schema.Key;
 
@@ -68,7 +69,7 @@ public class ColumnRegion {
         }
     }
 
-    public byte[] find(byte[] key) throws DeletedException {
+    public byte[] find(byte[] key) throws DeletedException, TimeoutException {
         byte[] value = mutable.find(key);
         if(value != null) {
             return value;
@@ -84,14 +85,26 @@ public class ColumnRegion {
         return levelTree.find(key);
     }
 
-    public void insert(byte[] key, byte[] value) {
+    public void insert(byte[] key, byte[] value, long timeout) {
         // TODO: extraData 用来以后清除 value log group 中的无效数据
         int valueGlobalIndex = valueLog.append(KeyEntry.EXISTED_ARRAY, value);
-        KeyEntry keyEntry = KeyEntry.from(KeyEntry.EXISTED, key, value, valueGlobalIndex);
+        KeyEntry keyEntry = KeyEntry.from(
+                KeyEntry.EXISTED,
+                key,
+                value,
+                valueGlobalIndex,
+                timeout
+        );
 
         int maxWalGlobalIndex = -1;
         if(options.wal()) {
-            WalEntry walEntry = WalEntry.from(KeyEntry.EXISTED, key, value, valueGlobalIndex);
+            WalEntry walEntry = WalEntry.from(
+                    KeyEntry.EXISTED,
+                    key,
+                    value,
+                    valueGlobalIndex,
+                    timeout
+            );
             byte[] data = walEntry.toBytes();
             maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
         }
@@ -104,7 +117,8 @@ public class ColumnRegion {
                 KeyEntry.DELETED,
                 key,
                 ByteArrayUtils.EMPTY_BYTES,
-                -1
+                -1,
+                0L
         );
 
         int maxWalGlobalIndex = -1;
@@ -113,7 +127,8 @@ public class ColumnRegion {
                     KeyEntry.DELETED,
                     key,
                     ByteArrayUtils.EMPTY_BYTES,
-                    -1
+                    -1,
+                    0L
             );
             byte[] data = walEntry.toBytes();
             maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
@@ -143,7 +158,7 @@ public class ColumnRegion {
             return mutable.existKey(key)
                     || (immutable != null && immutable.existKey(key))
                     || levelTree.existKey(key);
-        } catch (DeletedException e) {
+        } catch (DeletedException | TimeoutException o_0) {
             return false;
         }
     }
