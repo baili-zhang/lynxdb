@@ -24,7 +24,7 @@ public class Configuration {
         String CLUSTER                  = "cluster";
         String SINGLE                   = "single";
 
-        String USER_DIR                 = System.getProperty("user.dir");
+        String USER_DIR                 = baseDir();
 
         String FILENAME                 = "app.cfg";
 
@@ -100,16 +100,26 @@ public class Configuration {
                 throw new RuntimeException(e);
             }
         }
+    }
 
-        private static String configFilename() {
-            String filename = System.getProperty("lynxdb.config.filename");
+    private static String configFilename() {
+        String filename = System.getProperty("lynxdb.config.filename");
 
-            if(filename == null) {
-                return Default.FILENAME;
-            }
-
-            return filename;
+        if(filename == null) {
+            return Default.FILENAME;
         }
+
+        return filename;
+    }
+
+    private static String baseDir() {
+        String baseDir = System.getProperty("lynxdb.baseDir");
+
+        if(baseDir == null) {
+            return System.getProperty("user.dir");
+        }
+
+        return baseDir;
     }
 
     public static Configuration getInstance() {
