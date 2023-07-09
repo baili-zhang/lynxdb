@@ -30,7 +30,6 @@ public class Configuration {
 
         String HOST                     = "127.0.0.1";
         String PORT                     = "7820";
-        String MESSAGE_PORT             = "7263";
 
         String CONFIG_DIR               = USER_DIR + "/config";
         String DATA_DIR                 = USER_DIR + "/data/base";
@@ -49,7 +48,6 @@ public class Configuration {
 
     private String host;
     private String port;
-    private String messagePort;
 
     private String dataDir;
     private String raftLogsDir;
@@ -125,9 +123,6 @@ public class Configuration {
     public ServerNode currentNode() {
         return new ServerNode(host, Integer.parseInt(port));
     }
-    public int messagePort() {
-        return Integer.parseInt(messagePort);
-    }
 
     public String dataDir() {
         return dataDir;
@@ -190,7 +185,6 @@ public class Configuration {
     private void initDefaultValue() {
         host = Default.HOST;
         port = Default.PORT;
-        messagePort = Default.MESSAGE_PORT;
 
         dataDir = Default.DATA_DIR;
         raftLogsDir = Default.RAFT_LOGS_DIR;
