@@ -5,7 +5,6 @@ After=network.target
 [Service]
 ExecStart=/root/lynxdb-v2023.7.8-alpha/start-server.sh
 Restart=on-failure
-StartLimitInterval=3
 Type=simple
 
 [Install]
