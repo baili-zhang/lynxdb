@@ -24,17 +24,15 @@ public class Configuration {
         String CLUSTER                  = "cluster";
         String SINGLE                   = "single";
 
-        String USER_DIR                 = System.getProperty("user.dir");
+        String USER_DIR                 = baseDir();
 
         String FILENAME                 = "app.cfg";
 
         String HOST                     = "127.0.0.1";
         String PORT                     = "7820";
-        String MESSAGE_PORT             = "7263";
 
         String CONFIG_DIR               = USER_DIR + "/config";
         String DATA_DIR                 = USER_DIR + "/data/base";
-        String TIMEOUT_DIR              = USER_DIR + "/data/timeout";
         String RAFT_LOGS_DIR            = USER_DIR + "/data/raft/logs";
         String RAFT_META_DIR            = USER_DIR + "/data/raft/meta";
 
@@ -50,10 +48,8 @@ public class Configuration {
 
     private String host;
     private String port;
-    private String messagePort;
 
     private String dataDir;
-    private String timeoutDir;
     private String raftLogsDir;
     private String raftMetaDir;
 
@@ -104,16 +100,26 @@ public class Configuration {
                 throw new RuntimeException(e);
             }
         }
+    }
 
-        private static String configFilename() {
-            String filename = System.getProperty("lynxdb.config.filename");
+    private static String configFilename() {
+        String filename = System.getProperty("lynxdb.config.filename");
 
-            if(filename == null) {
-                return Default.FILENAME;
-            }
-
-            return filename;
+        if(filename == null) {
+            return Default.FILENAME;
         }
+
+        return filename;
+    }
+
+    private static String baseDir() {
+        String baseDir = System.getProperty("lynxdb.baseDir");
+
+        if(baseDir == null) {
+            return System.getProperty("user.dir");
+        }
+
+        return baseDir;
     }
 
     public static Configuration getInstance() {
@@ -127,16 +133,9 @@ public class Configuration {
     public ServerNode currentNode() {
         return new ServerNode(host, Integer.parseInt(port));
     }
-    public int messagePort() {
-        return Integer.parseInt(messagePort);
-    }
 
     public String dataDir() {
         return dataDir;
-    }
-
-    public String timeoutDir() {
-        return timeoutDir;
     }
 
     public String initClusterMembers() {
@@ -196,10 +195,8 @@ public class Configuration {
     private void initDefaultValue() {
         host = Default.HOST;
         port = Default.PORT;
-        messagePort = Default.MESSAGE_PORT;
 
         dataDir = Default.DATA_DIR;
-        timeoutDir = Default.TIMEOUT_DIR;
         raftLogsDir = Default.RAFT_LOGS_DIR;
         raftMetaDir = Default.RAFT_META_DIR;
 

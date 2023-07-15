@@ -1,0 +1,12 @@
+[Unit]
+Description=LynxDB Server
+After=network.target
+
+[Service]
+ExecStart=/root/lynxdb-v2023.7.8-alpha/start-server.sh
+Restart=on-failure
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+Alias=lynxdb.service
