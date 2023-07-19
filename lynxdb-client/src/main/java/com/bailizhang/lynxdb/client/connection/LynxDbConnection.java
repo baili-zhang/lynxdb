@@ -229,7 +229,7 @@ public class LynxDbConnection {
 
     public void insert(
             byte[] key,
-            byte[] columnFamily,
+            String columnFamily,
             HashMap<String, byte[]> multiColumns
     ) throws ConnectException {
         insert(
@@ -242,7 +242,7 @@ public class LynxDbConnection {
 
     public void insert(
             byte[] key,
-            byte[] columnFamily,
+            String columnFamily,
             long timeout,
             HashMap<String, byte[]> multiColumns
     ) throws ConnectException {
@@ -250,7 +250,7 @@ public class LynxDbConnection {
         bytesList.appendRawByte(LDTP_METHOD);
         bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
         bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
+        bytesList.appendVarStr(columnFamily);
         bytesList.appendRawLong(timeout);
 
         multiColumns.forEach((column, value) -> {
@@ -306,7 +306,7 @@ public class LynxDbConnection {
             multiColumns.put(column, G.I.toBytes(value));
         }
 
-        insert(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
+        insert(G.I.toBytes(key), columnFamily, timeout, multiColumns);
     }
 
     public boolean insertIfNotExisted(
