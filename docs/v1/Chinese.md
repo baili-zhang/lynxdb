@@ -291,7 +291,6 @@ public class InsertTimeoutObjectDemo {
         private String key;
 
         @LynxDbColumn
-        @LynxDbMainColumn
         private String column0;
 
         @LynxDbColumn
