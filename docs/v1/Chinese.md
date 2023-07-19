@@ -123,6 +123,8 @@ public class LynxDbClientDemo {
 
 **Insert 插入数据**
 
+案例：
+
 ```java
 public class InsertKeyDemo {
     public static void main(String[] args) {
@@ -144,26 +146,161 @@ public class InsertKeyDemo {
 
 **Insert 插入多列数据**
 
-```java
+案例：
 
+```java
+public class InsertMultiColumnsDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+
+            byte[] key = G.I.toBytes("key");
+            HashMap<String, byte[]> multiColumns = new HashMap<>();
+
+            for(int i = 0; i < 10; i ++) {
+                String column = "column" + i;
+                byte[] value = G.I.toBytes("value" + i);
+
+                multiColumns.put(column, value);
+            }
+
+            connection.insert(key, "columnFamily", multiColumns);
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
 ```
 
 **Insert 插入 Java 对象**
 
-```java
+`@LynxDbColumnFamily("insert-object")` 表示数据插入的 Column Family 为 `"insert-object"`，`@LynxDbKey` 用来标记 Key 字段，`@LynxDbColumn` 用来标记 Column 字段，Java Object 与数据存储中的对应关系为：
 
+Java 对象：
+
+`{key="key", column0="value0", column1="value1", column2="value2"}`
+
+数据表中存储：
+
+| key   | column0  | column1  | column2  |
+|-------|----------|----------|----------|
+| "key" | "value0" | "value1" | "value2" |
+
+案例：
+
+```java
+public class InsertObjectDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+
+            InsertObject insertObject = new InsertObject();
+            insertObject.setKey("key");
+            insertObject.setColumn0("value0");
+            insertObject.setColumn1("value1");
+            insertObject.setColumn2("value2");
+
+            connection.insert(insertObject);
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("insert-object")
+    private static class InsertObject {
+        @LynxDbKey
+        private String key;
+
+        @LynxDbColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
 ```
 
 **Insert 插入超时数据**
 
-```java
+案例：
 
+```java
+public class InsertTimeoutKeyDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            byte[] value = G.I.toBytes("value");
+            long timeout = System.currentTimeMillis() + 30 * 1000; // 数据在 30s 后超时
+            connection.insert(key, "columnFamily", "column", timeout, value);
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
 ```
 
 **Insert 插入超时 Java 对象**
 
-```java
+案例：
 
+```java
+public class InsertTimeoutObjectDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+
+            InsertObject insertObject = new InsertObject();
+            insertObject.setKey("key");
+            insertObject.setColumn0("value0");
+            insertObject.setColumn1("value1");
+            insertObject.setColumn2("value2");
+
+            long timeout = System.currentTimeMillis() + 30 * 1000; // 数据在 30s 后超时
+
+            connection.insert(insertObject, timeout);
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("insert-object")
+    private static class InsertObject {
+        @LynxDbKey
+        private String key;
+
+        @LynxDbColumn
+        @LynxDbMainColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
 ```
 
 **Find 查找数据**
