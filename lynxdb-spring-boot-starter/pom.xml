@@ -5,7 +5,7 @@
     <parent>
         <artifactId>parent</artifactId>
         <groupId>com.bailizhang.lynxdb</groupId>
-        <version>2023.7.8-alpha</version>
+        <version>2023.7.20-snapshot</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,7 +13,7 @@
 
     <name>LynxDB Spring Boot Starter</name>
     <description>Spring Boot Starter for LynxDB</description>
-    <url>https://github.com/baili-zhang/lynxdb</url>
+    <url>http://bailizhang.com</url>
 
     <licenses>
         <license>
@@ -27,7 +27,7 @@
             <name>Baili Zhang</name>
             <email>1456938262@qq.com</email>
             <organization>LynxDB Project</organization>
-            <organizationUrl>https://github.com/LynxDB-Project</organizationUrl>
+            <organizationUrl>http://bailizhang.com</organizationUrl>
         </developer>
     </developers>
 

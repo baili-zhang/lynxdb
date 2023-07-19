@@ -10,7 +10,7 @@ The server startup script under Windows system is `start-server.bat` , and the c
 
 The server startup script under Linux system is `start-server.sh` , and the client startup script is `start-client.sh`.
 
-The default port number for LynxDB server is `7820`, and the message port number is `7263`, make sure port `7820` and `7263` is not occupied by other processes.
+The default port number for LynxDB server is `7820`, make sure port `7820` is not occupied by other processes.
 
 ## Spring Boot
 
@@ -43,9 +43,11 @@ Dir: `/config/app.cfg`
 **Configuration item**
 
 ```
-host = 127.0.0.1
-port = 7820
-running_mode = single
+host                    = 127.0.0.1
+port                    = 7820
+dataDir                 = [base]/data/single/base
+runningMode             = single
+enableFlightRecorder    = true
 ```
 
 ## Maintainers
