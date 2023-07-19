@@ -6,7 +6,7 @@ LynxDB 在 Version 1.0 版本不支持分布式集群，基于 Raft 的高可用
 
 > **LynxDB 的版本规则**
 > 
-> 开发版本以发布的时间作为版本号，例如 `2023.7.8-alpha`，正式的版本则会以 `1.0.0` 作为版本号。主要是为了能够很清晰的了解开发版本的发布时间。
+> 开发版本以发布的时间作为版本号，例如 `2023.7.20-snapshot`，正式的版本则会以 `1.0.0` 作为版本号。主要是为了能够很清晰的了解开发版本的发布时间。
 
 ## LynxDB 的功能简介
 
@@ -19,13 +19,13 @@ LynxDB 项目由 Java 语言编写，可以直接用 `java -jar` 的方式启动
 **启动服务器**
 
 ```shell
-java -Xmx1g -Xms1g -XX:+UseZGC -jar lib/lynxdb-server-2023.7.8-alpha.jar
+java -Xmx1g -Xms1g -XX:+UseZGC -jar lib/lynxdb-server-2023.7.20-snapshot.jar
 ```
 
 **启动客户端**
 
 ```shell
-java -jar lib/lynxdb-cmd-2023.7.8-alpha.jar
+java -jar lib/lynxdb-cmd-2023.7.20-snapshot.jar
 ```
 
 ## Systemd 配置
@@ -36,10 +36,10 @@ start-server.sh 文件如下：
 
 ```shell
 #!/bin/bash
-java -Dlynxdb.baseDir=/root/lynxdb-v2023.7.8-alpha/\
+java -Dlynxdb.baseDir=/root/lynxdb-v2023.7.20-snapshot/\
      -Xmx256m -Xms256m\
      -XX:+UseZGC\
-     -jar /root/lynxdb-v2023.7.8-alpha/lib/lynxdb-server-2023.7.8-alpha.jar
+     -jar /root/lynxdb-v2023.7.20-snapshot/lib/lynxdb-server-2023.7.20-snapshot.jar
 ```
 
 lynxdb.service 配置文件如下：
@@ -50,7 +50,7 @@ Description=LynxDB Server
 After=network.target
 
 [Service]
-ExecStart=/root/lynxdb-v2023.7.8-alpha/start-server.sh
+ExecStart=/root/lynxdb-v2023.7.20-snapshot/start-server.sh
 Restart=on-failure
 Type=simple
 
@@ -91,7 +91,7 @@ enableFlightRecorder    = true
 <dependency>
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>lynxdb-client</artifactId>
-    <version>2023.7.8-alpha</version>
+    <version>2023.7.20-snapshot</version>
 </dependency>
 ```
 
@@ -204,7 +204,7 @@ public class InsertKeyDemo {
 <dependency>
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>lynxdb-spring-boot-starter</artifactId>
-    <version>2023.7.8-alpha</version>
+    <version>2023.7.20-snapshot</version>
 </dependency>
 ```
 
