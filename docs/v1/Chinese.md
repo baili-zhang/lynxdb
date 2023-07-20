@@ -201,13 +201,13 @@ public class InsertObjectDemo {
 
             LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
 
-            InsertObject insertObject = new InsertObject();
-            insertObject.setKey("key");
-            insertObject.setColumn0("value0");
-            insertObject.setColumn1("value1");
-            insertObject.setColumn2("value2");
+            DemoObject demoObject = new DemoObject();
+            demoObject.setKey("key");
+            demoObject.setColumn0("value0");
+            demoObject.setColumn1("value1");
+            demoObject.setColumn2("value2");
 
-            connection.insert(insertObject);
+            connection.insert(demoObject);
 
         } catch (ConnectException e) {
             e.getStackTrace();
@@ -215,8 +215,8 @@ public class InsertObjectDemo {
     }
 
     @Data
-    @LynxDbColumnFamily("insert-object")
-    private static class InsertObject {
+    @LynxDbColumnFamily("demo-object")
+    private static class DemoObject {
         @LynxDbKey
         private String key;
 
@@ -256,6 +256,40 @@ public class InsertTimeoutKeyDemo {
 }
 ```
 
+**Insert 插入多列超时数据**
+
+给多个列同时设置同一个超时时间，案例如下：
+
+```java
+public class InsertMultiTimeoutColumnsDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+
+            byte[] key = G.I.toBytes("key");
+            HashMap<String, byte[]> multiColumns = new HashMap<>();
+
+            for(int i = 0; i < 10; i ++) {
+                String column = "column" + i;
+                byte[] value = G.I.toBytes("value" + i);
+
+                multiColumns.put(column, value);
+            }
+
+            long timeout = System.currentTimeMillis() + 30 * 1000; // 数据在 30s 后超时
+
+            connection.insert(key, "columnFamily", timeout, multiColumns);
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
 **Insert 插入超时 Java 对象**
 
 案例：
@@ -269,15 +303,15 @@ public class InsertTimeoutObjectDemo {
 
             LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
 
-            InsertObject insertObject = new InsertObject();
-            insertObject.setKey("key");
-            insertObject.setColumn0("value0");
-            insertObject.setColumn1("value1");
-            insertObject.setColumn2("value2");
+            DemoObject demoObject = new DemoObject();
+            demoObject.setKey("key");
+            demoObject.setColumn0("value0");
+            demoObject.setColumn1("value1");
+            demoObject.setColumn2("value2");
 
-            long timeout = System.currentTimeMillis() + 30 * 1000; // 数据在 30s 后超时
+            long timeout = System.currentTimeMillis() + 30 * 1000;
 
-            connection.insert(insertObject, timeout);
+            connection.insert(demoObject, timeout);
 
         } catch (ConnectException e) {
             e.getStackTrace();
@@ -285,8 +319,8 @@ public class InsertTimeoutObjectDemo {
     }
 
     @Data
-    @LynxDbColumnFamily("insert-object")
-    private static class InsertObject {
+    @LynxDbColumnFamily("demo-object")
+    private static class DemoObject {
         @LynxDbKey
         private String key;
 
@@ -302,16 +336,88 @@ public class InsertTimeoutObjectDemo {
 }
 ```
 
-**Find 查找数据**
+**Find 查询数据**
+
+案例：
 
 ```java
+public class FindByKeyDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
 
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            byte[] value = connection.find(key, "columnFamily", "column");
+
+            System.out.println(G.I.toString(value));
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
+**Find 查询多个列**
+
+案例：
+
+```java
+public class FindMultiColumnsDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            HashMap<String, byte[]> multiColumns  = connection.findMultiColumns(key, "columnFamily");
+
+            multiColumns.forEach((column, value) -> {
+                System.out.println(column + ": " + G.I.toString(value));
+            });
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
 ```
 
 **Find 查找 Java 对象**
 
 ```java
+public class FindByClassDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
 
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            DemoObject demoObject = connection.find("key", DemoObject.class);
+
+            System.out.println(demoObject);
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("demo-object")
+    public static class DemoObject {
+        @LynxDbKey
+        private String key;
+
+        @LynxDbColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
 ```
 
 **Exist 查询 Key 是否存在**
