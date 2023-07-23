@@ -1,5 +1,7 @@
 FROM openjdk:17
 
+# TODO 以后再改
+
 RUN mkdir data lib logs
 
 COPY ./config /usr/local/lynxdb/config

@@ -167,13 +167,7 @@ public class LynxDbConnection {
 
         HashMap<String, byte[]> multiColumns = findMultiColumns(G.I.toBytes(key), columnFamily, findColumns);
 
-        String mainColumn = findMainColumn(type);
-        if(multiColumns.get(mainColumn) == null) {
-            return null;
-        }
-
         FieldUtils.set(obj, keyField, key);
-
         multiColumns.forEach((column, value) -> {
             String val = G.I.toString(value);
 
