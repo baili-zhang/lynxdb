@@ -561,8 +561,74 @@ public class RangeNextObjectDemo {
 
 **Range Before 向前的范围查找**
 
-```java
+案例：
 
+```java
+public class RangeBeforeDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] beginKey = G.I.toBytes("key9");
+            List<Pair<byte[], HashMap<String, byte[]>>> multiColumns = connection.rangeBefore(
+                    "columnFamily",
+                    "column",
+                    beginKey,
+                    10
+            );
+
+            multiColumns.forEach(pair -> {
+                System.out.println("Key: " + G.I.toString(pair.left()));
+                pair.right().forEach((column, value) ->
+                        System.out.println("Column: " + column + ", " + "Value: " + G.I.toString(value)));
+            });
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
+**Range Before 向前的范围查找（Java Object 的方式返回）**
+
+案例：
+
+```java
+public class RangeBeforeObjectDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] beginKey = G.I.toBytes("key9");
+            List<DemoObject> demoObjects = connection.rangeBefore(DemoObject.class, beginKey, 10);
+
+            System.out.println(demoObjects);
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("demo-object")
+    public static class DemoObject {
+        @LynxDbKey
+        private String key;
+
+        @LynxDbMainColumn
+        @LynxDbColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
 ```
 
 ## Spring Boot
