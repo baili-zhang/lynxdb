@@ -97,7 +97,7 @@ enableFlightRecorder    = true
 
 **使用案例**
 
-简单的插入和查询数据的案例：
+简单的插入和查询数据的。
 
 ```java
 public class LynxDbClientDemo {
@@ -123,8 +123,6 @@ public class LynxDbClientDemo {
 
 **Insert 插入数据**
 
-案例：
-
 ```java
 public class InsertKeyDemo {
     public static void main(String[] args) {
@@ -145,8 +143,6 @@ public class InsertKeyDemo {
 ```
 
 **Insert 插入多列数据**
-
-案例：
 
 ```java
 public class InsertMultiColumnsDemo {
@@ -190,8 +186,6 @@ Java 对象：
 |-------|----------|----------|----------|
 | "key" | "value0" | "value1" | "value2" |
 
-案例：
-
 ```java
 public class InsertObjectDemo {
     public static void main(String[] args) {
@@ -234,8 +228,6 @@ public class InsertObjectDemo {
 
 **Insert 插入超时数据**
 
-案例：
-
 ```java
 public class InsertTimeoutKeyDemo {
     public static void main(String[] args) {
@@ -258,7 +250,7 @@ public class InsertTimeoutKeyDemo {
 
 **Insert 插入多列超时数据**
 
-给多个列同时设置同一个超时时间，案例如下：
+给多个列同时设置同一个超时时间。
 
 ```java
 public class InsertMultiTimeoutColumnsDemo {
@@ -291,8 +283,6 @@ public class InsertMultiTimeoutColumnsDemo {
 ```
 
 **Insert 插入超时 Java 对象**
-
-案例：
 
 ```java
 public class InsertTimeoutObjectDemo {
@@ -338,8 +328,6 @@ public class InsertTimeoutObjectDemo {
 
 **Find 查询数据**
 
-案例：
-
 ```java
 public class FindByKeyDemo {
     public static void main(String[] args) {
@@ -360,8 +348,6 @@ public class FindByKeyDemo {
 ```
 
 **Find 查询多个列**
-
-案例：
 
 ```java
 public class FindMultiColumnsDemo {
@@ -422,8 +408,6 @@ public class FindByClassDemo {
 
 **Exist 查询 Key 是否存在**
 
-案例：
-
 ```java
 public class ExistKeyDemo {
     public static void main(String[] args) {
@@ -446,8 +430,6 @@ public class ExistKeyDemo {
 **Exist 查询 Key 是否存在（Java Object 方式）**
 
 `@LynxDbMainColumn` 用来标记主列，查询的是被标记的列上 Key 是否存在。
-
-案例：
 
 ```java
 public class ExistKeyByObjectDemo {
@@ -489,8 +471,6 @@ public class ExistKeyByObjectDemo {
 
 **Range Next 向后的范围查找**
 
-案例：
-
 ```java
 public class RangeNextDemo {
     public static void main(String[] args) {
@@ -520,8 +500,6 @@ public class RangeNextDemo {
 ```
 
 **Range Next 向后的范围查找（Java Object 的方式返回）**
-
-案例：
 
 ```java
 public class RangeNextObjectDemo {
@@ -561,8 +539,6 @@ public class RangeNextObjectDemo {
 
 **Range Before 向前的范围查找**
 
-案例：
-
 ```java
 public class RangeBeforeDemo {
     public static void main(String[] args) {
@@ -593,8 +569,6 @@ public class RangeBeforeDemo {
 
 **Range Before 向前的范围查找（Java Object 的方式返回）**
 
-案例：
-
 ```java
 public class RangeBeforeObjectDemo {
     public static void main(String[] args) {
@@ -619,6 +593,87 @@ public class RangeBeforeObjectDemo {
         private String key;
 
         @LynxDbMainColumn
+        @LynxDbColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
+```
+
+**Delete 删除 Key**
+
+```java
+public class DeleteKeyDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            connection.delete(key, "columnFamily", "column");
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
+**Delete 删除多个 Column 的 Key**
+
+*`deleteMultiColumns()` 方法设计的冗余了，未来将会删掉。*
+
+```java
+public class DeleteMultiColumnsDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            connection.deleteMultiColumns(key, "columnFamily", "column", "column1");
+
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
+**Delete 删除 Key（通过 Java Object）**
+
+```java
+public class DeleteByObjectDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            
+            DemoObject demoObject = new DemoObject();
+            demoObject.setKey("key");
+            
+            connection.delete(demoObject);
+            
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("demo-object")
+    public static class DemoObject {
+        @LynxDbKey
+        private String key;
+
         @LynxDbColumn
         private String column0;
 
