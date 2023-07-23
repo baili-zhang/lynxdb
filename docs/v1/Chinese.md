@@ -422,8 +422,69 @@ public class FindByClassDemo {
 
 **Exist 查询 Key 是否存在**
 
-```java
+案例：
 
+```java
+public class ExistKeyDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+            byte[] key = G.I.toBytes("key");
+            boolean isExisted = connection.existKey(key, "columnFamily", "column");
+
+            System.out.println(isExisted);
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+}
+```
+
+**Exist 查询 Key 是否存在（Java Object 方式）**
+
+`@LynxDbMainColumn` 用来标记主列，查询的是被标记的列上 Key 是否存在。
+
+案例：
+
+```java
+public class ExistKeyByObjectDemo {
+    public static void main(String[] args) {
+        G.I.converter(new Converter(StandardCharsets.UTF_8));
+        try(LynxDbClient client = new LynxDbClient()) {
+            client.start();
+
+            LynxDbConnection connection = client.createConnection("127.0.0.1", 7820);
+
+            DemoObject demoObject = new DemoObject();
+            demoObject.setKey("key");
+            boolean isExisted = connection.existKey(demoObject);
+
+            System.out.println(isExisted);
+        } catch (ConnectException e) {
+            e.getStackTrace();
+        }
+    }
+
+    @Data
+    @LynxDbColumnFamily("demo-object")
+    public static class DemoObject {
+        @LynxDbKey
+        private String key;
+
+        @LynxDbMainColumn
+        @LynxDbColumn
+        private String column0;
+
+        @LynxDbColumn
+        private String column1;
+
+        @LynxDbColumn
+        private String column2;
+    }
+}
 ```
 
 **Range Next 向后的范围查找**
