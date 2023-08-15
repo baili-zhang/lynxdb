@@ -67,7 +67,11 @@ public class RaftServerHandler implements SocketServerHandler {
         }
     }
 
-    private void handlePreVoteRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handlePreVoteRpc(
+            SelectionKey selectionKey,
+            int serial,
+            ByteBuffer buffer
+    ) {
         PreVoteArgs args = PreVoteArgs.from(buffer);
 
         int term = args.term();
@@ -84,7 +88,11 @@ public class RaftServerHandler implements SocketServerHandler {
         raftServer.offerInterruptibly(response);
     }
 
-    private void handleRequestVoteRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleRequestVoteRpc(
+            SelectionKey selectionKey,
+            int serial,
+            ByteBuffer buffer
+    ) {
         RequestVoteArgs args = RequestVoteArgs.from(buffer);
 
         int term = args.term();
@@ -103,7 +111,11 @@ public class RaftServerHandler implements SocketServerHandler {
         raftServer.offerInterruptibly(response);
     }
 
-    private void handleAppendEntriesRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleAppendEntriesRpc(
+            SelectionKey selectionKey,
+            int serial,
+            ByteBuffer buffer
+    ) {
         AppendEntriesArgs args = AppendEntriesArgs.from(buffer);
 
         int term = args.term();
@@ -126,7 +138,11 @@ public class RaftServerHandler implements SocketServerHandler {
         raftServer.offerInterruptibly(response);
     }
 
-    private void handleInstallSnapshot(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleInstallSnapshot(
+            SelectionKey selectionKey,
+            int serial,
+            ByteBuffer buffer
+    ) {
         InstallSnapshotArgs args = InstallSnapshotArgs.from(buffer);
 
         int term = args.term();
@@ -151,7 +167,11 @@ public class RaftServerHandler implements SocketServerHandler {
         raftServer.offerInterruptibly(response);
     }
 
-    private void handleNeedPersistenceRequest(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
+    private void handleNeedPersistenceRequest(
+            SelectionKey selectionKey,
+            int serial,
+            ByteBuffer buffer
+    ) {
         RaftState raftState = RaftStateHolder.raftState();
         RaftRole role = raftState.role().get();
 

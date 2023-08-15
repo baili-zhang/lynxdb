@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -100,7 +101,7 @@ public class RaftTimeWheel {
                     raftState.matchedIndex().put(key, 0);
                     return;
                 }
-            } catch (IOException e) {
+            } catch (IOException | CancellationException e) {
                 logger.error("Connect member {} catch exception.", member, e);
             }
 
