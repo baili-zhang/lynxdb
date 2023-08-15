@@ -38,7 +38,7 @@ public class RaftRpcResultHandler {
             int term,
             byte voteGranted
     ) {
-        logger.info("Handle preVote result, term: {}, voteGranted: {}.", term, voteGranted == TRUE);
+        logger.trace("Handle preVote result, term: {}, voteGranted: {}.", term, voteGranted == TRUE);
 
         if(voteGranted != TRUE) {
             return;
@@ -50,7 +50,7 @@ public class RaftRpcResultHandler {
         ServerNode current = raftConfig.currentNode();
 
         if(!stateMachine.voteForIfNull(currentTerm, current)) {
-            logger.info("Has vote for node: {}", stateMachine.voteFor(currentTerm));
+            logger.trace("Has vote for node: {}", stateMachine.voteFor(currentTerm));
             return;
         }
 
@@ -64,7 +64,7 @@ public class RaftRpcResultHandler {
         RequestVote requestVote = new RequestVote(args);
         client.broadcast(requestVote);
 
-        logger.info("Send request vote rpc to cluster members.");
+        logger.trace("Send request vote rpc to cluster members.");
     }
 
     @CheckThreadSafety

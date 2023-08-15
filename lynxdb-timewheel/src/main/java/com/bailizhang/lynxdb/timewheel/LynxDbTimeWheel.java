@@ -73,11 +73,11 @@ public class LynxDbTimeWheel extends Shutdown implements Runnable {
 
         int remain = second.unregister(task);
         if(remain == TimeWheel.SUCCESS) {
-            logger.info("Unregister timeout task success, task: {}", task);
+            logger.trace("Unregister timeout task success, task: {}", task);
             return;
         }
 
-        logger.info("Unregister timeout task failed, task: {}", task);
+        logger.trace("Unregister timeout task failed, task: {}", task);
     }
 
     @CheckThreadSafety

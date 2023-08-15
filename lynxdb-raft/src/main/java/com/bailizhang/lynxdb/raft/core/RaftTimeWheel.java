@@ -102,7 +102,7 @@ public class RaftTimeWheel {
                     return;
                 }
             } catch (IOException | CancellationException e) {
-                logger.error("Connect member {} catch exception.", member, e);
+                logger.trace("Connect member {} catch exception.", member, e);
             }
 
             logger.trace("Connect member {} failed.", member);
@@ -133,13 +133,13 @@ public class RaftTimeWheel {
         PreVote preVote = new PreVote(args);
         client.broadcast(preVote);
 
-        logger.info("Send PRE VOTE rpc to cluster members.");
+        logger.trace("Send PRE VOTE rpc to cluster members.");
     }
 
     public void heartbeat() {
         resetHeartbeat();
 
-        logger.info("Run heartbeat task, time: {}", System.currentTimeMillis());
+        logger.trace("Run heartbeat task, time: {}", System.currentTimeMillis());
 
         int term = stateMachine.currentTerm();
         AtomicInteger commitIndex = raftState.commitIndex();
@@ -210,7 +210,7 @@ public class RaftTimeWheel {
         }
 
         heartbeatTask.set(timeWheel.reset(heartbeatTask.get(), runTaskTime));
-        logger.info("Reset heartbeat timeout task, resetTime: {}", runTaskTime);
+        logger.trace("Reset heartbeat timeout task, resetTime: {}", runTaskTime);
     }
 
     public void resetConnectMembers() {
