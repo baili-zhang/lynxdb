@@ -44,14 +44,4 @@ public class RaftClient extends SocketClient {
         }
         super.broadcast(message.toBytesList());
     }
-
-    public void sendClusterMemberAdd(SelectionKey leader) {
-        RaftConfiguration raftConfig = RaftSpiService.raftConfig();
-        ServerNode current = raftConfig.currentNode();
-
-        JoinClusterArgs args = new JoinClusterArgs(current);
-        JoinCluster request = new JoinCluster(leader, args);
-
-        send(request);
-    }
 }
