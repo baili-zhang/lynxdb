@@ -3,9 +3,7 @@ package com.bailizhang.lynxdb.core.utils;
 import com.bailizhang.lynxdb.core.common.G;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
@@ -42,67 +40,46 @@ public interface BufferUtils {
         return buffer.array();
     }
 
-    static byte[] toBytes(short src) {
-        ByteBuffer buffer = ByteBuffer.allocate(SHORT_LENGTH);
-        return buffer.putShort(src).array();
-    }
-
-    static byte[] toBytes(int src) {
-        return intByteBuffer(src).array();
-    }
-
-    static byte[] toBytes(int[] src) {
-        return toBuffer(src).array();
-    }
-
-    static byte[] toBytes(long src) {
-        ByteBuffer buffer = ByteBuffer.allocate(LONG_LENGTH);
-        return buffer.putLong(src).array();
-    }
-
-    static byte[] toBytes(float src) {
-        ByteBuffer buffer = ByteBuffer.allocate(FLOAT_LENGTH);
-        return buffer.putFloat(src).array();
-    }
-
-    static byte[] toBytes(double src) {
-        ByteBuffer buffer = ByteBuffer.allocate(DOUBLE_LENGTH);
-        return buffer.putDouble(src).array();
-    }
-
     static byte[] toBytes(Object o) {
-        Class<?> parameterType = o.getClass();
+        switch (o) {
+            case String str -> {
+                return G.I.toBytes(str);
+            }
 
-        if (ClassUtils.isString(parameterType)) {
-            return G.I.toBytes((String) o);
-        } else if (ClassUtils.isByte(parameterType)) {
-            return new byte[]{(byte) o};
-        } else if (ClassUtils.isShort(parameterType)) {
-            return toBytes((short) o);
-        } else if (ClassUtils.isInt(parameterType)) {
-            return toBytes((int) o);
-        } else if (ClassUtils.isLong(parameterType)) {
-            return toBytes((long) o);
-        } else if (ClassUtils.isChar(parameterType)) {
-            return G.I.toBytes(String.valueOf((char) o));
-        } else if (ClassUtils.isFloat(parameterType)) {
-            return toBytes((float) o);
-        } else if (ClassUtils.isDouble(parameterType)) {
-            return toBytes((double) o);
-        } else {
-            throw new RuntimeException("Unsupported parameter type: " + parameterType.getName());
+            case Byte b -> {
+                return new byte[]{b};
+            }
+
+            case Short sht -> {
+                ByteBuffer buffer = ByteBuffer.allocate(SHORT_LENGTH);
+                return buffer.putShort(sht).array();
+            }
+
+            case Integer i -> {
+                return intByteBuffer(i).array();
+            }
+
+            case Long l -> {
+                ByteBuffer buffer = ByteBuffer.allocate(LONG_LENGTH);
+                return buffer.putLong(l).array();
+            }
+
+            case Character c -> {
+                return G.I.toBytes(String.valueOf(c));
+            }
+
+            case Float f -> {
+                ByteBuffer buffer = ByteBuffer.allocate(FLOAT_LENGTH);
+                return buffer.putFloat(f).array();
+            }
+
+            case Double d -> {
+                ByteBuffer buffer = ByteBuffer.allocate(DOUBLE_LENGTH);
+                return buffer.putDouble(d).array();
+            }
+
+            default -> throw new IllegalStateException("Unsupported parameter type: " + o.getClass().getName());
         }
-    }
-
-    static ByteBuffer toBuffer(int[] src) {
-        int len = src.length * INT_LENGTH;
-        ByteBuffer buffer = ByteBuffer.allocate(len);
-
-        for(int i : src) {
-            buffer.putInt(i);
-        }
-
-        return buffer.rewind();
     }
 
     /* 判断ByteBuffer是否读结束（或写结束） */
@@ -123,59 +100,5 @@ public interface BufferUtils {
 
     static ByteBuffer intByteBuffer(int value) {
         return ByteBuffer.allocate(INT_LENGTH).putInt(value).rewind();
-    }
-
-    static ByteBuffer longByteBuffer() {
-        return ByteBuffer.allocate(LONG_LENGTH);
-    }
-
-    static ByteBuffer longByteBuffer(long value) {
-        return ByteBuffer.allocate(LONG_LENGTH).putLong(value).rewind();
-    }
-
-    static List<String> toStringList(ByteBuffer buffer) {
-        List<String> result = new ArrayList<>();
-
-        while (!isOver(buffer)) {
-            result.add(getString(buffer));
-        }
-
-        return result;
-    }
-
-    static Object getByType(ByteBuffer buffer, Class<?> parameterType) {
-        if (ClassUtils.isString(parameterType)) {
-            return getString(buffer);
-        } else if (ClassUtils.isByte(parameterType)) {
-            int len = buffer.getInt();
-            assert len == BYTE_LENGTH;
-            return buffer.get();
-        } else if (ClassUtils.isShort(parameterType)) {
-            int len = buffer.getInt();
-            assert len == SHORT_LENGTH;
-            return buffer.getShort();
-        } else if (ClassUtils.isInt(parameterType)) {
-            int len = buffer.getInt();
-            assert len == INT_LENGTH;
-            return buffer.getInt();
-        } else if (ClassUtils.isLong(parameterType)) {
-            int len = buffer.getInt();
-            assert len == LONG_LENGTH;
-            return buffer.getLong();
-        } else if (ClassUtils.isChar(parameterType)) {
-            int len = buffer.getInt();
-            assert len == CHAR_LENGTH;
-            return buffer.getChar();
-        } else if (ClassUtils.isFloat(parameterType)) {
-            int len = buffer.getInt();
-            assert len == FLOAT_LENGTH;
-            return buffer.getFloat();
-        } else if (ClassUtils.isDouble(parameterType)) {
-            int len = buffer.getInt();
-            assert len == DOUBLE_LENGTH;
-            return buffer.getDouble();
-        } else {
-            throw new RuntimeException("Unsupported parameter type: " + parameterType.getName());
-        }
     }
 }
