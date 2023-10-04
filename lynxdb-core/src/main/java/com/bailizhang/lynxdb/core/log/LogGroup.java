@@ -150,6 +150,12 @@ public class LogGroup implements Iterable<LogEntry> {
         return append(Flags.DELETED, data);
     }
 
+    public synchronized void clearDeletedEntry() {
+        for(LogRegion region : logRegions) {
+            region.clearDeletedEntry();
+        }
+    }
+
     @Override
     public Iterator<LogEntry> iterator() {
         return new LogGroupIterator(this);

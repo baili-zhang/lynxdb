@@ -18,7 +18,6 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
  * 元数据区 索引区 数据区
  */
 public class LogRegion {
-
     private interface Default {
         int DATA_BLOCK_SIZE = 1024 * 1024;
         int CAPACITY = 2000;
@@ -220,6 +219,10 @@ public class LogRegion {
 
         globalIdxEnd(++ globalIndexEnd);
         return globalIndexEnd;
+    }
+
+    public void clearDeletedEntry() {
+        // TODO
     }
 
     public LogIndex logIndex(int globalIdx) {
