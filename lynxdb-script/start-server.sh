@@ -1,2 +1,2 @@
 #!/bin/bash
-java -Xmx2g -Xms2g -XX:+UseZGC -jar lib/lynxdb-server-2023.7.23-alpha.jar
+java -Xmx2g -Xms2g -XX:+UseZGC -jar lib/lynxdb-server-2023.10.5-snapshot.jar

@@ -3,7 +3,7 @@ Description=LynxDB Server
 After=network.target
 
 [Service]
-ExecStart=/root/lynxdb-v2023.7.23-alpha/start-server.sh
+ExecStart=/root/lynxdb-v2023.10.5-snapshot/start-server.sh
 Restart=on-failure
 Type=simple
 
