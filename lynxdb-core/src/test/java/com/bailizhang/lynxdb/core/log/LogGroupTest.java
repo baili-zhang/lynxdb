@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

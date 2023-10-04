@@ -25,12 +25,14 @@ public class LogRegion {
     }
 
     private interface Meta {
-        int LENGTH = INT_LENGTH * 4 + LONG_LENGTH;
-        int BEGIN_POSITION = 0;
-        int END_POSITION = INT_LENGTH;
-        int DELETED_ENTRY_SIZE = INT_LENGTH * 2;
-        int TOTAL_ENTRY_SIZE = INT_LENGTH * 3;
-        int CRC_POSITION = INT_LENGTH * 4;
+        int LENGTH = INT_LENGTH * 6 + LONG_LENGTH;
+        int MAGIC_NUMBER_POSITION = 0;
+        int FILE_TYPE = INT_LENGTH;
+        int DELETED_COUNT_POSITION = INT_LENGTH * 2;
+        int TOTAL_position = INT_LENGTH * 3;
+        int BEGIN_POSITION = INT_LENGTH * 4;
+        int END_POSITION = INT_LENGTH * 5;
+        int CRC_POSITION = INT_LENGTH * 6;
     }
 
     private final int capacity;
