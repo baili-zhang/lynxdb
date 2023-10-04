@@ -6,28 +6,25 @@ import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
 public record LogIndex(
-        int extraDataLength,
-        byte[] extraData,
+        byte deleteFlag,
         int dataBegin,
         int dataLength,
         long crc32c
 ) implements BytesListConvertible {
 
-    public static final int FIXED_LENGTH = INT_LENGTH * 2 + LONG_LENGTH;
+    public static final int FIXED_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
 
-    public static LogIndex from(ByteBuffer buffer, int extraDataLength) {
-        byte[] extraData = new byte[extraDataLength];
-        buffer.get(extraData);
+    public static LogIndex from(ByteBuffer buffer) {
+        byte flag = buffer.get();
         int dataBegin = buffer.getInt();
         int dataLength = buffer.getInt();
         long crc32c = buffer.getLong();
 
         CRC32C crc32C = new CRC32C();
-        crc32C.update(extraData);
+        crc32C.update(new byte[]{flag});
         crc32C.update(dataBegin);
         crc32C.update(dataLength);
 
@@ -38,8 +35,7 @@ public record LogIndex(
         }
 
         return new LogIndex(
-                extraDataLength,
-                extraData,
+                flag,
                 dataBegin,
                 dataLength,
                 crc32c
@@ -49,7 +45,6 @@ public record LogIndex(
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
-        bytesList.appendRawBytes(extraData);
         bytesList.appendRawInt(dataBegin);
         bytesList.appendRawInt(dataLength);
         bytesList.appendRawLong(crc32c);

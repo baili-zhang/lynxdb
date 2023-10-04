@@ -28,13 +28,6 @@ public record KeyEntry(
         long timeout,
         long crc32c
 ) implements Comparable<KeyEntry>, BytesListConvertible {
-
-    public static final byte EXISTED = (byte) 0x01;
-    public static final byte DELETED = (byte) 0x02;
-
-    public static final byte[] EXISTED_ARRAY = new byte[]{EXISTED};
-    public static final byte[] DELETED_ARRAY = new byte[]{DELETED};
-
     public static KeyEntry from(
             byte flag,
             byte[] key,

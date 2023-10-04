@@ -25,10 +25,12 @@ public class LogRegion {
     }
 
     private interface Meta {
-        int LENGTH = INT_LENGTH * 2 + LONG_LENGTH;
+        int LENGTH = INT_LENGTH * 4 + LONG_LENGTH;
         int BEGIN_POSITION = 0;
         int END_POSITION = INT_LENGTH;
-        int CRC_POSITION = INT_LENGTH * 2;
+        int DELETED_ENTRY_SIZE = INT_LENGTH * 2;
+        int TOTAL_ENTRY_SIZE = INT_LENGTH * 3;
+        int CRC_POSITION = INT_LENGTH * 4;
     }
 
     private final int capacity;
@@ -51,7 +53,7 @@ public class LogRegion {
 
         capacity = options.regionCapacityOrDefault(Default.CAPACITY);
 
-        indexEntryLength = LogIndex.FIXED_LENGTH + options.extraDataLength();
+        indexEntryLength = LogIndex.FIXED_LENGTH;
         indexBlockLength = indexEntryLength * capacity;
 
         dataBeginPosition = indexBeginPosition + indexBlockLength;
@@ -138,7 +140,7 @@ public class LogRegion {
         return id;
     }
 
-    public int append(byte[] extraData, byte[] data) {
+    public int append(byte deleteFlag, byte[] data) {
         int globalIndexEnd = globalIdxEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
@@ -148,14 +150,13 @@ public class LogRegion {
         int dataLength = data.length + LONG_LENGTH; // data 长度 + crc32c 校验的长度
 
         CRC32C indexCrc32C = new CRC32C();
-        indexCrc32C.update(extraData);
+        indexCrc32C.update(new byte[]{deleteFlag});
         indexCrc32C.update(dataBegin);
         indexCrc32C.update(dataLength);
         long indexCrc32c = indexCrc32C.getValue();
 
         LogIndex index = new LogIndex(
-                options.extraDataLength(),
-                extraData,
+                deleteFlag,
                 dataBegin,
                 dataLength,
                 indexCrc32c
@@ -229,7 +230,7 @@ public class LogRegion {
         MappedByteBuffer buffer = indexBuffer.getBuffer();
         buffer.position(indexBegin);
 
-        return LogIndex.from(buffer, options.extraDataLength());
+        return LogIndex.from(buffer);
     }
 
     public LogEntry readEntry(int globalIndex) {
@@ -285,11 +286,6 @@ public class LogRegion {
                 logIndex,
                 rawData
         );
-    }
-
-    public byte[] lastExtraData() {
-        LogIndex index = logIndex(globalIdxEnd());
-        return index == null ? null : index.extraData();
     }
 
     public void delete() {

@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.memory;
 
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
 import com.bailizhang.lynxdb.lsmtree.exception.DeletedException;
@@ -47,7 +48,7 @@ public class MemTable {
             throw new TimeoutException();
         }
 
-        if(keyEntry.flag() == KeyEntry.DELETED) {
+        if(keyEntry.flag() == Flags.DELETED) {
             throw new DeletedException();
         }
 
@@ -79,7 +80,7 @@ public class MemTable {
             return false;
         }
 
-        if(entry.flag() == KeyEntry.DELETED) {
+        if(entry.flag() == Flags.DELETED) {
             throw new DeletedException();
         }
 
@@ -141,7 +142,7 @@ public class MemTable {
             KeyEntry keyEntry = entry.getValue();
             key = entry.getKey();
 
-            if(keyEntry.flag() == KeyEntry.DELETED) {
+            if(keyEntry.flag() == Flags.DELETED) {
                 deletedKeys.add(key);
                 continue;
             }

@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.lsmtree.entry;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
@@ -45,7 +46,7 @@ public record WalEntry(
         int valueGlobalIndex = buffer.getInt();
         long timeout = buffer.getLong();
 
-        if (flag != KeyEntry.EXISTED && flag != KeyEntry.DELETED) {
+        if (flag != Flags.EXISTED && flag != Flags.DELETED) {
             throw new RuntimeException();
         }
 

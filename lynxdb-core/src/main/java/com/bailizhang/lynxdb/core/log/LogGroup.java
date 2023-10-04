@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
@@ -138,37 +138,16 @@ public class LogGroup implements Iterable<LogEntry> {
         return lastRegion().globalIdxEnd();
     }
 
-    public byte[] lastExtraData() {
-        return lastRegion().lastExtraData();
-    }
-
     public void delete() {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    /**
-     * 需要保证多线程同步
-     *
-     * TODO：加读写锁同步
-     *
-     * @param extraData extra data
-     * @param data data
-     * @return global idx
-     */
-    public synchronized int append(byte[] extraData, byte[] data) {
-        LogRegion region = lastRegion();
-        int globalIdx = region.append(extraData, data);
-
-        if(region.isFull()) {
-            createNextRegion();
-        }
-
-        return globalIdx;
+    public int append(byte[] data) {
+        return append(Flags.EXISTED, data);
     }
 
-    public int append(byte[] extraData, BytesListConvertible convertible) {
-        byte[] data = convertible.toBytesList().toBytes();
-        return append(extraData, data);
+    public int appendDeleted(byte[] data) {
+        return append(Flags.DELETED, data);
     }
 
     @Override
@@ -199,6 +178,17 @@ public class LogGroup implements Iterable<LogEntry> {
         region.globalIdxEnd(maxGlobalIdx());
 
         logRegions.add(region);
+    }
+
+    private synchronized int append(byte deleteFlag, byte[] data) {
+        LogRegion region = lastRegion();
+        int globalIdx = region.append(deleteFlag, data);
+
+        if(region.isFull()) {
+            createNextRegion();
+        }
+
+        return globalIdx;
     }
 
     private static class LogGroupIterator implements Iterator<LogEntry> {

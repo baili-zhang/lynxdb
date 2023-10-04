@@ -19,7 +19,7 @@ class LogGroupTest {
 
     @BeforeEach
     void setUp() {
-        LogGroupOptions options = new LogGroupOptions(4);
+        LogGroupOptions options = new LogGroupOptions();
         logGroup = new LogGroup(BASE_DIR, options);
     }
 
@@ -31,8 +31,7 @@ class LogGroupTest {
     @Test
     void append() {
         for(int i = 1; i <= 450; i ++) {
-            byte[] extraData = BufferUtils.toBytes(TERM + i);
-            logGroup.append(extraData, (COMMAND + i).getBytes(StandardCharsets.UTF_8));
+            logGroup.append((COMMAND + i).getBytes(StandardCharsets.UTF_8));
         }
 
         int begin = 106, end = 406;
@@ -41,12 +40,6 @@ class LogGroupTest {
 
         for(int i = 0; i < entries.size(); i ++) {
             LogEntry entry = entries.get(i);
-            LogIndex index = entry.index();
-
-            assert Arrays.equals(
-                    index.extraData(),
-                    BufferUtils.toBytes(TERM + begin + i)
-            );
 
             assert Arrays.equals(
                     entry.data(),
