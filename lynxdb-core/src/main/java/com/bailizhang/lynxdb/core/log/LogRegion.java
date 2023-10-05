@@ -28,7 +28,7 @@ public class LogRegion {
         int MAGIC_NUMBER_POSITION = 0;
         int FILE_TYPE = INT_LENGTH;
         int DELETED_COUNT_POSITION = INT_LENGTH * 2;
-        int TOTAL_position = INT_LENGTH * 3;
+        int TOTAL_POSITION = INT_LENGTH * 3;
         int BEGIN_POSITION = INT_LENGTH * 4;
         int END_POSITION = INT_LENGTH * 5;
         int CRC_POSITION = INT_LENGTH * 6;
@@ -87,6 +87,26 @@ public class LogRegion {
             MappedBuffer dataBuffer = mapDataBlockBuffer(i);
             dataBuffers.add(dataBuffer);
         }
+    }
+
+    public int magicNumber() {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+        return buffer.getInt(Meta.MAGIC_NUMBER_POSITION);
+    }
+
+    public int fileType() {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+        return buffer.getInt(Meta.FILE_TYPE);
+    }
+
+    public int deletedCount() {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+        return buffer.getInt(Meta.DELETED_COUNT_POSITION);
+    }
+
+    public int total() {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+        return buffer.getInt(Meta.TOTAL_POSITION);
     }
 
     public int globalIdxBegin() {
