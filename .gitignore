@@ -19,8 +19,8 @@ timeoutData
 dependency-reduced-pom.xml
 
 # Log file
-core/logs/
-server/logs/
+lynxdb-core/logs/
+lynxdb-server/logs/
 *.log
 
 # BlueJ files

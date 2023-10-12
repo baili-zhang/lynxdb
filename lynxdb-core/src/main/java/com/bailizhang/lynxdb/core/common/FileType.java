@@ -1,9 +1,9 @@
 package com.bailizhang.lynxdb.core.common;
 
 public enum FileType {
-    LOG_GROUP_MANAGE_FILE(1001, "lgm"),
-    LOG_GROUP_REGION_FILE(1002, "lgr"),
-    SSTABLE_FILE(2001, "sst");
+    LOG_GROUP_MANAGE_FILE(1001, ".lgm"),
+    LOG_GROUP_REGION_FILE(1002, ".lgr"),
+    SSTABLE_FILE(2001, ".sst");
 
     private final int magicNumber;
     private final String suffix;
@@ -13,11 +13,11 @@ public enum FileType {
         this.suffix = suffix;
     }
 
-    public int getMagicNumber() {
+    public int magicNumber() {
         return magicNumber;
     }
 
-    public String getSuffix() {
+    public String suffix() {
         return suffix;
     }
 }

@@ -15,7 +15,7 @@ public record LogIndex(
         long crc32c
 ) implements BytesListConvertible {
 
-    public static final int FIXED_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
+    public static final int ENTRY_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
 
     public static LogIndex from(ByteBuffer buffer) {
         byte flag = buffer.get();
@@ -64,6 +64,7 @@ public record LogIndex(
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
+        bytesList.appendRawByte(deleteFlag);
         bytesList.appendRawInt(dataBegin);
         bytesList.appendRawInt(dataLength);
         bytesList.appendRawLong(crc32c);

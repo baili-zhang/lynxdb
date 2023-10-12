@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
@@ -29,16 +30,13 @@ public class LogRegion {
         int MAGIC_NUMBER_POSITION = 0;
         int DELETED_LENGTH_POSITION = INT_LENGTH;
         int TOTAL_LENGTH_POSITION = INT_LENGTH * 2;
-        int BEGIN_POSITION = INT_LENGTH * 3;
-        int END_POSITION = INT_LENGTH * 4;
+        int BEGIN_GLOBAL_ID_POSITION = INT_LENGTH * 3;
+        int END_GLOBAL_ID_POSITION = INT_LENGTH * 4;
         int CRC_POSITION = INT_LENGTH * 5;
     }
 
     private final int capacity;
-    private final int indexBeginPosition = Meta.LENGTH;
     private final int dataBeginPosition;
-    private final int indexEntryLength;
-    private final int indexBlockLength;
 
     private final int id;
     private final Path path;
@@ -53,30 +51,35 @@ public class LogRegion {
         this.options = options;
 
         capacity = options.regionCapacityOrDefault(Default.CAPACITY);
+        // index 区域的总长度
+        int indexBlockLength = LogIndex.ENTRY_LENGTH * capacity;
+        // data 区域的开始位置
+        dataBeginPosition = Meta.LENGTH + indexBlockLength;
 
-        indexEntryLength = LogIndex.FIXED_LENGTH;
-        indexBlockLength = indexEntryLength * capacity;
-
-        dataBeginPosition = indexBeginPosition + indexBlockLength;
-
-        path = Path.of(dir, NameUtils.name(id));
+        path = Path.of(dir, NameUtils.name(id) + FileType.LOG_GROUP_REGION_FILE.suffix());
         FileUtils.createFileIfNotExisted(path.toFile());
 
         metaBuffer = new MappedBuffer(
                 path,
-                Meta.BEGIN_POSITION,
+                Meta.MAGIC_NUMBER_POSITION,
                 Meta.LENGTH
         );
 
-        // 初始化 begin 和 end 的索引值为 -1
-        if(globalIdxBegin() == 0) {
-            globalIdxBegin(id * capacity);
-            globalIdxEnd(id * capacity - 1);
+        // 初始化 meta 区域
+        if(magicNumber() == 0) {
+            MappedByteBuffer buffer = metaBuffer.getBuffer();
+            buffer.putInt(Meta.MAGIC_NUMBER_POSITION, FileType.LOG_GROUP_REGION_FILE.magicNumber());
+            buffer.putInt(Meta.DELETED_LENGTH_POSITION, 0);
+            buffer.putInt(Meta.TOTAL_LENGTH_POSITION, 0);
+            buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, id * capacity);
+            buffer.putInt(Meta.END_GLOBAL_ID_POSITION, id * capacity - 1);
+            generateMetaCrc();
         }
 
         indexBuffer = new MappedBuffer(
                 path,
-                indexBeginPosition,
+                // index 区域的开始位置
+                Meta.LENGTH,
                 indexBlockLength
         );
 
@@ -106,12 +109,12 @@ public class LogRegion {
 
     public int globalIdxBegin() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.BEGIN_POSITION);
+        return buffer.getInt(Meta.BEGIN_GLOBAL_ID_POSITION);
     }
 
     public int globalIdxEnd() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.END_POSITION);
+        return buffer.getInt(Meta.END_GLOBAL_ID_POSITION);
     }
 
     public void deletedLength(int len) {
@@ -124,14 +127,14 @@ public class LogRegion {
 
     void globalIdxBegin(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        buffer.putInt(Meta.BEGIN_POSITION, val);
+        buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, val);
 
         generateMetaCrc();
     }
 
     void globalIdxEnd(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        buffer.putInt(Meta.END_POSITION, val);
+        buffer.putInt(Meta.END_GLOBAL_ID_POSITION, val);
 
         generateMetaCrc();
     }
@@ -155,7 +158,7 @@ public class LogRegion {
                 dataLength
         );
 
-        int indexOffset = idx * indexEntryLength;
+        int indexOffset = idx * LogIndex.ENTRY_LENGTH;
 
         MappedByteBuffer indexByteBuffer = indexBuffer.getBuffer();
         indexByteBuffer.put(indexOffset, index.toBytes());
@@ -220,7 +223,7 @@ public class LogRegion {
             return null;
         }
 
-        int indexBegin = idx * indexEntryLength;
+        int indexBegin = idx * LogIndex.ENTRY_LENGTH;
         MappedByteBuffer buffer = indexBuffer.getBuffer();
         buffer.position(indexBegin);
 
