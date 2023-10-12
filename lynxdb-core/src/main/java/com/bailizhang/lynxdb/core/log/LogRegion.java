@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.core.utils.NameUtils;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.CRC32C;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
@@ -167,46 +168,15 @@ public class LogRegion {
             indexByteBuffer.force();
         }
 
-        MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
-        if(dataBuffer == null) {
-            dataBuffer = mapDataBlockBuffer(dataBuffers.size());
-            dataBuffers.add(dataBuffer);
-        }
-
         DataEntry dataEntry = DataEntry.from(data);
 
         // data 块中的起始位置，也就是当前数据写入的位置
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
+        List<byte[]> genData = dataEntry.toList();
 
-        MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
-        dataByteBuffer.position(dataBlockBegin);
-
-        byte[] dataEntryBytes = dataEntry.toBytes();
-        int dataOffset = 0;
-
-        while(dataOffset < dataEntryBytes.length) {
-            // 写入最后一个数据块的剩余空间
-            int writeLength = Math.min(dataByteBuffer.remaining(), dataEntryBytes.length - dataOffset);
-            dataByteBuffer.put(dataEntryBytes, dataOffset, writeLength);
-            dataOffset += writeLength;
-
-            dataBuffer.saveSnapshot(dataByteBuffer);
-
-            if(options.isForce()) {
-                dataBuffer.force();
-            }
-
-            if(dataOffset < dataEntryBytes.length) {
-                // 写入一个新的数据块
-                dataBuffer = mapDataBlockBuffer(dataBuffers.size());
-
-                dataBuffers.add(dataBuffer);
-                dataByteBuffer = dataBuffer.getBuffer();
-            }
-        }
-
-        if(options.isForce()) {
-            dataByteBuffer.force();
+        for(byte[] genDataBytes : genData) {
+            writeData(genDataBytes, dataBlockBegin);
+            dataBlockBegin += genDataBytes.length;
         }
 
         globalIdxEnd(++ globalIndexEnd);
@@ -338,5 +308,42 @@ public class LogRegion {
                 dataBeginPosition + (long) Default.DATA_BLOCK_SIZE * i,
                 Default.DATA_BLOCK_SIZE
         );
+    }
+
+    private void writeData(byte[] data, int begin) {
+        MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
+        if(dataBuffer == null) {
+            dataBuffer = mapDataBlockBuffer(dataBuffers.size());
+            dataBuffers.add(dataBuffer);
+        }
+
+        MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
+        dataByteBuffer.position(begin);
+        int dataOffset = 0;
+
+        while(dataOffset < data.length) {
+            // 写入最后一个数据块的剩余空间
+            int writeLength = Math.min(dataByteBuffer.remaining(), data.length - dataOffset);
+            dataByteBuffer.put(data, dataOffset, writeLength);
+            dataOffset += writeLength;
+
+            dataBuffer.saveSnapshot(dataByteBuffer);
+
+            if(options.isForce()) {
+                dataBuffer.force();
+            }
+
+            if(dataOffset < data.length) {
+                // 写入一个新的数据块
+                dataBuffer = mapDataBlockBuffer(dataBuffers.size());
+
+                dataBuffers.add(dataBuffer);
+                dataByteBuffer = dataBuffer.getBuffer();
+            }
+        }
+
+        if(options.isForce()) {
+            dataByteBuffer.force();
+        }
     }
 }
