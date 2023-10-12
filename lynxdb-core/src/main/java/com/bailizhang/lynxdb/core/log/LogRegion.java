@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
@@ -26,8 +27,8 @@ public class LogRegion {
     private interface Meta {
         int LENGTH = INT_LENGTH * 5 + LONG_LENGTH;
         int MAGIC_NUMBER_POSITION = 0;
-        int DELETED_COUNT_POSITION = INT_LENGTH;
-        int TOTAL_POSITION = INT_LENGTH * 2;
+        int DELETED_LENGTH_POSITION = INT_LENGTH;
+        int TOTAL_LENGTH_POSITION = INT_LENGTH * 2;
         int BEGIN_POSITION = INT_LENGTH * 3;
         int END_POSITION = INT_LENGTH * 4;
         int CRC_POSITION = INT_LENGTH * 5;
@@ -93,14 +94,14 @@ public class LogRegion {
         return buffer.getInt(Meta.MAGIC_NUMBER_POSITION);
     }
 
-    public int deletedCount() {
+    public int deletedLength() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.DELETED_COUNT_POSITION);
+        return buffer.getInt(Meta.DELETED_LENGTH_POSITION);
     }
 
-    public int total() {
+    public int totalLength() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.TOTAL_POSITION);
+        return buffer.getInt(Meta.TOTAL_LENGTH_POSITION);
     }
 
     public int globalIdxBegin() {
@@ -113,49 +114,33 @@ public class LogRegion {
         return buffer.getInt(Meta.END_POSITION);
     }
 
+    public void deletedLength(int len) {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+        int newLen = buffer.getInt(Meta.DELETED_LENGTH_POSITION) + len;
+        buffer.putInt(Meta.DELETED_LENGTH_POSITION, newLen);
+
+        generateMetaCrc();
+    }
+
     void globalIdxBegin(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
         buffer.putInt(Meta.BEGIN_POSITION, val);
 
-        buffer.position(0);
-        buffer.limit(Meta.CRC_POSITION);
-
-        CRC32C crc32C = new CRC32C();
-        crc32C.update(buffer);
-        long crc32c = crc32C.getValue();
-
-        buffer.limit(Meta.LENGTH);
-        buffer.putLong(Meta.CRC_POSITION, crc32c);
-
-        if(options.isForce()) {
-            buffer.force();
-        }
+        generateMetaCrc();
     }
 
     void globalIdxEnd(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
         buffer.putInt(Meta.END_POSITION, val);
 
-        buffer.position(0);
-        buffer.limit(Meta.CRC_POSITION);
-
-        CRC32C crc32C = new CRC32C();
-        crc32C.update(buffer);
-        long crc32c = crc32C.getValue();
-
-        buffer.limit(Meta.LENGTH);
-        buffer.putLong(Meta.CRC_POSITION, crc32c);
-
-        if(options.isForce()) {
-            buffer.force();
-        }
+        generateMetaCrc();
     }
 
     public int id() {
         return id;
     }
 
-    public int append(byte deleteFlag, byte[] data) {
+    public int append(byte[] data) {
         int globalIndexEnd = globalIdxEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
@@ -164,17 +149,10 @@ public class LogRegion {
         int dataBegin = lastIndex == null ? 0 : lastIndex.dataBegin() + lastIndex.dataLength();
         int dataLength = data.length + LONG_LENGTH; // data 长度 + crc32c 校验的长度
 
-        CRC32C indexCrc32C = new CRC32C();
-        indexCrc32C.update(new byte[]{deleteFlag});
-        indexCrc32C.update(dataBegin);
-        indexCrc32C.update(dataLength);
-        long indexCrc32c = indexCrc32C.getValue();
-
-        LogIndex index = new LogIndex(
-                deleteFlag,
+        LogIndex index = LogIndex.from(
+                Flags.EXISTED,
                 dataBegin,
-                dataLength,
-                indexCrc32c
+                dataLength
         );
 
         int indexOffset = idx * indexEntryLength;
@@ -192,12 +170,9 @@ public class LogRegion {
             dataBuffers.add(dataBuffer);
         }
 
-        CRC32C dataCrc32C = new CRC32C();
-        dataCrc32C.update(data);
-        long dataCrc32c = dataCrc32C.getValue();
+        DataEntry dataEntry = DataEntry.from(data);
 
-        LogDataEntry dataEntry = new LogDataEntry(data, dataCrc32c);
-
+        // data 块中的起始位置，也就是当前数据写入的位置
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
 
         MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
@@ -307,6 +282,16 @@ public class LogRegion {
         );
     }
 
+    public void removeEntry(int globalIndex) {
+        if(globalIndex < globalIdxBegin() || globalIndex > globalIdxEnd()) {
+            return;
+        }
+
+        LogIndex logIndex = logIndex(globalIndex);
+        int dataLength = logIndex.dataLength();
+        deletedLength(dataLength - LONG_LENGTH);
+    }
+
     public void delete() {
         FileUtils.delete(path);
     }
@@ -321,6 +306,27 @@ public class LogRegion {
 
     public boolean isFull() {
         return globalIdxEnd() - globalIdxBegin() + 1 >= capacity;
+    }
+
+    private void generateMetaCrc() {
+        MappedByteBuffer buffer = metaBuffer.getBuffer();
+
+        buffer.position(0);
+
+        // CRC 校验内容只包括 Meta 的数据，不包括校验和
+        buffer.limit(Meta.CRC_POSITION);
+
+        CRC32C crc32C = new CRC32C();
+        crc32C.update(buffer);
+        long crc32c = crc32C.getValue();
+
+        // 重置 limit，用于写入校验和
+        buffer.limit(Meta.LENGTH);
+        buffer.putLong(Meta.CRC_POSITION, crc32c);
+
+        if(options.isForce()) {
+            buffer.force();
+        }
     }
 
     private MappedBuffer mapDataBlockBuffer(int i) {

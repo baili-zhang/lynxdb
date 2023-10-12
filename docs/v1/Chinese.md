@@ -360,9 +360,7 @@ public class FindMultiColumnsDemo {
             byte[] key = G.I.toBytes("key");
             HashMap<String, byte[]> multiColumns  = connection.findMultiColumns(key, "columnFamily");
 
-            multiColumns.forEach((column, value) -> {
-                System.out.println(column + ": " + G.I.toString(value));
-            });
+            multiColumns.forEach((column, value) -> System.out.println(column + ": " + G.I.toString(value)));
         } catch (ConnectException e) {
             e.getStackTrace();
         }

@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
@@ -87,6 +86,17 @@ public class LogGroup implements Iterable<LogEntry> {
         return logEntries.isEmpty() ? null : logEntries.getFirst();
     }
 
+    public synchronized int append(byte[] data) {
+        LogRegion region = lastRegion();
+        int globalIdx = region.append(data);
+
+        if(region.isFull()) {
+            createNextRegion();
+        }
+
+        return globalIdx;
+    }
+
     /**
      * [beginGlobalIndex, globalEndIndex]
      *
@@ -142,14 +152,6 @@ public class LogGroup implements Iterable<LogEntry> {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    public int append(byte[] data) {
-        return append(Flags.EXISTED, data);
-    }
-
-    public int appendDeleted(byte[] data) {
-        return append(Flags.DELETED, data);
-    }
-
     public synchronized void clearDeletedEntry() {
         for(LogRegion region : logRegions) {
             region.clearDeletedEntry();
@@ -184,17 +186,6 @@ public class LogGroup implements Iterable<LogEntry> {
         region.globalIdxEnd(maxGlobalIdx());
 
         logRegions.add(region);
-    }
-
-    private synchronized int append(byte deleteFlag, byte[] data) {
-        LogRegion region = lastRegion();
-        int globalIdx = region.append(deleteFlag, data);
-
-        if(region.isFull()) {
-            createNextRegion();
-        }
-
-        return globalIdx;
     }
 
     private static class LogGroupIterator implements Iterator<LogEntry> {

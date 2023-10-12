@@ -42,6 +42,25 @@ public record LogIndex(
         );
     }
 
+    public static LogIndex from(
+            byte deleteFlag,
+            int dataBegin,
+            int dataLength
+    ) {
+        CRC32C indexCrc32C = new CRC32C();
+        indexCrc32C.update(new byte[]{deleteFlag});
+        indexCrc32C.update(dataBegin);
+        indexCrc32C.update(dataLength);
+        long indexCrc32c = indexCrc32C.getValue();
+
+        return new LogIndex(
+                deleteFlag,
+                dataBegin,
+                dataLength,
+                indexCrc32c
+        );
+    }
+
     @Override
     public BytesList toBytesList() {
         BytesList bytesList = new BytesList(false);
