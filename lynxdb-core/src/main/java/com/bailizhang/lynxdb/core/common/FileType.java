@@ -1,7 +1,7 @@
 package com.bailizhang.lynxdb.core.common;
 
 public enum FileType {
-    LOG_GROUP_FILE(1001, "lg"),
+    LOG_GROUP_MANAGE_FILE(1001, "lgm"),
     LOG_GROUP_REGION_FILE(1002, "lgr"),
     SSTABLE_FILE(2001, "sst");
 

@@ -794,3 +794,7 @@ LynxDB 的各个模块：
 - lynxdb-socket：基于 Java NIO 相关的 Socket 封装。
 - lynxdb-spring-boot-starter：LynxDB 的 SpringBoot Starter。
 - lynxdb-timewheel：单线程的时间轮。
+
+## LynxDB 文件格式
+
+[相关文档](./FileFormat.md)

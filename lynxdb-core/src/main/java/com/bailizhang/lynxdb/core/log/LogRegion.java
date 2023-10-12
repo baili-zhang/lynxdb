@@ -24,14 +24,13 @@ public class LogRegion {
     }
 
     private interface Meta {
-        int LENGTH = INT_LENGTH * 6 + LONG_LENGTH;
+        int LENGTH = INT_LENGTH * 5 + LONG_LENGTH;
         int MAGIC_NUMBER_POSITION = 0;
-        int FILE_TYPE = INT_LENGTH;
-        int DELETED_COUNT_POSITION = INT_LENGTH * 2;
-        int TOTAL_POSITION = INT_LENGTH * 3;
-        int BEGIN_POSITION = INT_LENGTH * 4;
-        int END_POSITION = INT_LENGTH * 5;
-        int CRC_POSITION = INT_LENGTH * 6;
+        int DELETED_COUNT_POSITION = INT_LENGTH;
+        int TOTAL_POSITION = INT_LENGTH * 2;
+        int BEGIN_POSITION = INT_LENGTH * 3;
+        int END_POSITION = INT_LENGTH * 4;
+        int CRC_POSITION = INT_LENGTH * 5;
     }
 
     private final int capacity;
@@ -92,11 +91,6 @@ public class LogRegion {
     public int magicNumber() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
         return buffer.getInt(Meta.MAGIC_NUMBER_POSITION);
-    }
-
-    public int fileType() {
-        MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.FILE_TYPE);
     }
 
     public int deletedCount() {
