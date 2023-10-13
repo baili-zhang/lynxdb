@@ -14,7 +14,6 @@ import java.util.Arrays;
 class LogRegionTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
 
-    private static final int GLOBAL_INDEX_BEGIN = 30;
     private static final int LOG_ENTRY_COUNT = 100;
     private static final String COMMAND = "command";
 
@@ -46,9 +45,9 @@ class LogRegionTest {
 
         int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();
 
-        for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT; i ++) {
-            LogEntry entry = logRegion.readEntry(GLOBAL_INDEX_BEGIN + i);
-            String temp = COMMAND.repeat(1024) + i;
+        for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT + globalIndexBegin; i ++) {
+            LogEntry entry = logRegion.readEntry(i);
+            String temp = COMMAND.repeat(1024) + (i - globalIndexBegin);
             assert Arrays.equals(entry.data(), G.I.toBytes(temp));
         }
     }

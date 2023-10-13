@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * TODO: 1. 应该保证多线程安全, 2. 每条记录添加 CRC 校验，3. 容量 size 检查
+ * TODO: 1. 应该保证多线程安全
  */
 public class LogGroup implements Iterable<LogEntry> {
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
@@ -152,10 +152,29 @@ public class LogGroup implements Iterable<LogEntry> {
         FileUtils.delete(Path.of(groupDir));
     }
 
-    public synchronized void clearDeletedEntry() {
-        for(LogRegion region : logRegions) {
-            region.clearDeletedEntry();
+    public synchronized void clearDeletedEntries() {
+        LinkedList<LogRegion> newLogRegions = new LinkedList<>();
+
+        LogRegion region;
+        while ((region = logRegions.removeFirst()) != null) {
+            var entries = region.aliveEntries();
+            if(entries == null) {
+                newLogRegions.add(region);
+                continue;
+            }
+
+            int id = region.id();
+            region.delete();
+
+            LogRegion newRegion = new LogRegion(id, groupDir, options);
+            for(var entry : entries) {
+                newRegion.append(entry.left(), entry.right());
+            }
+
+            newLogRegions.add(newRegion);
         }
+
+        logRegions.addAll(newLogRegions);
     }
 
     @Override

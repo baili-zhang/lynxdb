@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.Flags;
 
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
@@ -59,6 +60,14 @@ public record LogIndex(
                 dataLength,
                 indexCrc32c
         );
+    }
+
+    public static void deleteIndex(ByteBuffer buffer, int begin) {
+        buffer.put(begin, Flags.DELETED);
+    }
+
+    public static int dataLength(ByteBuffer buffer, int begin) {
+        return buffer.getInt(begin + BYTE_LENGTH);
     }
 
     @Override
