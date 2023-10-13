@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
@@ -189,7 +190,7 @@ public class SsTable {
 
         IndexEntry indexEntry = findIndexEntry(idx);
 
-        if(indexEntry.flag() == KeyEntry.DELETED) {
+        if(indexEntry.flag() == Flags.DELETED) {
             throw new DeletedException();
         }
 
@@ -199,7 +200,7 @@ public class SsTable {
         }
 
         int globalIndex = keyEntry.valueGlobalIndex();
-        LogEntry entry = valueLogGroup.find(globalIndex);
+        LogEntry entry = valueLogGroup.findEntry(globalIndex);
 
         return entry == null ? null : entry.data();
     }
@@ -223,7 +224,7 @@ public class SsTable {
                 throw new TimeoutException();
             }
 
-            if(indexEntry.flag() == KeyEntry.EXISTED) {
+            if(indexEntry.flag() == Flags.EXISTED) {
                 return true;
             }
 
@@ -280,7 +281,7 @@ public class SsTable {
 
             Key key = new Key(keyEntry.key());
 
-            if(indexEntry.flag() == KeyEntry.DELETED) {
+            if(indexEntry.flag() == Flags.DELETED) {
                 deletedKeys.add(key);
                 continue;
             }

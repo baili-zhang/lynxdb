@@ -2,7 +2,6 @@ package com.bailizhang.lynxdb.core.log;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,12 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
-
 class LogRegionTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
 
-    private static final int GLOBAL_INDEX_BEGIN = 30;
     private static final int LOG_ENTRY_COUNT = 100;
     private static final String COMMAND = "command";
 
@@ -27,7 +23,7 @@ class LogRegionTest {
     @BeforeEach
     void setUp() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        options = new LogGroupOptions(INT_LENGTH);
+        options = new LogGroupOptions();
         options.regionCapacity(200);
 
         FileUtils.createDirIfNotExisted(BASE_DIR);
@@ -43,21 +39,15 @@ class LogRegionTest {
     @Test
     void append() {
         for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
-            byte[] extraData = BufferUtils.toBytes(i);
-
             String temp = COMMAND.repeat(1024) + i;
-
-            logRegion.append(extraData, G.I.toBytes(temp));
+            logRegion.appendEntry(G.I.toBytes(temp));
         }
 
         int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();
 
-        for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT; i ++) {
-            LogEntry entry = logRegion.readEntry(GLOBAL_INDEX_BEGIN + i);
-            assert Arrays.equals(entry.index().extraData(), BufferUtils.toBytes(i));
-
-            String temp = COMMAND.repeat(1024) + i;
-
+        for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT + globalIndexBegin; i ++) {
+            LogEntry entry = logRegion.readEntry(i);
+            String temp = COMMAND.repeat(1024) + (i - globalIndexBegin);
             assert Arrays.equals(entry.data(), G.I.toBytes(temp));
         }
     }

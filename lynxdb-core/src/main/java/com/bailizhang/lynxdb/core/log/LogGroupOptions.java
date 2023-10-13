@@ -1,17 +1,11 @@
 package com.bailizhang.lynxdb.core.log;
 
 public class LogGroupOptions {
-    private final int extraDataLength;
     private Integer regionCapacity;
     private boolean force = false;
 
-    public LogGroupOptions(int extraDataLength) {
-        this.extraDataLength = extraDataLength;
+    public LogGroupOptions() {
         this.regionCapacity = null;
-    }
-
-    public int extraDataLength() {
-        return extraDataLength;
     }
 
     public void regionCapacity(int val) {

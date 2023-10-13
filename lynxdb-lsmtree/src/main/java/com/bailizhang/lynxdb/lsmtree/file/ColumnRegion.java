@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
@@ -23,8 +24,6 @@ import static com.bailizhang.lynxdb.lsmtree.file.ColumnFamilyRegion.COLUMNS_DIR;
 public class ColumnRegion {
     private static final String WAL_DIR = "wal";
     private final static String VALUE_DIR = "value";
-    private static final int EXTRA_DATA_LENGTH = 1;
-    private static final int WAL_EXTRA_DATA_LENGTH = 0;
 
     private final String columnFamily;
     private final String column;
@@ -47,7 +46,7 @@ public class ColumnRegion {
         File file = FileUtils.createDirIfNotExisted(baseDir, columnFamily, COLUMNS_DIR, column);
         String dir = file.getAbsolutePath();
 
-        LogGroupOptions valueLogGroupOptions = new LogGroupOptions(EXTRA_DATA_LENGTH);
+        LogGroupOptions valueLogGroupOptions = new LogGroupOptions();
 
         // 初始化 value log group
         String valueLogPath = Path.of(dir, VALUE_DIR).toString();
@@ -59,7 +58,7 @@ public class ColumnRegion {
         if(options.wal()) {
             // 初始化 wal log group
             String walDir = Path.of(dir, WAL_DIR).toString();
-            LogGroupOptions logOptions = new LogGroupOptions(WAL_EXTRA_DATA_LENGTH);
+            LogGroupOptions logOptions = new LogGroupOptions();
             logOptions.regionCapacity(options.memTableSize());
 
             walLog = new LogGroup(walDir, logOptions);
@@ -86,10 +85,9 @@ public class ColumnRegion {
     }
 
     public void insert(byte[] key, byte[] value, long timeout) {
-        // TODO: extraData 用来以后清除 value log group 中的无效数据
-        int valueGlobalIndex = valueLog.append(KeyEntry.EXISTED_ARRAY, value);
+        int valueGlobalIndex = valueLog.appendEntry(value);
         KeyEntry keyEntry = KeyEntry.from(
-                KeyEntry.EXISTED,
+                Flags.EXISTED,
                 key,
                 value,
                 valueGlobalIndex,
@@ -99,14 +97,14 @@ public class ColumnRegion {
         int maxWalGlobalIndex = -1;
         if(options.wal()) {
             WalEntry walEntry = WalEntry.from(
-                    KeyEntry.EXISTED,
+                    Flags.EXISTED,
                     key,
                     value,
                     valueGlobalIndex,
                     timeout
             );
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
+            maxWalGlobalIndex = walLog.appendEntry(data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);
@@ -114,7 +112,7 @@ public class ColumnRegion {
 
     public void delete(byte[] key) {
         KeyEntry keyEntry = KeyEntry.from(
-                KeyEntry.DELETED,
+                Flags.DELETED,
                 key,
                 ByteArrayUtils.EMPTY_BYTES,
                 -1,
@@ -124,14 +122,14 @@ public class ColumnRegion {
         int maxWalGlobalIndex = -1;
         if(options.wal()) {
             WalEntry walEntry = WalEntry.from(
-                    KeyEntry.DELETED,
+                    Flags.DELETED,
                     key,
                     ByteArrayUtils.EMPTY_BYTES,
                     -1,
                     0L
             );
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(ByteArrayUtils.EMPTY_BYTES, data);
+            maxWalGlobalIndex = walLog.appendEntry(data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);

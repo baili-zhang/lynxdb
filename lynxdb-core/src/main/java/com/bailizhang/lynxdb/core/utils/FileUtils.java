@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Objects;
 
 public interface FileUtils {
-    String LOG_SUFFIX = ".log";
-
     static void delete(Path path) {
         File file = path.toFile();
         boolean success = false;

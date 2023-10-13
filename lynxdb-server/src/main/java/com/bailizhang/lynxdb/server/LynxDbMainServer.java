@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.server;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Version;
 import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
@@ -18,12 +19,10 @@ import static com.bailizhang.lynxdb.server.context.Configuration.Default.SINGLE;
 public class LynxDbMainServer {
     private static final Logger logger = LoggerFactory.getLogger(LynxDbMainServer.class);
 
-    private static final String VERSION = "2023.7.23-alpha";
-
     private final LynxDbServer server;
 
     LynxDbMainServer() throws IOException {
-        logger.info("LynxDB Version: \"{}\".", VERSION);
+        logger.info("LynxDB Version: \"{}\".", Version.LYNXDB);
 
         Configuration config = Configuration.getInstance();
         logger.info("Configuration: {}", config);

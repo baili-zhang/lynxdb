@@ -1,6 +1,5 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
@@ -11,7 +10,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
- * TODO: 1. 应该保证多线程安全, 2. 每条记录添加 CRC 校验，3. 容量 size 检查
+ * TODO: 1. 应该保证多线程安全
  */
 public class LogGroup implements Iterable<LogEntry> {
     private static final int DEFAULT_BEGIN_REGION_ID = 1;
@@ -82,9 +81,34 @@ public class LogGroup implements Iterable<LogEntry> {
         logRegions.add(region);
     }
 
-    public LogEntry find(int globalIndex) {
+    public LogEntry findEntry(int globalIndex) {
         LinkedList<LogEntry> logEntries = range(globalIndex, globalIndex);
         return logEntries.isEmpty() ? null : logEntries.getFirst();
+    }
+
+    public synchronized int appendEntry(byte[] data) {
+        LogRegion region = lastRegion();
+        int globalIdx = region.appendEntry(data);
+
+        if(region.isFull()) {
+            createNextRegion();
+        }
+
+        return globalIdx;
+    }
+
+    public synchronized void removeEntry(int globalIdx) {
+        for(LogRegion region : logRegions) {
+            int globalIdxBegin = region.globalIdxBegin();
+            int globalIdxEnd = region.globalIdxEnd();
+
+            if(globalIdxEnd < globalIdxBegin || globalIdx > globalIdxEnd) {
+                continue;
+            }
+
+            region.removeEntry(globalIdx);
+            break;
+        }
     }
 
     /**
@@ -138,37 +162,33 @@ public class LogGroup implements Iterable<LogEntry> {
         return lastRegion().globalIdxEnd();
     }
 
-    public byte[] lastExtraData() {
-        return lastRegion().lastExtraData();
+    public synchronized void clearDeletedEntries() {
+        LinkedList<LogRegion> newLogRegions = new LinkedList<>();
+
+        while (!logRegions.isEmpty()) {
+            LogRegion region = logRegions.removeFirst();
+            var entries = region.aliveEntries();
+            if(entries == null) {
+                newLogRegions.add(region);
+                continue;
+            }
+
+            int id = region.id();
+            region.delete();
+
+            LogRegion newRegion = new LogRegion(id, groupDir, options);
+            for(var entry : entries) {
+                newRegion.appendEntry(entry.left(), entry.right());
+            }
+
+            newLogRegions.add(newRegion);
+        }
+
+        logRegions.addAll(newLogRegions);
     }
 
     public void delete() {
         FileUtils.delete(Path.of(groupDir));
-    }
-
-    /**
-     * 需要保证多线程同步
-     *
-     * TODO：加读写锁同步
-     *
-     * @param extraData extra data
-     * @param data data
-     * @return global idx
-     */
-    public synchronized int append(byte[] extraData, byte[] data) {
-        LogRegion region = lastRegion();
-        int globalIdx = region.append(extraData, data);
-
-        if(region.isFull()) {
-            createNextRegion();
-        }
-
-        return globalIdx;
-    }
-
-    public int append(byte[] extraData, BytesListConvertible convertible) {
-        byte[] data = convertible.toBytesList().toBytes();
-        return append(extraData, data);
     }
 
     @Override

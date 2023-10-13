@@ -7,8 +7,6 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.BYTE_LENGTH;
-
 public class BytesList implements BytesConvertible {
     public static final byte RAW = (byte) 0x01;
     public static final byte VAR = (byte) 0x02;
@@ -74,16 +72,12 @@ public class BytesList implements BytesConvertible {
                 length += PrimitiveTypeUtils.INT_LENGTH;
             }
 
-            if (node.value instanceof Integer) {
-                length += PrimitiveTypeUtils.INT_LENGTH;
-            } else if (node.value instanceof Long) {
-                length += PrimitiveTypeUtils.LONG_LENGTH;
-            } else if(node.value instanceof Byte) {
-                length += BYTE_LENGTH;
-            } else if (node.value instanceof byte[] bytes) {
-                length += bytes.length;
-            } else {
-                throw new RuntimeException("Undefined value type");
+            switch (node.value) {
+                case Integer i -> length += PrimitiveTypeUtils.INT_LENGTH;
+                case Long l -> length += PrimitiveTypeUtils.LONG_LENGTH;
+                case Byte b -> length += PrimitiveTypeUtils.BYTE_LENGTH;
+                case byte[] bytes -> length += bytes.length;
+                default -> throw new RuntimeException("Undefined value type");
             }
         }
 
@@ -102,57 +96,63 @@ public class BytesList implements BytesConvertible {
                 }
             }
 
-            if(node.value instanceof Integer i) {
-                buffer.putInt(i);
-            } else if (node.value instanceof Long l) {
-                buffer.putLong(l);
-            } else if(node.value instanceof Byte b) {
-                buffer.put(b);
-            } else if (node.value instanceof byte[] bytes) {
-                buffer.put(bytes);
-            } else {
-                throw new RuntimeException("Undefined value type");
+            switch (node.value) {
+                case Integer i -> buffer.putInt(i);
+                case Long l -> buffer.putLong(l);
+                case Byte b -> buffer.put(b);
+                case byte[] bytes -> buffer.put(bytes);
+                default -> throw new RuntimeException("Undefined value type");
             }
         }
 
         return buffer.array();
     }
 
+    /**
+     * 返回 byte[] list
+     * 主要是为了减少内存的拷贝
+     *
+     * @return bytes list
+     */
     public List<byte[]> toList() {
-        LinkedList<byte[]> bytesList = new LinkedList<>();
+        LinkedList<byte[]> list = new LinkedList<>();
+
+        int length = withLength ? PrimitiveTypeUtils.INT_LENGTH : 0;
 
         for(BytesNode<?> node : bytesNodes) {
             if(node.type == VAR) {
-                if(node.value instanceof byte[] bytes) {
-                    bytesList.add(BufferUtils.toBytes(bytes.length));
-                } else {
-                    throw new RuntimeException("Undefined value type");
-                }
+                length += PrimitiveTypeUtils.INT_LENGTH;
             }
 
-            if(node.value instanceof Integer i) {
-                bytesList.add(BufferUtils.toBytes(i));
-            } else if (node.value instanceof Long l) {
-                bytesList.add(BufferUtils.toBytes(l));
-            } else if(node.value instanceof Byte b) {
-                bytesList.add(BufferUtils.toBytes(b));
-            } else if (node.value instanceof byte[] bytes) {
-                bytesList.add(bytes);
-            } else {
-                throw new RuntimeException("Undefined value type");
+            switch (node.value) {
+                case Integer i -> {
+                    length += PrimitiveTypeUtils.INT_LENGTH;
+                    list.add(BufferUtils.toBytes(i));
+                }
+                case Long l -> {
+                    length += PrimitiveTypeUtils.LONG_LENGTH;
+                    list.add(BufferUtils.toBytes(l));
+                }
+                case Byte b -> {
+                    length += PrimitiveTypeUtils.BYTE_LENGTH;
+                    list.add(new byte[]{b});
+                }
+                case byte[] bytes -> {
+                    length += bytes.length;
+                    if(node.type == VAR) {
+                        list.add(BufferUtils.toBytes(bytes.length));
+                    }
+                    list.add(bytes);
+                }
+                default -> throw new RuntimeException("Undefined value type");
             }
         }
 
         if(withLength) {
-            int length = bytesList.stream().mapToInt(bytes -> bytes.length).sum();
-            bytesList.addFirst(BufferUtils.toBytes(length));
+            list.addFirst(BufferUtils.toBytes(length));
         }
 
-        return bytesList;
-    }
-
-    public boolean withoutLength() {
-        return !withLength;
+        return list;
     }
 
     private static class BytesNode<V> {
