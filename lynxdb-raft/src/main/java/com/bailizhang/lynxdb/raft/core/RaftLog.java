@@ -29,6 +29,6 @@ public class RaftLog {
     }
 
     public int append(int term, byte[] data) {
-        return logGroup.append(data);
+        return logGroup.appendEntry(data);
     }
 }

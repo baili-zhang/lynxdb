@@ -40,7 +40,7 @@ class LogRegionTest {
     void append() {
         for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
             String temp = COMMAND.repeat(1024) + i;
-            logRegion.append(G.I.toBytes(temp));
+            logRegion.appendEntry(G.I.toBytes(temp));
         }
 
         int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();

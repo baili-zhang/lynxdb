@@ -81,20 +81,34 @@ public class LogGroup implements Iterable<LogEntry> {
         logRegions.add(region);
     }
 
-    public LogEntry find(int globalIndex) {
+    public LogEntry findEntry(int globalIndex) {
         LinkedList<LogEntry> logEntries = range(globalIndex, globalIndex);
         return logEntries.isEmpty() ? null : logEntries.getFirst();
     }
 
-    public synchronized int append(byte[] data) {
+    public synchronized int appendEntry(byte[] data) {
         LogRegion region = lastRegion();
-        int globalIdx = region.append(data);
+        int globalIdx = region.appendEntry(data);
 
         if(region.isFull()) {
             createNextRegion();
         }
 
         return globalIdx;
+    }
+
+    public synchronized void removeEntry(int globalIdx) {
+        for(LogRegion region : logRegions) {
+            int globalIdxBegin = region.globalIdxBegin();
+            int globalIdxEnd = region.globalIdxEnd();
+
+            if(globalIdxEnd < globalIdxBegin || globalIdx > globalIdxEnd) {
+                continue;
+            }
+
+            region.removeEntry(globalIdx);
+            break;
+        }
     }
 
     /**
@@ -148,15 +162,11 @@ public class LogGroup implements Iterable<LogEntry> {
         return lastRegion().globalIdxEnd();
     }
 
-    public void delete() {
-        FileUtils.delete(Path.of(groupDir));
-    }
-
     public synchronized void clearDeletedEntries() {
         LinkedList<LogRegion> newLogRegions = new LinkedList<>();
 
-        LogRegion region;
-        while ((region = logRegions.removeFirst()) != null) {
+        while (!logRegions.isEmpty()) {
+            LogRegion region = logRegions.removeFirst();
             var entries = region.aliveEntries();
             if(entries == null) {
                 newLogRegions.add(region);
@@ -168,13 +178,17 @@ public class LogGroup implements Iterable<LogEntry> {
 
             LogRegion newRegion = new LogRegion(id, groupDir, options);
             for(var entry : entries) {
-                newRegion.append(entry.left(), entry.right());
+                newRegion.appendEntry(entry.left(), entry.right());
             }
 
             newLogRegions.add(newRegion);
         }
 
         logRegions.addAll(newLogRegions);
+    }
+
+    public void delete() {
+        FileUtils.delete(Path.of(groupDir));
     }
 
     @Override

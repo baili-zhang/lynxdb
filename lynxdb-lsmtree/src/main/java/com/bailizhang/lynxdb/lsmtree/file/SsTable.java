@@ -200,7 +200,7 @@ public class SsTable {
         }
 
         int globalIndex = keyEntry.valueGlobalIndex();
-        LogEntry entry = valueLogGroup.find(globalIndex);
+        LogEntry entry = valueLogGroup.findEntry(globalIndex);
 
         return entry == null ? null : entry.data();
     }

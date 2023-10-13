@@ -4,6 +4,8 @@
 
 文件名：`index.lgm`
 
+LogGroup 的序列号从 1 开始，逐次递增。
+
 
 ## LogRegion 文件
 

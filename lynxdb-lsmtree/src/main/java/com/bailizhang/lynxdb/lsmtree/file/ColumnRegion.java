@@ -85,7 +85,7 @@ public class ColumnRegion {
     }
 
     public void insert(byte[] key, byte[] value, long timeout) {
-        int valueGlobalIndex = valueLog.append(value);
+        int valueGlobalIndex = valueLog.appendEntry(value);
         KeyEntry keyEntry = KeyEntry.from(
                 Flags.EXISTED,
                 key,
@@ -104,7 +104,7 @@ public class ColumnRegion {
                     timeout
             );
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(data);
+            maxWalGlobalIndex = walLog.appendEntry(data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);
@@ -129,7 +129,7 @@ public class ColumnRegion {
                     0L
             );
             byte[] data = walEntry.toBytes();
-            maxWalGlobalIndex = walLog.append(data);
+            maxWalGlobalIndex = walLog.appendEntry(data);
         }
 
         insertIntoMemTableAndMerge(keyEntry, maxWalGlobalIndex);

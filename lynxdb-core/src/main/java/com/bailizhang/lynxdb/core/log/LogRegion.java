@@ -74,8 +74,8 @@ public class LogRegion {
             buffer.putInt(Meta.MAGIC_NUMBER_POSITION, FileType.LOG_GROUP_REGION_FILE.magicNumber());
             buffer.putInt(Meta.DELETED_LENGTH_POSITION, 0);
             buffer.putInt(Meta.TOTAL_LENGTH_POSITION, 0);
-            buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, id * capacity);
-            buffer.putInt(Meta.END_GLOBAL_ID_POSITION, id * capacity - 1);
+            buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, (id - 1) * capacity + 1);
+            buffer.putInt(Meta.END_GLOBAL_ID_POSITION, (id - 1) * capacity);
             generateMetaCrc();
         }
 
@@ -154,11 +154,11 @@ public class LogRegion {
         return id;
     }
 
-    public int append(byte[] data) {
-        return append(Flags.EXISTED, data);
+    public int appendEntry(byte[] data) {
+        return appendEntry(Flags.EXISTED, data);
     }
 
-    public int append(byte deleteFlag, byte[] data) {
+    public int appendEntry(byte deleteFlag, byte[] data) {
         int globalIndexEnd = globalIdxEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
@@ -273,20 +273,20 @@ public class LogRegion {
     }
 
     public void removeEntry(int globalIdx) {
-        if(globalIdx < globalIdxBegin() || globalIdx > globalIdxEnd()) {
-            return;
-        }
+        LogIndex logIndex = logIndex(globalIdx);
 
-        int idx = globalIdx - globalIdxBegin();
+        int dataBegin = logIndex.dataBegin();
+        // 包括 CRC 校验和的长度
+        int dataLength = logIndex.dataLength();
 
-        int indexBegin = idx * LogIndex.ENTRY_LENGTH;
+        LogIndex newLogIndex = LogIndex.from(Flags.DELETED, dataBegin, dataLength);
         MappedByteBuffer buffer = indexBuffer.getBuffer();
 
-        LogIndex.deleteIndex(buffer, indexBegin);
-        int dataLength = LogIndex.dataLength(buffer, indexBegin);
+        int indexOffset = (globalIdx - globalIdxBegin()) * LogIndex.ENTRY_LENGTH;
+        buffer.put(indexOffset, newLogIndex.toBytes());
 
         // 删除的长度包括数据的 CRC 校验和
-        deletedLength(dataLength - LONG_LENGTH);
+        deletedLength(dataLength);
     }
 
     public void delete() {
