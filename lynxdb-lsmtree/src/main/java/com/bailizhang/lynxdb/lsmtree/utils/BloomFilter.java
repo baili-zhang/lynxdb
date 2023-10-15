@@ -68,7 +68,7 @@ public class BloomFilter {
             int bitIndex = remainder % BYTE_BIT_COUNT;
 
             byte current = buffer.get(byteIndex);
-            current |= (byte) 0x01 << bitIndex;
+            current |= (byte) ((byte) 0x01 << bitIndex);
             buffer.put(byteIndex, current);
         }
     }

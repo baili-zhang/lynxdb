@@ -67,6 +67,7 @@ public class Level {
         }
 
         createNextSsTable(immutable.all());
+        valueFileGroup.clearDeletedEntries();
     }
 
     public void merge(Level level) {

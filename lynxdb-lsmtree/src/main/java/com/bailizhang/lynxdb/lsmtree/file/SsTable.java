@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
 /**
- * TODO: 元数据，布隆过滤器，索引，entry 都需要添加 crc 检验字段
+ * TODO: 元数据，布隆过滤器，需要添加 crc 检验字段
  */
 public class SsTable {
     private static final int SIZE_BEGIN = 0;
@@ -174,6 +174,18 @@ public class SsTable {
             keyMappedBuffer.get(data);
 
             KeyEntry entry = KeyEntry.from(index.flag(), data);
+
+            // TODO 过度搜索
+            set.removeIf(keyEntry -> {
+                // 将需要删除的 entry 的 valueGlobalIndex 删掉
+                if(keyEntry.compareTo(entry) == 0) {
+                    valueLogGroup.removeEntry(entry.valueGlobalIndex());
+                    return true;
+                }
+
+                return false;
+            });
+
             set.add(entry);
         }
     }
