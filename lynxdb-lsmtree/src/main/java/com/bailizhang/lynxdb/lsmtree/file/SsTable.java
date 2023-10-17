@@ -18,10 +18,7 @@ import com.bailizhang.lynxdb.lsmtree.utils.BloomFilter;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
@@ -158,7 +155,7 @@ public class SsTable {
         );
     }
 
-    public void all(HashSet<KeyEntry> set) {
+    public void all(HashMap<Key, KeyEntry> entriesMap) {
         MappedByteBuffer indexMapperBuffer = indexBuffer.getBuffer();
         indexMapperBuffer.rewind();
 
@@ -174,19 +171,13 @@ public class SsTable {
             keyMappedBuffer.get(data);
 
             KeyEntry entry = KeyEntry.from(index.flag(), data);
+            Key key = new Key(entry.key());
 
-            // TODO 过度搜索
-            set.removeIf(keyEntry -> {
-                // 将需要删除的 entry 的 valueGlobalIndex 删掉
-                if(keyEntry.compareTo(entry) == 0) {
-                    valueLogGroup.removeEntry(entry.valueGlobalIndex());
-                    return true;
-                }
-
-                return false;
-            });
-
-            set.add(entry);
+            KeyEntry oldEntry = entriesMap.get(key);
+            if(oldEntry != null) {
+                valueLogGroup.removeEntry(oldEntry.valueGlobalIndex());
+            }
+            entriesMap.put(key, entry);
         }
     }
 

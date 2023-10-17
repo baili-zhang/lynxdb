@@ -79,11 +79,11 @@ public class Level {
     }
 
     public List<KeyEntry> all() {
-        HashSet<KeyEntry> entrySet = new HashSet<>();
+        HashMap<Key, KeyEntry> entriesMap = new HashMap<>();
 
-        // 去重
-        ssTables.forEach(ssTable -> ssTable.all(entrySet));
-        List<KeyEntry> keyEntries = new ArrayList<>(entrySet);
+        // 去重，后面插入的值覆盖前面的值
+        ssTables.forEach(ssTable -> ssTable.all(entriesMap));
+        List<KeyEntry> keyEntries = new ArrayList<>(entriesMap.values());
         Collections.sort(keyEntries);
 
         return keyEntries;
