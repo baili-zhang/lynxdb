@@ -79,7 +79,8 @@ public class Level {
     }
 
     public List<KeyEntry> all() {
-        HashMap<Key, KeyEntry> entriesMap = new HashMap<>(levelNo * 10 * options.memTableSize());
+        int initialCapacity = ((int) Math.pow(10, levelNo)) * options.memTableSize();
+        HashMap<Key, KeyEntry> entriesMap = new HashMap<>(initialCapacity);
 
         // 去重，后面插入的值覆盖前面的值
         ssTables.forEach(ssTable -> ssTable.all(entriesMap));
