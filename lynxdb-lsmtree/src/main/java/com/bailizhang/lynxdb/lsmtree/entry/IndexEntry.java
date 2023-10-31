@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
 
 public record IndexEntry(
-        byte flag, // 是否被删除
+        byte flag, // 是否删除
         int begin, // 顺序查找不需要，二分查找需要这个字段
         int length,
         long crc32c
