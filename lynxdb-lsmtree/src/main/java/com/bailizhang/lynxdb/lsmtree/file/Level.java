@@ -40,18 +40,12 @@ public class Level {
         subs.sort(Comparator.comparingInt(NameUtils::id));
 
         for(String sub : subs) {
-            int id = NameUtils.id(sub);
-
-            Path filePath = Path.of(
-                    baseDir.toString(),
-                    NameUtils.name(id)
-            );
+            int ssTableNo = NameUtils.id(sub);
 
             SsTable ssTable = new SsTable(
-                    filePath,
-                    levelNo,
-                    valueFileGroup,
-                    options
+                    baseDir,
+                    ssTableNo,
+                    valueFileGroup
             );
 
             if(ssTables.size() > LEVEL_SSTABLE_COUNT) {

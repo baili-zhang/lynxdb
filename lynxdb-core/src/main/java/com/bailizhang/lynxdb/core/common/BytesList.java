@@ -1,11 +1,9 @@
 package com.bailizhang.lynxdb.core.common;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
-import java.util.List;
 
 public class BytesList implements BytesConvertible {
     public static final byte RAW = (byte) 0x01;
@@ -108,51 +106,8 @@ public class BytesList implements BytesConvertible {
         return buffer.array();
     }
 
-    /**
-     * 返回 byte[] list
-     * 主要是为了减少内存的拷贝
-     *
-     * @return bytes list
-     */
-    public List<byte[]> toList() {
-        LinkedList<byte[]> list = new LinkedList<>();
-
-        int length = withLength ? PrimitiveTypeUtils.INT_LENGTH : 0;
-
-        for(BytesNode<?> node : bytesNodes) {
-            if(node.type == VAR) {
-                length += PrimitiveTypeUtils.INT_LENGTH;
-            }
-
-            switch (node.value) {
-                case Integer i -> {
-                    length += PrimitiveTypeUtils.INT_LENGTH;
-                    list.add(BufferUtils.toBytes(i));
-                }
-                case Long l -> {
-                    length += PrimitiveTypeUtils.LONG_LENGTH;
-                    list.add(BufferUtils.toBytes(l));
-                }
-                case Byte b -> {
-                    length += PrimitiveTypeUtils.BYTE_LENGTH;
-                    list.add(new byte[]{b});
-                }
-                case byte[] bytes -> {
-                    length += bytes.length;
-                    if(node.type == VAR) {
-                        list.add(BufferUtils.toBytes(bytes.length));
-                    }
-                    list.add(bytes);
-                }
-                default -> throw new RuntimeException("Undefined value type");
-            }
-        }
-
-        if(withLength) {
-            list.addFirst(BufferUtils.toBytes(length));
-        }
-
-        return list;
+    public void writeIntoBuffer(ByteBuffer buffer) {
+        // TODO
     }
 
     private static class BytesNode<V> {

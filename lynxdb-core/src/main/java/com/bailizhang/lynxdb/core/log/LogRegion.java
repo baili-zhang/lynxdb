@@ -1,9 +1,11 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.BytesList;
 import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
@@ -186,13 +188,9 @@ public class LogRegion {
 
         // data 块中的起始位置，也就是当前数据写入的位置
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
-        List<byte[]> genData = dataEntry.toList();
+        BytesList dataByteList = dataEntry.toBytesList();
 
-        // TODO: 可不可以把这次内存拷贝也取消掉
-        for(byte[] genDataBytes : genData) {
-            writeData(genDataBytes, dataBlockBegin);
-            dataBlockBegin += genDataBytes.length;
-        }
+        writeData(dataByteList, dataBlockBegin);
 
         // 更新总长度（包括 CRC 校验的长度）
         totalLength(dataLength);
@@ -334,7 +332,8 @@ public class LogRegion {
         );
     }
 
-    private void writeData(byte[] data, int begin) {
+    private void writeData(BytesList dataByteList, int begin) {
+        // 拿到最后一个 dataBuffer
         MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
         if(dataBuffer == null) {
             dataBuffer = mapDataBlockBuffer(dataBuffers.size());
@@ -343,24 +342,19 @@ public class LogRegion {
 
         MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
         dataByteBuffer.position(begin);
-        int dataOffset = 0;
 
-        while(dataOffset < data.length) {
+        while(BufferUtils.isNotOver(dataByteBuffer)) {
             // 写入最后一个数据块的剩余空间
-            int writeLength = Math.min(dataByteBuffer.remaining(), data.length - dataOffset);
-            dataByteBuffer.put(data, dataOffset, writeLength);
-            dataOffset += writeLength;
-
+            dataByteList.writeIntoBuffer(dataByteBuffer);
             dataBuffer.saveSnapshot(dataByteBuffer);
 
             if(options.isForce()) {
                 dataBuffer.force();
             }
 
-            if(dataOffset < data.length) {
-                // 写入一个新的数据块
+            // 如果 dataByteBuffer 全部写满了，创建新的 buffer
+            if(BufferUtils.isOver(dataByteBuffer)) {
                 dataBuffer = mapDataBlockBuffer(dataBuffers.size());
-
                 dataBuffers.add(dataBuffer);
                 dataByteBuffer = dataBuffer.getBuffer();
             }

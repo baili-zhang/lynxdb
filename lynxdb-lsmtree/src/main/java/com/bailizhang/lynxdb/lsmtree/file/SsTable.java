@@ -29,64 +29,114 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
  * TODO: 元数据，布隆过滤器，需要添加 crc 检验字段
  */
 public class SsTable {
-    private static final int SIZE_BEGIN = 0;
-    private static final int BLOOM_FILTER_BEGIN = INT_LENGTH;
-    private static final int INDEX_ENTRY_LENGTH = BYTE_LENGTH + 2 * INT_LENGTH + LONG_LENGTH;
 
-    private final int ssTableSize;
+    private interface Default {
+        int META_REGION_LENGTH_OFFSET = 0;
+        int MAGIC_NUMBER_OFFSET = 4;
+        int BLOOM_FILTER_REGION_LENGTH_OFFSET = 8;
+        int FIRST_INDEX_REGION_LENGTH_OFFSET = 12;
+        int SECOND_INDEX_REGION_LENGTH_OFFSET = 16;
+        int DATA_REGION_LENGTH_OFFSET = 20;
+    }
 
-    private final MappedBuffer sizeBuffer;
+    private record MetaHeader(
+            int metaRegionLength,
+            int magicNumber,
+            int bloomFilterRegionLength,
+            int firstIndexRegionLength,
+            int secondIndexRegionLength,
+            int dataRegionLength,
+            int maxKeySize,
+            long crc32c
+    ) {
+        public static MetaHeader from(ByteBuffer buffer) {
+            // TODO
+            return new MetaHeader(0,0,0,0,0,0,0, 0);
+        }
+    }
 
+    private static final int META_HEADER_OFFSET = 0;
+    private static final int META_HEADER_LENGTH = 36;
 
+    private final MetaHeader metaHeader;
+
+    private final MappedBuffer metaBuffer;
     private final BloomFilter bloomFilter;
-
-    private final MappedBuffer indexBuffer;
-    private final MappedBuffer keyBuffer;
+    private final MappedBuffer firstIndexBuffer;
+    private final MappedBuffer secondIndexBuffer;
+    private final MappedBuffer dataBuffer;
 
     private final LogGroup valueLogGroup;
 
     public SsTable(
-            Path filePath,
-            int levelNo,
-            LogGroup logGroup,
-            LsmTreeOptions options
+            Path baseDir,
+            int ssTableNo,
+            LogGroup logGroup
     ) {
-        sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
-        int size = size();
+        Path filePath = Path.of(
+                baseDir.toString(),
+                NameUtils.name(ssTableNo) + FileType.SSTABLE_FILE.suffix()
+        );
+        FileUtils.createFileIfNotExisted(filePath.toFile());
 
-        ssTableSize = SsTable.ssTableSize(levelNo, options);
-        bloomFilter = BloomFilter.from(
+        MappedBuffer metaHeaderBuffer = new MappedBuffer(
                 filePath,
-                BLOOM_FILTER_BEGIN,
-                ssTableSize
+                META_HEADER_OFFSET,
+                META_HEADER_LENGTH
+        );
+        metaHeader = MetaHeader.from(metaHeaderBuffer.getBuffer());
+
+        metaBuffer = new MappedBuffer(
+                filePath,
+                META_HEADER_OFFSET,
+                metaHeader.metaRegionLength
         );
 
-        int indexBegin = BLOOM_FILTER_BEGIN + bloomFilter.length();
-        int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
-        indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
+        bloomFilter = BloomFilter.from(
+                filePath,
+                metaHeader.metaRegionLength,
+                metaHeader.maxKeySize
+        );
 
-        IndexEntry lastIndex = findIndexEntry(size - 1);
+        int firstIndexRegionOffset = metaHeader.metaRegionLength + metaHeader.bloomFilterRegionLength;
+        firstIndexBuffer = new MappedBuffer(
+                filePath,
+                firstIndexRegionOffset,
+                metaHeader.firstIndexRegionLength
+        );
 
-        int keyBegin = indexBegin + indexLength;
-        int keyLength = lastIndex.begin() + lastIndex.length();
-        keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
+        int secondIndexRegionOffset = firstIndexRegionOffset + metaHeader.firstIndexRegionLength;
+        secondIndexBuffer = new MappedBuffer(
+                filePath,
+                secondIndexRegionOffset,
+                metaHeader.secondIndexRegionLength
+        );
+
+        int dataRegionOffset = secondIndexRegionOffset + metaHeader.secondIndexRegionLength;
+        dataBuffer = new MappedBuffer(
+                filePath,
+                dataRegionOffset,
+                metaHeader.dataRegionLength
+        );
 
         valueLogGroup = logGroup;
     }
 
-    public SsTable(
-            int ssTableSize,
-            MappedBuffer sizeBuffer,
+    private SsTable(
+            MetaHeader metaHeader,
+            MappedBuffer metaBuffer,
             BloomFilter bloomFilter,
-            MappedBuffer indexBuffer,
-            MappedBuffer keyBuffer,
+            MappedBuffer firstIndexBuffer,
+            MappedBuffer secondIndexBuffer,
+            MappedBuffer dataBuffer,
             LogGroup valueLogGroup
     ) {
-        this.ssTableSize = ssTableSize;
-        this.sizeBuffer = sizeBuffer;
+        this.metaHeader = metaHeader;
+        this.metaBuffer = metaBuffer;
         this.bloomFilter = bloomFilter;
-        this.indexBuffer = indexBuffer;
-        this.keyBuffer = keyBuffer;
+        this.firstIndexBuffer = firstIndexBuffer;
+        this.secondIndexBuffer = secondIndexBuffer;
+        this.dataBuffer = dataBuffer;
         this.valueLogGroup = valueLogGroup;
     }
 
@@ -101,60 +151,70 @@ public class SsTable {
         Path filePath = Path.of(baseDir.toString(), NameUtils.name(ssTableNo) + FileType.SSTABLE_FILE.suffix());
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
-        MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
-        MappedByteBuffer sizeMappedBuffer = sizeBuffer.getBuffer();
-        int ssTableSize = SsTable.ssTableSize(levelNo, options);
+        byte[] beginKey = keyEntries.getFirst().key();
+        byte[] endKey = keyEntries.getLast().key();
 
-        if(keyEntries.size() > ssTableSize) {
+        int metaRegionLength = META_HEADER_LENGTH + INT_LENGTH * 2 + LONG_LENGTH + beginKey.length + endKey.length;
+        MappedBuffer metaBuffer = new MappedBuffer(filePath, META_HEADER_OFFSET, metaRegionLength);
+
+        int maxKeySize = SsTable.maxKeySize(levelNo, options);
+        if(keyEntries.size() > maxKeySize) {
             throw new RuntimeException();
         }
 
-        sizeMappedBuffer.putInt(SIZE_BEGIN, ssTableSize);
-
         BloomFilter bloomFilter = BloomFilter.from(
                 filePath,
-                BLOOM_FILTER_BEGIN,
-                ssTableSize
+                metaRegionLength,
+                maxKeySize
         );
         keyEntries.forEach(keyEntry -> bloomFilter.setObj(keyEntry.key()));
 
-        int indexBegin = BLOOM_FILTER_BEGIN + bloomFilter.length();
-        int indexLength = INDEX_ENTRY_LENGTH * ssTableSize;
-        MappedBuffer indexBuffer = new MappedBuffer(filePath, indexBegin, indexLength);
+        // TODO
+        int firstIndexRegionLength = 0;
+        int secondIndexRegionLength = 0;
+        int dataRegionLength = 0;
 
-        int keyBegin = indexBegin + indexLength;
-        int keyLength = keyEntries.stream().mapToInt(KeyEntry::length).sum();
-        MappedBuffer keyBuffer = new MappedBuffer(filePath, keyBegin, keyLength);
+        long crc32c = 0L;
 
-        AtomicInteger entryBegin = new AtomicInteger();
-        keyEntries.forEach(entry -> {
-            byte[] data = entry.toBytes();
+        MetaHeader metaHeader = new MetaHeader(
+                metaRegionLength,
+                FileType.SSTABLE_FILE.magicNumber(),
+                bloomFilter.length(),
+                firstIndexRegionLength,
+                secondIndexRegionLength,
+                dataRegionLength,
+                maxKeySize,
+                crc32c
+        );
 
-            byte flag = entry.flag();
-            int begin = entryBegin.getAndAdd(data.length);
-            int length = entry.length();
-            IndexEntry indexEntry = IndexEntry.from(flag, begin, length);
+        int firstIndexRegionOffset = metaRegionLength + bloomFilter.length();
+        MappedBuffer firstIndexBuffer = new MappedBuffer(
+                filePath,
+                firstIndexRegionOffset,
+                firstIndexRegionLength
+        );
 
-            byte[] indexData = indexEntry.toBytes();
+        int secondIndexRegionOffset = firstIndexRegionOffset + firstIndexRegionLength;
+        MappedBuffer secondIndexBuffer = new MappedBuffer(
+                filePath,
+                secondIndexRegionOffset,
+                secondIndexRegionLength
+        );
 
-            MappedByteBuffer indexMappedBuffer = indexBuffer.getBuffer();
-            indexMappedBuffer.put(indexData);
-
-            MappedByteBuffer keyMappedBuffer = keyBuffer.getBuffer();
-            keyMappedBuffer.put(data);
-        });
-
-        sizeBuffer.force();
-        bloomFilter.force();
-        indexBuffer.force();
-        keyBuffer.force();
+        int dataRegionOffset = secondIndexRegionOffset + secondIndexRegionLength;
+        MappedBuffer dataBuffer = new MappedBuffer(
+                filePath,
+                dataRegionOffset,
+                dataRegionLength
+        );
 
         return new SsTable(
-                ssTableSize,
-                sizeBuffer,
+                metaHeader,
+                metaBuffer,
                 bloomFilter,
-                indexBuffer,
-                keyBuffer,
+                firstIndexBuffer,
+                secondIndexBuffer,
+                dataBuffer,
                 valueLogGroup
         );
     }
@@ -306,7 +366,7 @@ public class SsTable {
         return range;
     }
 
-    private static int ssTableSize(int levelNo, LsmTreeOptions options) {
+    private static int maxKeySize(int levelNo, LsmTreeOptions options) {
         return options.memTableSize()
                 * (int) Math.pow(Level.LEVEL_SSTABLE_COUNT, (levelNo - LevelTree.LEVEL_BEGIN));
     }
@@ -371,11 +431,6 @@ public class SsTable {
         }
 
         return new Pair<>(midKeyEntry, idx);
-    }
-
-    private int size() {
-        MappedByteBuffer sizeMapperBuffer = sizeBuffer.getBuffer();
-        return sizeMapperBuffer.getInt(SIZE_BEGIN);
     }
 
     private IndexEntry findIndexEntry(int idx) {

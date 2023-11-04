@@ -63,6 +63,8 @@ LogGroup 的序列号从 1 开始，逐次递增。
 | First Index Region Length  | 4 bytes | int 类型    |
 | Second Index Region Length | 4 bytes | int 类型    |
 | Data Region Length         | 4 bytes | int 类型    |
+| Max Key Size               | 4 bytes | int 类型    |
+| Meta Header CRC 校验和        | 8 bytes | long 类型   |
 | Begin Key Length           | 4 bytes | int 类型    |
 | Begin Key                  | 若干      | byte[] 类型 |
 | End Key Length             | 4 bytes | int 类型    |
