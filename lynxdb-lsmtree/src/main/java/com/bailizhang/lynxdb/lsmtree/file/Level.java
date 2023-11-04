@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
@@ -217,9 +218,10 @@ public class Level {
 
     private void createNextSsTable(List<KeyEntry> keyEntries) {
         int nextSsTableNo = ssTables.size();
-        Path nextSsTablePath = Path.of(baseDir.toString(), NameUtils.name(nextSsTableNo));
+
         SsTable ssTable = SsTable.create(
-                nextSsTablePath,
+                baseDir,
+                nextSsTableNo,
                 levelNo,
                 options,
                 keyEntries,

@@ -12,7 +12,11 @@ public interface NameUtils {
 
     static int id(String name) {
         try {
-            return Integer.parseInt(name);
+            if(name.charAt(DEFAULT_NAME_LENGTH) != '.') {
+                throw new RuntimeException();
+            }
+
+            return Integer.parseInt(name.substring(0, DEFAULT_NAME_LENGTH));
         } catch (NumberFormatException e) {
             throw new RuntimeException(e);
         }

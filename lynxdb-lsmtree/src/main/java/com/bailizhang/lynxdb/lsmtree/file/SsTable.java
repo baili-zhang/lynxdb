@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.lsmtree.file;
 
+import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.log.LogEntry;
@@ -7,6 +8,7 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
+import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.lsmtree.entry.IndexEntry;
 import com.bailizhang.lynxdb.lsmtree.entry.KeyEntry;
@@ -89,12 +91,14 @@ public class SsTable {
     }
 
     public static SsTable create(
-            Path filePath,
+            Path baseDir,
+            int ssTableNo,
             int levelNo,
             LsmTreeOptions options,
             List<KeyEntry> keyEntries,
             LogGroup valueLogGroup
     ) {
+        Path filePath = Path.of(baseDir.toString(), NameUtils.name(ssTableNo) + FileType.SSTABLE_FILE.suffix());
         FileUtils.createFileIfNotExisted(filePath.toFile());
 
         MappedBuffer sizeBuffer = new MappedBuffer(filePath, SIZE_BEGIN, INT_LENGTH);
