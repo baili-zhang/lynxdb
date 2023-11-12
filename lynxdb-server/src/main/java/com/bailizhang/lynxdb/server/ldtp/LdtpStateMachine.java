@@ -5,9 +5,6 @@ import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
-import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
-import com.bailizhang.lynxdb.lsmtree.Table;
-import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.raft.core.ClientRequest;
 import com.bailizhang.lynxdb.raft.result.JoinClusterResult;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
@@ -16,6 +13,9 @@ import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import com.bailizhang.lynxdb.table.LynxDbTable;
+import com.bailizhang.lynxdb.table.Table;
+import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -45,7 +45,7 @@ public class LdtpStateMachine implements StateMachine {
     public LdtpStateMachine() {
         Configuration config = Configuration.getInstance();
         LsmTreeOptions options = new LsmTreeOptions(config.raftMetaDir());
-        raftMetaTable = new LynxDbLsmTree(options);
+        raftMetaTable = new LynxDbTable(options);
     }
 
     public static void engineExecutor(LdtpEngineExecutor executor) {

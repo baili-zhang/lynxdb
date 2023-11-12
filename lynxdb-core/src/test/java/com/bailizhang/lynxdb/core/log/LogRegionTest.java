@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 class LogRegionTest {
-    private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/data/log_region_test";
 
     private static final int LOG_ENTRY_COUNT = 100;
     private static final String COMMAND = "command";

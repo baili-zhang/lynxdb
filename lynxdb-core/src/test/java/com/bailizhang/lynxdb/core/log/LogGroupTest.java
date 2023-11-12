@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 class LogGroupTest {
-    private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/data/log_group_test";
     private static final String COMMAND = "hallo world";
     private static final int CAPACITY = 200;
 

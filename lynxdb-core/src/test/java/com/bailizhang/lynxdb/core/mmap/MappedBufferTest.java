@@ -16,8 +16,10 @@ class MappedBufferTest {
     @BeforeEach
     void setUp() {
         FileUtils.createDirIfNotExisted(BASE_DIR);
-        Path filePath = Path.of(BASE_DIR, FILENAME);
-        FileUtils.createFileIfNotExisted(filePath.toFile());
+        Path filePath = FileUtils.createFileIfNotExisted(
+                BASE_DIR,
+                FILENAME
+        ).toPath();
 
         mappedBuffer = new MappedBuffer(filePath, 0, 1000);
     }

@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>com.bailizhang.lynxdb</groupId>
-            <artifactId>lynxdb-lsmtree</artifactId>
+            <artifactId>lynxdb-table</artifactId>
             <version>${lynxdb.version}</version>
         </dependency>
         <dependency>

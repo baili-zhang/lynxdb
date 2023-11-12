@@ -66,28 +66,21 @@ public interface FileUtils {
         return file;
     }
 
-    static void createFile(File file) {
-        try {
-            Files.createFile(file.toPath());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static void createFileIfNotExisted(File file) {
-        if(!file.exists()) {
-            createFile(file);
-        }
-    }
-
-    static void createFileIfNotExisted(String filePath) {
-        File file = new File(filePath);
-        createFileIfNotExisted(file);
-    }
-
     static File createFileIfNotExisted(String dir, String filename) {
+        File baseDir = new File(dir);
+
+        if(!baseDir.exists()) {
+            createDir(baseDir);
+        }
+
         File file = new File(dir, filename);
-        createFileIfNotExisted(file);
+        if(!file.exists()) {
+            try {
+                Files.createFile(file.toPath());
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
         return file;
     }
 

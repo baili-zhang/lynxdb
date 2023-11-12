@@ -19,10 +19,7 @@ import java.util.zip.CRC32C;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
-/**
- * 维护内存数据和磁盘数据
- * 元数据区 索引区 数据区
- */
+
 public class LogRegion {
     private interface Default {
         int DATA_BLOCK_SIZE = 1024 * 1024;
@@ -61,8 +58,11 @@ public class LogRegion {
         // data 区域的开始位置
         dataBeginPosition = Meta.LENGTH + indexBlockLength;
 
-        path = Path.of(dir, NameUtils.name(id) + FileType.LOG_GROUP_REGION_FILE.suffix());
-        FileUtils.createFileIfNotExisted(path.toFile());
+        String filename = NameUtils.name(id) + FileType.LOG_GROUP_REGION_FILE.suffix();
+        path = FileUtils.createFileIfNotExisted(
+                dir,
+                filename
+        ).toPath();
 
         metaBuffer = new MappedBuffer(
                 path,
