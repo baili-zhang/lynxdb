@@ -1,24 +1,32 @@
 package com.bailizhang.lynxdb.core.common;
 
-import com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
 public class BytesList implements BytesConvertible {
     public static final byte RAW = (byte) 0x01;
     public static final byte VAR = (byte) 0x02;
 
     private final LinkedList<BytesNode<?>> bytesNodes = new LinkedList<>();
-
     private final boolean withLength;
+
+    private int length;
+    private int bufferCount;
 
     public BytesList() {
         withLength = true;
+        length = INT_LENGTH;
+        bufferCount = 1;
     }
 
     public BytesList(boolean withLen) {
         withLength = withLen;
+        length = withLen ? INT_LENGTH : 0;
+        bufferCount = withLen ? 1 : 0;
     }
 
     public void appendRawByte(byte value) {
@@ -51,10 +59,22 @@ public class BytesList implements BytesConvertible {
 
     public <V> void append(byte type, V value) {
         bytesNodes.add(new BytesNode<>(type, value));
+        length += type == VAR ? INT_LENGTH : 0;
+
+        switch (value) {
+            case Integer i -> length += INT_LENGTH;
+            case Long l -> length += LONG_LENGTH;
+            case Byte b -> length += BYTE_LENGTH;
+            case byte[] bytes -> length += bytes.length;
+            default -> throw new RuntimeException("Undefined value type");
+        }
+
+        bufferCount = type == VAR ? 2 : 1;
     }
 
     public void append(BytesList list) {
         bytesNodes.addAll(list.bytesNodes);
+        length += list.length;
     }
 
     public void append(BytesListConvertible convertible) {
@@ -64,25 +84,10 @@ public class BytesList implements BytesConvertible {
 
     @Override
     public byte[] toBytes() {
-        int length = withLength ? PrimitiveTypeUtils.INT_LENGTH : 0;
-        for(BytesNode<?> node : bytesNodes) {
-            if(node.type == VAR) {
-                length += PrimitiveTypeUtils.INT_LENGTH;
-            }
-
-            switch (node.value) {
-                case Integer i -> length += PrimitiveTypeUtils.INT_LENGTH;
-                case Long l -> length += PrimitiveTypeUtils.LONG_LENGTH;
-                case Byte b -> length += PrimitiveTypeUtils.BYTE_LENGTH;
-                case byte[] bytes -> length += bytes.length;
-                default -> throw new RuntimeException("Undefined value type");
-            }
-        }
-
         ByteBuffer buffer = ByteBuffer.allocate(length);
 
         if(withLength) {
-            buffer.putInt(length - PrimitiveTypeUtils.INT_LENGTH);
+            buffer.putInt(length - INT_LENGTH);
         }
 
         for(BytesNode<?> node : bytesNodes) {
@@ -106,8 +111,34 @@ public class BytesList implements BytesConvertible {
         return buffer.array();
     }
 
-    public void writeIntoBuffer(ByteBuffer buffer) {
-        // TODO
+    public ByteBuffer[] toBuffers() {
+        ByteBuffer[] buffers = new ByteBuffer[bufferCount];
+
+        int idx = 0;
+        if(withLength) {
+            buffers[0] = BufferUtils.intByteBuffer(length);
+            idx = 1;
+        }
+
+        for(BytesNode<?> node : bytesNodes) {
+            if(node.type == VAR) {
+                if(node.value instanceof byte[] bytes) {
+                    buffers[idx++] = BufferUtils.intByteBuffer(bytes.length);
+                } else {
+                    throw new RuntimeException("Undefined value type");
+                }
+            }
+
+            switch (node.value) {
+                case Integer intValue -> buffers[idx++] = BufferUtils.intByteBuffer(intValue);
+                case Long longValue -> buffers[idx++] = BufferUtils.longByteBuffer(longValue);
+                case Byte byteValue -> buffers[idx++] = BufferUtils.byteByteBuffer(byteValue);
+                case byte[] bytes -> buffers[idx++] = ByteBuffer.wrap(bytes);
+                default -> throw new RuntimeException("Undefined value type");
+            }
+        }
+
+        return buffers;
     }
 
     private static class BytesNode<V> {

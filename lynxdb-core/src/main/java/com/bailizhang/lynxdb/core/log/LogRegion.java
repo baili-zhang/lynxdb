@@ -10,6 +10,7 @@ import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -188,9 +189,9 @@ public class LogRegion {
 
         // data 块中的起始位置，也就是当前数据写入的位置
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
-        BytesList dataByteList = dataEntry.toBytesList();
+        ByteBuffer[] buffers = dataEntry.toBytesList().toBuffers();
 
-        writeData(dataByteList, dataBlockBegin);
+        writeData(buffers, dataBlockBegin);
 
         // 更新总长度（包括 CRC 校验的长度）
         totalLength(dataLength);
@@ -332,7 +333,7 @@ public class LogRegion {
         );
     }
 
-    private void writeData(BytesList dataByteList, int begin) {
+    private void writeData(ByteBuffer[] buffers, int begin) {
         // 拿到最后一个 dataBuffer
         MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
         if(dataBuffer == null) {
@@ -342,11 +343,16 @@ public class LogRegion {
 
         MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
         dataByteBuffer.position(begin);
+        int idx = 0;
 
-        while(BufferUtils.isNotOver(dataByteBuffer)) {
-            // 写入最后一个数据块的剩余空间
-            dataByteList.writeIntoBuffer(dataByteBuffer);
+        while(idx < buffers.length && BufferUtils.isOver(dataByteBuffer)) {
+            dataByteBuffer.put(buffers[idx]);
             dataBuffer.saveSnapshot(dataByteBuffer);
+
+            if(BufferUtils.isOver(buffers[idx])) {
+                idx ++;
+                continue;
+            }
 
             if(options.isForce()) {
                 dataBuffer.force();

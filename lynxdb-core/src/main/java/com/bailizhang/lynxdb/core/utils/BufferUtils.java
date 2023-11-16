@@ -32,14 +32,6 @@ public interface BufferUtils {
         return new String(bytes);
     }
 
-    static byte[] toBytes(Collection<byte[]> src) {
-        AtomicInteger length = new AtomicInteger(0);
-        src.forEach(bytes -> length.getAndAdd(INT_LENGTH + bytes.length));
-        ByteBuffer buffer = ByteBuffer.allocate(length.get());
-        src.forEach(bytes -> buffer.putInt(bytes.length).put(bytes));
-        return buffer.array();
-    }
-
     static byte[] toBytes(Object o) {
         switch (o) {
             case String str -> {
@@ -94,11 +86,19 @@ public interface BufferUtils {
         return !isOver(byteBuffer);
     }
 
+    static ByteBuffer byteByteBuffer(byte value) {
+        return ByteBuffer.allocate(BYTE_LENGTH).put(value).rewind();
+    }
+
     static ByteBuffer intByteBuffer() {
         return ByteBuffer.allocate(INT_LENGTH);
     }
 
     static ByteBuffer intByteBuffer(int value) {
         return ByteBuffer.allocate(INT_LENGTH).putInt(value).rewind();
+    }
+
+    static ByteBuffer longByteBuffer(long value) {
+        return ByteBuffer.allocate(LONG_LENGTH).putLong(value).rewind();
     }
 }
