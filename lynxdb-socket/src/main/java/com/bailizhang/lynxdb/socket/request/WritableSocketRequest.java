@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.socket.request;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.common.NioSelectionKey;
@@ -12,22 +12,22 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class WritableSocketRequest extends NioSelectionKey implements Writable {
-    private final ByteBuffer buffer;
+    private final ByteBuffer[] buffers;
 
     public WritableSocketRequest(
             SelectionKey key,
             byte status,
             int serial,
-            byte[] data
+            ByteBuffer[] data
     ) {
         super(key);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(status);
-        bytesList.appendRawInt(serial);
-        bytesList.appendRawBytes(data);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(status);
+        dataBlocks.appendRawInt(serial);
+        dataBlocks.appendRawBuffers(data);
 
-        buffer = ByteBuffer.wrap(bytesList.toBytes());
+        buffers = dataBlocks.toBuffers();
     }
 
     public WritableSocketRequest(
@@ -37,24 +37,24 @@ public class WritableSocketRequest extends NioSelectionKey implements Writable {
     ) {
         super(message.selectionKey());
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(status);
-        bytesList.appendRawInt(serial);
-        bytesList.append(message);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(status);
+        dataBlocks.appendRawInt(serial);
+        dataBlocks.appendRawBuffers(message.toBuffers());
 
-        buffer = ByteBuffer.wrap(bytesList.toBytes());
+        buffers = dataBlocks.toBuffers();
     }
 
     @Override
     public void write() throws IOException {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
         if(!isWriteCompleted()) {
-            channel.write(buffer);
+            channel.write(buffers);
         }
     }
 
     @Override
     public boolean isWriteCompleted() {
-        return BufferUtils.isOver(buffer);
+        return BufferUtils.isOver(buffers);
     }
 }

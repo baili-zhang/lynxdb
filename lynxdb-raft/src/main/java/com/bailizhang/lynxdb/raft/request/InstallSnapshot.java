@@ -10,7 +10,7 @@ public class InstallSnapshot extends NioMessage {
     public InstallSnapshot(SelectionKey selectionKey, InstallSnapshotArgs args) {
         super(selectionKey);
 
-        bytesList.appendRawByte(INSTALL_SNAPSHOT);
-        bytesList.append(args);
+        dataBlocks.appendRawByte(INSTALL_SNAPSHOT);
+        dataBlocks.appendRawBuffers(args.toBuffers());
     }
 }

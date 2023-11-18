@@ -62,7 +62,7 @@ public class RaftRpcResultHandler {
         );
 
         RequestVote requestVote = new RequestVote(args);
-        client.broadcast(requestVote);
+        // client.broadcast(requestVote);
 
         logger.trace("Send request vote rpc to cluster members.");
     }

@@ -1,9 +1,9 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.Bytes;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.G;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +66,7 @@ class LogGroupTest {
         for(int i = 201; i < 350; i ++) {
             LogEntry entry = logGroup.findEntry(i);
             assert entry.index().deleteFlag() == Flags.DELETED;
-            assert Arrays.equals(entry.data(), ByteArrayUtils.EMPTY_BYTES);
+            assert Arrays.equals(entry.data(), Bytes.EMPTY);
         }
     }
 }

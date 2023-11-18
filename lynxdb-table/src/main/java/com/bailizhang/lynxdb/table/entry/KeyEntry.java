@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.table.entry;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.ByteBuffer;
@@ -27,7 +26,7 @@ public record KeyEntry(
         int valueGlobalIndex,
         long timeout,
         long crc32c
-) implements Comparable<KeyEntry>, BytesListConvertible {
+) implements Comparable<KeyEntry> {
     public static KeyEntry from(
             byte flag,
             byte[] key,
@@ -92,15 +91,14 @@ public record KeyEntry(
         );
     }
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendVarBytes(key);
-        bytesList.appendRawInt(valueGlobalIndex);
-        bytesList.appendRawLong(timeout);
-        bytesList.appendRawLong(crc32c);
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendRawInt(valueGlobalIndex);
+        dataBlocks.appendRawLong(timeout);
+        dataBlocks.appendRawLong(crc32c);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public boolean isTimeout() {

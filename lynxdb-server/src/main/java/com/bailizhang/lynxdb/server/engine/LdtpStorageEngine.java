@@ -1,12 +1,11 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
-import com.bailizhang.lynxdb.ldtp.message.MessageKey;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
 import org.slf4j.Logger;
@@ -42,16 +41,16 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
-        BytesList bytesList = new BytesList();
+        DataBlocks dataBlocks = new DataBlocks();
 
         if(value == null) {
-            bytesList.appendRawByte(LdtpCode.NULL);
+            dataBlocks.appendRawByte(LdtpCode.NULL);
         } else {
-            bytesList.appendRawByte(LdtpCode.BYTE_ARRAY);
-            bytesList.appendRawBytes(value);
+            dataBlocks.appendRawByte(LdtpCode.BYTE_ARRAY);
+            dataBlocks.appendRawBytes(value);
         }
 
-        return new QueryResult(bytesList, null);
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(FIND_MULTI_COLUMNS)
@@ -80,11 +79,11 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         logger.debug("Find by key: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(MULTI_COLUMNS);
-        appendMultiColumns(bytesList, multiColumns);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(MULTI_COLUMNS);
+        appendMultiColumns(dataBlocks, multiColumns);
 
-        return new QueryResult(bytesList, null);
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(INSERT)
@@ -103,10 +102,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.insert(key, columnFamily, column, value, timeout);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(INSERT_MULTI_COLUMNS)
@@ -132,10 +131,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.insert(key, columnFamily, multiColumns, timeout);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(INSERT_IF_NOT_EXISTED)
@@ -161,10 +160,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns, timeout);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(success ? TRUE : FALSE);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(success ? TRUE : FALSE);
 
-        return new QueryResult(bytesList, success ? new MessageKey(key, columnFamily) : null);
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(DELETE)
@@ -181,10 +180,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.delete(key, columnFamily, column);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(DELETE_MULTI_COLUMNS)
@@ -210,10 +209,10 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.deleteMultiColumns(key, columnFamily, deleteColumns);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(VOID);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(VOID);
 
-        return new QueryResult(bytesList, new MessageKey(key, columnFamily));
+        return new QueryResult(dataBlocks);
     }
 
     @LdtpMethod(RANGE_NEXT)
@@ -237,30 +236,30 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         boolean existed = dataTable.existKey(key, columnFamily, mainColumn);
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(existed ? TRUE : FALSE);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(existed ? TRUE : FALSE);
 
-        return new QueryResult(bytesList, null);
+        return new QueryResult(dataBlocks);
     }
 
     /**
      * Append multiColumns to bytesList
      *
-     * @param bytesList bytesList
+     * @param dataBlocks bytesList
      * @param multiColumns multiColumns
      */
     private void appendMultiColumns(
-            BytesList bytesList,
+            DataBlocks dataBlocks,
             HashMap<String, byte[]> multiColumns
     ) {
         multiColumns.forEach((column, value) -> {
-            bytesList.appendVarStr(column);
+            dataBlocks.appendVarStr(column);
 
             if(value == null) {
-                bytesList.appendRawByte(NULL);
+                dataBlocks.appendRawByte(NULL);
             } else {
-                bytesList.appendRawByte(BYTE_ARRAY);
-                bytesList.appendVarBytes(value);
+                dataBlocks.appendRawByte(BYTE_ARRAY);
+                dataBlocks.appendVarBytes(value);
             }
         });
     }
@@ -295,20 +294,20 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 findColumns
         );
 
-        BytesList bytesList = new BytesList();
-        bytesList.appendRawByte(MULTI_KEYS);
+        DataBlocks dataBlocks = new DataBlocks();
+        dataBlocks.appendRawByte(MULTI_KEYS);
 
         for(var pair : multiKeys) {
             byte[] key = pair.left();
             var multiColumns = pair.right();
             int size = multiColumns.size();
 
-            bytesList.appendVarBytes(key);
-            bytesList.appendRawInt(size);
-            appendMultiColumns(bytesList, multiColumns);
+            dataBlocks.appendVarBytes(key);
+            dataBlocks.appendRawInt(size);
+            appendMultiColumns(dataBlocks, multiColumns);
         }
 
-        return new QueryResult(bytesList, null);
+        return new QueryResult(dataBlocks);
     }
 
     @FunctionalInterface

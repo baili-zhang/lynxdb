@@ -1,7 +1,8 @@
 package zbl.moonlight.socket.server;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
@@ -39,13 +40,13 @@ class SocketServerTest {
                 assert request.status() == requestStatus;
                 assert Arrays.equals(request.data(), requestData);
 
-                BytesList bytesList = new BytesList();
-                bytesList.appendRawBytes(responseData);
+                DataBlocks dataBlocks = new DataBlocks();
+                dataBlocks.appendRawBytes(responseData);
 
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),
                         responseSerial,
-                        bytesList));
+                        dataBlocks.toBuffers()));
             }
         });
         Executor.start(server);
@@ -55,16 +56,16 @@ class SocketServerTest {
         SocketClient client = new SocketClient();
         client.setHandler(new SocketClientHandler() {
             @Override
-            public void handleConnected(SelectionKey selectionKey) throws Exception {
+            public void handleConnected(SelectionKey selectionKey) {
                 client.offerInterruptibly(new WritableSocketRequest(
                         selectionKey,
                         requestStatus,
                         requestSerial,
-                        requestData));
+                        BufferUtils.toBuffers(requestData)));
             }
 
             @Override
-            public void handleResponse(SocketResponse response) throws Exception {
+            public void handleResponse(SocketResponse response) {
                 assert response.serial() == responseSerial;
                 assert Arrays.equals(response.data(), responseData);
                 latch.countDown();

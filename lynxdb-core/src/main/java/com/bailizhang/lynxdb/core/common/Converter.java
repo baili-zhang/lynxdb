@@ -1,13 +1,11 @@
 package com.bailizhang.lynxdb.core.common;
 
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
-
 import java.nio.charset.Charset;
 
 public record Converter(Charset charset) {
     public byte[] toBytes(String src) {
         if(src == null) {
-            return ByteArrayUtils.EMPTY_BYTES;
+            return Bytes.EMPTY;
         }
 
         return src.getBytes(charset);

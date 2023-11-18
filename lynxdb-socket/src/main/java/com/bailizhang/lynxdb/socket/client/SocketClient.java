@@ -1,7 +1,5 @@
 package com.bailizhang.lynxdb.socket.client;
 
-import com.bailizhang.lynxdb.core.common.BytesConvertible;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
@@ -19,6 +17,7 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -140,7 +139,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         interrupt();
     }
 
-    public final int send(SelectionKey selectionKey, byte[] data) {
+    public final int send(SelectionKey selectionKey, ByteBuffer[] data) {
         byte status = SocketRequest.KEEP_CONNECTION;
         return send(selectionKey, status, data);
     }
@@ -149,10 +148,10 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         SelectionKey selectionKey = message.selectionKey();
         byte status = SocketRequest.KEEP_CONNECTION;
 
-        return send(selectionKey, status, message.toBytes());
+        return send(selectionKey, status, message.toBuffers());
     }
 
-    public final int send(SelectionKey selectionKey, byte status, byte[] data) {
+    public final int send(SelectionKey selectionKey, byte status, ByteBuffer[] data) {
         if(!selectionKey.isValid()) {
             throw new CancelledKeyException();
         }
@@ -170,24 +169,6 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
         offerInterruptibly(request);
         return requestSerial;
-    }
-
-    @CheckThreadSafety
-    public synchronized void broadcast(BytesConvertible message) {
-        byte[] data = message.toBytes();
-        int broadcastSerial = serial.incrementAndGet();
-
-        for(SelectionKey selectionKey : contexts.keySet()) {
-            ConnectionContext context = contexts.get(selectionKey);
-            byte status = SocketRequest.KEEP_CONNECTION;
-            context.offerRequest(new WritableSocketRequest(selectionKey, status, broadcastSerial, data));
-        }
-
-        interrupt();
-    }
-
-    public void broadcast(BytesListConvertible message) {
-        broadcast(message.toBytesList());
     }
 
     public Set<SelectionKey> connectedNodes() {

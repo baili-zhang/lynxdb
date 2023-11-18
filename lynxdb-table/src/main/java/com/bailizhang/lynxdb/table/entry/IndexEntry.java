@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.table.entry;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
@@ -11,7 +10,7 @@ public record IndexEntry(
         int begin, // 顺序查找不需要，二分查找需要这个字段
         int length,
         long crc32c
-) implements BytesListConvertible {
+) {
 
     public static IndexEntry from(byte flag, int begin, int length) {
         CRC32C crc32C = new CRC32C();
@@ -42,14 +41,13 @@ public record IndexEntry(
         return new IndexEntry(flag, begin, length, crc32c);
     }
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(flag);
-        bytesList.appendRawInt(begin);
-        bytesList.appendRawInt(length);
-        bytesList.appendRawLong(crc32c);
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(flag);
+        dataBlocks.appendRawInt(begin);
+        dataBlocks.appendRawInt(length);
+        dataBlocks.appendRawLong(crc32c);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 }

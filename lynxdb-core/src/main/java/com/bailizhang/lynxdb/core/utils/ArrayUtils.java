@@ -2,9 +2,7 @@ package com.bailizhang.lynxdb.core.utils;
 
 import java.nio.ByteBuffer;
 
-public interface ByteArrayUtils {
-    byte[] EMPTY_BYTES = new byte[0];
-
+public interface ArrayUtils {
     static int compare(byte[] origin, byte[] target) {
         int minLen = Math.min(origin.length, target.length);
 

@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
@@ -12,19 +11,17 @@ public record RequestVoteArgs(
         ServerNode candidate,
         int lastLogIndex,
         int lastLogTerm
-) implements BytesListConvertible {
+) {
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks();
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+        dataBlocks.appendRawInt(term);
+        dataBlocks.appendVarStr(candidate.toString());
 
-        bytesList.appendRawInt(term);
-        bytesList.appendVarStr(candidate.toString());
+        dataBlocks.appendRawInt(lastLogIndex);
+        dataBlocks.appendRawInt(lastLogTerm);
 
-        bytesList.appendRawInt(lastLogIndex);
-        bytesList.appendRawInt(lastLogTerm);
-
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public static RequestVoteArgs from(ByteBuffer buffer) {

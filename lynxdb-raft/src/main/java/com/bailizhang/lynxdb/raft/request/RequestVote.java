@@ -9,8 +9,8 @@ public class RequestVote extends NioMessage {
     public RequestVote(RequestVoteArgs args) {
         super(null);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(REQUEST_VOTE);
-        bytesList.append(args);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(REQUEST_VOTE);
+        dataBlocks.appendRawBuffers(args.toBuffers());
     }
 }

@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.table.entry;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
@@ -14,7 +13,7 @@ public record WalEntry(
         byte[] value,
         int valueGlobalIndex,
         long timeout
-) implements BytesListConvertible {
+) {
 
     public static WalEntry from(
             byte flag,
@@ -59,15 +58,14 @@ public record WalEntry(
         );
     }
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(flag);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(value);
-        bytesList.appendRawInt(valueGlobalIndex);
-        bytesList.appendRawLong(timeout);
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(flag);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarBytes(value);
+        dataBlocks.appendRawInt(valueGlobalIndex);
+        dataBlocks.appendRawLong(timeout);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 }

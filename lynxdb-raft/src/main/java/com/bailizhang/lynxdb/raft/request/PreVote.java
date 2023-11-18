@@ -9,8 +9,8 @@ public class PreVote extends NioMessage {
     public PreVote(PreVoteArgs preVoteArgs) {
         super(null);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(PRE_VOTE);
-        bytesList.append(preVoteArgs);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(PRE_VOTE);
+        dataBlocks.appendRawBuffers(preVoteArgs.toBuffers());
     }
 }

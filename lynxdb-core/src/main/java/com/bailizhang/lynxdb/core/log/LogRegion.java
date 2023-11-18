@@ -1,12 +1,12 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.Bytes;
 import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
+import com.bailizhang.lynxdb.core.utils.ArrayUtils;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
@@ -158,10 +158,18 @@ public class LogRegion {
     }
 
     public int appendEntry(byte[] data) {
-        return appendEntry(Flags.EXISTED, data);
+        return appendEntry(BufferUtils.toBuffers(data));
     }
 
     public int appendEntry(byte deleteFlag, byte[] data) {
+        return appendEntry(deleteFlag, BufferUtils.toBuffers(data));
+    }
+
+    public int appendEntry(ByteBuffer[] data) {
+        return appendEntry(Flags.EXISTED, data);
+    }
+
+    public int appendEntry(byte deleteFlag, ByteBuffer[] data) {
         int globalIndexEnd = globalIdxEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
@@ -179,7 +187,7 @@ public class LogRegion {
         int indexOffset = idx * LogIndex.ENTRY_LENGTH;
 
         MappedByteBuffer indexByteBuffer = indexBuffer.getBuffer();
-        indexByteBuffer.put(indexOffset, index.toBytes());
+        BufferUtils.write(indexByteBuffer, indexOffset, index.toBuffers());
 
         if(options.isForce()) {
             indexByteBuffer.force();
@@ -189,7 +197,7 @@ public class LogRegion {
 
         // data 块中的起始位置，也就是当前数据写入的位置
         int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
-        ByteBuffer[] buffers = dataEntry.toBytesList().toBuffers();
+        ByteBuffer[] buffers = dataEntry.toBuffers();
 
         writeData(buffers, dataBlockBegin);
 
@@ -221,7 +229,7 @@ public class LogRegion {
             LogIndex index = entry.index();
 
             byte deleteFlag = index.deleteFlag();
-            byte[] data = deleteFlag == Flags.DELETED ? ByteArrayUtils.EMPTY_BYTES : entry.data();
+            byte[] data = deleteFlag == Flags.DELETED ? Bytes.EMPTY : entry.data();
 
             entries.add(new Pair<>(deleteFlag, data));
         }
@@ -259,7 +267,7 @@ public class LogRegion {
         CRC32C crc32C = new CRC32C();
         crc32C.update(data, 0, dataLength - LONG_LENGTH);
 
-        long originCrc32C = ByteArrayUtils.toLong(crc32cBytes);
+        long originCrc32C = ArrayUtils.toLong(crc32cBytes);
 
         if(crc32C.getValue() != originCrc32C) {
             throw new RuntimeException("File entry data wrong.");
@@ -282,7 +290,7 @@ public class LogRegion {
         MappedByteBuffer buffer = indexBuffer.getBuffer();
 
         int indexOffset = (globalIdx - globalIdxBegin()) * LogIndex.ENTRY_LENGTH;
-        buffer.put(indexOffset, newLogIndex.toBytes());
+        BufferUtils.write(buffer, indexOffset, newLogIndex.toBuffers());
 
         // 删除的长度包括数据的 CRC 校验和
         deletedLength(dataLength);

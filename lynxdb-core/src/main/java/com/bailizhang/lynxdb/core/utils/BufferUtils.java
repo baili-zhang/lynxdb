@@ -3,8 +3,6 @@ package com.bailizhang.lynxdb.core.utils;
 import com.bailizhang.lynxdb.core.common.G;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
@@ -82,6 +80,16 @@ public interface BufferUtils {
         return byteBuffer.position() == byteBuffer.limit();
     }
 
+    static boolean isOver(ByteBuffer[] buffers) {
+        int len = buffers.length;
+        if(len == 0) {
+            throw new RuntimeException();
+        }
+
+        ByteBuffer lastBuffer = buffers[len-1];
+        return lastBuffer.position() == lastBuffer.limit();
+    }
+
     static boolean isNotOver(ByteBuffer byteBuffer) {
         return !isOver(byteBuffer);
     }
@@ -100,5 +108,13 @@ public interface BufferUtils {
 
     static ByteBuffer longByteBuffer(long value) {
         return ByteBuffer.allocate(LONG_LENGTH).putLong(value).rewind();
+    }
+
+    static void write(ByteBuffer buffer, int offset, ByteBuffer[] data) {
+
+    }
+
+    static ByteBuffer[] toBuffers(byte[] data) {
+        return new ByteBuffer[]{ByteBuffer.wrap(data)};
     }
 }

@@ -84,7 +84,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 lastLogTerm
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result.toBuffers());
         raftServer.offerInterruptibly(response);
     }
 
@@ -107,7 +107,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 lastLogTerm
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result.toBuffers());
         raftServer.offerInterruptibly(response);
     }
 
@@ -134,7 +134,11 @@ public class RaftServerHandler implements SocketServerHandler {
                 leaderCommit
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 
@@ -163,7 +167,11 @@ public class RaftServerHandler implements SocketServerHandler {
                 done
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 
@@ -208,14 +216,22 @@ public class RaftServerHandler implements SocketServerHandler {
         // 如果当前 leader 存在，则将客户端请求重定向到 leader
         if(leader != null) {
             RedirectResult result = new RedirectResult(leader);
-            WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+            WritableSocketResponse response = new WritableSocketResponse(
+                    selectionKey,
+                    serial,
+                    result.toBuffers()
+            );
             raftServer.offerInterruptibly(response);
             return;
         }
 
         // 如果 leader 不存在，返回 leader 不存在，不处理当前请求
         LeaderNotExistedResult result = new LeaderNotExistedResult();
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 }

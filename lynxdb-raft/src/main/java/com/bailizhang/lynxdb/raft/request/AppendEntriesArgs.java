@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
@@ -17,24 +16,23 @@ public record AppendEntriesArgs (
         int prevLogTerm,
         List<LogEntry> entries,
         int leaderCommit
-) implements BytesListConvertible {
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+) {
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks();
 
-        bytesList.appendRawInt(term);
-        bytesList.appendVarStr(leader.toString());
-        bytesList.appendRawInt(prevLogIndex);
-        bytesList.appendRawInt(prevLogTerm);
+        dataBlocks.appendRawInt(term);
+        dataBlocks.appendVarStr(leader.toString());
+        dataBlocks.appendRawInt(prevLogIndex);
+        dataBlocks.appendRawInt(prevLogTerm);
 
-        bytesList.appendRawInt(entries.size());
+        dataBlocks.appendRawInt(entries.size());
         for(LogEntry entry : entries) {
-            bytesList.appendVarBytes(entry.data());
+            dataBlocks.appendVarBytes(entry.data());
         }
 
-        bytesList.appendRawInt(leaderCommit);
+        dataBlocks.appendRawInt(leaderCommit);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public static AppendEntriesArgs from(ByteBuffer buffer) {

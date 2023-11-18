@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.raft.request;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
@@ -15,23 +14,22 @@ public record InstallSnapshotArgs (
         int offset,
         byte[] data,
         byte done
-) implements BytesListConvertible {
+) {
     public static final byte NOT_DONE = (byte) 0x01;
     public static final byte IS_DONE = (byte) 0x02;
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks();
 
-        bytesList.appendRawInt(term);
-        bytesList.appendVarStr(leader.toString());
-        bytesList.appendRawInt(lastIncludedIndex);
-        bytesList.appendRawInt(lastIncludedTerm);
-        bytesList.appendRawInt(offset);
-        bytesList.appendVarBytes(data);
-        bytesList.appendRawByte(done);
+        dataBlocks.appendRawInt(term);
+        dataBlocks.appendVarStr(leader.toString());
+        dataBlocks.appendRawInt(lastIncludedIndex);
+        dataBlocks.appendRawInt(lastIncludedTerm);
+        dataBlocks.appendRawInt(offset);
+        dataBlocks.appendVarBytes(data);
+        dataBlocks.appendRawByte(done);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public static InstallSnapshotArgs from(ByteBuffer buffer) {

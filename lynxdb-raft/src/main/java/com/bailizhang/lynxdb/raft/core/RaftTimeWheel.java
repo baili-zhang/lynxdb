@@ -131,7 +131,7 @@ public class RaftTimeWheel {
         );
 
         PreVote preVote = new PreVote(args);
-        client.broadcast(preVote);
+        // client.broadcast(preVote);
 
         logger.trace("Send PRE VOTE rpc to cluster members.");
     }

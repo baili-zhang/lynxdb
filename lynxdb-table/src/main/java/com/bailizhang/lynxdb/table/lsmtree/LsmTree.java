@@ -1,10 +1,10 @@
 package com.bailizhang.lynxdb.table.lsmtree;
 
+import com.bailizhang.lynxdb.core.common.Bytes;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.table.entry.KeyEntry;
@@ -104,7 +104,7 @@ public class LsmTree {
                     valueGlobalIndex,
                     timeout
             );
-            byte[] data = walEntry.toBytes();
+            ByteBuffer[] data = walEntry.toBuffers();
             maxWalGlobalIndex = walLog.appendEntry(data);
         }
 
@@ -115,7 +115,7 @@ public class LsmTree {
         KeyEntry keyEntry = KeyEntry.from(
                 Flags.DELETED,
                 key,
-                ByteArrayUtils.EMPTY_BYTES,
+                Bytes.EMPTY,
                 -1,
                 0L
         );
@@ -125,11 +125,11 @@ public class LsmTree {
             WalEntry walEntry = WalEntry.from(
                     Flags.DELETED,
                     key,
-                    ByteArrayUtils.EMPTY_BYTES,
+                    Bytes.EMPTY,
                     -1,
                     0L
             );
-            byte[] data = walEntry.toBytes();
+            ByteBuffer[] data = walEntry.toBuffers();
             maxWalGlobalIndex = walLog.appendEntry(data);
         }
 

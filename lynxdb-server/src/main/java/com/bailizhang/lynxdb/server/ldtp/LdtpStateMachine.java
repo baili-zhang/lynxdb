@@ -2,8 +2,8 @@ package com.bailizhang.lynxdb.server.ldtp;
 
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.utils.ArrayUtils;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.raft.core.ClientRequest;
 import com.bailizhang.lynxdb.raft.result.JoinClusterResult;
@@ -138,7 +138,7 @@ public class LdtpStateMachine implements StateMachine {
             throw new RuntimeException();
         }
 
-        return ByteArrayUtils.toInt(val);
+        return ArrayUtils.toInt(val);
     }
 
     @Override
@@ -214,7 +214,7 @@ public class LdtpStateMachine implements StateMachine {
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                result
+                result.toBuffers()
         );
         raftServer.offerInterruptibly(response);
     }

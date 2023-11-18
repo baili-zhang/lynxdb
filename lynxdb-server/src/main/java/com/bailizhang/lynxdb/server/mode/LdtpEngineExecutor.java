@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
@@ -97,7 +97,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                result.data()
+                result.data().toBuffers()
         );
 
         logger.info("Offer response to server executor, {}", response);
@@ -112,17 +112,17 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         FlightDataRecorder recorder = FlightDataRecorder.recorder();
         var data = recorder.data();
 
-        BytesList bytesList = new BytesList();
+        DataBlocks dataBlocks = new DataBlocks();
         data.forEach(pair -> {
-            bytesList.appendVarStr(pair.left().name());
-            bytesList.appendRawByte(pair.left().unit().value());
-            bytesList.appendRawLong(pair.right());
+            dataBlocks.appendVarStr(pair.left().name());
+            dataBlocks.appendRawByte(pair.left().unit().value());
+            dataBlocks.appendRawLong(pair.right());
         });
 
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                bytesList
+                dataBlocks.toBuffers()
         );
 
         server.offerInterruptibly(response);

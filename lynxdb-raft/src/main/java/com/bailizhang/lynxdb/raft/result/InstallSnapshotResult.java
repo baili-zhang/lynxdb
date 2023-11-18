@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.raft.result;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 
 import java.nio.ByteBuffer;
 
@@ -11,16 +10,15 @@ import static com.bailizhang.lynxdb.ldtp.result.ResultType.RAFT_RPC;
 
 public record InstallSnapshotResult(
         int term
-) implements BytesListConvertible {
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
+) {
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(INSTALL_SNAPSHOT_RESULT);
-        bytesList.appendRawInt(term);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(INSTALL_SNAPSHOT_RESULT);
+        dataBlocks.appendRawInt(term);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public static InstallSnapshotResult from(ByteBuffer buffer) {

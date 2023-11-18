@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.core.utils;
 
 import org.junit.jupiter.api.Test;
 
-class ByteArrayUtilsTest {
+class ArrayUtilsTest {
 
     @Test
     void compare() {
@@ -13,10 +13,10 @@ class ByteArrayUtilsTest {
         byte[] b2 = new byte[]{1, 2, 1};
         byte[] l2 = new byte[]{1};
 
-        assert ByteArrayUtils.compare(origin, equals) == 0;
-        assert ByteArrayUtils.compare(origin, b1) < 0;
-        assert ByteArrayUtils.compare(origin, l1) > 0;
-        assert ByteArrayUtils.compare(origin, b2) < 0;
-        assert ByteArrayUtils.compare(origin, l2) > 0;
+        assert ArrayUtils.compare(origin, equals) == 0;
+        assert ArrayUtils.compare(origin, b1) < 0;
+        assert ArrayUtils.compare(origin, l1) > 0;
+        assert ArrayUtils.compare(origin, b2) < 0;
+        assert ArrayUtils.compare(origin, l2) > 0;
     }
 }
