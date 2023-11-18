@@ -41,7 +41,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
 
         if(value == null) {
             dataBlocks.appendRawByte(LdtpCode.NULL);
@@ -79,7 +79,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         logger.debug("Find by key: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(MULTI_COLUMNS);
         appendMultiColumns(dataBlocks, multiColumns);
 
@@ -102,7 +102,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.insert(key, columnFamily, column, value, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -131,7 +131,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.insert(key, columnFamily, multiColumns, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -160,7 +160,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(success ? TRUE : FALSE);
 
         return new QueryResult(dataBlocks);
@@ -180,7 +180,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.delete(key, columnFamily, column);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -209,7 +209,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.deleteMultiColumns(key, columnFamily, deleteColumns);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -236,7 +236,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         boolean existed = dataTable.existKey(key, columnFamily, mainColumn);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(existed ? TRUE : FALSE);
 
         return new QueryResult(dataBlocks);
@@ -294,7 +294,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 findColumns
         );
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(MULTI_KEYS);
 
         for(var pair : multiKeys) {

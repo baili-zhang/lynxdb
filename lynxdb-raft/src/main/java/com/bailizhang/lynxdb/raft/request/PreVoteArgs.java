@@ -10,7 +10,7 @@ public record PreVoteArgs(
         int lastLogTerm
 ) {
     public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
 
         dataBlocks.appendRawInt(term);
         dataBlocks.appendRawInt(lastLogIndex);

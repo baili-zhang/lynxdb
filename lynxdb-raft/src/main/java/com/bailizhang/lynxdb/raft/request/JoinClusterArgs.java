@@ -9,7 +9,7 @@ public record JoinClusterArgs(
         ServerNode current
 ) {
     public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawStr(current.toString());
         return dataBlocks.toBuffers();
     }

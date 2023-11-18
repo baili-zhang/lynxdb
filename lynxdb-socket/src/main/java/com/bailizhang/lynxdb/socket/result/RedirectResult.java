@@ -9,7 +9,7 @@ import static com.bailizhang.lynxdb.ldtp.result.ResultType.REDIRECT;
 
 public record RedirectResult(ServerNode other) {
     public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
 
         dataBlocks.appendRawByte(REDIRECT);
         dataBlocks.appendVarStr(other.toString());

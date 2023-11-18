@@ -112,7 +112,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         FlightDataRecorder recorder = FlightDataRecorder.recorder();
         var data = recorder.data();
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         data.forEach(pair -> {
             dataBlocks.appendVarStr(pair.left().name());
             dataBlocks.appendRawByte(pair.left().unit().value());

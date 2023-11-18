@@ -14,18 +14,15 @@ public class DataBlocks {
     private final LinkedList<DataBlock<?>> dataBlocks = new LinkedList<>();
     private final boolean withLength;
 
+    /**
+     * length 不需要包括自身的 4 bytes，只是记录数据的长度
+     */
     private int length;
     private int bufferCount;
 
-    public DataBlocks() {
-        withLength = true;
-        length = INT_LENGTH;
-        bufferCount = 1;
-    }
-
     public DataBlocks(boolean withLen) {
         withLength = withLen;
-        length = withLen ? INT_LENGTH : 0;
+        length = 0;
         bufferCount = withLen ? 1 : 0;
     }
 
@@ -75,7 +72,7 @@ public class DataBlocks {
             default -> throw new RuntimeException("Undefined value type");
         }
 
-        bufferCount = type == VAR ? 2 : 1;
+        bufferCount += type == VAR ? 2 : 1;
     }
 
     public ByteBuffer[] toBuffers() {

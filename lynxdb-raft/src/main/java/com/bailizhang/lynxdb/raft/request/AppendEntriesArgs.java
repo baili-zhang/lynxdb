@@ -18,7 +18,7 @@ public record AppendEntriesArgs (
         int leaderCommit
 ) {
     public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
 
         dataBlocks.appendRawInt(term);
         dataBlocks.appendVarStr(leader.toString());

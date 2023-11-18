@@ -19,7 +19,7 @@ public record InstallSnapshotArgs (
     public static final byte IS_DONE = (byte) 0x02;
 
     public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
 
         dataBlocks.appendRawInt(term);
         dataBlocks.appendVarStr(leader.toString());

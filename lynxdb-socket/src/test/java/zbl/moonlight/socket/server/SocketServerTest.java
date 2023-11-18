@@ -40,7 +40,7 @@ class SocketServerTest {
                 assert request.status() == requestStatus;
                 assert Arrays.equals(request.data(), requestData);
 
-                DataBlocks dataBlocks = new DataBlocks();
+                DataBlocks dataBlocks = new DataBlocks(true);
                 dataBlocks.appendRawBytes(responseData);
 
                 server.offerInterruptibly(new WritableSocketResponse(

@@ -114,7 +114,20 @@ public interface BufferUtils {
 
     }
 
-    static ByteBuffer[] toBuffers(byte[] data) {
-        return new ByteBuffer[]{ByteBuffer.wrap(data)};
+    static ByteBuffer[] toBuffers(byte[] ...data) {
+        int len = data.length;
+        ByteBuffer[] buffers = new ByteBuffer[len];
+        for(int i = 0; i < len; i ++) {
+            buffers[i] = ByteBuffer.wrap(data[i]);
+        }
+        return buffers;
+    }
+
+    static int length(ByteBuffer[] buffers) {
+        int len = 0;
+        for(ByteBuffer buffer : buffers) {
+            len += buffer.limit();
+        }
+        return len;
     }
 }

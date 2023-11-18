@@ -22,7 +22,7 @@ public class WritableSocketRequest extends NioSelectionKey implements Writable {
     ) {
         super(key);
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(status);
         dataBlocks.appendRawInt(serial);
         dataBlocks.appendRawBuffers(data);
@@ -37,7 +37,7 @@ public class WritableSocketRequest extends NioSelectionKey implements Writable {
     ) {
         super(message.selectionKey());
 
-        DataBlocks dataBlocks = new DataBlocks();
+        DataBlocks dataBlocks = new DataBlocks(true);
         dataBlocks.appendRawByte(status);
         dataBlocks.appendRawInt(serial);
         dataBlocks.appendRawBuffers(message.toBuffers());
