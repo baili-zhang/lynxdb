@@ -351,16 +351,10 @@ public class LogRegion {
 
         MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
         dataByteBuffer.position(begin);
-        int idx = 0;
 
-        while(idx < buffers.length && BufferUtils.isOver(dataByteBuffer)) {
-            dataByteBuffer.put(buffers[idx]);
+        while(BufferUtils.isOver(dataByteBuffer)) {
+            BufferUtils.write(dataByteBuffer, begin, buffers);
             dataBuffer.saveSnapshot(dataByteBuffer);
-
-            if(BufferUtils.isOver(buffers[idx])) {
-                idx ++;
-                continue;
-            }
 
             if(options.isForce()) {
                 dataBuffer.force();

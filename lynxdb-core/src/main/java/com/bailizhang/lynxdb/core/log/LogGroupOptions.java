@@ -20,6 +20,14 @@ public class LogGroupOptions {
         return regionCapacity == null ? defaultValue : regionCapacity;
     }
 
+    public int regionCapacity() {
+        if(regionCapacity == null) {
+            throw new RuntimeException();
+        }
+
+        return regionCapacity;
+    }
+
     public void force(boolean val) {
         force = val;
     }

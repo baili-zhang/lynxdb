@@ -111,7 +111,13 @@ public interface BufferUtils {
     }
 
     static void write(ByteBuffer buffer, int offset, ByteBuffer[] data) {
-
+        buffer.position(offset);
+        for(ByteBuffer dataBuffer : data) {
+            buffer.put(dataBuffer);
+            if(BufferUtils.isOver(buffer)) {
+                return;
+            }
+        }
     }
 
     static ByteBuffer[] toBuffers(byte[] ...data) {

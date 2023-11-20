@@ -14,7 +14,7 @@ import java.util.Arrays;
 class LogRegionTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data/log_region_test";
 
-    private static final int LOG_ENTRY_COUNT = 100;
+    private static final int LOG_ENTRY_COUNT = 400;
     private static final String COMMAND = "command";
 
     private LogRegion logRegion;
@@ -43,7 +43,7 @@ class LogRegionTest {
             logRegion.appendEntry(G.I.toBytes(temp));
         }
 
-        int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();
+        int globalIndexBegin = options.regionCapacity() * logRegion.id();
 
         for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT + globalIndexBegin; i ++) {
             LogEntry entry = logRegion.readEntry(i);
