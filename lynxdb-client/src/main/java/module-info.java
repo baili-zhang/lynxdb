@@ -1,6 +1,6 @@
 module lynxdb.client {
     requires lynxdb.core;
-    requires lynxdb.lsmtree;
+    requires lynxdb.table;
     requires lynxdb.socket;
     requires lynxdb.ldtp;
 

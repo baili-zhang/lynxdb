@@ -1,4 +1,4 @@
-module lynxdb.lsmtree {
+module lynxdb.table {
     requires lynxdb.core;
 
     exports com.bailizhang.lynxdb.table;

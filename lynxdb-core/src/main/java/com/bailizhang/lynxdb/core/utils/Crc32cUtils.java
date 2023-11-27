@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.table.utils;
+package com.bailizhang.lynxdb.core.utils;
 
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
@@ -29,5 +29,15 @@ public interface Crc32cUtils {
 
     static long update(ByteBuffer buffer, int limit) {
         return 0L;
+    }
+
+    static long update(ByteBuffer[] buffers) {
+        CRC32C crc32C = new CRC32C();
+        for(ByteBuffer buffer : buffers) {
+            int position = buffer.position();
+            crc32C.update(buffer);
+            buffer.position(position);
+        }
+        return crc32C.getValue();
     }
 }

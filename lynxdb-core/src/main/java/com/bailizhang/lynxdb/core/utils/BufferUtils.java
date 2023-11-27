@@ -75,7 +75,7 @@ public interface BufferUtils {
     /* 判断ByteBuffer是否读结束（或写结束） */
     static boolean isOver(ByteBuffer byteBuffer) {
         if(byteBuffer == null) {
-            return false;
+            throw new RuntimeException();
         }
         return byteBuffer.position() == byteBuffer.limit();
     }
@@ -111,9 +111,25 @@ public interface BufferUtils {
     }
 
     static void write(ByteBuffer buffer, int offset, ByteBuffer[] data) {
-        buffer.position(offset);
         for(ByteBuffer dataBuffer : data) {
-            buffer.put(dataBuffer);
+            if(BufferUtils.isOver(dataBuffer)) {
+                continue;
+            }
+
+            int dataPosition = dataBuffer.position();
+
+            int rem = buffer.limit() - offset;
+            int dataRem = dataBuffer.limit() - dataPosition;
+            int writeLen = Math.min(rem, dataRem);
+
+            buffer.put(offset, dataBuffer, dataPosition, writeLen);
+
+            offset += writeLen;
+            buffer.position(offset);
+
+            dataPosition += writeLen;
+            dataBuffer.position(dataPosition);
+
             if(BufferUtils.isOver(buffer)) {
                 return;
             }

@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
-import com.bailizhang.lynxdb.table.utils.Crc32cUtils;
+import com.bailizhang.lynxdb.core.utils.Crc32cUtils;
 
 import java.nio.ByteBuffer;
 
