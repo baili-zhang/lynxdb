@@ -26,6 +26,9 @@ class SocketServerTest {
     private final byte[] requestData = "request".getBytes(StandardCharsets.UTF_8);
     private final byte[] responseData = "response".getBytes(StandardCharsets.UTF_8);
 
+    private final int REQUEST_COUNT = 20000;
+    private final int CLIENT_COUNT = 5;
+
     private final byte requestStatus = (byte) 0x03;
 
     private final int requestSerial = 15;
@@ -40,7 +43,7 @@ class SocketServerTest {
                 assert request.status() == requestStatus;
                 assert Arrays.equals(request.data(), requestData);
 
-                DataBlocks dataBlocks = new DataBlocks(true);
+                DataBlocks dataBlocks = new DataBlocks(false);
                 dataBlocks.appendRawBytes(responseData);
 
                 server.offerInterruptibly(new WritableSocketResponse(
@@ -51,29 +54,44 @@ class SocketServerTest {
         });
         Executor.start(server);
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(REQUEST_COUNT * CLIENT_COUNT);
 
-        SocketClient client = new SocketClient();
-        client.setHandler(new SocketClientHandler() {
-            @Override
-            public void handleConnected(SelectionKey selectionKey) {
-                client.offerInterruptibly(new WritableSocketRequest(
-                        selectionKey,
-                        requestStatus,
-                        requestSerial,
-                        BufferUtils.toBuffers(requestData)));
-            }
+        SocketClient[] clients = new SocketClient[CLIENT_COUNT];
+        for(int i = 0; i < CLIENT_COUNT; i ++) {
+            clients[i] = new SocketClient();
+            clients[i].setHandler(new SocketClientHandler() {
+                @Override
+                public void handleConnected(SelectionKey selectionKey) {
+                    for(int i = 0; i < REQUEST_COUNT; i ++) {
+                        clients[i].offerInterruptibly(new WritableSocketRequest(
+                                selectionKey,
+                                requestStatus,
+                                requestSerial,
+                                BufferUtils.toBuffers(requestData)));
+                    }
+                }
 
-            @Override
-            public void handleResponse(SocketResponse response) {
-                assert response.serial() == responseSerial;
-                assert Arrays.equals(response.data(), responseData);
-                latch.countDown();
-            }
-        });
+                @Override
+                public void handleResponse(SocketResponse response) {
+                    assert response.serial() == responseSerial;
+                    assert Arrays.equals(response.data(), responseData);
+                    latch.countDown();
+                }
+            });
+        }
 
-        Executor.start(client);
-        client.connect(new ServerNode("127.0.0.1", 7820));
+        // TODO 使用 Record 记录
+        long begin = System.currentTimeMillis();
+
+        for(int i = 0; i < CLIENT_COUNT; i ++) {
+            Executor.start(clients[i]);
+            clients[i].connect(new ServerNode("127.0.0.1", 7820));
+        }
+
         latch.await();
+
+        long end = System.currentTimeMillis();
+
+        System.out.println(end - begin);
     }
 }
