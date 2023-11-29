@@ -1,4 +1,4 @@
-package zbl.moonlight.socket.server;
+package com.bailizhang.lynxdb.test.socket.server;
 
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
