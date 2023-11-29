@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.socket.server;
 
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
@@ -15,8 +15,8 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.READ_DATA_FROM_SOCKET;
-import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.WRITE_DATA_TO_SOCKET;
+import static com.bailizhang.lynxdb.core.recorder.FlightDataRecorder.READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.core.recorder.FlightDataRecorder.WRITE_DATA_TO_SOCKET;
 
 public class IoEventHandler implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);

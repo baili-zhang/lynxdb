@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.socket.client;
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_READ_DATA_FROM_SOCKET;
-import static com.bailizhang.lynxdb.core.health.FlightDataRecorder.CLIENT_WRITE_DATA_TO_SOCKET;
 
 public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);

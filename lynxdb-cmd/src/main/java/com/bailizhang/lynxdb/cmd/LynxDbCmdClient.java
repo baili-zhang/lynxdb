@@ -8,7 +8,7 @@ import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.executor.Shutdown;
-import com.bailizhang.lynxdb.core.health.RecordOption;
+import com.bailizhang.lynxdb.core.recorder.RecordOption;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 
 import java.net.ConnectException;

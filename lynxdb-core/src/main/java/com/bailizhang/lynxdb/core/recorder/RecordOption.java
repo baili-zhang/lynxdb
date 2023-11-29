@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.core.health;
+package com.bailizhang.lynxdb.core.recorder;
 
 import java.util.Objects;
 

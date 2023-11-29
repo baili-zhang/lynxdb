@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.server.mode;
 
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;

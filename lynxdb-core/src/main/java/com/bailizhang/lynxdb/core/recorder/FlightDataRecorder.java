@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.core.health;
+package com.bailizhang.lynxdb.core.recorder;
 
 import com.bailizhang.lynxdb.core.common.Pair;
 
@@ -8,32 +8,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+// TODO 设计的有问题，需要重写设计
 public class FlightDataRecorder {
-    public static final RecordOption READ_DATA_FROM_SOCKET = new RecordOption(
-            "Read Data from Socket",
-            RecordUnit.NANOS
-    );
-    public static final RecordOption WRITE_DATA_TO_SOCKET = new RecordOption(
-            "Write Data to Socket",
-            RecordUnit.NANOS
-    );
-    public static final RecordOption CLIENT_READ_DATA_FROM_SOCKET = new RecordOption(
-            "Client Read Data from Socket",
-            RecordUnit.NANOS
-    );
-    public static final RecordOption CLIENT_WRITE_DATA_TO_SOCKET = new RecordOption(
-            "Client Write Data to Socket",
-            RecordUnit.NANOS
-    );
-    public static final RecordOption ENGINE_DO_QUERY_TIME = new RecordOption(
-            "Engine Do Query Time",
-            RecordUnit.NANOS
-    );
-    public static final RecordOption ENGINE_QUERY_COUNT = new RecordOption(
-            "Engine Query Count",
-            RecordUnit.TIMES
-    );
-
     private static final FlightDataRecorder RECORDER = new FlightDataRecorder();
 
     private final ConcurrentHashMap<RecordOption, AtomicLong> map = new ConcurrentHashMap<>();

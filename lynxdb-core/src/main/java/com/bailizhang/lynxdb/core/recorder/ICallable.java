@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.core.health;
+package com.bailizhang.lynxdb.core.recorder;
 
 @FunctionalInterface
 public interface ICallable<T> {

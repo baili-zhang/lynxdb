@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.core.health;
+package com.bailizhang.lynxdb.core.recorder;
 
 public enum RecordUnit {
     MILLIS("ms", (byte)0x01),

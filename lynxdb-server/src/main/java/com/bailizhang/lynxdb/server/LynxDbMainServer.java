@@ -3,7 +3,7 @@ package com.bailizhang.lynxdb.server;
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Version;
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LynxDbServer;
 import com.bailizhang.lynxdb.server.mode.cluster.ClusterLynxDbServer;

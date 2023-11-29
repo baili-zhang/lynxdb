@@ -1,10 +1,11 @@
 package com.bailizhang.lynxdb.server.engine;
 
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
+import com.bailizhang.lynxdb.server.measure.MeasureOptions;
 import com.bailizhang.lynxdb.table.LynxDbTable;
 import com.bailizhang.lynxdb.table.Table;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
@@ -40,13 +41,13 @@ public class BaseStorageEngine {
         }
 
         FlightDataRecorder recorder = FlightDataRecorder.recorder();
-        recorder.count(FlightDataRecorder.ENGINE_QUERY_COUNT);
+        recorder.count(MeasureOptions.ENGINE_QUERY_COUNT);
 
         try {
             if(recorder.isEnable()) {
                 return (QueryResult) recorder.record(
                         (Callable<Object>) () -> doQueryMethod.invoke(this, params),
-                        FlightDataRecorder.ENGINE_DO_QUERY_TIME
+                        MeasureOptions.ENGINE_DO_QUERY_TIME
                 );
             } else {
                 return (QueryResult) doQueryMethod.invoke(this, params);
