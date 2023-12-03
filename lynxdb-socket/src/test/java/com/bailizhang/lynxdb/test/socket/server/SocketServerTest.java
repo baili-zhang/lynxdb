@@ -2,6 +2,7 @@ package com.bailizhang.lynxdb.test.socket.server;
 
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
+import com.bailizhang.lynxdb.core.recorder.Recorder;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
@@ -15,7 +16,6 @@ import com.bailizhang.lynxdb.socket.server.SocketServer;
 import com.bailizhang.lynxdb.socket.server.SocketServerConfig;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -23,11 +23,11 @@ import java.util.concurrent.CountDownLatch;
 
 class SocketServerTest {
 
-    private final byte[] requestData = "request".getBytes(StandardCharsets.UTF_8);
-    private final byte[] responseData = "response".getBytes(StandardCharsets.UTF_8);
+    private final byte[] requestData = "request".repeat(1000).getBytes(StandardCharsets.UTF_8);
+    private final byte[] responseData = "response".repeat(1000).getBytes(StandardCharsets.UTF_8);
 
     private final int REQUEST_COUNT = 20000;
-    private final int CLIENT_COUNT = 5;
+    private final int CLIENT_COUNT = 20;
 
     private final byte requestStatus = (byte) 0x03;
 
@@ -35,7 +35,7 @@ class SocketServerTest {
     private final int responseSerial = 20;
 
     @Test
-    void execute() throws IOException, InterruptedException {
+    void execute() throws Exception {
         SocketServer server = new SocketServer(new SocketServerConfig(7820));
         server.setHandler(new SocketServerHandler() {
             @Override
@@ -58,12 +58,12 @@ class SocketServerTest {
 
         SocketClient[] clients = new SocketClient[CLIENT_COUNT];
         for(int i = 0; i < CLIENT_COUNT; i ++) {
-            clients[i] = new SocketClient();
-            clients[i].setHandler(new SocketClientHandler() {
+            SocketClient client = new SocketClient();
+            client.setHandler(new SocketClientHandler() {
                 @Override
                 public void handleConnected(SelectionKey selectionKey) {
-                    for(int i = 0; i < REQUEST_COUNT; i ++) {
-                        clients[i].offerInterruptibly(new WritableSocketRequest(
+                    for(int j = 0; j < REQUEST_COUNT; j ++) {
+                        client.offerInterruptibly(new WritableSocketRequest(
                                 selectionKey,
                                 requestStatus,
                                 requestSerial,
@@ -78,20 +78,20 @@ class SocketServerTest {
                     latch.countDown();
                 }
             });
+
+            clients[i] = client;
         }
 
-        // TODO 使用 Record 记录
-        long begin = System.currentTimeMillis();
+        long runningTime = Recorder.runningTime(() -> {
+            for(int i = 0; i < CLIENT_COUNT; i ++) {
+                Executor.start(clients[i]);
+                clients[i].connect(new ServerNode("127.0.0.1", 7820));
+            }
 
-        for(int i = 0; i < CLIENT_COUNT; i ++) {
-            Executor.start(clients[i]);
-            clients[i].connect(new ServerNode("127.0.0.1", 7820));
-        }
+            latch.await();
+            return null;
+        });
 
-        latch.await();
-
-        long end = System.currentTimeMillis();
-
-        System.out.println(end - begin);
+        System.out.println(runningTime);
     }
 }

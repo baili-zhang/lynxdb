@@ -15,8 +15,8 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-import static com.bailizhang.lynxdb.core.recorder.FlightDataRecorder.READ_DATA_FROM_SOCKET;
-import static com.bailizhang.lynxdb.core.recorder.FlightDataRecorder.WRITE_DATA_TO_SOCKET;
+import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.WRITE_DATA_TO_SOCKET;
 
 public class IoEventHandler implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);

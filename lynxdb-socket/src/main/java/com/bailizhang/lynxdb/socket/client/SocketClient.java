@@ -28,6 +28,9 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_READ_DATA_FROM_SOCKET;
+import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_WRITE_DATA_TO_SOCKET;
+
 
 public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);

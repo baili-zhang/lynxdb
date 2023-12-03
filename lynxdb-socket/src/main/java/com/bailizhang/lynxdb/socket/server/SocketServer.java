@@ -64,13 +64,6 @@ public class SocketServer extends Executor<WritableSocketResponse> {
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
     }
 
-    public void startRegisterServer() throws IOException {
-        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(new InetSocketAddress(config.messagePort()), config.backlog());
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-    }
-
     @Override
     protected void doBeforeExecute() {
         handler.handleStartupCompleted();
