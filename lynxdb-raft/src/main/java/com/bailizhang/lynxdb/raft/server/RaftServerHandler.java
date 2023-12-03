@@ -20,8 +20,6 @@ import java.nio.channels.SelectionKey;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.*;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 public class RaftServerHandler implements SocketServerHandler {
     private static final Logger logger = LoggerFactory.getLogger(RaftServerHandler.class);
@@ -38,20 +36,19 @@ public class RaftServerHandler implements SocketServerHandler {
     public void handleRequest(SocketRequest request) {
         SelectionKey selectionKey = request.selectionKey();
         int serial = request.serial();
-        byte[] data = request.data();
+        ByteBuffer[] data = request.data();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte type = buffer.get();
-
-        switch (type) {
-            case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
-            case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
-            default -> {
-                logger.info("Type is: {}", type);
-
-                throw new RuntimeException();
-            }
-        }
+//        byte type = buffer.get();
+//
+//        switch (type) {
+//            case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
+//            case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+//            default -> {
+//                logger.info("Type is: {}", type);
+//
+//                throw new RuntimeException();
+//            }
+//        }
     }
 
     private void handleRaftRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {

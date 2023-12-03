@@ -40,21 +40,23 @@ public class SocketServer extends Executor<WritableSocketResponse> {
     private class IoThreadFactory implements ThreadFactory {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
 
-        public Thread newThread(Runnable r) {
-            return new Thread(r, config.ioThreadNamePrefix() + threadNumber.getAndIncrement());
+        public Thread newThread(Runnable runnable) {
+            return new Thread(runnable, config.ioThreadNamePrefix() + threadNumber.getAndIncrement());
         }
     }
 
     public SocketServer(SocketServerConfig socketServerConfig) throws IOException {
         this.config = socketServerConfig;
 
-        this.executor = new ThreadPoolExecutor(config.coreSize(),
+        this.executor = new ThreadPoolExecutor(
+                config.coreSize(),
                 config.maxPoolSize(),
                 config.keepAliveTime(),
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(config.blockingQueueSize()),
                 new IoThreadFactory(),
-                new ThreadPoolExecutor.AbortPolicy());
+                new ThreadPoolExecutor.AbortPolicy()
+        );
 
         selector = Selector.open();
 
@@ -86,8 +88,8 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                     SelectionKey selectionKey = iterator.next();
                     try {
                         SocketContext context = contexts.get(selectionKey);
-                        if(context == null) {
-                            context = new SocketContext(selectionKey);
+                        if(context == null && selectionKey.channel() instanceof SocketChannel) {
+                            context = SocketContext.create(selectionKey);
                             contexts.put(selectionKey, context);
                         }
                         executor.execute(new IoEventHandler(context, latch, handler));

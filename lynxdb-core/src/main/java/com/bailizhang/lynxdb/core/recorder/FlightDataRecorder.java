@@ -35,6 +35,11 @@ public class FlightDataRecorder {
     }
 
     public void recordE(IRunnable task, RecordOption option) throws Exception {
+        if(!isEnable()) {
+            task.run();
+            return;
+        }
+
         long beginNano = System.nanoTime();
         task.run();
         long endNano = System.nanoTime();
@@ -45,6 +50,10 @@ public class FlightDataRecorder {
     }
 
     public <T> T record(ICallable<T> task, RecordOption option) {
+        if(!isEnable()) {
+             return task.call();
+        }
+
         long beginNano = System.nanoTime();
         T outcome = task.call();
         long endNano = System.nanoTime();
@@ -57,6 +66,10 @@ public class FlightDataRecorder {
     }
 
     public <T> T record(Callable<T> task, RecordOption option) throws Exception {
+        if(!isEnable()) {
+            return task.call();
+        }
+
         long beginNano = System.nanoTime();
         T outcome = task.call();
         long endNano = System.nanoTime();

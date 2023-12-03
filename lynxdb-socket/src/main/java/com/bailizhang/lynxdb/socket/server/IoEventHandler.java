@@ -1,19 +1,24 @@
 package com.bailizhang.lynxdb.socket.server;
 
+import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
 import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.IRunnable;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
+import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 
 import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.READ_DATA_FROM_SOCKET;
 import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.WRITE_DATA_TO_SOCKET;
@@ -41,8 +46,7 @@ public class IoEventHandler implements Runnable {
         channel.configureBlocking(false);
 
         synchronized (selector) {
-            SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
-            key.attach(new ReadableSocketRequest(key));
+            channel.register(selector, SelectionKey.OP_READ);
         }
 
         logger.info("Accept socket {} connect.", channel.getRemoteAddress());
@@ -50,35 +54,39 @@ public class IoEventHandler implements Runnable {
 
     /* 每次读一个请求 */
     private void doRead() throws Exception {
-        ReadableSocketRequest request = (ReadableSocketRequest) selectionKey.attachment();
-
         FlightDataRecorder recorder = FlightDataRecorder.recorder();
 
-        /* 从socket channel中读取数据 */
-        try {
-            if(recorder.isEnable()) {
-                recorder.recordE(request::read, READ_DATA_FROM_SOCKET);
-            } else {
-                request.read();
+        IRunnable read = () -> {
+            SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+
+            while (true) {
+                ArenaBuffer arenaBuffer = context.readableArenaBuffer();
+
+                ByteBuffer buffer = arenaBuffer.buffer();
+                socketChannel.read(buffer);
+
+                if(BufferUtils.isNotOver(buffer)) {
+                    return;
+                }
             }
+        };
+
+        boolean isDisconnected = false;
+        try {
+            recorder.recordE(read, READ_DATA_FROM_SOCKET);
         } catch (SocketException e) {
-            /* 取消掉selectionKey */
-            selectionKey.cancel();
-            latch.countDown();
-            /* 打印客户端断开连接的日志 */
-            return;
+            isDisconnected = true;
         }
 
-        if (request.isReadCompleted()) {
-            /* 是否断开连接 */
-            if (!request.isKeepConnection()) {
-                selectionKey.cancel();
-                return;
-            }
-            /* 处理Socket请求 */
+        List<SocketRequest> requests = context.requests();
+        for(SocketRequest request : requests) {
             handler.handleRequest(request);
-            /* 未写回完成的请求数量加一 */
-            context.increaseRequestCount();
+        }
+
+        if(isDisconnected) {
+            // TODO 确保正在使用的 arena buffer 不会被影响
+            context.destroy();
+            latch.countDown();
         }
     }
 
@@ -98,8 +106,6 @@ public class IoEventHandler implements Runnable {
             if (response.isWriteCompleted()) {
                 /* 从队列首部移除已经写完的响应 */
                 context.pollResponse();
-                context.decreaseRequestCount();
-
                 logger.trace("Write response completed to client, response: {}", response);
             } else {
                 break;

@@ -4,11 +4,11 @@ import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.IRunnable;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.request.SocketRequest;
-import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +32,7 @@ import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_READ_DA
 import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_WRITE_DATA_TO_SOCKET;
 
 
-public class SocketClient extends Executor<WritableSocketRequest> implements AutoCloseable {
+public class SocketClient extends Executor<SocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
@@ -69,13 +69,15 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         }
 
         /* 线程池执行器 */
-        executor = new ThreadPoolExecutor(DEFAULT_CORE_POOL_SIZE,
+        executor = new ThreadPoolExecutor(
+                DEFAULT_CORE_POOL_SIZE,
                 DEFAULT_MAX_POOL_SIZE,
                 DEFAULT_KEEP_ALIVE_TIME,
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(DEFAULT_CAPACITY),
                 new ClientThreadFactory(),
-                new ThreadPoolExecutor.AbortPolicy());
+                new ThreadPoolExecutor.AbortPolicy()
+        );
     }
 
     @CheckThreadSafety
@@ -125,7 +127,7 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
     }
 
     @Override
-    public void offerInterruptibly(WritableSocketRequest request) {
+    public void offerInterruptibly(SocketRequest request) {
         SelectionKey selectionKey = request.selectionKey();
 
         ConnectionContext context = contexts.get(request.selectionKey());
@@ -140,28 +142,20 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
         interrupt();
     }
 
-    public final int send(SelectionKey selectionKey, ByteBuffer[] data) {
-        byte status = SocketRequest.KEEP_CONNECTION;
-        return send(selectionKey, status, data);
-    }
-
     public final int send(NioMessage message) {
         SelectionKey selectionKey = message.selectionKey();
-        byte status = SocketRequest.KEEP_CONNECTION;
-
-        return send(selectionKey, status, message.toBuffers());
+        return send(selectionKey, message.toBuffers());
     }
 
-    public final int send(SelectionKey selectionKey, byte status, ByteBuffer[] data) {
+    public final int send(SelectionKey selectionKey, ByteBuffer[] data) {
         if(!selectionKey.isValid()) {
             throw new CancelledKeyException();
         }
 
         int requestSerial = serial.getAndIncrement();
 
-        WritableSocketRequest request = new WritableSocketRequest(
+        SocketRequest request = new SocketRequest(
                 selectionKey,
-                status,
                 requestSerial,
                 data
         );
@@ -330,15 +324,15 @@ public class SocketClient extends Executor<WritableSocketRequest> implements Aut
 
         private void doWrite() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
-            WritableSocketRequest request = context.peekRequest();
+            SocketRequest request = context.peekRequest();
 
             FlightDataRecorder recorder = FlightDataRecorder.recorder();
 
-            if(recorder.isEnable()) {
-                recorder.recordE(request::write, CLIENT_WRITE_DATA_TO_SOCKET);
-            } else {
-                request.write();
-            }
+            IRunnable write = () -> {
+
+            };
+
+            recorder.recordE(write, CLIENT_WRITE_DATA_TO_SOCKET);
 
             if(request.isWriteCompleted()) {
                 context.pollRequest();

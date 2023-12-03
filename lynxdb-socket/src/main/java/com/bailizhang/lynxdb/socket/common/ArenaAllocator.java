@@ -8,4 +8,8 @@ public class ArenaAllocator {
     public static ArenaBuffer alloc() {
         return arena.alloc();
     }
+
+    public static void dealloc(ArenaBuffer arenaBuffer) {
+        arena.dealloc(arenaBuffer);
+    }
 }

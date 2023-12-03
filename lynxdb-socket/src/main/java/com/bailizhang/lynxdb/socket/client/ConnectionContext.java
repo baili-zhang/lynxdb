@@ -1,6 +1,6 @@
 package com.bailizhang.lynxdb.socket.client;
 
-import com.bailizhang.lynxdb.socket.request.WritableSocketRequest;
+import com.bailizhang.lynxdb.socket.request.SocketRequest;
 import com.bailizhang.lynxdb.socket.response.ReadableSocketResponse;
 
 import java.io.IOException;
@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConnectionContext {
     private final SelectionKey selectionKey;
-    private final ConcurrentLinkedQueue<WritableSocketRequest> requests = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<SocketRequest> requests = new ConcurrentLinkedQueue<>();
 
     private ReadableSocketResponse response;
 
@@ -25,7 +25,7 @@ public class ConnectionContext {
         lockRequestOffer = true;
     }
 
-    public void offerRequest(WritableSocketRequest request) {
+    public void offerRequest(SocketRequest request) {
         if(lockRequestOffer) {
             throw new RuntimeException("Locked request offer, can not offer request.");
         }
@@ -33,7 +33,7 @@ public class ConnectionContext {
         selectionKey.interestOpsOr(SelectionKey.OP_WRITE);
     }
 
-    public WritableSocketRequest peekRequest() {
+    public SocketRequest peekRequest() {
         return requests.peek();
     }
 

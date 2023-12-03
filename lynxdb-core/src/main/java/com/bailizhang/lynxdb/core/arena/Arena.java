@@ -2,11 +2,8 @@ package com.bailizhang.lynxdb.core.arena;
 
 import java.nio.ByteBuffer;
 import java.util.BitSet;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Arena {
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-
     private final ByteBuffer buffer;
     private final BitSet bitSet;
     private final int allocSize;
@@ -27,36 +24,22 @@ public class Arena {
         maxClearBit = 0;
     }
 
-    public ArenaBuffer alloc() {
+    public synchronized ArenaBuffer alloc() {
+        // 因为 alloc 内存并不是频繁发生，所以直接使用 cardinality() 计算
         if(bitSet.cardinality() == bufferCount) {
             // TODO 内存分配满后的处理
             throw new RuntimeException();
         }
 
-        int nextClearBit;
-        lock.readLock().lock();
-
-        try {
-            nextClearBit = bitSet.nextClearBit(maxClearBit);
-            maxClearBit = nextClearBit + 1;
-        } finally {
-            lock.readLock().unlock();
-        }
-
+        int nextClearBit = bitSet.nextClearBit(maxClearBit);
+        maxClearBit = (nextClearBit + 1) % bufferCount;
 
         ByteBuffer allocBuffer = buffer.slice(nextClearBit * allocSize, allocSize);
         return new ArenaBuffer(nextClearBit, allocBuffer);
     }
 
-    public void dealloc(ArenaBuffer arenaBuffer) {
+    public synchronized void dealloc(ArenaBuffer arenaBuffer) {
         int bit = arenaBuffer.bit();
-
-        lock.writeLock().lock();
-
-        try {
-            bitSet.clear(bit);
-        } finally {
-            lock.writeLock().unlock();
-        }
+        bitSet.clear(bit);
     }
 }
