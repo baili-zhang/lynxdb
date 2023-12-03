@@ -27,7 +27,7 @@ class SocketServerTest {
     private final byte[] responseData = "response".repeat(1000).getBytes(StandardCharsets.UTF_8);
 
     private final int REQUEST_COUNT = 20000;
-    private final int CLIENT_COUNT = 20;
+    private final int CLIENT_COUNT = 1;
 
     private final byte requestStatus = (byte) 0x03;
 

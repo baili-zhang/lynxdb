@@ -1,4 +1,5 @@
 module lynxdb.core {
+    exports com.bailizhang.lynxdb.core.arena;
     exports com.bailizhang.lynxdb.core.common;
     exports com.bailizhang.lynxdb.core.exceptions;
     exports com.bailizhang.lynxdb.core.executor;
