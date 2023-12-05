@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.test.socket.server;
 
+import com.bailizhang.lynxdb.core.arena.Segment;
+import com.bailizhang.lynxdb.core.buffers.Buffers;
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.recorder.Recorder;
@@ -22,11 +24,11 @@ import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 class SocketServerTest {
-    private final byte[] requestData = "request".repeat(1).getBytes(StandardCharsets.UTF_8);
-    private final byte[] responseData = "response".repeat(1).getBytes(StandardCharsets.UTF_8);
+    private final byte[] requestData = "request".repeat(10).getBytes(StandardCharsets.UTF_8);
+    private final byte[] responseData = "response".repeat(10).getBytes(StandardCharsets.UTF_8);
 
-    private final int REQUEST_COUNT = 20;
-    private final int CLIENT_COUNT = 1;
+    private final int REQUEST_COUNT = 20000;
+    private final int CLIENT_COUNT = 10;
 
     private final int requestSerial = 15;
     private final int responseSerial = 20;
@@ -37,13 +39,16 @@ class SocketServerTest {
         server.setHandler(new SocketServerHandler() {
             @Override
             public void handleRequest(SegmentSocketRequest request) throws Exception {
-                // TODO
-                // assert Arrays.equals(request.data(), requestData);
+                Segment[] data = request.data();
+                Buffers buffers = Segment.buffers(data);
+                byte[] rawData = buffers.toBytes();
+
+                assert Arrays.equals(rawData, requestData);
+
+                Segment.deallocAll(data);
 
                 DataBlocks dataBlocks = new DataBlocks(false);
                 dataBlocks.appendRawBytes(responseData);
-
-                System.out.println("Accept client request");
 
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),

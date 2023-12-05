@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
@@ -85,7 +84,7 @@ public class ArenaBufferManager {
         for (Segment segment : segments) {
             intBuffer.put(segment.buffer());
         }
-        return intBuffer.getInt();
+        return intBuffer.rewind().getInt();
     }
 
     public void clearFreeBuffers() {

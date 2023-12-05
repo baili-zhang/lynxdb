@@ -326,18 +326,18 @@ public class SocketClient extends Executor<ByteBufferSocketRequest> implements A
         private void doWrite() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
             ByteBufferSocketRequest request = context.peekRequest();
-            ByteBuffer[] data = request.data();
+            ByteBuffer[] writeData = request.toBuffers();
 
             FlightDataRecorder recorder = FlightDataRecorder.recorder();
 
             IRunnable write = () -> {
                 SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                socketChannel.write(data);
+                socketChannel.write(writeData);
             };
 
             recorder.recordE(write, CLIENT_WRITE_DATA_TO_SOCKET);
 
-            if(BufferUtils.isOver(data)) {
+            if(BufferUtils.isOver(writeData)) {
                 context.pollRequest();
                 /* 处理主动退出的 selectionKey */
                 if(exitKeys.contains(selectionKey) && context.sizeOfRequests() == 0) {

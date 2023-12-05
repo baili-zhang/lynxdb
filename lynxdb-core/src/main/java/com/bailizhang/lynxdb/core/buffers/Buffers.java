@@ -5,6 +5,7 @@ import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public record Buffers(
         ByteBuffer[] buffers
@@ -52,6 +53,9 @@ public record Buffers(
 
     public byte[] toBytes() {
         // TODO 记录拷贝的总时间
-        throw new UnsupportedOperationException();
+        int len = length();
+        ByteBuffer buffer = ByteBuffer.allocate(len);
+        Arrays.stream(buffers).forEach(buffer::put);
+        return buffer.array();
     }
 }
