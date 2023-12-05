@@ -1,12 +1,12 @@
 package com.bailizhang.lynxdb.socket.server;
 
 import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
+import com.bailizhang.lynxdb.core.arena.Segment;
 import com.bailizhang.lynxdb.socket.common.ArenaBufferManager;
 import com.bailizhang.lynxdb.socket.exceptions.ReadCompletedException;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,15 +49,15 @@ public record SocketContext (
         return arenaBufferManager.readableArenaBuffer();
     }
 
-    public List<SocketRequest> requests() {
-        List<SocketRequest> requests = new ArrayList<>();
+    public List<SegmentSocketRequest> requests() {
+        List<SegmentSocketRequest> requests = new ArrayList<>();
         // 请求格式为 |长度|序列号|请求数据|
         try {
             while (true) {
                 int length = arenaBufferManager.readInt();
                 int serial = arenaBufferManager.readInt();
-                ByteBuffer[] data = arenaBufferManager.read(length - INT_LENGTH);
-                requests.add(new SocketRequest(selectionKey, serial, data));
+                Segment[] data = arenaBufferManager.read(length - INT_LENGTH);
+                requests.add(new SegmentSocketRequest(selectionKey, serial, data));
             }
         } catch (ReadCompletedException ignored) {}
 

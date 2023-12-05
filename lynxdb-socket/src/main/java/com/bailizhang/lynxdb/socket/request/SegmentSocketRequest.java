@@ -1,11 +1,12 @@
 package com.bailizhang.lynxdb.socket.request;
 
-import java.nio.ByteBuffer;
+import com.bailizhang.lynxdb.core.arena.Segment;
+
 import java.nio.channels.SelectionKey;
 
-public record SocketRequest(
+public record SegmentSocketRequest(
         SelectionKey selectionKey,
         int serial,
-        ByteBuffer[] data
+        Segment[] data
 ) {
 }

@@ -6,7 +6,7 @@ import com.bailizhang.lynxdb.core.recorder.IRunnable;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +78,8 @@ public class IoEventHandler implements Runnable {
             isDisconnected = true;
         }
 
-        List<SocketRequest> requests = context.requests();
-        for(SocketRequest request : requests) {
+        List<SegmentSocketRequest> requests = context.requests();
+        for(SegmentSocketRequest request : requests) {
             handler.handleRequest(request);
         }
 

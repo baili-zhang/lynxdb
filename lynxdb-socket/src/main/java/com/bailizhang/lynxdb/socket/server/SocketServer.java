@@ -88,7 +88,7 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                     SelectionKey selectionKey = iterator.next();
                     try {
                         SocketContext context = contexts.get(selectionKey);
-                        if(context == null && selectionKey.channel() instanceof SocketChannel) {
+                        if(context == null) {
                             context = SocketContext.create(selectionKey);
                             contexts.put(selectionKey, context);
                         }

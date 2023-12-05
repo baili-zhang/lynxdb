@@ -5,10 +5,11 @@ import com.bailizhang.lynxdb.core.common.LynxDbFuture;
 import com.bailizhang.lynxdb.core.executor.Executor;
 import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.recorder.IRunnable;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.SocketUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.ByteBufferSocketRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_READ_DA
 import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.CLIENT_WRITE_DATA_TO_SOCKET;
 
 
-public class SocketClient extends Executor<SocketRequest> implements AutoCloseable {
+public class SocketClient extends Executor<ByteBufferSocketRequest> implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
 
     private final static int DEFAULT_KEEP_ALIVE_TIME = 30;
@@ -127,7 +128,7 @@ public class SocketClient extends Executor<SocketRequest> implements AutoCloseab
     }
 
     @Override
-    public void offerInterruptibly(SocketRequest request) {
+    public void offerInterruptibly(ByteBufferSocketRequest request) {
         SelectionKey selectionKey = request.selectionKey();
 
         ConnectionContext context = contexts.get(request.selectionKey());
@@ -154,7 +155,7 @@ public class SocketClient extends Executor<SocketRequest> implements AutoCloseab
 
         int requestSerial = serial.getAndIncrement();
 
-        SocketRequest request = new SocketRequest(
+        ByteBufferSocketRequest request = new ByteBufferSocketRequest(
                 selectionKey,
                 requestSerial,
                 data
@@ -324,17 +325,19 @@ public class SocketClient extends Executor<SocketRequest> implements AutoCloseab
 
         private void doWrite() throws Exception {
             ConnectionContext context = contexts.get(selectionKey);
-            SocketRequest request = context.peekRequest();
+            ByteBufferSocketRequest request = context.peekRequest();
+            ByteBuffer[] data = request.data();
 
             FlightDataRecorder recorder = FlightDataRecorder.recorder();
 
             IRunnable write = () -> {
-
+                SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+                socketChannel.write(data);
             };
 
             recorder.recordE(write, CLIENT_WRITE_DATA_TO_SOCKET);
 
-            if(request.isWriteCompleted()) {
+            if(BufferUtils.isOver(data)) {
                 context.pollRequest();
                 /* 处理主动退出的 selectionKey */
                 if(exitKeys.contains(selectionKey) && context.sizeOfRequests() == 0) {

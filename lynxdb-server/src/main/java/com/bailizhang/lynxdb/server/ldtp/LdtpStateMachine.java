@@ -25,8 +25,6 @@ import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.LEAVE_CLUSTER;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 @CheckThreadSafety
 public class LdtpStateMachine implements StateMachine {
@@ -63,17 +61,17 @@ public class LdtpStateMachine implements StateMachine {
                 throw new RuntimeException();
             }
 
-            SelectionKey selectionKey = request.selectionKey();
-            int serial = request.serial();
-
-            ByteBuffer buffer = ByteBuffer.wrap(request.data());
-            byte type = buffer.get();
-
-            switch (type) {
-                case LDTP_METHOD -> engineExecutor.offerInterruptibly(request);
-                case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
-                default -> throw new RuntimeException();
-            }
+//            SelectionKey selectionKey = request.selectionKey();
+//            int serial = request.serial();
+//
+//            ByteBuffer buffer = ByteBuffer.wrap(request.data());
+//            byte type = buffer.get();
+//
+//            switch (type) {
+//                case LDTP_METHOD -> engineExecutor.offerInterruptibly(request);
+//                case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+//                default -> throw new RuntimeException();
+//            }
         }
     }
 

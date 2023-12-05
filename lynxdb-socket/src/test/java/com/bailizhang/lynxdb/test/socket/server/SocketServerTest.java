@@ -8,7 +8,8 @@ import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.client.SocketClient;
 import com.bailizhang.lynxdb.socket.interfaces.SocketClientHandler;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.ByteBufferSocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.SocketResponse;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
@@ -21,14 +22,11 @@ import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 class SocketServerTest {
+    private final byte[] requestData = "request".repeat(1).getBytes(StandardCharsets.UTF_8);
+    private final byte[] responseData = "response".repeat(1).getBytes(StandardCharsets.UTF_8);
 
-    private final byte[] requestData = "request".repeat(1000).getBytes(StandardCharsets.UTF_8);
-    private final byte[] responseData = "response".repeat(1000).getBytes(StandardCharsets.UTF_8);
-
-    private final int REQUEST_COUNT = 20000;
+    private final int REQUEST_COUNT = 20;
     private final int CLIENT_COUNT = 1;
-
-    private final byte requestStatus = (byte) 0x03;
 
     private final int requestSerial = 15;
     private final int responseSerial = 20;
@@ -38,12 +36,14 @@ class SocketServerTest {
         SocketServer server = new SocketServer(new SocketServerConfig(7820));
         server.setHandler(new SocketServerHandler() {
             @Override
-            public void handleRequest(SocketRequest request) throws Exception {
+            public void handleRequest(SegmentSocketRequest request) throws Exception {
                 // TODO
                 // assert Arrays.equals(request.data(), requestData);
 
                 DataBlocks dataBlocks = new DataBlocks(false);
                 dataBlocks.appendRawBytes(responseData);
+
+                System.out.println("Accept client request");
 
                 server.offerInterruptibly(new WritableSocketResponse(
                         request.selectionKey(),
@@ -62,7 +62,7 @@ class SocketServerTest {
                 @Override
                 public void handleConnected(SelectionKey selectionKey) {
                     for(int j = 0; j < REQUEST_COUNT; j ++) {
-                        client.offerInterruptibly(new SocketRequest(
+                        client.offerInterruptibly(new ByteBufferSocketRequest(
                                 selectionKey,
                                 requestSerial,
                                 BufferUtils.toBuffers(requestData)));

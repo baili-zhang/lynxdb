@@ -1,20 +1,21 @@
 package com.bailizhang.lynxdb.socket.common;
 
 import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
+import com.bailizhang.lynxdb.core.arena.Segment;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.exceptions.ReadCompletedException;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
 public class ArenaBufferManager {
-    private final List<ArenaBuffer> arenaBuffers = new ArrayList<>();
-    private final ListIterator<ArenaBuffer> current = arenaBuffers.listIterator();
-    private int position;
+    private final List<ArenaBuffer> arenaBuffers = new LinkedList<>();
+    private int position = 0;
 
     public ArenaBuffer readableArenaBuffer() {
         if(arenaBuffers.isEmpty()) {
@@ -37,64 +38,63 @@ public class ArenaBufferManager {
         arenaBuffers.forEach(ArenaAllocator::dealloc);
     }
 
-    public ByteBuffer[] read(int length) throws ReadCompletedException {
-        // 检查数据足够吗
-        int idx = current.nextIndex();
-        int size = arenaBuffers.size();
-
-        int readableLength = 0, tempPosition = position, bufferCount = 0;
-        for(int i = idx; i < size; i ++) {
-            ByteBuffer buffer = arenaBuffers.get(i).buffer();
-            int bufferPosition = buffer.position();
-            if(bufferPosition == 0) {
-                break;
-            }
-            if(bufferPosition == tempPosition) {
-                continue;
-            }
-            readableLength += bufferPosition - tempPosition;
-            bufferCount ++;
-            tempPosition = 0;
+    public Segment[] read(int length) throws ReadCompletedException {
+        if(arenaBuffers.isEmpty()) {
+            throw new RuntimeException();
         }
 
-        if(readableLength < length) {
+        int size = arenaBuffers.size();
+        int total = arenaBuffers.getLast().buffer().position()
+                + (size - 1) * ArenaAllocator.ARENA_BUFFER_SIZE;
+
+        // 检查数据足够吗
+        if(position + length > total) {
             throw new ReadCompletedException();
         }
 
-        ByteBuffer[] buffers = new ByteBuffer[bufferCount];
-        int i = 0;
-        while (current.hasNext()) {
-            position = 0;
-            ArenaBuffer arenaBuffer = current.next();
+        int idx = position / ArenaAllocator.ARENA_BUFFER_SIZE;
+
+        List<Segment> segments = new ArrayList<>();
+        for(int i = idx; i < size && length > 0; i ++) {
+            ArenaBuffer arenaBuffer = arenaBuffers.get(i);
             ByteBuffer buffer = arenaBuffer.buffer();
+            int bufferPosition = buffer.position();
 
-            if(position == buffer.position()) {
-                continue;
-            }
+            int readPosition = position % ArenaAllocator.ARENA_BUFFER_SIZE;
+            int readLength = Math.min(length, bufferPosition - readPosition);
 
-            int readLength = Math.min(buffer.position() - position, length);
-            buffers[i] = buffer.slice(position, readLength).asReadOnlyBuffer();
-            i ++;
+            Segment segment = arenaBuffer.alloc(readPosition, readLength);
+
+            segments.add(segment);
+            length -= readLength;
             position += readLength;
-
-            if(i >= bufferCount) {
-                return buffers;
-            }
         }
 
-        throw new ReadCompletedException();
+        clearFreeBuffers();
+
+        return segments.toArray(Segment[]::new);
     }
 
     public int readInt() throws ReadCompletedException {
-        ByteBuffer[] buffers = read(INT_LENGTH);
-        if(buffers.length == 1) {
-            return buffers[0].getInt();
+        Segment[] segments = read(INT_LENGTH);
+        if(segments.length == 1) {
+            return segments[0].buffer().getInt();
         }
 
         ByteBuffer intBuffer = BufferUtils.intByteBuffer();
-        for (ByteBuffer buffer : buffers) {
-            intBuffer.put(buffer);
+        for (Segment segment : segments) {
+            intBuffer.put(segment.buffer());
         }
         return intBuffer.getInt();
+    }
+
+    public void clearFreeBuffers() {
+        ArenaBuffer arenaBuffer;
+        while (!arenaBuffers.isEmpty()
+                && (arenaBuffer = arenaBuffers.getFirst()).isClear()) {
+            ArenaAllocator.dealloc(arenaBuffer);
+            arenaBuffers.removeFirst();
+            position -= ArenaAllocator.ARENA_BUFFER_SIZE;
+        }
     }
 }

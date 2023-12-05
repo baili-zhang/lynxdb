@@ -1,5 +1,7 @@
 package com.bailizhang.lynxdb.core.arena;
 
+import com.bailizhang.lynxdb.core.arena.exceptions.ArenaOverflowException;
+
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
@@ -24,18 +26,18 @@ public class Arena {
         maxClearBit = 0;
     }
 
-    public synchronized ArenaBuffer alloc() {
+    public synchronized ArenaBuffer alloc() throws ArenaOverflowException {
         // 因为 alloc 内存并不是频繁发生，所以直接使用 cardinality() 计算
         if(bitSet.cardinality() == bufferCount) {
-            // TODO 内存分配满后的处理
-            throw new RuntimeException();
+            throw new ArenaOverflowException();
         }
 
         int nextClearBit = bitSet.nextClearBit(maxClearBit);
+        bitSet.set(nextClearBit);
         maxClearBit = (nextClearBit + 1) % bufferCount;
 
         ByteBuffer allocBuffer = buffer.slice(nextClearBit * allocSize, allocSize);
-        return new ArenaBuffer(nextClearBit, allocBuffer);
+        return ArenaBuffer.create(nextClearBit, allocBuffer);
     }
 
     public synchronized void dealloc(ArenaBuffer arenaBuffer) {

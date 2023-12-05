@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.server;
 
+import com.bailizhang.lynxdb.core.arena.Segment;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.core.*;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
@@ -9,7 +10,7 @@ import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.result.*;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.result.RedirectResult;
 import org.slf4j.Logger;
@@ -33,10 +34,10 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     @Override
-    public void handleRequest(SocketRequest request) {
+    public void handleRequest(SegmentSocketRequest request) {
         SelectionKey selectionKey = request.selectionKey();
         int serial = request.serial();
-        ByteBuffer[] data = request.data();
+        Segment[] data = request.data();
 
 //        byte type = buffer.get();
 //
@@ -187,15 +188,15 @@ public class RaftServerHandler implements SocketServerHandler {
             byte[] data = buffer.array();
             int idx = raftRpcHandler.persistenceClientRequest(data);
 
-            ClientRequest request = new ClientRequest(
-                    selectionKey,
-                    idx,
-                    serial,
-                    data
-            );
-
-            UncommittedClientRequests requests = UncommittedClientRequests.requests();
-            requests.add(request);
+//            ClientRequest request = new ClientRequest(
+//                    selectionKey,
+//                    idx,
+//                    serial,
+//                    data
+//            );
+//
+//            UncommittedClientRequests requests = UncommittedClientRequests.requests();
+//            requests.add(request);
 
             logger.info("Add client request to UncommittedClientRequests.");
 

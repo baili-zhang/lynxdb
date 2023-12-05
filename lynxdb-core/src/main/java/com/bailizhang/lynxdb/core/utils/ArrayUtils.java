@@ -17,7 +17,7 @@ public interface ArrayUtils {
         return origin.length - target.length;
     }
 
-    static boolean isEmpty(byte[] src) {
+    static boolean isEmpty(Object[] src) {
         return src == null || src.length == 0;
     }
 
@@ -29,5 +29,19 @@ public interface ArrayUtils {
     static long toLong(byte[] data) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
         return buffer.getLong();
+    }
+
+    static <T> T first(T[] arr) {
+        if(arr.length == 0) {
+            throw new IndexOutOfBoundsException();
+        }
+        return arr[0];
+    }
+
+    static <T> T last(T[] arr) {
+        if(arr.length == 0) {
+            throw new IndexOutOfBoundsException();
+        }
+        return arr[arr.length - 1];
     }
 }
