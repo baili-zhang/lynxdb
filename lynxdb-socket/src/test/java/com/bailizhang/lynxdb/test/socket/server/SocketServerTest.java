@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 
 class SocketServerTest {
-    private final byte[] requestData = "request".repeat(10).getBytes(StandardCharsets.UTF_8);
+    private final byte[] requestData = "request".repeat(1000).getBytes(StandardCharsets.UTF_8);
     private final byte[] responseData = "response".repeat(10).getBytes(StandardCharsets.UTF_8);
 
     private final int REQUEST_COUNT = 20000;
@@ -38,7 +38,7 @@ class SocketServerTest {
         SocketServer server = new SocketServer(new SocketServerConfig(7820));
         server.setHandler(new SocketServerHandler() {
             @Override
-            public void handleRequest(SegmentSocketRequest request) throws Exception {
+            public void handleRequest(SegmentSocketRequest request) {
                 Segment[] data = request.data();
                 Buffers buffers = Segment.buffers(data);
                 byte[] rawData = buffers.toBytes();

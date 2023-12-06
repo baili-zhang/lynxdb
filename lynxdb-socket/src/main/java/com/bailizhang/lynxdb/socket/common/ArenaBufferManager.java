@@ -24,7 +24,7 @@ public class ArenaBufferManager {
         }
 
         ArenaBuffer arenaBuffer = arenaBuffers.getLast();
-        if(!BufferUtils.isOver(arenaBuffer.buffer())) {
+        if(arenaBuffer.notFull()) {
             return arenaBuffer;
         }
 
@@ -43,7 +43,7 @@ public class ArenaBufferManager {
         }
 
         int size = arenaBuffers.size();
-        int total = arenaBuffers.getLast().buffer().position()
+        int total = arenaBuffers.getLast().position()
                 + (size - 1) * ArenaAllocator.ARENA_BUFFER_SIZE;
 
         // 检查数据足够吗
@@ -56,8 +56,7 @@ public class ArenaBufferManager {
         List<Segment> segments = new ArrayList<>();
         for(int i = idx; i < size && length > 0; i ++) {
             ArenaBuffer arenaBuffer = arenaBuffers.get(i);
-            ByteBuffer buffer = arenaBuffer.buffer();
-            int bufferPosition = buffer.position();
+            int bufferPosition = arenaBuffer.position();
 
             int readPosition = position % ArenaAllocator.ARENA_BUFFER_SIZE;
             int readLength = Math.min(length, bufferPosition - readPosition);
@@ -69,14 +68,14 @@ public class ArenaBufferManager {
             position += readLength;
         }
 
-        clearFreeBuffers();
-
         return segments.toArray(Segment[]::new);
     }
 
     public int readInt() throws ReadCompletedException {
         Segment[] segments = read(INT_LENGTH);
         if(segments.length == 1) {
+            // 返还分配的内存
+            Segment.deallocAll(segments);
             return segments[0].buffer().getInt();
         }
 
@@ -84,6 +83,8 @@ public class ArenaBufferManager {
         for (Segment segment : segments) {
             intBuffer.put(segment.buffer());
         }
+        // 返还分配的内存
+        Segment.deallocAll(segments);
         return intBuffer.rewind().getInt();
     }
 

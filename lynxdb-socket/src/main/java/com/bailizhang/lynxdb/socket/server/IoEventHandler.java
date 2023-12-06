@@ -3,7 +3,6 @@ package com.bailizhang.lynxdb.socket.server;
 import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
 import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
 import com.bailizhang.lynxdb.core.recorder.IRunnable;
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.client.CountDownSync;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
 import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
@@ -13,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -25,6 +23,8 @@ import static com.bailizhang.lynxdb.socket.measure.MeasureOptions.WRITE_DATA_TO_
 
 public class IoEventHandler implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(IoEventHandler.class);
+
+    private static final int MAX_ARENA_BUFFERS_TO_READ = 10;
 
     private final SocketContext context;
     private final CountDownSync latch;
@@ -59,13 +59,13 @@ public class IoEventHandler implements Runnable {
         IRunnable read = () -> {
             SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
-            while (true) {
+            int times = MAX_ARENA_BUFFERS_TO_READ;
+            while ((times --) > 0) {
                 ArenaBuffer arenaBuffer = context.readableArenaBuffer();
 
-                ByteBuffer buffer = arenaBuffer.buffer();
-                socketChannel.read(buffer);
+                arenaBuffer.read(socketChannel);
 
-                if(BufferUtils.isNotOver(buffer)) {
+                if(arenaBuffer.notFull()) {
                     return;
                 }
             }
@@ -118,10 +118,10 @@ public class IoEventHandler implements Runnable {
         try {
             if (selectionKey.isAcceptable()) {
                 doAccept();
-            } else if (selectionKey.isReadable()) {
-                doRead();
             } else if (selectionKey.isWritable()) {
                 doWrite();
+            } else if (selectionKey.isReadable()) {
+                doRead();
             }
         } catch (Exception e) {
             e.printStackTrace();

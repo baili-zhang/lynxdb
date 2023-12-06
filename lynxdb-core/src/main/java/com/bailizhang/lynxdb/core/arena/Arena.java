@@ -37,7 +37,7 @@ public class Arena {
         maxClearBit = (nextClearBit + 1) % bufferCount;
 
         ByteBuffer allocBuffer = buffer.slice(nextClearBit * allocSize, allocSize);
-        return ArenaBuffer.create(nextClearBit, allocBuffer);
+        return new ArenaBuffer(nextClearBit, allocBuffer);
     }
 
     public synchronized void dealloc(ArenaBuffer arenaBuffer) {

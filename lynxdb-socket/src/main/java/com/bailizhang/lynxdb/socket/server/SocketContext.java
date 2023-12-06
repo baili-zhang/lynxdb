@@ -61,6 +61,8 @@ public record SocketContext (
             }
         } catch (ReadCompletedException ignored) {}
 
+        arenaBufferManager.clearFreeBuffers();
+
         return requests;
     }
 
