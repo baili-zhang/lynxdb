@@ -93,9 +93,8 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                             contexts.put(selectionKey, context);
                         }
                         executor.execute(new IoEventHandler(context, latch, handler));
-                    } catch (RejectedExecutionException e) {
+                    } catch (RejectedExecutionException ignored) {
                         latch.countDown();
-                        e.printStackTrace();
                     }
                     iterator.remove();
                 }

@@ -118,9 +118,13 @@ public class IoEventHandler implements Runnable {
         try {
             if (selectionKey.isAcceptable()) {
                 doAccept();
-            } else if (selectionKey.isWritable()) {
+            }
+
+            if (selectionKey.isWritable()) {
                 doWrite();
-            } else if (selectionKey.isReadable()) {
+            }
+
+            if (selectionKey.isReadable()) {
                 doRead();
             }
         } catch (Exception e) {

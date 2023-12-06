@@ -3,9 +3,10 @@ package com.bailizhang.lynxdb.socket.server;
 import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
 import com.bailizhang.lynxdb.core.arena.Segment;
 import com.bailizhang.lynxdb.socket.common.ArenaBufferManager;
-import com.bailizhang.lynxdb.socket.exceptions.ReadCompletedException;
 import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ public record SocketContext (
         ConcurrentLinkedQueue<WritableSocketResponse> responses,
         ArenaBufferManager arenaBufferManager
 ) {
+
+    private static final Logger logger = LoggerFactory.getLogger(SocketContext.class);
 
     public static SocketContext create(SelectionKey selectionKey) {
         return new SocketContext(
@@ -50,18 +53,25 @@ public record SocketContext (
     }
 
     public List<SegmentSocketRequest> requests() {
+        // 清除之前被释放的内存
+        arenaBufferManager.clearFreeBuffers();
+
         List<SegmentSocketRequest> requests = new ArrayList<>();
         // 请求格式为 |长度|序列号|请求数据|
-        try {
-            while (true) {
-                int length = arenaBufferManager.readInt();
-                int serial = arenaBufferManager.readInt();
-                Segment[] data = arenaBufferManager.read(length - INT_LENGTH);
-                requests.add(new SegmentSocketRequest(selectionKey, serial, data));
+        while (true) {
+            if(arenaBufferManager.notEnoughToRead(INT_LENGTH)) {
+                break;
             }
-        } catch (ReadCompletedException ignored) {}
+            int length = arenaBufferManager.readInt(false);
+            if(arenaBufferManager.notEnoughToRead(INT_LENGTH + length)) {
+                break;
+            }
 
-        arenaBufferManager.clearFreeBuffers();
+            arenaBufferManager.incrementPosition(INT_LENGTH);
+            int serial = arenaBufferManager.readInt(true);
+            Segment[] data = arenaBufferManager.read(length - INT_LENGTH, true);
+            requests.add(new SegmentSocketRequest(selectionKey, serial, data));
+        }
 
         return requests;
     }

@@ -7,7 +7,6 @@ module lynxdb.socket {
 
     exports com.bailizhang.lynxdb.socket.client;
     exports com.bailizhang.lynxdb.socket.common;
-    exports com.bailizhang.lynxdb.socket.exceptions;
     exports com.bailizhang.lynxdb.socket.interfaces;
     exports com.bailizhang.lynxdb.socket.request;
     exports com.bailizhang.lynxdb.socket.response;

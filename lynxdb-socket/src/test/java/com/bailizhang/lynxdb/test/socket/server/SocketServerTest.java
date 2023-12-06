@@ -22,13 +22,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class SocketServerTest {
-    private final byte[] requestData = "request".repeat(1000).getBytes(StandardCharsets.UTF_8);
+    private final byte[] requestData = "request".repeat(1001).getBytes(StandardCharsets.UTF_8);
     private final byte[] responseData = "response".repeat(10).getBytes(StandardCharsets.UTF_8);
 
     private final int REQUEST_COUNT = 20000;
-    private final int CLIENT_COUNT = 10;
+    private final int CLIENT_COUNT = 20;
 
     private final int requestSerial = 15;
     private final int responseSerial = 20;
@@ -37,12 +38,14 @@ class SocketServerTest {
     void execute() throws Exception {
         SocketServer server = new SocketServer(new SocketServerConfig(7820));
         server.setHandler(new SocketServerHandler() {
+            private final AtomicInteger i = new AtomicInteger(0);
             @Override
             public void handleRequest(SegmentSocketRequest request) {
                 Segment[] data = request.data();
                 Buffers buffers = Segment.buffers(data);
                 byte[] rawData = buffers.toBytes();
 
+                System.out.println(i.getAndIncrement());
                 assert Arrays.equals(rawData, requestData);
 
                 Segment.deallocAll(data);
