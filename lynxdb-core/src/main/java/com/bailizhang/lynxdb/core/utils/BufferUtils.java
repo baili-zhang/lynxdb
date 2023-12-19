@@ -3,8 +3,6 @@ package com.bailizhang.lynxdb.core.utils;
 import com.bailizhang.lynxdb.core.common.G;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.*;
 
@@ -30,14 +28,6 @@ public interface BufferUtils {
     static String getRemainingString(ByteBuffer buffer) {
         byte[] bytes = getRemaining(buffer);
         return new String(bytes);
-    }
-
-    static byte[] toBytes(Collection<byte[]> src) {
-        AtomicInteger length = new AtomicInteger(0);
-        src.forEach(bytes -> length.getAndAdd(INT_LENGTH + bytes.length));
-        ByteBuffer buffer = ByteBuffer.allocate(length.get());
-        src.forEach(bytes -> buffer.putInt(bytes.length).put(bytes));
-        return buffer.array();
     }
 
     static byte[] toBytes(Object o) {
@@ -85,13 +75,27 @@ public interface BufferUtils {
     /* 判断ByteBuffer是否读结束（或写结束） */
     static boolean isOver(ByteBuffer byteBuffer) {
         if(byteBuffer == null) {
-            return false;
+            throw new RuntimeException();
         }
         return byteBuffer.position() == byteBuffer.limit();
     }
 
+    static boolean isOver(ByteBuffer[] buffers) {
+        int len = buffers.length;
+        if(len == 0) {
+            throw new RuntimeException();
+        }
+
+        ByteBuffer lastBuffer = buffers[len-1];
+        return lastBuffer.position() == lastBuffer.limit();
+    }
+
     static boolean isNotOver(ByteBuffer byteBuffer) {
         return !isOver(byteBuffer);
+    }
+
+    static ByteBuffer byteByteBuffer(byte value) {
+        return ByteBuffer.allocate(BYTE_LENGTH).put(value).rewind();
     }
 
     static ByteBuffer intByteBuffer() {
@@ -100,5 +104,52 @@ public interface BufferUtils {
 
     static ByteBuffer intByteBuffer(int value) {
         return ByteBuffer.allocate(INT_LENGTH).putInt(value).rewind();
+    }
+
+    static ByteBuffer longByteBuffer(long value) {
+        return ByteBuffer.allocate(LONG_LENGTH).putLong(value).rewind();
+    }
+
+    static void write(ByteBuffer buffer, int offset, ByteBuffer[] data) {
+        for(ByteBuffer dataBuffer : data) {
+            if(BufferUtils.isOver(dataBuffer)) {
+                continue;
+            }
+
+            int dataPosition = dataBuffer.position();
+
+            int rem = buffer.limit() - offset;
+            int dataRem = dataBuffer.limit() - dataPosition;
+            int writeLen = Math.min(rem, dataRem);
+
+            buffer.put(offset, dataBuffer, dataPosition, writeLen);
+
+            offset += writeLen;
+            buffer.position(offset);
+
+            dataPosition += writeLen;
+            dataBuffer.position(dataPosition);
+
+            if(BufferUtils.isOver(buffer)) {
+                return;
+            }
+        }
+    }
+
+    static ByteBuffer[] toBuffers(byte[] ...data) {
+        int len = data.length;
+        ByteBuffer[] buffers = new ByteBuffer[len];
+        for(int i = 0; i < len; i ++) {
+            buffers[i] = ByteBuffer.wrap(data[i]);
+        }
+        return buffers;
+    }
+
+    static int length(ByteBuffer[] buffers) {
+        int len = 0;
+        for(ByteBuffer buffer : buffers) {
+            len += buffer.limit();
+        }
+        return len;
     }
 }

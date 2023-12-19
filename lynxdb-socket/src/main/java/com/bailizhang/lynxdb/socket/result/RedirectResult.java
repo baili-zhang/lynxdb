@@ -1,19 +1,19 @@
 package com.bailizhang.lynxdb.socket.result;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
+
+import java.nio.ByteBuffer;
 
 import static com.bailizhang.lynxdb.ldtp.result.ResultType.REDIRECT;
 
-public record RedirectResult(ServerNode other) implements BytesListConvertible {
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList();
+public record RedirectResult(ServerNode other) {
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(true);
 
-        bytesList.appendRawByte(REDIRECT);
-        bytesList.appendVarStr(other.toString());
+        dataBlocks.appendRawByte(REDIRECT);
+        dataBlocks.appendVarStr(other.toString());
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 }

@@ -1,7 +1,5 @@
 package com.bailizhang.lynxdb.raft.core;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -9,7 +7,7 @@ public class UncommittedClientRequests {
     private static final UncommittedClientRequests requests = new UncommittedClientRequests();
 
     private final PriorityQueue<ClientRequest> requestQueue =
-            new PriorityQueue<>(Comparator.comparingInt(ClientRequest::idx));
+            new PriorityQueue<>();
 
     private UncommittedClientRequests() {
 
@@ -24,13 +22,6 @@ public class UncommittedClientRequests {
     }
 
     public List<ClientRequest> pollUntil(int idx) {
-        List<ClientRequest> polled = new ArrayList<>();
-
-        while((requestQueue.peek() != null) && (requestQueue.peek().idx() <= idx)) {
-             ClientRequest request = requestQueue.poll();
-             polled.add(request);
-        }
-
-        return polled;
+        throw new UnsupportedOperationException();
     }
 }

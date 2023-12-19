@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
@@ -13,8 +12,7 @@ public record LogIndex(
         int dataBegin,
         int dataLength,
         long crc32c
-) implements BytesListConvertible {
-
+) {
     public static final int ENTRY_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
 
     public static LogIndex from(ByteBuffer buffer) {
@@ -61,13 +59,12 @@ public record LogIndex(
         );
     }
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(deleteFlag);
-        bytesList.appendRawInt(dataBegin);
-        bytesList.appendRawInt(dataLength);
-        bytesList.appendRawLong(crc32c);
-        return bytesList;
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(deleteFlag);
+        dataBlocks.appendRawInt(dataBegin);
+        dataBlocks.appendRawInt(dataLength);
+        dataBlocks.appendRawLong(crc32c);
+        return dataBlocks.toBuffers();
     }
 }

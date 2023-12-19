@@ -1,7 +1,7 @@
 module lynxdb.server {
     requires lynxdb.core;
     requires lynxdb.socket;
-    requires lynxdb.lsmtree;
+    requires lynxdb.table;
     requires lynxdb.raft;
     requires lynxdb.timewheel;
     requires lynxdb.ldtp;

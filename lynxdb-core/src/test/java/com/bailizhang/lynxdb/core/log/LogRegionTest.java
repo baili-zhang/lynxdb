@@ -12,19 +12,20 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 class LogRegionTest {
-    private static final String BASE_DIR = System.getProperty("user.dir") + "/logs";
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/data/log_region_test";
 
-    private static final int LOG_ENTRY_COUNT = 100;
+    private static final int LOG_ENTRY_COUNT = 200;
+    private static final int REPEAT_TIMES = 1;
     private static final String COMMAND = "command";
 
     private LogRegion logRegion;
-    private LogGroupOptions options;
 
     @BeforeEach
     void setUp() {
         G.I.converter(new Converter(StandardCharsets.UTF_8));
-        options = new LogGroupOptions();
-        options.regionCapacity(200);
+        LogGroupOptions options = new LogGroupOptions();
+        options.regionCapacity(LOG_ENTRY_COUNT);
+        options.regionBlockSize(1000);
 
         FileUtils.createDirIfNotExisted(BASE_DIR);
 
@@ -39,15 +40,15 @@ class LogRegionTest {
     @Test
     void append() {
         for(int i = 0; i < LOG_ENTRY_COUNT; i ++) {
-            String temp = COMMAND.repeat(1024) + i;
+            String temp = COMMAND.repeat(REPEAT_TIMES) + i;
             logRegion.appendEntry(G.I.toBytes(temp));
         }
 
-        int globalIndexBegin = options.regionCapacityOrDefault(0) * logRegion.id();
+        int globalIndexBegin = logRegion.globalIdxBegin();
 
         for(int i = globalIndexBegin; i < LOG_ENTRY_COUNT + globalIndexBegin; i ++) {
             LogEntry entry = logRegion.readEntry(i);
-            String temp = COMMAND.repeat(1024) + (i - globalIndexBegin);
+            String temp = COMMAND.repeat(REPEAT_TIMES) + (i - globalIndexBegin);
             assert Arrays.equals(entry.data(), G.I.toBytes(temp));
         }
     }

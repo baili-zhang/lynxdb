@@ -5,8 +5,8 @@ import com.bailizhang.lynxdb.client.annotation.LynxDbColumnFamily;
 import com.bailizhang.lynxdb.client.annotation.LynxDbKey;
 import com.bailizhang.lynxdb.client.annotation.LynxDbMainColumn;
 import com.bailizhang.lynxdb.core.common.*;
-import com.bailizhang.lynxdb.core.health.RecordOption;
-import com.bailizhang.lynxdb.core.health.RecordUnit;
+import com.bailizhang.lynxdb.core.recorder.RecordOption;
+import com.bailizhang.lynxdb.core.recorder.RecordUnit;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FieldUtils;
 import com.bailizhang.lynxdb.core.utils.ReflectionUtils;
@@ -88,15 +88,15 @@ public class LynxDbConnection {
     }
 
     public byte[] find(byte[] key, String columnFamily, String column) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(LdtpMethod.FIND_BY_KEY_CF_COLUMN);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendVarStr(column);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(LdtpMethod.FIND_BY_KEY_CF_COLUMN);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
+        dataBlocks.appendVarStr(column);
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -111,18 +111,18 @@ public class LynxDbConnection {
     }
 
     public HashMap<String, byte[]> findMultiColumns(byte[] key, String columnFamily, String... findColumns) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(FIND_MULTI_COLUMNS);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(FIND_MULTI_COLUMNS);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
 
         for(String findColumn : findColumns) {
-            bytesList.appendVarStr(findColumn);
+            dataBlocks.appendVarStr(findColumn);
         }
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -200,17 +200,17 @@ public class LynxDbConnection {
             long timeout,
             byte[] value
     ) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(LdtpMethod.INSERT);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendVarStr(column);
-        bytesList.appendRawLong(timeout);
-        bytesList.appendVarBytes(value);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(LdtpMethod.INSERT);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
+        dataBlocks.appendVarStr(column);
+        dataBlocks.appendRawLong(timeout);
+        dataBlocks.appendVarBytes(value);
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -240,20 +240,20 @@ public class LynxDbConnection {
             long timeout,
             HashMap<String, byte[]> multiColumns
     ) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendRawLong(timeout);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(LdtpMethod.INSERT_MULTI_COLUMNS);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
+        dataBlocks.appendRawLong(timeout);
 
         multiColumns.forEach((column, value) -> {
-            bytesList.appendVarStr(column);
-            bytesList.appendVarBytes(value);
+            dataBlocks.appendVarStr(column);
+            dataBlocks.appendVarBytes(value);
         });
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -322,20 +322,20 @@ public class LynxDbConnection {
             long timeout,
             HashMap<String, byte[]> multiColumns
     ) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(LdtpMethod.INSERT_IF_NOT_EXISTED);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarBytes(columnFamily);
-        bytesList.appendRawLong(timeout);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(LdtpMethod.INSERT_IF_NOT_EXISTED);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarBytes(columnFamily);
+        dataBlocks.appendRawLong(timeout);
 
         multiColumns.forEach((column, value) -> {
-            bytesList.appendVarStr(column);
-            bytesList.appendVarBytes(value);
+            dataBlocks.appendVarStr(column);
+            dataBlocks.appendVarBytes(value);
         });
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -392,39 +392,19 @@ public class LynxDbConnection {
         return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
     }
 
-    public void delete(byte[] key, String columnFamily, String column) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(DELETE);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendVarStr(column);
-
-        SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
-
-        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
-        byte[] data = future.get();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.VOID) {
-            throw new RuntimeException();
-        }
-    }
-
     public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(DELETE_MULTI_COLUMNS);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(DELETE);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
 
         for(String deleteColumn : deleteColumns) {
-            bytesList.appendVarStr(deleteColumn);
+            dataBlocks.appendVarStr(deleteColumn);
         }
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -520,15 +500,15 @@ public class LynxDbConnection {
             String columnFamily,
             String mainColumn
     ) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(LdtpMethod.EXIST_KEY);
-        bytesList.appendVarBytes(key);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendVarStr(mainColumn);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(LdtpMethod.EXIST_KEY);
+        dataBlocks.appendVarBytes(key);
+        dataBlocks.appendVarStr(columnFamily);
+        dataBlocks.appendVarStr(mainColumn);
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -557,13 +537,13 @@ public class LynxDbConnection {
     }
 
     public void join(String node) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(JOIN_CLUSTER);
-        bytesList.appendRawStr(node);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(JOIN_CLUSTER);
+        dataBlocks.appendRawStr(node);
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -579,11 +559,11 @@ public class LynxDbConnection {
     }
 
     public List<Pair<RecordOption, Long>> flightRecorder() throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(FLIGHT_RECORDER);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(FLIGHT_RECORDER);
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();
@@ -616,20 +596,20 @@ public class LynxDbConnection {
             byte method,
             String... findColumns
     ) throws ConnectException {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawByte(LDTP_METHOD);
-        bytesList.appendRawByte(method);
-        bytesList.appendVarStr(columnFamily);
-        bytesList.appendVarStr(mainColumn);
-        bytesList.appendVarBytes(baseKey);
-        bytesList.appendRawInt(limit);
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawByte(LDTP_METHOD);
+        dataBlocks.appendRawByte(method);
+        dataBlocks.appendVarStr(columnFamily);
+        dataBlocks.appendVarStr(mainColumn);
+        dataBlocks.appendVarBytes(baseKey);
+        dataBlocks.appendRawInt(limit);
 
         for(String findColumn : findColumns) {
-            bytesList.appendVarStr(findColumn);
+            dataBlocks.appendVarStr(findColumn);
         }
 
         SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, bytesList.toBytes());
+        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
 
         LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
         byte[] data = future.get();

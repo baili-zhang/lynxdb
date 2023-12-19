@@ -7,7 +7,6 @@ public class SocketServerConfig {
     private static final int DEFAULT_BLOCKING_QUEUE_SIZE = 200;
     private static final String DEFAULT_IO_THREAD_NAME_PREFIX = "Default-IO-Thread-";
     private static final int DEFAULT_BACKLOG = 20;
-    private static final int DEFAULT_MESSAGE_PORT = 7263;
 
     /** IO线程池的核心池大小 */
     private int coreSize = DEFAULT_CORE_SIZE;
@@ -23,8 +22,6 @@ public class SocketServerConfig {
     private final int port;
     /** 服务器的最大连接数 */
     private int backlog = DEFAULT_BACKLOG;
-
-    private int messagePort = DEFAULT_MESSAGE_PORT;
 
     public SocketServerConfig(int port) {
         this.port = port;
@@ -86,15 +83,6 @@ public class SocketServerConfig {
 
     public SocketServerConfig backlog(int backlog) {
         this.backlog = backlog;
-        return this;
-    }
-
-    public int messagePort() {
-        return messagePort;
-    }
-
-    public SocketServerConfig messagePort(int messagePort) {
-        this.messagePort = messagePort;
         return this;
     }
 }

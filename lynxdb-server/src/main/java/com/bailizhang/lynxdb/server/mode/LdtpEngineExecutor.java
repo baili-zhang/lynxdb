@@ -1,18 +1,20 @@
 package com.bailizhang.lynxdb.server.mode;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
+import com.bailizhang.lynxdb.core.arena.Segment;
+import com.bailizhang.lynxdb.core.buffers.Buffers;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.executor.Executor;
-import com.bailizhang.lynxdb.core.health.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.recorder.FlightDataRecorder;
+import com.bailizhang.lynxdb.core.utils.ArrayUtils;
 import com.bailizhang.lynxdb.server.engine.LdtpStorageEngine;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
 import com.bailizhang.lynxdb.server.engine.result.QueryResult;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.server.SocketServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
@@ -20,7 +22,7 @@ import java.util.concurrent.locks.LockSupport;
 import static com.bailizhang.lynxdb.ldtp.request.RequestType.FLIGHT_RECORDER;
 import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
 
-public class LdtpEngineExecutor extends Executor<SocketRequest> {
+public class LdtpEngineExecutor extends Executor<SegmentSocketRequest> {
     private static final Logger logger = LoggerFactory.getLogger(LdtpEngineExecutor.class);
 
     private static final String TASKS_THREAD_NAME = "tasks-thread";
@@ -45,7 +47,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
     @Override
     protected void execute() {
-        SocketRequest request = blockPoll();
+        SegmentSocketRequest request = blockPoll();
 
         if(request == null) {
             return;
@@ -53,19 +55,27 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
 
         SelectionKey selectionKey = request.selectionKey();
         int serial = request.serial();
-        byte[] data = request.data();
+        Segment[] data = request.data();
+        Buffers buffers = Segment.buffers(request.data());
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte flag = buffer.get();
+        assert !ArrayUtils.isEmpty(data);
+
+        byte flag = buffers.get();
 
         switch (flag) {
             case LDTP_METHOD -> {
-                tasksQueue.offer(() -> handleLdtpMethod(selectionKey, serial, buffer));
+                tasksQueue.offer(() -> {
+                    handleLdtpMethod(selectionKey, serial, buffers);
+                    Segment.deallocAll(data);
+                });
                 LockSupport.unpark(tasksThread);
             }
 
             case FLIGHT_RECORDER -> {
-                tasksQueue.offer(() -> handleDataRecorder(selectionKey, serial, buffer));
+                tasksQueue.offer(() -> {
+                    handleDataRecorder(selectionKey, serial, buffers);
+                    Segment.deallocAll(data);
+                });
                 LockSupport.unpark(tasksThread);
             }
 
@@ -85,8 +95,8 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         }
     }
 
-    private void handleLdtpMethod(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        QueryParams queryParams = QueryParams.parse(buffer);
+    private void handleLdtpMethod(SelectionKey selectionKey, int serial, Buffers buffers) {
+        QueryParams queryParams = QueryParams.parse(buffers);
 
         logger.info("Handle client request, params: {}", queryParams);
 
@@ -97,7 +107,7 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                result.data()
+                result.data().toBuffers()
         );
 
         logger.info("Offer response to server executor, {}", response);
@@ -106,26 +116,25 @@ public class LdtpEngineExecutor extends Executor<SocketRequest> {
         server.offerInterruptibly(response);
     }
 
-    private void handleDataRecorder(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
-        assert !buffer.hasRemaining();
+    private void handleDataRecorder(SelectionKey selectionKey, int serial, Buffers buffers) {
+        assert !buffers.hasRemaining();
 
         FlightDataRecorder recorder = FlightDataRecorder.recorder();
         var data = recorder.data();
 
-        BytesList bytesList = new BytesList();
+        DataBlocks dataBlocks = new DataBlocks(true);
         data.forEach(pair -> {
-            bytesList.appendVarStr(pair.left().name());
-            bytesList.appendRawByte(pair.left().unit().value());
-            bytesList.appendRawLong(pair.right());
+            dataBlocks.appendVarStr(pair.left().name());
+            dataBlocks.appendRawByte(pair.left().unit().value());
+            dataBlocks.appendRawLong(pair.right());
         });
 
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                bytesList
+                dataBlocks.toBuffers()
         );
 
         server.offerInterruptibly(response);
     }
-
 }

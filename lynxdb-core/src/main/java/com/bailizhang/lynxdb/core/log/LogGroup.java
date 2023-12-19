@@ -1,9 +1,11 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -86,7 +88,11 @@ public class LogGroup implements Iterable<LogEntry> {
         return logEntries.isEmpty() ? null : logEntries.getFirst();
     }
 
-    public synchronized int appendEntry(byte[] data) {
+    public int appendEntry(byte[] data) {
+        return appendEntry(BufferUtils.toBuffers(data));
+    }
+
+    public synchronized int appendEntry(ByteBuffer[] data) {
         LogRegion region = lastRegion();
         int globalIdx = region.appendEntry(data);
 

@@ -11,8 +11,8 @@ public class AppendEntries extends NioMessage {
     public AppendEntries(SelectionKey selectionKey, AppendEntriesArgs args) {
         super(selectionKey);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(APPEND_ENTRIES);
-        bytesList.append(args);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(APPEND_ENTRIES);
+        dataBlocks.appendRawBuffers(args.toBuffers());
     }
 }

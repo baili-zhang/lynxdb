@@ -2,7 +2,7 @@ package com.bailizhang.lynxdb.server.mode.single;
 
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 
 public class SingleHandler implements SocketServerHandler {
     private final LdtpEngineExecutor engineExecutor;
@@ -12,7 +12,7 @@ public class SingleHandler implements SocketServerHandler {
     }
 
     @Override
-    public void handleRequest(SocketRequest request) {
+    public void handleRequest(SegmentSocketRequest request) {
         engineExecutor.offerInterruptibly(request);
     }
 }

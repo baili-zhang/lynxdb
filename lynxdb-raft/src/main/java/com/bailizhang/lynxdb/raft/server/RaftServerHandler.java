@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.raft.server;
 
+import com.bailizhang.lynxdb.core.arena.Segment;
 import com.bailizhang.lynxdb.core.log.LogEntry;
 import com.bailizhang.lynxdb.raft.core.*;
 import com.bailizhang.lynxdb.raft.request.AppendEntriesArgs;
@@ -9,7 +10,7 @@ import com.bailizhang.lynxdb.raft.request.RequestVoteArgs;
 import com.bailizhang.lynxdb.raft.result.*;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.interfaces.SocketServerHandler;
-import com.bailizhang.lynxdb.socket.request.SocketRequest;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.socket.result.RedirectResult;
 import org.slf4j.Logger;
@@ -20,8 +21,6 @@ import java.nio.channels.SelectionKey;
 import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.*;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 public class RaftServerHandler implements SocketServerHandler {
     private static final Logger logger = LoggerFactory.getLogger(RaftServerHandler.class);
@@ -35,23 +34,22 @@ public class RaftServerHandler implements SocketServerHandler {
     }
 
     @Override
-    public void handleRequest(SocketRequest request) {
+    public void handleRequest(SegmentSocketRequest request) {
         SelectionKey selectionKey = request.selectionKey();
         int serial = request.serial();
-        byte[] data = request.data();
+        Segment[] data = request.data();
 
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        byte type = buffer.get();
-
-        switch (type) {
-            case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
-            case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
-            default -> {
-                logger.info("Type is: {}", type);
-
-                throw new RuntimeException();
-            }
-        }
+//        byte type = buffer.get();
+//
+//        switch (type) {
+//            case LDTP_METHOD -> handleNeedPersistenceRequest(selectionKey, serial, buffer);
+//            case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+//            default -> {
+//                logger.info("Type is: {}", type);
+//
+//                throw new RuntimeException();
+//            }
+//        }
     }
 
     private void handleRaftRpc(SelectionKey selectionKey, int serial, ByteBuffer buffer) {
@@ -84,7 +82,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 lastLogTerm
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result.toBuffers());
         raftServer.offerInterruptibly(response);
     }
 
@@ -107,7 +105,7 @@ public class RaftServerHandler implements SocketServerHandler {
                 lastLogTerm
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result.toBuffers());
         raftServer.offerInterruptibly(response);
     }
 
@@ -134,7 +132,11 @@ public class RaftServerHandler implements SocketServerHandler {
                 leaderCommit
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 
@@ -163,7 +165,11 @@ public class RaftServerHandler implements SocketServerHandler {
                 done
         );
 
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 
@@ -182,15 +188,15 @@ public class RaftServerHandler implements SocketServerHandler {
             byte[] data = buffer.array();
             int idx = raftRpcHandler.persistenceClientRequest(data);
 
-            ClientRequest request = new ClientRequest(
-                    selectionKey,
-                    idx,
-                    serial,
-                    data
-            );
-
-            UncommittedClientRequests requests = UncommittedClientRequests.requests();
-            requests.add(request);
+//            ClientRequest request = new ClientRequest(
+//                    selectionKey,
+//                    idx,
+//                    serial,
+//                    data
+//            );
+//
+//            UncommittedClientRequests requests = UncommittedClientRequests.requests();
+//            requests.add(request);
 
             logger.info("Add client request to UncommittedClientRequests.");
 
@@ -208,14 +214,22 @@ public class RaftServerHandler implements SocketServerHandler {
         // 如果当前 leader 存在，则将客户端请求重定向到 leader
         if(leader != null) {
             RedirectResult result = new RedirectResult(leader);
-            WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+            WritableSocketResponse response = new WritableSocketResponse(
+                    selectionKey,
+                    serial,
+                    result.toBuffers()
+            );
             raftServer.offerInterruptibly(response);
             return;
         }
 
         // 如果 leader 不存在，返回 leader 不存在，不处理当前请求
         LeaderNotExistedResult result = new LeaderNotExistedResult();
-        WritableSocketResponse response = new WritableSocketResponse(selectionKey, serial, result);
+        WritableSocketResponse response = new WritableSocketResponse(
+                selectionKey,
+                serial,
+                result.toBuffers()
+        );
         raftServer.offerInterruptibly(response);
     }
 }

@@ -11,8 +11,8 @@ public class JoinCluster extends NioMessage {
     public JoinCluster(SelectionKey key, JoinClusterArgs args) {
         super(key);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(JOIN_CLUSTER);
-        bytesList.append(args);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(JOIN_CLUSTER);
+        dataBlocks.appendRawBuffers(args.toBuffers());
     }
 }

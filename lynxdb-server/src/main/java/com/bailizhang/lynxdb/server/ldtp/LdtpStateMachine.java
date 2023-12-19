@@ -2,12 +2,9 @@ package com.bailizhang.lynxdb.server.ldtp;
 
 import com.bailizhang.lynxdb.core.common.CheckThreadSafety;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.utils.ArrayUtils;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
-import com.bailizhang.lynxdb.lsmtree.LynxDbLsmTree;
-import com.bailizhang.lynxdb.lsmtree.Table;
-import com.bailizhang.lynxdb.lsmtree.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.raft.core.ClientRequest;
 import com.bailizhang.lynxdb.raft.result.JoinClusterResult;
 import com.bailizhang.lynxdb.raft.server.RaftServer;
@@ -16,6 +13,9 @@ import com.bailizhang.lynxdb.server.context.Configuration;
 import com.bailizhang.lynxdb.server.mode.LdtpEngineExecutor;
 import com.bailizhang.lynxdb.socket.client.ServerNode;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import com.bailizhang.lynxdb.table.LynxDbTable;
+import com.bailizhang.lynxdb.table.Table;
+import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -25,8 +25,6 @@ import java.util.List;
 
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.JOIN_CLUSTER;
 import static com.bailizhang.lynxdb.ldtp.request.RaftRpc.LEAVE_CLUSTER;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.LDTP_METHOD;
-import static com.bailizhang.lynxdb.ldtp.request.RequestType.RAFT_RPC;
 
 @CheckThreadSafety
 public class LdtpStateMachine implements StateMachine {
@@ -45,7 +43,7 @@ public class LdtpStateMachine implements StateMachine {
     public LdtpStateMachine() {
         Configuration config = Configuration.getInstance();
         LsmTreeOptions options = new LsmTreeOptions(config.raftMetaDir());
-        raftMetaTable = new LynxDbLsmTree(options);
+        raftMetaTable = new LynxDbTable(options);
     }
 
     public static void engineExecutor(LdtpEngineExecutor executor) {
@@ -63,17 +61,17 @@ public class LdtpStateMachine implements StateMachine {
                 throw new RuntimeException();
             }
 
-            SelectionKey selectionKey = request.selectionKey();
-            int serial = request.serial();
-
-            ByteBuffer buffer = ByteBuffer.wrap(request.data());
-            byte type = buffer.get();
-
-            switch (type) {
-                case LDTP_METHOD -> engineExecutor.offerInterruptibly(request);
-                case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
-                default -> throw new RuntimeException();
-            }
+//            SelectionKey selectionKey = request.selectionKey();
+//            int serial = request.serial();
+//
+//            ByteBuffer buffer = ByteBuffer.wrap(request.data());
+//            byte type = buffer.get();
+//
+//            switch (type) {
+//                case LDTP_METHOD -> engineExecutor.offerInterruptibly(request);
+//                case RAFT_RPC -> handleRaftRpc(selectionKey, serial, buffer);
+//                default -> throw new RuntimeException();
+//            }
         }
     }
 
@@ -138,7 +136,7 @@ public class LdtpStateMachine implements StateMachine {
             throw new RuntimeException();
         }
 
-        return ByteArrayUtils.toInt(val);
+        return ArrayUtils.toInt(val);
     }
 
     @Override
@@ -214,7 +212,7 @@ public class LdtpStateMachine implements StateMachine {
         WritableSocketResponse response = new WritableSocketResponse(
                 selectionKey,
                 serial,
-                result
+                result.toBuffers()
         );
         raftServer.offerInterruptibly(response);
     }

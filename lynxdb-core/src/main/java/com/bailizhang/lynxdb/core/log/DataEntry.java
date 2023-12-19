@@ -1,28 +1,24 @@
 package com.bailizhang.lynxdb.core.log;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
+import com.bailizhang.lynxdb.core.utils.Crc32cUtils;
 
-import java.util.zip.CRC32C;
+import java.nio.ByteBuffer;
 
 public record DataEntry(
-        byte[] data,
+        ByteBuffer[] data,
         long crc32c
-) implements BytesListConvertible {
+) {
 
-    public static DataEntry from(byte[] data) {
-        CRC32C dataCrc32C = new CRC32C();
-        dataCrc32C.update(data);
-        long dataCrc32c = dataCrc32C.getValue();
-
-        return new DataEntry(data, dataCrc32c);
+    public static DataEntry from(ByteBuffer[] data) {
+        long crc32c = Crc32cUtils.update(data);
+        return new DataEntry(data, crc32c);
     }
 
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
-        bytesList.appendRawBytes(data);
-        bytesList.appendRawLong(crc32c);
-        return bytesList;
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
+        dataBlocks.appendRawBuffers(data);
+        dataBlocks.appendRawLong(crc32c);
+        return dataBlocks.toBuffers();
     }
 }

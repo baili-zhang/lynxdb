@@ -1,27 +1,34 @@
 package com.bailizhang.lynxdb.socket.server;
 
-import com.bailizhang.lynxdb.socket.request.ReadableSocketRequest;
+import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
+import com.bailizhang.lynxdb.core.arena.Segment;
+import com.bailizhang.lynxdb.socket.common.ArenaBufferManager;
+import com.bailizhang.lynxdb.socket.request.SegmentSocketRequest;
 import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
-/* 保存还未写回客户端的响应，用一个队列来维护 */
-// TODO: 可读可写逻辑
-public class SocketContext {
-    private final SelectionKey selectionKey;
-    /* 响应队列 */
-    private final ConcurrentLinkedQueue<WritableSocketResponse> responses = new ConcurrentLinkedQueue<>();
-    /* 正在处理的请求数量 */
-    private final AtomicInteger requestCount = new AtomicInteger(0);
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
-    public SocketContext(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-    }
+public record SocketContext (
+        SelectionKey selectionKey,
+        ConcurrentLinkedQueue<WritableSocketResponse> responses,
+        ArenaBufferManager arenaBufferManager
+) {
 
-    public SelectionKey selectionKey() {
-        return selectionKey;
+    private static final Logger logger = LoggerFactory.getLogger(SocketContext.class);
+
+    public static SocketContext create(SelectionKey selectionKey) {
+        return new SocketContext(
+                selectionKey,
+                new ConcurrentLinkedQueue<>(),
+                new ArenaBufferManager()
+        );
     }
 
     public void pollResponse() {
@@ -41,15 +48,36 @@ public class SocketContext {
         return responses.isEmpty();
     }
 
-    public void increaseRequestCount() {
-        selectionKey.attach(new ReadableSocketRequest(selectionKey));
-        requestCount.getAndIncrement();
+    public ArenaBuffer readableArenaBuffer() {
+        return arenaBufferManager.readableArenaBuffer();
     }
 
-    public void decreaseRequestCount() {
-        requestCount.getAndDecrement();
-        if(requestCount.get() == 0) {
-            selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+    public List<SegmentSocketRequest> requests() {
+        // 清除之前被释放的内存
+        arenaBufferManager.clearFreeBuffers();
+
+        List<SegmentSocketRequest> requests = new ArrayList<>();
+        // 请求格式为 |长度|序列号|请求数据|
+        while (true) {
+            if(arenaBufferManager.notEnoughToRead(INT_LENGTH)) {
+                break;
+            }
+            int length = arenaBufferManager.readInt(false);
+            if(arenaBufferManager.notEnoughToRead(INT_LENGTH + length)) {
+                break;
+            }
+
+            arenaBufferManager.incrementPosition(INT_LENGTH);
+            int serial = arenaBufferManager.readInt(true);
+            Segment[] data = arenaBufferManager.read(length - INT_LENGTH, true);
+            requests.add(new SegmentSocketRequest(selectionKey, serial, data));
         }
+
+        return requests;
+    }
+
+    public void destroy() {
+        selectionKey.cancel();
+        arenaBufferManager.dealloc();
     }
 }

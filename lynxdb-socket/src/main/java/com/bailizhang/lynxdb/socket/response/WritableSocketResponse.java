@@ -1,7 +1,5 @@
 package com.bailizhang.lynxdb.socket.response;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.socket.common.NioMessage;
 import com.bailizhang.lynxdb.socket.interfaces.Writable;
@@ -12,45 +10,28 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class WritableSocketResponse extends NioMessage implements Writable {
-    private final ByteBuffer buffer;
+    private final ByteBuffer[] buffers;
     private final Object extraData;
 
     public WritableSocketResponse(
             SelectionKey selectionKey,
             int serial,
-            BytesList list
+            ByteBuffer[] data
     ) {
-        this(selectionKey, serial, list, null);
+        this(selectionKey, serial, data, null);
     }
 
     public WritableSocketResponse(
             SelectionKey selectionKey,
             int serial,
-            BytesListConvertible convertible
-    ) {
-        this(selectionKey, serial, convertible.toBytesList(), null);
-    }
-
-    public WritableSocketResponse(
-            SelectionKey selectionKey,
-            int serial,
-            BytesListConvertible convertible,
-            Object extraData
-    ) {
-        this(selectionKey, serial, convertible.toBytesList(), extraData);
-    }
-
-    public WritableSocketResponse(
-            SelectionKey selectionKey,
-            int serial,
-            BytesList list,
+            ByteBuffer[] data,
             Object extraData
     ) {
         super(true, selectionKey);
-        bytesList.appendRawInt(serial);
-        bytesList.append(list);
+        dataBlocks.appendRawInt(serial);
+        dataBlocks.appendRawBuffers(data);
 
-        buffer = ByteBuffer.wrap(bytesList.toBytes());
+        buffers = dataBlocks.toBuffers();
 
         this.extraData = extraData;
     }
@@ -63,12 +44,12 @@ public class WritableSocketResponse extends NioMessage implements Writable {
     public void write() throws IOException {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
         if(!isWriteCompleted()) {
-            channel.write(buffer);
+            channel.write(buffers);
         }
     }
 
     @Override
     public boolean isWriteCompleted() {
-        return BufferUtils.isOver(buffer);
+        return BufferUtils.isOver(buffers);
     }
 }

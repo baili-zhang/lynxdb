@@ -40,34 +40,29 @@ public class SocketServer extends Executor<WritableSocketResponse> {
     private class IoThreadFactory implements ThreadFactory {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
 
-        public Thread newThread(Runnable r) {
-            return new Thread(r, config.ioThreadNamePrefix() + threadNumber.getAndIncrement());
+        public Thread newThread(Runnable runnable) {
+            return new Thread(runnable, config.ioThreadNamePrefix() + threadNumber.getAndIncrement());
         }
     }
 
     public SocketServer(SocketServerConfig socketServerConfig) throws IOException {
         this.config = socketServerConfig;
 
-        this.executor = new ThreadPoolExecutor(config.coreSize(),
+        this.executor = new ThreadPoolExecutor(
+                config.coreSize(),
                 config.maxPoolSize(),
                 config.keepAliveTime(),
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(config.blockingQueueSize()),
                 new IoThreadFactory(),
-                new ThreadPoolExecutor.AbortPolicy());
+                new ThreadPoolExecutor.AbortPolicy()
+        );
 
         selector = Selector.open();
 
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.bind(new InetSocketAddress(config.port()), config.backlog());
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-    }
-
-    public void startRegisterServer() throws IOException {
-        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(new InetSocketAddress(config.messagePort()), config.backlog());
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
     }
 
@@ -94,13 +89,12 @@ public class SocketServer extends Executor<WritableSocketResponse> {
                     try {
                         SocketContext context = contexts.get(selectionKey);
                         if(context == null) {
-                            context = new SocketContext(selectionKey);
+                            context = SocketContext.create(selectionKey);
                             contexts.put(selectionKey, context);
                         }
                         executor.execute(new IoEventHandler(context, latch, handler));
-                    } catch (RejectedExecutionException e) {
+                    } catch (RejectedExecutionException ignored) {
                         latch.countDown();
-                        e.printStackTrace();
                     }
                     iterator.remove();
                 }

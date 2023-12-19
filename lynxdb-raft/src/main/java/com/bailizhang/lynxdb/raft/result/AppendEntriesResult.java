@@ -1,7 +1,6 @@
 package com.bailizhang.lynxdb.raft.result;
 
-import com.bailizhang.lynxdb.core.common.BytesList;
-import com.bailizhang.lynxdb.core.common.BytesListConvertible;
+import com.bailizhang.lynxdb.core.common.DataBlocks;
 
 import java.nio.ByteBuffer;
 
@@ -11,17 +10,16 @@ import static com.bailizhang.lynxdb.ldtp.result.ResultType.RAFT_RPC;
 public record AppendEntriesResult(
         int term,
         byte success
-) implements BytesListConvertible {
-    @Override
-    public BytesList toBytesList() {
-        BytesList bytesList = new BytesList(false);
+) {
+    public ByteBuffer[] toBuffers() {
+        DataBlocks dataBlocks = new DataBlocks(false);
 
-        bytesList.appendRawByte(RAFT_RPC);
-        bytesList.appendRawByte(APPEND_ENTRIES);
-        bytesList.appendRawInt(term);
-        bytesList.appendRawByte(success);
+        dataBlocks.appendRawByte(RAFT_RPC);
+        dataBlocks.appendRawByte(APPEND_ENTRIES);
+        dataBlocks.appendRawInt(term);
+        dataBlocks.appendRawByte(success);
 
-        return bytesList;
+        return dataBlocks.toBuffers();
     }
 
     public static AppendEntriesResult from(ByteBuffer buffer) {

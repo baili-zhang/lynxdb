@@ -1,13 +1,16 @@
 package com.bailizhang.lynxdb.core.log;
 
+import com.bailizhang.lynxdb.core.common.Bytes;
 import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.mmap.MappedBuffer;
-import com.bailizhang.lynxdb.core.utils.ByteArrayUtils;
+import com.bailizhang.lynxdb.core.utils.ArrayUtils;
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,10 +20,7 @@ import java.util.zip.CRC32C;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
-/**
- * 维护内存数据和磁盘数据
- * 元数据区 索引区 数据区
- */
+
 public class LogRegion {
     private interface Default {
         int DATA_BLOCK_SIZE = 1024 * 1024;
@@ -33,12 +33,13 @@ public class LogRegion {
         int MAGIC_NUMBER_POSITION = 0;
         int DELETED_LENGTH_POSITION = INT_LENGTH;
         int TOTAL_LENGTH_POSITION = INT_LENGTH * 2;
-        int BEGIN_GLOBAL_ID_POSITION = INT_LENGTH * 3;
-        int END_GLOBAL_ID_POSITION = INT_LENGTH * 4;
+        int BEGIN_GLOBAL_IDX_POSITION = INT_LENGTH * 3;
+        int END_GLOBAL_IDX_POSITION = INT_LENGTH * 4;
         int CRC_POSITION = INT_LENGTH * 5;
     }
 
     private final int capacity;
+    private final int dataBlockSize;
     private final int dataBeginPosition;
 
     private final int id;
@@ -54,13 +55,17 @@ public class LogRegion {
         this.options = options;
 
         capacity = options.regionCapacityOrDefault(Default.CAPACITY);
+        dataBlockSize = options.regionBlockSizeOrDefault(Default.DATA_BLOCK_SIZE);
         // index 区域的总长度
         int indexBlockLength = LogIndex.ENTRY_LENGTH * capacity;
         // data 区域的开始位置
         dataBeginPosition = Meta.LENGTH + indexBlockLength;
 
-        path = Path.of(dir, NameUtils.name(id) + FileType.LOG_GROUP_REGION_FILE.suffix());
-        FileUtils.createFileIfNotExisted(path.toFile());
+        String filename = NameUtils.name(id) + FileType.LOG_GROUP_REGION_FILE.suffix();
+        path = FileUtils.createFileIfNotExisted(
+                dir,
+                filename
+        ).toPath();
 
         metaBuffer = new MappedBuffer(
                 path,
@@ -74,8 +79,8 @@ public class LogRegion {
             buffer.putInt(Meta.MAGIC_NUMBER_POSITION, FileType.LOG_GROUP_REGION_FILE.magicNumber());
             buffer.putInt(Meta.DELETED_LENGTH_POSITION, 0);
             buffer.putInt(Meta.TOTAL_LENGTH_POSITION, 0);
-            buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, (id - 1) * capacity + 1);
-            buffer.putInt(Meta.END_GLOBAL_ID_POSITION, (id - 1) * capacity);
+            buffer.putInt(Meta.BEGIN_GLOBAL_IDX_POSITION, (id - 1) * capacity + 1);
+            buffer.putInt(Meta.END_GLOBAL_IDX_POSITION, (id - 1) * capacity);
             generateMetaCrc();
         }
 
@@ -87,7 +92,7 @@ public class LogRegion {
         );
 
         int dataBlockLength = dataBlockLength();
-        int dataBlockCount = dataBlockLength / Default.DATA_BLOCK_SIZE + 1;
+        int dataBlockCount = dataBlockLength / dataBlockSize + 1;
 
         for(int i = 0; i < dataBlockCount; i ++) {
             MappedBuffer dataBuffer = mapDataBlockBuffer(i);
@@ -112,12 +117,12 @@ public class LogRegion {
 
     public int globalIdxBegin() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.BEGIN_GLOBAL_ID_POSITION);
+        return buffer.getInt(Meta.BEGIN_GLOBAL_IDX_POSITION);
     }
 
     public int globalIdxEnd() {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        return buffer.getInt(Meta.END_GLOBAL_ID_POSITION);
+        return buffer.getInt(Meta.END_GLOBAL_IDX_POSITION);
     }
 
     public void deletedLength(int len) {
@@ -138,14 +143,14 @@ public class LogRegion {
 
     void globalIdxBegin(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        buffer.putInt(Meta.BEGIN_GLOBAL_ID_POSITION, val);
+        buffer.putInt(Meta.BEGIN_GLOBAL_IDX_POSITION, val);
 
         generateMetaCrc();
     }
 
     void globalIdxEnd(int val) {
         MappedByteBuffer buffer = metaBuffer.getBuffer();
-        buffer.putInt(Meta.END_GLOBAL_ID_POSITION, val);
+        buffer.putInt(Meta.END_GLOBAL_IDX_POSITION, val);
 
         generateMetaCrc();
     }
@@ -155,17 +160,25 @@ public class LogRegion {
     }
 
     public int appendEntry(byte[] data) {
-        return appendEntry(Flags.EXISTED, data);
+        return appendEntry(BufferUtils.toBuffers(data));
     }
 
     public int appendEntry(byte deleteFlag, byte[] data) {
+        return appendEntry(deleteFlag, BufferUtils.toBuffers(data));
+    }
+
+    public int appendEntry(ByteBuffer[] data) {
+        return appendEntry(Flags.EXISTED, data);
+    }
+
+    public int appendEntry(byte deleteFlag, ByteBuffer[] data) {
         int globalIndexEnd = globalIdxEnd();
         LogIndex lastIndex = logIndex(globalIndexEnd);
 
         int idx = globalIndexEnd - globalIdxBegin() + 1;
 
         int dataBegin = lastIndex == null ? 0 : lastIndex.dataBegin() + lastIndex.dataLength();
-        int dataLength = data.length + LONG_LENGTH; // data 长度 + crc32c 校验的长度
+        int dataLength = BufferUtils.length(data) + LONG_LENGTH; // data 长度 + crc32c 校验的长度
 
         LogIndex index = LogIndex.from(
                 deleteFlag,
@@ -176,7 +189,7 @@ public class LogRegion {
         int indexOffset = idx * LogIndex.ENTRY_LENGTH;
 
         MappedByteBuffer indexByteBuffer = indexBuffer.getBuffer();
-        indexByteBuffer.put(indexOffset, index.toBytes());
+        BufferUtils.write(indexByteBuffer, indexOffset, index.toBuffers());
 
         if(options.isForce()) {
             indexByteBuffer.force();
@@ -185,14 +198,10 @@ public class LogRegion {
         DataEntry dataEntry = DataEntry.from(data);
 
         // data 块中的起始位置，也就是当前数据写入的位置
-        int dataBlockBegin = dataBegin - Default.DATA_BLOCK_SIZE * (dataBuffers.size() - 1);
-        List<byte[]> genData = dataEntry.toList();
+        int dataBlockBegin = dataBegin - dataBlockSize * (dataBuffers.size() - 1);
+        ByteBuffer[] buffers = dataEntry.toBuffers();
 
-        // TODO: 可不可以把这次内存拷贝也取消掉
-        for(byte[] genDataBytes : genData) {
-            writeData(genDataBytes, dataBlockBegin);
-            dataBlockBegin += genDataBytes.length;
-        }
+        writeData(buffers, dataBlockBegin);
 
         // 更新总长度（包括 CRC 校验的长度）
         totalLength(dataLength);
@@ -222,7 +231,7 @@ public class LogRegion {
             LogIndex index = entry.index();
 
             byte deleteFlag = index.deleteFlag();
-            byte[] data = deleteFlag == Flags.DELETED ? ByteArrayUtils.EMPTY_BYTES : entry.data();
+            byte[] data = deleteFlag == Flags.DELETED ? Bytes.EMPTY : entry.data();
 
             entries.add(new Pair<>(deleteFlag, data));
         }
@@ -260,7 +269,7 @@ public class LogRegion {
         CRC32C crc32C = new CRC32C();
         crc32C.update(data, 0, dataLength - LONG_LENGTH);
 
-        long originCrc32C = ByteArrayUtils.toLong(crc32cBytes);
+        long originCrc32C = ArrayUtils.toLong(crc32cBytes);
 
         if(crc32C.getValue() != originCrc32C) {
             throw new RuntimeException("File entry data wrong.");
@@ -283,7 +292,7 @@ public class LogRegion {
         MappedByteBuffer buffer = indexBuffer.getBuffer();
 
         int indexOffset = (globalIdx - globalIdxBegin()) * LogIndex.ENTRY_LENGTH;
-        buffer.put(indexOffset, newLogIndex.toBytes());
+        BufferUtils.write(buffer, indexOffset, newLogIndex.toBuffers());
 
         // 删除的长度包括数据的 CRC 校验和
         deletedLength(dataLength);
@@ -329,12 +338,13 @@ public class LogRegion {
     private MappedBuffer mapDataBlockBuffer(int i) {
         return new MappedBuffer(
                 path,
-                dataBeginPosition + (long) Default.DATA_BLOCK_SIZE * i,
-                Default.DATA_BLOCK_SIZE
+                dataBeginPosition + (long) dataBlockSize * i,
+                dataBlockSize
         );
     }
 
-    private void writeData(byte[] data, int begin) {
+    private void writeData(ByteBuffer[] buffers, int begin) {
+        // 拿到最后一个 dataBuffer
         MappedBuffer dataBuffer = dataBuffers.get(dataBuffers.size() - 1);
         if(dataBuffer == null) {
             dataBuffer = mapDataBlockBuffer(dataBuffers.size());
@@ -342,37 +352,31 @@ public class LogRegion {
         }
 
         MappedByteBuffer dataByteBuffer = dataBuffer.getBuffer();
-        dataByteBuffer.position(begin);
-        int dataOffset = 0;
 
-        while(dataOffset < data.length) {
-            // 写入最后一个数据块的剩余空间
-            int writeLength = Math.min(dataByteBuffer.remaining(), data.length - dataOffset);
-            dataByteBuffer.put(data, dataOffset, writeLength);
-            dataOffset += writeLength;
-
+        while(true) {
+            BufferUtils.write(dataByteBuffer, begin, buffers);
             dataBuffer.saveSnapshot(dataByteBuffer);
 
             if(options.isForce()) {
                 dataBuffer.force();
             }
 
-            if(dataOffset < data.length) {
-                // 写入一个新的数据块
-                dataBuffer = mapDataBlockBuffer(dataBuffers.size());
+            if(BufferUtils.isOver(buffers)) {
+                break;
+            }
 
+            // 如果 dataByteBuffer 全部写满了，创建新的 buffer
+            if(BufferUtils.isOver(dataByteBuffer)) {
+                dataBuffer = mapDataBlockBuffer(dataBuffers.size());
                 dataBuffers.add(dataBuffer);
                 dataByteBuffer = dataBuffer.getBuffer();
+                begin = 0;
             }
-        }
-
-        if(options.isForce()) {
-            dataByteBuffer.force();
         }
     }
 
     private byte[] readData(int begin, int length) {
-        int bufferIdx = begin / Default.DATA_BLOCK_SIZE;
+        int bufferIdx = begin / dataBlockSize;
         byte[] data = new byte[length];
 
         if(bufferIdx >= dataBuffers.size()) {
@@ -382,7 +386,7 @@ public class LogRegion {
         MappedBuffer dataBuffer = dataBuffers.get(bufferIdx);
         MappedByteBuffer buffer = dataBuffer.getBuffer();
 
-        buffer.position(begin - bufferIdx * Default.DATA_BLOCK_SIZE);
+        buffer.position(begin - bufferIdx * dataBlockSize);
         int dataOffset = 0;
 
         while (dataOffset < length) {

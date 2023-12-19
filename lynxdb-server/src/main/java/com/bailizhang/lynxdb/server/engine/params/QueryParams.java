@@ -1,13 +1,10 @@
 package com.bailizhang.lynxdb.server.engine.params;
 
-import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.buffers.Buffers;
 
-import java.nio.ByteBuffer;
-
-public record QueryParams (byte method, byte[] content) {
-    public static QueryParams parse(ByteBuffer buffer) {
-        byte method = buffer.get();
-        byte[] content = BufferUtils.getRemaining(buffer);
-        return new QueryParams(method, content);
+public record QueryParams (byte method, Buffers content) {
+    public static QueryParams parse(Buffers data) {
+        byte method = data.get();
+        return new QueryParams(method, data);
     }
 }

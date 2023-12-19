@@ -10,10 +10,25 @@ import java.util.concurrent.locks.LockSupport;
 @CheckThreadSafety("finished")
 public class LynxDbFuture<T> implements Future<T> {
     private static final int INIT = 0;
+    /**
+     * 线程等待，但是线程还未加入等待队列
+     */
     private static final int WAITING = 1;
+    /**
+     * 线程等待，线程已经加入等待队列
+     */
     private static final int WAITED = 2;
+    /**
+     * 完成，但是还未设置值
+     */
     private static final int COMPLETED = 3;
+    /**
+     * 已取消
+     */
     private static final int CANCELED = 4;
+    /**
+     * 完成，并且已经设置值
+     */
     private static final int FINAL = 5;
 
     private volatile int state = 0;
@@ -24,59 +39,62 @@ public class LynxDbFuture<T> implements Future<T> {
     }
 
     public void value(T val) {
-        // 不为初始状态
-        if(state != INIT || !STATE.compareAndSet(this, INIT, COMPLETED)) {
-            while (true) {
-                if(state == WAITING) {
-                    Thread.yield();
-                    continue;
-                }
+        while (true) {
+            if(state == INIT && STATE.compareAndSet(this, INIT, COMPLETED)) {
+                value = val;
+                STATE.setRelease(this, FINAL);
 
-                if(state == WAITED) {
-                    if(!STATE.compareAndSet(this, WAITED, COMPLETED)) {
-                        continue;
-                    }
+                // 用于确认
+                assert waiterThread == null;
 
-                    value = val;
-                    STATE.setRelease(this, FINAL);
-                    LockSupport.unpark(waiterThread);
-                    return;
-                }
-
-                throw new RuntimeException();
+                return;
             }
-        }
 
-        value = val;
-        STATE.setRelease(this, FINAL);
+            // 说明 waiterThread 还未设置完成
+            if(state == WAITING) {
+                Thread.yield();
+                continue;
+            }
+
+            if(state == WAITED && STATE.compareAndSet(this, WAITED, COMPLETED)) {
+                value = val;
+                STATE.setRelease(this, FINAL);
+
+                // 用于确认
+                assert waiterThread != null;
+
+                LockSupport.unpark(waiterThread);
+                return;
+            }
+
+            // 如果变成其他状态，报错
+            throw new RuntimeException("Has already set value");
+        }
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        // 如果当前状态不为 INIT
-        if(state != INIT || !STATE.compareAndSet(this, INIT, COMPLETED)) {
-            while (true) {
-                if(state == WAITING) {
-                    Thread.yield();
-                    continue;
-                }
-
-                if(state == WAITED) {
-                    if(!STATE.compareAndSet(this, WAITED, COMPLETED)) {
-                        continue;
-                    }
-
-                    STATE.setRelease(this, CANCELED);
-                    LockSupport.unpark(waiterThread);
-                    return true;
-                }
-
-                throw new RuntimeException();
+        while (true) {
+            if(state == INIT && STATE.compareAndSet(this, INIT, CANCELED)) {
+                assert waiterThread == null;
+                return true;
             }
-        }
 
-        STATE.setRelease(this, CANCELED);
-        return true;
+            // 说明 waiterThread 还未设置完成
+            if(state == WAITING) {
+                Thread.yield();
+                continue;
+            }
+
+            if(state == WAITED && STATE.compareAndSet(this, WAITED, CANCELED)) {
+                assert waiterThread != null;
+                LockSupport.unpark(waiterThread);
+                return true;
+            }
+
+            // 如果变成其他状态，报错
+            throw new RuntimeException();
+        }
     }
 
     @Override
@@ -86,30 +104,35 @@ public class LynxDbFuture<T> implements Future<T> {
 
     @Override
     public boolean isDone() {
-        return state == COMPLETED;
+        return state == FINAL;
     }
 
     @Override
     public T get() {
-        if(waiterThread != null && waiterThread != Thread.currentThread()) {
-            throw new RuntimeException();
-        }
+        while (true) {
+            if(waiterThread != null && waiterThread != Thread.currentThread()) {
+                throw new RuntimeException();
+            }
 
-        if(STATE.compareAndSet(this, INIT, WAITING)) {
-            waiterThread = Thread.currentThread();
-            STATE.setRelease(this, WAITED);
-            LockSupport.park();
-        }
+            if(state == INIT && STATE.compareAndSet(this, INIT, WAITING)) {
+                waiterThread = Thread.currentThread();
+                STATE.setRelease(this, WAITED);
+                LockSupport.park();
+            }
 
-        while (state == COMPLETED) {
-            Thread.yield();
-        }
+            if(state == COMPLETED) {
+                Thread.yield();
+                continue;
+            }
 
-        return switch (state) {
-            case FINAL -> value;
-            case CANCELED -> throw new CancellationException();
-            default -> throw new RuntimeException();
-        };
+            if(state == FINAL) {
+                return value;
+            }
+
+            if(state == CANCELED) {
+                throw new CancellationException();
+            }
+        }
     }
 
     @Override
