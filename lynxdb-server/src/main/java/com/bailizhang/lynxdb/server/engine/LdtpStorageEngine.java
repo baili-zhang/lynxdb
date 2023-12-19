@@ -161,25 +161,6 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     }
 
     @LdtpMethod(DELETE)
-    public QueryResult doDelete(QueryParams params) {
-        Buffers content = params.content();
-
-        byte[] key = content.nextPart().toBytes();
-        String columnFamily = content.nextStringPart();
-        String column = content.nextStringPart();
-
-        logger.debug("Delete key: {}, columnFamily: {}, column: {}.",
-                G.I.toString(key), columnFamily, column);
-
-        dataTable.delete(key, columnFamily, column);
-
-        DataBlocks dataBlocks = new DataBlocks(true);
-        dataBlocks.appendRawByte(VOID);
-
-        return new QueryResult(dataBlocks);
-    }
-
-    @LdtpMethod(DELETE_MULTI_COLUMNS)
     public QueryResult doDeleteMultiColumns(QueryParams params) {
         Buffers content = params.content();
 

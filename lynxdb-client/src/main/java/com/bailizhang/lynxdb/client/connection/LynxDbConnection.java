@@ -392,30 +392,10 @@ public class LynxDbConnection {
         return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
     }
 
-    public void delete(byte[] key, String columnFamily, String column) throws ConnectException {
-        DataBlocks dataBlocks = new DataBlocks(false);
-        dataBlocks.appendRawByte(LDTP_METHOD);
-        dataBlocks.appendRawByte(DELETE);
-        dataBlocks.appendVarBytes(key);
-        dataBlocks.appendVarStr(columnFamily);
-        dataBlocks.appendVarStr(column);
-
-        SelectionKey selectionKey = selectionKey();
-        int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
-
-        LynxDbFuture<byte[]> future = futureMapGet(selectionKey, serial);
-        byte[] data = future.get();
-
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        if (buffer.get() != LdtpCode.VOID) {
-            throw new RuntimeException();
-        }
-    }
-
     public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) throws ConnectException {
         DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(LDTP_METHOD);
-        dataBlocks.appendRawByte(DELETE_MULTI_COLUMNS);
+        dataBlocks.appendRawByte(DELETE);
         dataBlocks.appendVarBytes(key);
         dataBlocks.appendVarStr(columnFamily);
 
