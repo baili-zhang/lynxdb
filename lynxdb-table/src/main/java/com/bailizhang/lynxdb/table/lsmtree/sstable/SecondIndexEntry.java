@@ -1,18 +1,18 @@
-package com.bailizhang.lynxdb.table.entry;
+package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32C;
 
-public record IndexEntry(
+public record SecondIndexEntry(
         byte flag, // 是否删除
         int begin, // 顺序查找不需要，二分查找需要这个字段
         int length,
         long crc32c
 ) {
 
-    public static IndexEntry from(byte flag, int begin, int length) {
+    public static SecondIndexEntry from(byte flag, int begin, int length) {
         CRC32C crc32C = new CRC32C();
         crc32C.update(new byte[]{flag});
         crc32C.update(begin);
@@ -20,10 +20,10 @@ public record IndexEntry(
 
         long crc32c = crc32C.getValue();
 
-        return new IndexEntry(flag, begin, length, crc32c);
+        return new SecondIndexEntry(flag, begin, length, crc32c);
     }
 
-    public static IndexEntry from(ByteBuffer buffer) {
+    public static SecondIndexEntry from(ByteBuffer buffer) {
         byte flag = buffer.get();
         int begin = buffer.getInt();
         int length = buffer.getInt();
@@ -38,7 +38,7 @@ public record IndexEntry(
             throw new RuntimeException("Data Error");
         }
 
-        return new IndexEntry(flag, begin, length, crc32c);
+        return new SecondIndexEntry(flag, begin, length, crc32c);
     }
 
     public ByteBuffer[] toBuffers() {
