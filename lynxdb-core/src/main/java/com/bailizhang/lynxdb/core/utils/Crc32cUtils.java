@@ -7,7 +7,7 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
 
 public interface Crc32cUtils {
     static void check(ByteBuffer buffer) {
-        buffer.position(0);
+        buffer.rewind();
         int crc32cOffset = buffer.capacity() - LONG_LENGTH;
         buffer.limit(crc32cOffset);
 
@@ -21,13 +21,16 @@ public interface Crc32cUtils {
         if(crc32cValue != storeCrc32cValue) {
             throw new RuntimeException();
         }
+        buffer.rewind();
     }
 
     static long update(ByteBuffer buffer) {
+        // TODO
         return 0L;
     }
 
     static long update(ByteBuffer buffer, int limit) {
+        // TODO
         return 0L;
     }
 

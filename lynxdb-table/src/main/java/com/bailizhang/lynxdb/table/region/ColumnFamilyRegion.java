@@ -1,4 +1,4 @@
-package com.bailizhang.lynxdb.table.columnfamily;
+package com.bailizhang.lynxdb.table.region;
 
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
@@ -15,7 +15,7 @@ import java.util.List;
 public class ColumnFamilyRegion {
     public final static String COLUMNS_DIR = "columns";
 
-    private final HashMap<String, LsmTree> columnRegions = new HashMap<>();
+    private final HashMap<String, ColumnRegion> columnRegions = new HashMap<>();
 
     private final String columnFamily;
     private final LsmTreeOptions options;
@@ -31,7 +31,7 @@ public class ColumnFamilyRegion {
         columns.forEach(
                 column -> columnRegions.put(
                         column,
-                        new LsmTree(columnFamily, column, options)
+                        new ColumnRegion(columnFamily, column, options)
                 )
         );
     }
@@ -39,7 +39,7 @@ public class ColumnFamilyRegion {
     public LsmTree findColumnRegion(String column) {
         return columnRegions.computeIfAbsent(
                 column,
-                c -> new LsmTree(
+                c -> new ColumnRegion(
                         columnFamily,
                         c,
                         options
@@ -50,13 +50,13 @@ public class ColumnFamilyRegion {
     public HashMap<String, byte[]> findMultiColumns(byte[] key, String... findColumns) {
         HashMap<String, byte[]> multiColumns = new HashMap<>();
 
-        Collection<LsmTree> findColumnRegions;
+        Collection<ColumnRegion> findColumnRegions;
         if(findColumns == null || findColumns.length == 0) {
             findColumnRegions = columnRegions.values();
         } else {
             findColumnRegions = new ArrayList<>();
             for(String findColumn : findColumns) {
-                LsmTree columnRegion = columnRegions.get(findColumn);
+                ColumnRegion columnRegion = columnRegions.get(findColumn);
                 if(columnRegion != null) {
                     findColumnRegions.add(columnRegion);
                 }
@@ -82,14 +82,14 @@ public class ColumnFamilyRegion {
     }
 
     public void deleteMultiColumns(byte[] key, String... deleteColumns) {
-        Collection<LsmTree> deleteColumnRegions;
+        Collection<ColumnRegion> deleteColumnRegions;
 
         if(deleteColumns == null || deleteColumns.length == 0) {
             deleteColumnRegions = columnRegions.values();
         } else {
             deleteColumnRegions = new ArrayList<>();
             for(String deleteColumn : deleteColumns) {
-                LsmTree columnRegion = columnRegions.get(deleteColumn);
+                ColumnRegion columnRegion = columnRegions.get(deleteColumn);
                 deleteColumnRegions.add(columnRegion);
             }
         }

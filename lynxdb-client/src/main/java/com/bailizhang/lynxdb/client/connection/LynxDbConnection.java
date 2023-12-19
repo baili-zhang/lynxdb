@@ -392,7 +392,7 @@ public class LynxDbConnection {
         return insertIfNotExisted(G.I.toBytes(key), G.I.toBytes(columnFamily), timeout, multiColumns);
     }
 
-    public void deleteMultiColumns(byte[] key, String columnFamily, String... deleteColumns) throws ConnectException {
+    public void delete(byte[] key, String columnFamily, String... deleteColumns) throws ConnectException {
         DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(LDTP_METHOD);
         dataBlocks.appendRawByte(DELETE);
@@ -428,7 +428,7 @@ public class LynxDbConnection {
 
         byte[] key = G.I.toBytes((String) FieldUtils.get(obj, keyField));
 
-        deleteMultiColumns(key, columnFamily, deleteColumns);
+        delete(key, columnFamily, deleteColumns);
     }
 
     public List<Pair<byte[], HashMap<String, byte[]>>> rangeNext(

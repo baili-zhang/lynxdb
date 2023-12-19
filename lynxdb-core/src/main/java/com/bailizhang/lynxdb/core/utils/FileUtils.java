@@ -40,6 +40,11 @@ public interface FileUtils {
         }
     }
 
+    static boolean notExist(Path filePath) {
+        File file = filePath.toFile();
+        return !file.exists();
+    }
+
     static void createDir(File file) {
         try {
             Files.createDirectories(file.toPath());

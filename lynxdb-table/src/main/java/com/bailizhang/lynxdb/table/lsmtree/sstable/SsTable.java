@@ -1,5 +1,6 @@
 package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
+import com.bailizhang.lynxdb.core.common.Bytes;
 import com.bailizhang.lynxdb.core.common.FileType;
 import com.bailizhang.lynxdb.core.common.Flags;
 import com.bailizhang.lynxdb.core.common.Pair;
@@ -47,8 +48,9 @@ public class SsTable {
     private static final int SECOND_INDEX_ENTRY_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
 
     private final MetaHeader metaHeader;
+    private final byte[] beginKey;
+    private final byte[] endKey;
 
-    private final MappedBuffer metaBuffer;
     private final BloomFilter bloomFilter;
     private final MappedBuffer firstIndexBuffer;
     private final MappedBuffer secondIndexBuffer;
@@ -56,16 +58,24 @@ public class SsTable {
 
     private final LogGroup valueLogGroup;
 
+    /**
+     * Load SSTable from exist file.
+     *
+     * @param baseDir Base directory
+     * @param ssTableNo SSTable No.
+     * @param logGroup Value log group
+     */
     public SsTable(
             Path baseDir,
             int ssTableNo,
             LogGroup logGroup
     ) {
         String filename = NameUtils.name(ssTableNo) + FileType.SSTABLE_FILE.suffix();
-        Path filePath = FileUtils.createFileIfNotExisted(
-                baseDir.toString(),
-                filename
-        ).toPath();
+        Path filePath = Path.of(baseDir.toString(), filename);
+
+        if(FileUtils.notExist(filePath)) {
+            throw new RuntimeException();
+        }
 
         MappedBuffer metaHeaderBuffer = new MappedBuffer(
                 filePath,
@@ -74,11 +84,15 @@ public class SsTable {
         );
         metaHeader = MetaHeader.from(metaHeaderBuffer.getBuffer());
 
-        metaBuffer = new MappedBuffer(
+        MappedBuffer metaKeyBuffer = new MappedBuffer(
                 filePath,
-                META_HEADER_OFFSET,
-                metaHeader.metaRegionLength()
+                META_HEADER_LENGTH,
+                metaHeader.metaRegionLength() - META_HEADER_LENGTH
         );
+        MappedByteBuffer buffer = metaKeyBuffer.getBuffer();
+        Crc32cUtils.check(buffer);
+        beginKey = BufferUtils.getBytes(buffer);
+        endKey = BufferUtils.getBytes(buffer);
 
         bloomFilter = BloomFilter.from(
                 filePath,
@@ -112,7 +126,8 @@ public class SsTable {
 
     private SsTable(
             MetaHeader metaHeader,
-            MappedBuffer metaBuffer,
+            byte[] beginKey,
+            byte[] endKey,
             BloomFilter bloomFilter,
             MappedBuffer firstIndexBuffer,
             MappedBuffer secondIndexBuffer,
@@ -120,7 +135,8 @@ public class SsTable {
             LogGroup valueLogGroup
     ) {
         this.metaHeader = metaHeader;
-        this.metaBuffer = metaBuffer;
+        this.beginKey = beginKey;
+        this.endKey = endKey;
         this.bloomFilter = bloomFilter;
         this.firstIndexBuffer = firstIndexBuffer;
         this.secondIndexBuffer = secondIndexBuffer;
@@ -128,6 +144,17 @@ public class SsTable {
         this.valueLogGroup = valueLogGroup;
     }
 
+    /**
+     * Create a new SSTable
+     *
+     * @param baseDir Base directory
+     * @param ssTableNo SSTable No.
+     * @param levelNo Level No.
+     * @param options options
+     * @param keyEntries Key entries
+     * @param valueLogGroup Value log group
+     * @return SSTable
+     */
     public static SsTable create(
             Path baseDir,
             int ssTableNo,
@@ -233,7 +260,8 @@ public class SsTable {
 
         return new SsTable(
                 metaHeader,
-                metaBuffer,
+                beginKey,
+                endKey,
                 bloomFilter,
                 firstIndexBuffer,
                 secondIndexBuffer,
@@ -273,11 +301,17 @@ public class SsTable {
     }
 
     public byte[] find(byte[] key) throws DeletedException, TimeoutException {
-        int idx = findIdx(key);
-        if(idx >= metaHeader.keySize()) {
+        if(Arrays.compare(key, beginKey) < 0 || Arrays.compare(key, endKey) > 0) {
             return null;
         }
 
+        // 先查找一级索引
+        // TODO
+
+        // 再查二级索引
+        // TODO
+
+        int idx = findIdx(key);
         IndexEntry indexEntry = findIndexEntry(idx);
 
         if(indexEntry.flag() == Flags.DELETED) {
