@@ -15,12 +15,9 @@ import com.bailizhang.lynxdb.table.lsmtree.level.Levels;
 import com.bailizhang.lynxdb.table.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.table.schema.Key;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.*;
-
-import static com.bailizhang.lynxdb.table.region.ColumnFamilyRegion.COLUMNS_DIR;
 
 public class LsmTree {
     private static final String WAL_DIR = "wal";

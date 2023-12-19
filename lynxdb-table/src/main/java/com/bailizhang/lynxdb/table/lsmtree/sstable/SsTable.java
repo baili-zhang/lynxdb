@@ -93,8 +93,6 @@ public class SsTable {
         beginKey = BufferUtils.getBytes(buffer);
         endKey = BufferUtils.getBytes(buffer);
 
-        firstIndexEntries = new ArrayList<>();
-
         bloomFilter = BloomFilter.from(
                 filePath,
                 metaHeader.metaRegionLength(),
@@ -107,6 +105,11 @@ public class SsTable {
                 firstIndexRegionOffset,
                 metaHeader.firstIndexRegionLength()
         );
+        firstIndexEntries = new ArrayList<>();
+        ByteBuffer firstIndexRawBuffer = firstIndexBuffer.getBuffer();
+        while (BufferUtils.isNotOver(firstIndexRawBuffer)) {
+            firstIndexEntries.add(FirstIndexEntry.from(firstIndexRawBuffer));
+        }
 
         int secondIndexRegionOffset = firstIndexRegionOffset + metaHeader.firstIndexRegionLength();
         secondIndexBuffer = new MappedBuffer(
@@ -312,7 +315,8 @@ public class SsTable {
         int keyAmount = secondIndexRegion.keyAmount();
 
         // 再查二级索引
-        int idx = findSecondEntryIdx(key, keyAmount, buffer);
+        Pair<KeyEntry, Integer> one = binarySearch(key, keyAmount, buffer);
+        int idx = one.right();
         // 当前 Key 比 Region 最后一个 Key 还要大，所以不存在当前 Key
         if(idx >= keyAmount) {
             return null;
@@ -352,7 +356,8 @@ public class SsTable {
         ByteBuffer buffer = secondIndexRegion.buffer();
         int keyAmount = secondIndexRegion.keyAmount();
 
-        int idx = findSecondEntryIdx(key, keyAmount, buffer);
+        Pair<KeyEntry, Integer> one = binarySearch(key, keyAmount, buffer);
+        int idx = one.right();
 
         if(idx >= metaHeader.keyAmount()) {
             return false;
@@ -382,9 +387,10 @@ public class SsTable {
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys
     ) {
-        int idx = findIdxBiggerThan(beginKey);
+        Pair<Integer, Integer> info = findIdxBiggerThan(beginKey);
         return range(
-                idx,
+                info.left(),
+                info.right(),
                 limit,
                 deletedKeys,
                 existedKeys,
@@ -398,9 +404,10 @@ public class SsTable {
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys
     ) {
-        int idx = findIdxLessThan(endKey);
+        Pair<Integer, Integer> info = findIdxLessThan(endKey);
         return range(
-                idx,
+                info.left(),
+                info.right(),
                 limit,
                 deletedKeys,
                 existedKeys,
@@ -409,7 +416,8 @@ public class SsTable {
     }
 
     private List<Key> range(
-            int idx,
+            int firstIndexBeginIdx,
+            int secondIndexBeginIdx,
             int limit,
             HashSet<Key> deletedKeys,
             HashSet<Key> existedKeys,
@@ -417,25 +425,36 @@ public class SsTable {
     ) {
         List<Key> range = new ArrayList<>();
 
-        while (limit > 0 && idx < metaHeader.keyAmount() && idx >= 0) {
-            SecondIndexEntry secondIndexEntry = findSecondIndexEntry(isRangeNext ? idx ++ : idx --);
-            KeyEntry keyEntry = findKeyEntry(secondIndexEntry);
+        while (isRangeNext ? firstIndexBeginIdx < firstIndexEntries.size() : firstIndexBeginIdx > 0) {
+            SecondIndexRegion secondIndexRegion = findSecondIndexRegion(firstIndexBeginIdx);
+            ByteBuffer buffer = secondIndexRegion.buffer();
+            int keyAmount = secondIndexRegion.keyAmount();
 
-            Key key = new Key(keyEntry.key());
+            while (limit > 0 && secondIndexBeginIdx < keyAmount && secondIndexBeginIdx >= 0) {
+                SecondIndexEntry secondIndexEntry = findSecondIndexEntry(secondIndexBeginIdx, buffer);
+                secondIndexBeginIdx = isRangeNext ? secondIndexBeginIdx + 1 : secondIndexBeginIdx - 1;
 
-            if(secondIndexEntry.flag() == Flags.DELETED) {
-                deletedKeys.add(key);
-                continue;
+                KeyEntry keyEntry = findKeyEntry(secondIndexEntry);
+
+                Key key = new Key(keyEntry.key());
+
+                if(secondIndexEntry.flag() == Flags.DELETED) {
+                    deletedKeys.add(key);
+                    continue;
+                }
+
+                if(deletedKeys.contains(key) || existedKeys.contains(key)) {
+                    continue;
+                }
+
+                existedKeys.add(key);
+                range.add(key);
+
+                limit --;
             }
 
-            if(deletedKeys.contains(key) || existedKeys.contains(key)) {
-                continue;
-            }
-
-            existedKeys.add(key);
-            range.add(key);
-
-            limit --;
+            firstIndexBeginIdx = isRangeNext ? firstIndexBeginIdx + 1 : firstIndexBeginIdx - 1;
+            secondIndexBeginIdx = isRangeNext ? 0 : metaHeader.memTableSize() - 1;
         }
 
         return range;
@@ -447,50 +466,15 @@ public class SsTable {
     }
 
     // 找第一个大于等于 dbKey 的下标
-    private int findSecondEntryIdx(byte[] key, int keyAmount, ByteBuffer buffer) {
+    private Pair<KeyEntry, Integer> binarySearch(byte[] key, int keyAmount, ByteBuffer buffer) {
         int begin = 0, end = keyAmount - 1, mid, idx = keyAmount;
-
-        while(begin <= end) {
-            mid = begin + ((end - begin) >> 1);
-            SecondIndexEntry midSecondIndexEntry = findSecondIndexEntry(mid, buffer);
-            KeyEntry midKeyEntry = findKeyEntry(midSecondIndexEntry);
-
-            if(Arrays.compare(key, midKeyEntry.key()) <= 0) {
-                idx = mid;
-                end = mid - 1;
-            } else {
-                begin = mid + 1;
-            }
-        }
-
-        return idx;
-    }
-
-    private int findIdxBiggerThan(byte[] key) {
-        Pair<KeyEntry, Integer> result = binarySearch(key);
-        KeyEntry midKeyEntry = result.left();
-        int idx = result.right();
-
-        return Arrays.equals(key, midKeyEntry.key()) ? idx + 1 : idx;
-    }
-
-    private int findIdxLessThan(byte[] key) {
-        Pair<KeyEntry, Integer> result = binarySearch(key);
-        KeyEntry midKeyEntry = result.left();
-        int idx = result.right();
-
-        return Arrays.equals(key, midKeyEntry.key()) ? idx - 1 : idx;
-    }
-
-    private Pair<KeyEntry, Integer> binarySearch(byte[] key) {
-        int begin = 0, end = metaHeader.keyAmount() - 1, mid, idx = metaHeader.keyAmount();
 
         SecondIndexEntry midSecondIndexEntry;
         KeyEntry midKeyEntry = null;
 
         while(begin <= end) {
             mid = begin + ((end - begin) >> 1);
-            midSecondIndexEntry = findSecondIndexEntry(mid);
+            midSecondIndexEntry = findSecondIndexEntry(mid, buffer);
             midKeyEntry = findKeyEntry(midSecondIndexEntry);
 
             if(Arrays.compare(key, midKeyEntry.key()) <= 0) {
@@ -501,25 +485,57 @@ public class SsTable {
             }
         }
 
-        if(midKeyEntry == null) {
-            throw new RuntimeException();
-        }
-
         return new Pair<>(midKeyEntry, idx);
+    }
+
+    private Pair<Integer, Integer> findIdxBiggerThan(byte[] key) {
+        SecondIndexRegion secondIndexRegion = findSecondIndexRegion(key);
+        int keyAmount = secondIndexRegion.keyAmount();
+        ByteBuffer buffer = secondIndexRegion.buffer();
+
+        Pair<KeyEntry, Integer> result = binarySearch(key, keyAmount, buffer);
+        KeyEntry midKeyEntry = result.left();
+        int idx = result.right();
+
+        int secondIndexBeginIdx = Arrays.equals(key, midKeyEntry.key()) ? idx + 1 : idx;
+        int firstIndexBeginIdx = secondIndexRegion.firstIndexEntryIdx();
+        return new Pair<>(firstIndexBeginIdx, secondIndexBeginIdx);
+    }
+
+    private Pair<Integer, Integer> findIdxLessThan(byte[] key) {
+        SecondIndexRegion secondIndexRegion = findSecondIndexRegion(key);
+        int keyAmount = secondIndexRegion.keyAmount();
+        ByteBuffer buffer = secondIndexRegion.buffer();
+
+        Pair<KeyEntry, Integer> result = binarySearch(key, keyAmount, buffer);
+        KeyEntry midKeyEntry = result.left();
+        int idx = result.right();
+
+        int secondIndexBeginIdx = Arrays.equals(key, midKeyEntry.key()) ? idx - 1 : idx;
+        int firstIndexBeginIdx = secondIndexRegion.firstIndexEntryIdx();
+        return new Pair<>(firstIndexBeginIdx, secondIndexBeginIdx);
     }
 
     private SecondIndexRegion findSecondIndexRegion(byte[] key) {
         FirstIndexEntry searchEntry = new FirstIndexEntry(key, -1);
         // 先查找一级索引
-        int firstEntryIdx = Collections.binarySearch(firstIndexEntries, searchEntry);
-        if(firstEntryIdx > firstIndexEntries.size() || firstEntryIdx == 0) {
+        int firstIndexEntryIdx = Collections.binarySearch(firstIndexEntries, searchEntry);
+        if(firstIndexEntryIdx > firstIndexEntries.size() || firstIndexEntryIdx == 0) {
             throw new RuntimeException();
         }
-        FirstIndexEntry firstIndexEntry = firstIndexEntries.get(firstEntryIdx - 1);
+        return findSecondIndexRegion(firstIndexEntryIdx - 1);
+    }
+
+    private SecondIndexRegion findSecondIndexRegion(int firstIndexEntryIdx) {
+        if(firstIndexEntryIdx >= firstIndexEntries.size()) {
+            throw new RuntimeException();
+        }
+
+        FirstIndexEntry firstIndexEntry = firstIndexEntries.get(firstIndexEntryIdx);
         int beginPosition = firstIndexEntry.idx() * metaHeader.memTableSize() * SECOND_INDEX_ENTRY_LENGTH;
         int totalKeyAmount;
         // 如果是最后一块区域
-        if(firstEntryIdx == firstIndexEntries.size()) {
+        if(firstIndexEntryIdx == firstIndexEntries.size() - 1) {
             totalKeyAmount = metaHeader.keyAmount() % metaHeader.memTableSize();
         } else {
             totalKeyAmount = metaHeader.memTableSize();
@@ -527,7 +543,7 @@ public class SsTable {
         int secondIndexRegionLength = totalKeyAmount * SECOND_INDEX_ENTRY_LENGTH;
         ByteBuffer buffer = secondIndexBuffer.getBuffer().slice(beginPosition, secondIndexRegionLength);
 
-        return new SecondIndexRegion(buffer, totalKeyAmount);
+        return new SecondIndexRegion(firstIndexEntryIdx, buffer, totalKeyAmount);
     }
 
     private SecondIndexEntry findSecondIndexEntry(int idx, ByteBuffer buffer) {
