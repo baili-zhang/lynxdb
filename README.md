@@ -53,3 +53,9 @@ enableFlightRecorder    = true
 ## Maintainers
 
 See [MAINTAINERS](./MAINTAINERS)
+
+## Thanks
+
+![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg)
+
+Thanks for [JetBrains](https://jb.gg/OpenSourceSupport) license!
