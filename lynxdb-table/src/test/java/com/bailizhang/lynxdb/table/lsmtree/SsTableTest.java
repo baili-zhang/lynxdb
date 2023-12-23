@@ -32,6 +32,5 @@ class SsTableTest {
 
     @Test
     void testFunc01() {
-
     }
 }

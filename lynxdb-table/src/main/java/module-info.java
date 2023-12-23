@@ -10,6 +10,6 @@ module lynxdb.table {
     exports com.bailizhang.lynxdb.table.schema;
     exports com.bailizhang.lynxdb.table.utils;
     exports com.bailizhang.lynxdb.table.lsmtree.sstable;
-    exports com.bailizhang.lynxdb.table.columnfamily;
+    exports com.bailizhang.lynxdb.table.region;
     exports com.bailizhang.lynxdb.table.lsmtree.level;
 }

@@ -15,19 +15,13 @@ import com.bailizhang.lynxdb.table.lsmtree.level.Levels;
 import com.bailizhang.lynxdb.table.lsmtree.memory.MemTable;
 import com.bailizhang.lynxdb.table.schema.Key;
 
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.*;
 
-import static com.bailizhang.lynxdb.table.columnfamily.ColumnFamilyRegion.COLUMNS_DIR;
-
 public class LsmTree {
     private static final String WAL_DIR = "wal";
     private final static String VALUE_DIR = "value";
-
-    private final String columnFamily;
-    private final String column;
 
     private final LsmTreeOptions options;
 
@@ -38,27 +32,24 @@ public class LsmTree {
     private MemTable mutable;
     private final Levels levels;
 
-    public LsmTree(String columnFamily, String column, LsmTreeOptions options) {
-        this.columnFamily = columnFamily;
-        this.column = column;
+    public LsmTree(LsmTreeOptions options) {
         this.options = options;
 
         String baseDir = options.baseDir();
-        File file = FileUtils.createDirIfNotExisted(baseDir, columnFamily, COLUMNS_DIR, column);
-        String dir = file.getAbsolutePath();
+        FileUtils.createDirIfNotExisted(baseDir);
 
         LogGroupOptions valueLogGroupOptions = new LogGroupOptions();
 
         // 初始化 value log group
-        String valueLogPath = Path.of(dir, VALUE_DIR).toString();
+        String valueLogPath = Path.of(baseDir, VALUE_DIR).toString();
         valueLog = new LogGroup(valueLogPath, valueLogGroupOptions);
 
         mutable = new MemTable(options);
-        levels = new Levels(dir, valueLog, options);
+        levels = new Levels(baseDir, valueLog, options);
 
         if(options.wal()) {
             // 初始化 wal log group
-            String walDir = Path.of(dir, WAL_DIR).toString();
+            String walDir = Path.of(baseDir, WAL_DIR).toString();
             LogGroupOptions logOptions = new LogGroupOptions();
             logOptions.regionCapacity(options.memTableSize());
 
@@ -182,14 +173,6 @@ public class LsmTree {
                 immutable == null ? null : immutable::rangeNext,
                 levels::rangeBefore
         );
-    }
-
-    public String columnFamily() {
-        return columnFamily;
-    }
-
-    public String column() {
-        return column;
     }
 
     private List<byte[]> range(
