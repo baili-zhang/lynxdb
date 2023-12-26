@@ -40,14 +40,23 @@ public interface Crc32cUtils {
         buffer.rewind();
     }
 
-    static long update(ByteBuffer buffer) {
-        // TODO
-        return 0L;
-    }
+    static long update(ByteBuffer buffer, int beginPosition, int endPosition) {
+        int oldPosition = buffer.position();
 
-    static long update(ByteBuffer buffer, int limit) {
-        // TODO
-        return 0L;
+        buffer.position(beginPosition);
+        buffer.limit(endPosition);
+
+        CRC32C crc32C = new CRC32C();
+        crc32C.update(buffer);
+        long crc32cValue = crc32C.getValue();
+
+        buffer.limit(buffer.capacity());
+        buffer.putLong(endPosition, crc32cValue);
+
+        // 恢复 position
+        buffer.position(oldPosition + LONG_LENGTH);
+
+        return crc32cValue;
     }
 
     static long update(ByteBuffer[] buffers) {

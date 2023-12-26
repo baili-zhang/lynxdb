@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022-2023 Baili Zhang.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
 import com.bailizhang.lynxdb.core.common.FileType;
@@ -11,7 +27,6 @@ import com.bailizhang.lynxdb.core.utils.Crc32cUtils;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
-import com.bailizhang.lynxdb.table.entry.KeyEntry;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.level.Level;
@@ -41,7 +56,7 @@ public class SsTable {
     }
 
     private static final int META_HEADER_OFFSET = 0;
-    private static final int META_HEADER_LENGTH = 44;
+    public static final int META_HEADER_LENGTH = 44;
 
     private static final int SECOND_INDEX_ENTRY_LENGTH = BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH;
 
@@ -168,11 +183,18 @@ public class SsTable {
             List<KeyEntry> keyEntries,
             LogGroup valueLogGroup
     ) {
+        if(keyEntries.isEmpty()) {
+            throw new RuntimeException();
+        }
+
         String filename = NameUtils.name(ssTableNo) + FileType.SSTABLE_FILE.suffix();
-        Path filePath = FileUtils.createFileIfNotExisted(
-                baseDir.toString(),
-                filename
-        ).toPath();
+        Path filePath = Path.of(baseDir.toString(), filename);
+
+        if(FileUtils.exist(filePath)) {
+            throw new RuntimeException();
+        }
+
+        FileUtils.createFile(filePath);
 
         byte[] beginKey = keyEntries.getFirst().key();
         byte[] endKey = keyEntries.getLast().key();
@@ -211,24 +233,6 @@ public class SsTable {
             dataRegionLength += BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH * 2 + key.length;
         }
 
-        // 初始化 MetaBuffer
-        ByteBuffer buffer = metaBuffer.getBuffer();
-        buffer.putInt(metaRegionLength);
-        buffer.putInt(FileType.SSTABLE_FILE.magicNumber());
-        buffer.putInt(memTableSize);
-        buffer.putInt(maxKeySize);
-        buffer.putInt(keySize);
-        buffer.putInt(bloomFilter.length());
-        buffer.putInt(firstIndexRegionLength);
-        buffer.putInt(secondIndexRegionLength);
-        buffer.putInt(dataRegionLength);
-        long crc32c = Crc32cUtils.update(buffer, Default.CRC32C_OFFSET);
-        buffer.putInt(beginKey.length);
-        buffer.put(beginKey);
-        buffer.putInt(endKey.length);
-        buffer.put(endKey);
-        Crc32cUtils.update(buffer);
-
         MetaHeader metaHeader = new MetaHeader(
                 metaRegionLength,
                 FileType.SSTABLE_FILE.magicNumber(),
@@ -238,9 +242,10 @@ public class SsTable {
                 bloomFilter.length(),
                 firstIndexRegionLength,
                 secondIndexRegionLength,
-                dataRegionLength,
-                crc32c
+                dataRegionLength
         );
+        // 写入 MetaRegion
+        MetaRegion.writeToBuffer(metaHeader, beginKey, endKey, metaBuffer.getBuffer());
 
         int firstIndexRegionOffset = metaRegionLength + bloomFilter.length();
         MappedBuffer firstIndexBuffer = new MappedBuffer(
@@ -249,6 +254,15 @@ public class SsTable {
                 firstIndexRegionLength
         );
 
+        // 写入一级索引
+        List<FirstIndexEntry> firstIndexEntries = new ArrayList<>();
+        for(int i = 0; i < keySize; i += memTableSize) {
+            KeyEntry keyEntry = keyEntries.get(i);
+            byte[] key = keyEntry.key();
+            firstIndexEntries.add(new FirstIndexEntry(key, i));
+        }
+        FirstIndexEntry.writeToBuffer(firstIndexEntries, firstIndexBuffer.getBuffer());
+
         int secondIndexRegionOffset = firstIndexRegionOffset + firstIndexRegionLength;
         MappedBuffer secondIndexBuffer = new MappedBuffer(
                 filePath,
@@ -256,12 +270,28 @@ public class SsTable {
                 secondIndexRegionLength
         );
 
+        // 写入二级索引
+        List<SecondIndexEntry> secondIndexEntries = new ArrayList<>();
+        int beginPosition = 0;
+        for(int i = 0; i < keySize; i ++) {
+            KeyEntry keyEntry = keyEntries.get(i);
+            byte flag = keyEntry.flag();
+            byte[] key = keyEntry.key();
+            int length = 25 + key.length;
+            secondIndexEntries.add(SecondIndexEntry.from(flag, beginPosition, length));
+            // 更新 begin
+            beginPosition += length;
+        }
+        SecondIndexEntry.writeToBuffer(secondIndexEntries, secondIndexBuffer.getBuffer());
+
         int dataRegionOffset = secondIndexRegionOffset + secondIndexRegionLength;
         MappedBuffer dataBuffer = new MappedBuffer(
                 filePath,
                 dataRegionOffset,
                 dataRegionLength
         );
+
+        // 写入数据
 
         return new SsTable(
                 metaHeader,
