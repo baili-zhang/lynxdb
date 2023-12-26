@@ -40,9 +40,26 @@ public interface Crc32cUtils {
         buffer.rewind();
     }
 
-    static long update(ByteBuffer buffer, int beginPosition, int endPosition) {
-        int oldPosition = buffer.position();
+    static void check(ByteBuffer buffer, int beginPosition, int endPosition) {
+        buffer.position(beginPosition);
+        buffer.limit(endPosition);
 
+        CRC32C crc32C = new CRC32C();
+        crc32C.update(buffer);
+        long crc32cValue = crc32C.getValue();
+
+        buffer.limit(buffer.capacity());
+        long storeCrc32cValue = buffer.getLong(endPosition);
+
+        if(crc32cValue != storeCrc32cValue) {
+            throw new RuntimeException();
+        }
+
+        // 恢复 position
+        buffer.position(endPosition + LONG_LENGTH);
+    }
+
+    static long update(ByteBuffer buffer, int beginPosition, int endPosition) {
         buffer.position(beginPosition);
         buffer.limit(endPosition);
 
@@ -54,7 +71,7 @@ public interface Crc32cUtils {
         buffer.putLong(endPosition, crc32cValue);
 
         // 恢复 position
-        buffer.position(oldPosition + LONG_LENGTH);
+        buffer.position(endPosition + LONG_LENGTH);
 
         return crc32cValue;
     }

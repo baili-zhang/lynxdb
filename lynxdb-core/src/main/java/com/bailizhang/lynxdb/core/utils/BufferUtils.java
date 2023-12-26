@@ -168,4 +168,8 @@ public interface BufferUtils {
         }
         return len;
     }
+
+    static void putVarBytes(ByteBuffer buffer, byte[] data) {
+        buffer.putInt(data.length).put(data);
+    }
 }

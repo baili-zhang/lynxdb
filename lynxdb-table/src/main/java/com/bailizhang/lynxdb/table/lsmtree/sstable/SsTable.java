@@ -147,6 +147,7 @@ public class SsTable {
             MetaHeader metaHeader,
             byte[] beginKey,
             byte[] endKey,
+            List<FirstIndexEntry> firstIndexEntries,
             BloomFilter bloomFilter,
             MappedBuffer firstIndexBuffer,
             MappedBuffer secondIndexBuffer,
@@ -156,7 +157,7 @@ public class SsTable {
         this.metaHeader = metaHeader;
         this.beginKey = beginKey;
         this.endKey = endKey;
-        this.firstIndexEntries = new ArrayList<>();
+        this.firstIndexEntries = firstIndexEntries;
         this.bloomFilter = bloomFilter;
         this.firstIndexBuffer = firstIndexBuffer;
         this.secondIndexBuffer = secondIndexBuffer;
@@ -277,8 +278,8 @@ public class SsTable {
             KeyEntry keyEntry = keyEntries.get(i);
             byte flag = keyEntry.flag();
             byte[] key = keyEntry.key();
-            int length = 25 + key.length;
-            secondIndexEntries.add(SecondIndexEntry.from(flag, beginPosition, length));
+            int length = 24 + key.length;
+            secondIndexEntries.add(new SecondIndexEntry(flag, beginPosition, length));
             // 更新 begin
             beginPosition += length;
         }
@@ -290,13 +291,13 @@ public class SsTable {
                 dataRegionOffset,
                 dataRegionLength
         );
-
-        // 写入数据
+        KeyEntry.writeToBuffer(keyEntries, dataBuffer.getBuffer());
 
         return new SsTable(
                 metaHeader,
                 beginKey,
                 endKey,
+                firstIndexEntries,
                 bloomFilter,
                 firstIndexBuffer,
                 secondIndexBuffer,
@@ -331,7 +332,7 @@ public class SsTable {
         }
     }
 
-    public boolean contains(byte[] key) {
+    public boolean bloomFilterContains(byte[] key) {
         return bloomFilter.isExist(key);
     }
 
@@ -547,13 +548,35 @@ public class SsTable {
     }
 
     private SecondIndexRegion findSecondIndexRegion(byte[] key) {
-        FirstIndexEntry searchEntry = new FirstIndexEntry(key, -1);
         // 先查找一级索引
-        int firstIndexEntryIdx = Collections.binarySearch(firstIndexEntries, searchEntry);
-        if(firstIndexEntryIdx > firstIndexEntries.size() || firstIndexEntryIdx == 0) {
+        int begin = 0, end = firstIndexEntries.size() - 1, mid = -1;
+        FirstIndexEntry midFirstIndexEntry = null;
+
+        while(begin <= end) {
+            mid = begin + ((end - begin) >> 1);
+            midFirstIndexEntry = firstIndexEntries.get(mid);
+
+            int compareValue = Arrays.compare(key, midFirstIndexEntry.beginKey());
+            if(compareValue == 0) {
+                break;
+            }
+
+            if(compareValue < 0) {
+                end = mid - 1;
+            } else {
+                begin = mid + 1;
+            }
+        }
+
+        if(midFirstIndexEntry == null) {
             throw new RuntimeException();
         }
-        return findSecondIndexRegion(firstIndexEntryIdx - 1);
+
+        if(Arrays.compare(key, midFirstIndexEntry.beginKey()) < 0) {
+            mid = mid - 1;
+        }
+
+        return findSecondIndexRegion(mid);
     }
 
     private SecondIndexRegion findSecondIndexRegion(int firstIndexEntryIdx) {
@@ -562,7 +585,7 @@ public class SsTable {
         }
 
         FirstIndexEntry firstIndexEntry = firstIndexEntries.get(firstIndexEntryIdx);
-        int beginPosition = firstIndexEntry.idx() * metaHeader.memTableSize() * SECOND_INDEX_ENTRY_LENGTH;
+        int beginPosition = firstIndexEntry.idx() * SECOND_INDEX_ENTRY_LENGTH;
         int totalKeyAmount;
         // 如果是最后一块区域
         if(firstIndexEntryIdx == firstIndexEntries.size() - 1) {

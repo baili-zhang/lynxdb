@@ -16,6 +16,9 @@
 
 package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
+import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.Crc32cUtils;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -25,15 +28,34 @@ public record FirstIndexEntry(
         int idx
 ) implements Comparable<FirstIndexEntry> {
     public static FirstIndexEntry from(ByteBuffer buffer) {
-        return new FirstIndexEntry(null, 0);
+        return new FirstIndexEntry(new byte[]{}, 0);
     }
 
     public static void writeToBuffer(List<FirstIndexEntry> entries, ByteBuffer buffer) {
-
+        for(FirstIndexEntry entry : entries) {
+            int position = buffer.position();
+            byte[] beginKey = entry.beginKey;
+            BufferUtils.putVarBytes(buffer, beginKey);
+            buffer.putInt(entry.idx);
+            Crc32cUtils.update(buffer, position, buffer.position());
+        }
     }
 
     @Override
     public int compareTo(FirstIndexEntry o) {
         return Arrays.compare(beginKey, o.beginKey);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FirstIndexEntry that = (FirstIndexEntry) o;
+        return Arrays.equals(beginKey, that.beginKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(beginKey);
     }
 }

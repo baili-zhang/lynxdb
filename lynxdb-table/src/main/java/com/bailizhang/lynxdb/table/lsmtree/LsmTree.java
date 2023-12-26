@@ -23,12 +23,12 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
-import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.entry.WalEntry;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.level.Levels;
 import com.bailizhang.lynxdb.table.lsmtree.memory.MemTable;
+import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.schema.Key;
 
 import java.nio.ByteBuffer;
@@ -94,7 +94,7 @@ public class LsmTree {
 
     public void insert(byte[] key, byte[] value, long timeout) {
         int valueGlobalIndex = valueLog.appendEntry(value);
-        KeyEntry keyEntry = KeyEntry.from(
+        KeyEntry keyEntry = new KeyEntry(
                 Flags.EXISTED,
                 key,
                 value,
@@ -119,7 +119,7 @@ public class LsmTree {
     }
 
     public void delete(byte[] key) {
-        KeyEntry keyEntry = KeyEntry.from(
+        KeyEntry keyEntry = new KeyEntry(
                 Flags.DELETED,
                 key,
                 Bytes.EMPTY,

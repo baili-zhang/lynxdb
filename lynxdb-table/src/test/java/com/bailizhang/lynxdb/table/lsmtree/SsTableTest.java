@@ -23,9 +23,9 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.log.LogGroupOptions;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
-import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
+import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.lsmtree.sstable.SsTable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -61,7 +61,7 @@ class SsTableTest {
         if(FileUtils.notExist(dirPath)) {
             return;
         }
-        // FileUtils.delete(dirPath);
+        FileUtils.delete(dirPath);
     }
 
     void create() {
@@ -76,7 +76,7 @@ class SsTableTest {
 
             int valueGlobalIdx = valueLogGroup.appendEntry(value);
 
-            KeyEntry keyEntry = KeyEntry.from(
+            KeyEntry keyEntry = new KeyEntry(
                     Flags.EXISTED,
                     key,
                     value,
@@ -85,6 +85,8 @@ class SsTableTest {
             );
             keyEntries.add(keyEntry);
         }
+
+        keyEntries.sort(KeyEntry::compareTo);
 
         ssTable = SsTable.create(
                 dirPath,
@@ -108,9 +110,27 @@ class SsTableTest {
     void testFunc02() throws DeletedException, TimeoutException {
         create();
 
-        byte[] key = G.I.toBytes("key" + 108);
+        byte[] key = G.I.toBytes("key" + 1999);
         byte[] value = ssTable.find(key);
 
-        assert Arrays.equals(value, G.I.toBytes("value" + 108));
+        assert Arrays.equals(value, G.I.toBytes("value" + 1999));
+
+        key = G.I.toBytes("key" + 19999);
+        value = ssTable.find(key);
+
+        assert value == null;
+    }
+
+    @Test
+    void testFunc03() {
+        create();
+
+        for(int i = 0; i < 2000; i ++) {
+            byte[] key = G.I.toBytes("key" + i);
+            assert ssTable.bloomFilterContains(key);
+        }
+
+        byte[] key = G.I.toBytes("key" + 19999);
+        assert !ssTable.bloomFilterContains(key);
     }
 }

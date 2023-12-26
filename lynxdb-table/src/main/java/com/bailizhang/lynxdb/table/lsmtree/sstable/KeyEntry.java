@@ -16,13 +16,13 @@
 
 package com.bailizhang.lynxdb.table.lsmtree.sstable;
 
-import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
+import com.bailizhang.lynxdb.core.utils.Crc32cUtils;
 import com.bailizhang.lynxdb.table.entry.WalEntry;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.zip.CRC32C;
+import java.util.List;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
@@ -34,46 +34,20 @@ import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
  * @param key key
  * @param valueGlobalIndex value global index
  * @param timeout timeout
- * @param crc32c crc32c
  */
 public record KeyEntry(
         byte flag, // 持久化在 index 中，不需要 crc，也不用转成 bytes
         byte[] key,
         byte[] value, // memTable 需要这个字段，不需要 crc，也不用转成 bytes
         int valueGlobalIndex,
-        long timeout,
-        long crc32c
+        long timeout
 ) implements Comparable<KeyEntry> {
-    public static KeyEntry from(
-            byte flag,
-            byte[] key,
-            byte[] value,
-            int valueGlobalIndex,
-            long timeout
-    ) {
-        CRC32C crc32C = new CRC32C();
-        crc32C.update(key);
-        crc32C.update(valueGlobalIndex);
-        crc32C.update(BufferUtils.toBytes(timeout));
-
-        long crc32c = crc32C.getValue();
-
-        return new KeyEntry(
-                flag,
-                key,
-                value,
-                valueGlobalIndex,
-                timeout,
-                crc32c
-        );
-    }
-
     public static KeyEntry from(WalEntry walEntry) {
         byte[] key = walEntry.key();
         int valueGlobalIndex = walEntry.valueGlobalIndex();
         long timeout = walEntry.timeout();
 
-        return from(
+        return new KeyEntry(
                 walEntry.flag(),
                 key,
                 walEntry.value(),
@@ -87,35 +61,26 @@ public record KeyEntry(
         byte[] key = BufferUtils.getBytes(buffer);
         int valueGlobalIndex = buffer.getInt();
         long timeout = buffer.getLong();
-        long crc32c = buffer.getLong();
 
-        CRC32C crc32C = new CRC32C();
-        crc32C.update(key);
-        crc32C.update(valueGlobalIndex);
-        crc32C.update(BufferUtils.toBytes(timeout));
-
-        if(crc32c != crc32C.getValue()) {
-            throw new RuntimeException("Data Error");
-        }
+        Crc32cUtils.check(buffer);
 
         return new KeyEntry(
                 flag,
                 key,
                 null,
                 valueGlobalIndex,
-                timeout,
-                crc32c
+                timeout
         );
     }
 
-    public ByteBuffer[] toBuffers() {
-        DataBlocks dataBlocks = new DataBlocks(false);
-        dataBlocks.appendVarBytes(key);
-        dataBlocks.appendRawInt(valueGlobalIndex);
-        dataBlocks.appendRawLong(timeout);
-        dataBlocks.appendRawLong(crc32c);
-
-        return dataBlocks.toBuffers();
+    public static void writeToBuffer(List<KeyEntry> entries, ByteBuffer buffer) {
+        for(KeyEntry entry : entries) {
+            int position = buffer.position();
+            BufferUtils.putVarBytes(buffer, entry.key);
+            buffer.putInt(entry.valueGlobalIndex);
+            buffer.putLong(entry.timeout);
+            Crc32cUtils.update(buffer, position, buffer.position());
+        }
     }
 
     public boolean isTimeout() {
@@ -133,6 +98,6 @@ public record KeyEntry(
 
     @Override
     public String toString() {
-        return "do later";
+        return "TO DO.....";
     }
 }

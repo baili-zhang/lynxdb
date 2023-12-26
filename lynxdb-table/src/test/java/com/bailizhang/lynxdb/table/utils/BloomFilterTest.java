@@ -16,17 +16,29 @@
 
 package com.bailizhang.lynxdb.table.utils;
 
+import com.bailizhang.lynxdb.core.utils.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 class BloomFilterTest {
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/data/bloom_filter_test";
+
     private BloomFilter bloomFilter;
 
     @BeforeEach
     void setUp() {
-        // bloomFilter = new BloomFilter(2000);
+        Path filePath = Path.of(BASE_DIR);
+        FileUtils.createFile(filePath);
+        bloomFilter = BloomFilter.from(filePath, 0, 1000);
+    }
+
+    @AfterEach
+    void tearDown() {
+        FileUtils.delete(Path.of(BASE_DIR));
     }
 
     @Test

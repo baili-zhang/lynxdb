@@ -20,10 +20,10 @@ import com.bailizhang.lynxdb.core.log.LogGroup;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.core.utils.NameUtils;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
-import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.memory.MemTable;
+import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.lsmtree.sstable.SsTable;
 import com.bailizhang.lynxdb.table.schema.Key;
 
@@ -107,7 +107,7 @@ public class Level {
 
     public byte[] find(byte[] key) throws DeletedException, TimeoutException {
         for(SsTable ssTable : ssTables) {
-            if(ssTable.contains(key)) {
+            if(ssTable.bloomFilterContains(key)) {
                 byte[] value = ssTable.find(key);
                 if(value != null) {
                     return value;
@@ -125,7 +125,7 @@ public class Level {
      */
     public boolean contains(byte[] key) {
         for(SsTable ssTable : ssTables) {
-            if(ssTable.contains(key)) {
+            if(ssTable.bloomFilterContains(key)) {
                 return true;
             }
         }
