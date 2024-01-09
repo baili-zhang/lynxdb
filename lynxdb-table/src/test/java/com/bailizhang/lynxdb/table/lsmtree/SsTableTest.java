@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Baili Zhang.
+ * Copyright 2023-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.sstable.KeyEntry;
 import com.bailizhang.lynxdb.table.lsmtree.sstable.SsTable;
+import com.bailizhang.lynxdb.table.schema.Key;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +35,13 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 class SsTableTest {
     private static final String BASE_DIR = System.getProperty("user.dir") + "/data/sstable_test";
     private static final String VALUE_LOG_DIR = System.getProperty("user.dir") + "/data/sstable_test/values";
+
+    private static final int SSTABLE_NO = 3;
 
     private LogGroup valueLogGroup;
     private SsTable ssTable;
@@ -90,7 +91,7 @@ class SsTableTest {
 
         ssTable = SsTable.create(
                 dirPath,
-                3,
+                SSTABLE_NO,
                 2,
                 options,
                 keyEntries,
@@ -111,6 +112,8 @@ class SsTableTest {
         create();
 
         byte[] key = G.I.toBytes("key" + 1999);
+        assert ssTable.existKey(key);
+
         byte[] value = ssTable.find(key);
 
         assert Arrays.equals(value, G.I.toBytes("value" + 1999));
@@ -132,5 +135,54 @@ class SsTableTest {
 
         byte[] key = G.I.toBytes("key" + 19999);
         assert !ssTable.bloomFilterContains(key);
+    }
+
+    @Test
+    void testFunc04() throws DeletedException, TimeoutException {
+        create();
+
+        ssTable = new SsTable(
+                Path.of(BASE_DIR),
+                SSTABLE_NO,
+                valueLogGroup
+        );
+
+        byte[] key = G.I.toBytes("key" + 1999);
+        byte[] value = ssTable.find(key);
+
+        assert Arrays.equals(value, G.I.toBytes("value" + 1999));
+    }
+
+    @Test
+    void testFunc05() {
+        create();
+
+        HashMap<Key, KeyEntry> entriesMap = new HashMap<>();
+
+        ssTable.all(entriesMap);
+
+        assert entriesMap.size() == 2000;
+    }
+
+    @Test
+    void testFunc06() {
+        create();
+
+        byte[] key = G.I.toBytes("key" + 1999);
+        int limit = 5;
+
+        List<Key> keys = ssTable.rangeBefore(key, limit, new HashSet<>(), new HashSet<>());
+        assert keys.size() == limit;
+    }
+
+    @Test
+    void testFunc07() {
+        create();
+
+        byte[] key = G.I.toBytes("key" + 1999);
+        int limit = 5;
+
+        List<Key> keys = ssTable.rangeNext(key, limit, new HashSet<>(), new HashSet<>());
+        assert keys.size() == limit;
     }
 }

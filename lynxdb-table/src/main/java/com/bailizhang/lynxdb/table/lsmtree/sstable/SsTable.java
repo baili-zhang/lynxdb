@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Baili Zhang.
+ * Copyright 2022-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,6 +126,10 @@ public class SsTable {
             firstIndexEntries.add(FirstIndexEntry.from(firstIndexRawBuffer));
         }
 
+        if(BufferUtils.isNotOver(firstIndexRawBuffer)) {
+            throw new RuntimeException();
+        }
+
         int secondIndexRegionOffset = firstIndexRegionOffset + metaHeader.firstIndexRegionLength();
         secondIndexBuffer = new MappedBuffer(
                 filePath,
@@ -222,7 +226,7 @@ public class SsTable {
         for(int i = 0; i < keySize; i += memTableSize) {
             KeyEntry keyEntry = keyEntries.get(i);
             byte[] key = keyEntry.key();
-            firstIndexRegionLength += INT_LENGTH * 3 + LONG_LENGTH + key.length;
+            firstIndexRegionLength += INT_LENGTH * 2 + LONG_LENGTH + key.length;
         }
 
         int secondIndexRegionLength = keySize * (BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH);
@@ -231,7 +235,7 @@ public class SsTable {
         for(int i = 0; i < keySize; i ++) {
             KeyEntry keyEntry = keyEntries.get(i);
             byte[] key = keyEntry.key();
-            dataRegionLength += BYTE_LENGTH + INT_LENGTH * 2 + LONG_LENGTH * 2 + key.length;
+            dataRegionLength += INT_LENGTH * 2 + LONG_LENGTH * 2 + key.length;
         }
 
         MetaHeader metaHeader = new MetaHeader(
@@ -310,16 +314,16 @@ public class SsTable {
         MappedByteBuffer indexMapperBuffer = secondIndexBuffer.getBuffer();
         indexMapperBuffer.rewind();
 
-        MappedByteBuffer keyMappedBuffer = dataBuffer.getBuffer();
-        keyMappedBuffer.rewind();
+        MappedByteBuffer dataMappedBuffer = dataBuffer.getBuffer();
+        dataMappedBuffer.rewind();
 
         // MemTable 可能不是最大容量
-        while(BufferUtils.isNotOver(keyMappedBuffer)) {
+        while(BufferUtils.isNotOver(indexMapperBuffer)) {
             SecondIndexEntry index = SecondIndexEntry.from(indexMapperBuffer);
             int length = index.length();
 
             byte[] data = new byte[length];
-            keyMappedBuffer.get(data);
+            dataMappedBuffer.get(data);
 
             KeyEntry entry = KeyEntry.from(index.flag(), data);
             Key key = new Key(entry.key());

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Baili Zhang.
+ * Copyright 2023-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,15 @@ public record FirstIndexEntry(
         int idx
 ) implements Comparable<FirstIndexEntry> {
     public static FirstIndexEntry from(ByteBuffer buffer) {
-        return new FirstIndexEntry(new byte[]{}, 0);
+        int beginPosition = buffer.position();
+
+        byte[] beginKey = BufferUtils.getBytes(buffer);
+        int idx = buffer.getInt();
+
+        int endPosition = buffer.position();
+
+        Crc32cUtils.check(buffer, beginPosition, endPosition);
+        return new FirstIndexEntry(beginKey, idx);
     }
 
     public static void writeToBuffer(List<FirstIndexEntry> entries, ByteBuffer buffer) {
