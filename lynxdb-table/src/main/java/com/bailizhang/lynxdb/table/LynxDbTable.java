@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Baili Zhang.
+ * Copyright 2022-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.bailizhang.lynxdb.table;
 
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.LsmTree;
@@ -31,13 +31,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LynxDbTable implements Table {
-    private final LsmTreeOptions options;
+    private final TableOptions options;
     private final String baseDir;
 
     private final ConcurrentHashMap<String, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
-    public LynxDbTable(LsmTreeOptions options) {
+    public LynxDbTable(TableOptions options) {
         baseDir = options.baseDir();
         this.options = options;
 

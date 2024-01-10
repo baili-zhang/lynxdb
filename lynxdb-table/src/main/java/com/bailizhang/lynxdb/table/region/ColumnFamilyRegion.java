@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Baili Zhang.
+ * Copyright 2022-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.bailizhang.lynxdb.table.region;
 
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.LsmTree;
@@ -29,19 +29,17 @@ import java.util.HashMap;
 import java.util.List;
 
 public class ColumnFamilyRegion {
-    public final static String COLUMNS_DIR = "columns";
-
     private final HashMap<String, ColumnRegion> columnRegions = new HashMap<>();
 
     private final String columnFamily;
-    private final LsmTreeOptions options;
+    private final TableOptions options;
 
-    public ColumnFamilyRegion(String columnFamily, LsmTreeOptions options) {
+    public ColumnFamilyRegion(String columnFamily, TableOptions options) {
         this.columnFamily = columnFamily;
         this.options = options;
 
         String baseDir = options.baseDir();
-        String dir = Path.of(baseDir, columnFamily, COLUMNS_DIR).toString();
+        String dir = Path.of(baseDir, columnFamily).toString();
 
         List<String> columns = FileUtils.findSubDirs(dir);
         columns.forEach(

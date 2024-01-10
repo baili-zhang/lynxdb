@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022-2024 Baili Zhang.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bailizhang.lynxdb.server.engine;
 
 import com.bailizhang.lynxdb.core.buffers.Buffers;
@@ -30,7 +46,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doFindByKeyCfColumn(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String column = content.nextStringPart();
 
@@ -39,7 +55,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
         logger.debug("Find by key: {}, columnFamily: {}, column: {}, value is: {}.",
                 G.I.toString(key), columnFamily, column, G.I.toString(value));
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
 
         if(value == null) {
             dataBlocks.appendRawByte(LdtpCode.NULL);
@@ -55,7 +71,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doFindMultiColumns(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String[] findColumns = null;
 
@@ -76,7 +92,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         logger.debug("Find by key: {}, columnFamily: {}.", G.I.toString(key), columnFamily);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(MULTI_COLUMNS);
         appendMultiColumns(dataBlocks, multiColumns);
 
@@ -87,18 +103,18 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doInsert(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String column = content.nextStringPart();
         long timeout = content.getLong();
-        byte[] value = content.nextPart().toBytes();
+        byte[] value = content.nextPartBytes();
 
         logger.debug("Insert key: {}, columnFamily: {}, column: {}, timeout: {}, value: {}.",
                 G.I.toString(key), columnFamily, column, timeout, G.I.toString(value));
 
         dataTable.insert(key, columnFamily, column, value, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -108,7 +124,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doInsertMultiColumns(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         long timeout = content.getLong();
 
@@ -116,7 +132,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         while(content.hasRemaining()) {
             String column = content.nextStringPart();
-            byte[] value = content.nextPart().toBytes();
+            byte[] value = content.nextPartBytes();
 
             multiColumns.put(column, value);
         }
@@ -126,7 +142,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.insert(key, columnFamily, multiColumns, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -136,7 +152,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doInsertIfNotExisted(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         long timeout = content.getLong();
 
@@ -144,7 +160,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         while(content.hasRemaining()) {
             String column = content.nextStringPart();
-            byte[] value = content.nextPart().toBytes();
+            byte[] value = content.nextPartBytes();
 
             multiColumns.put(column, value);
         }
@@ -154,7 +170,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         boolean success = dataTable.insertIfNotExisted(key, columnFamily, multiColumns, timeout);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(success ? TRUE : FALSE);
 
         return new QueryResult(dataBlocks);
@@ -164,7 +180,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doDeleteMultiColumns(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String[] deleteColumns = null;
 
@@ -182,7 +198,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         dataTable.deleteMultiColumns(key, columnFamily, deleteColumns);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(VOID);
 
         return new QueryResult(dataBlocks);
@@ -202,13 +218,13 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doExistKey(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPart().toBytes();
+        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String mainColumn = content.nextStringPart();
 
         boolean existed = dataTable.existKey(key, columnFamily, mainColumn);
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(existed ? TRUE : FALSE);
 
         return new QueryResult(dataBlocks);
@@ -241,7 +257,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
 
         String columnFamily = content.nextStringPart();
         String mainColumn = content.nextStringPart();
-        byte[] baseKey = content.nextPart().toBytes();
+        byte[] baseKey = content.nextPartBytes();
         int limit = content.getInt();
         String[] findColumns = null;
 
@@ -265,7 +281,7 @@ public class LdtpStorageEngine extends BaseStorageEngine {
                 findColumns
         );
 
-        DataBlocks dataBlocks = new DataBlocks(true);
+        DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(MULTI_KEYS);
 
         for(var pair : multiKeys) {

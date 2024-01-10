@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Baili Zhang.
+ * Copyright 2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,8 @@
 
 package com.bailizhang.lynxdb.table.config;
 
-public class LsmTreeOptions {
-    private static final int DEFAULT_MEM_TABLE_SIZE = 2000;
-    private final int memTableSize;
-
-    private boolean wal = true;
-
-    public LsmTreeOptions() {
-        this(DEFAULT_MEM_TABLE_SIZE);
-    }
-
-    public LsmTreeOptions(int memTableSize) {
-        this.memTableSize = memTableSize;
-    }
-
-    public int memTableSize() {
-        return memTableSize;
-    }
-
-    public boolean wal() {
-        return wal;
-    }
-
-    public void wal(boolean val) {
-        wal = val;
-    }
+public record TableOptions(
+        String baseDir,
+        LsmTreeOptions lsmTreeOptions
+) {
 }

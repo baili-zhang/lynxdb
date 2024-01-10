@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Baili Zhang.
+ * Copyright 2023-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ class LsmTreeTest {
 
     @BeforeEach
     void setUp() {
-        LsmTreeOptions options = new LsmTreeOptions(BASE_DIR, 200);
-        lsmTree = new LsmTree(options);
+        LsmTreeOptions options = new LsmTreeOptions(200);
+        lsmTree = new LsmTree(BASE_DIR, options);
     }
 
     @AfterEach

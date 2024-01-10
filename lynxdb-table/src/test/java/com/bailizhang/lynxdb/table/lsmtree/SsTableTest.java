@@ -67,7 +67,7 @@ class SsTableTest {
 
     void create() {
         Path dirPath = Path.of(BASE_DIR);
-        LsmTreeOptions options = new LsmTreeOptions(BASE_DIR, 200);
+        LsmTreeOptions options = new LsmTreeOptions(200);
 
         List<KeyEntry> keyEntries = new ArrayList<>();
 

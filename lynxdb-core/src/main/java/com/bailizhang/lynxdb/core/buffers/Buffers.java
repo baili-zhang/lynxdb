@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Baili Zhang.
+ * Copyright 2023-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,51 +16,83 @@
 
 package com.bailizhang.lynxdb.core.buffers;
 
+import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.utils.ArrayUtils;
 import com.bailizhang.lynxdb.core.utils.BufferUtils;
 
-import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public record Buffers(
-        ByteBuffer[] buffers
-) {
-    public int length() {
-        int len = 0;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
+import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.LONG_LENGTH;
+
+/**
+ * TODO: 优化拷贝
+ */
+public class Buffers {
+    private final ByteBuffer[] buffers;
+    private final int length;
+
+    private int idx = 0;
+
+    public Buffers(ByteBuffer[] buffers) {
+        this.buffers = buffers;
+
+        int length = 0;
         for(ByteBuffer buffer : buffers) {
-            len += buffer.limit();
+            length += buffer.limit();
         }
-        return len;
+
+        this.length = length;
+    }
+
+    public void rewind() {
+        for(ByteBuffer buffer : buffers) {
+            buffer.rewind();
+        }
+    }
+
+    public int length() {
+        return length;
+    }
+
+    public byte[] getVar(int len) {
+        byte[] data = new byte[len];
+
+        int i = 0;
+        while (i < len) {
+            while (BufferUtils.isOver(buffers[idx])) {
+                idx ++;
+            }
+
+            while (BufferUtils.isNotOver(buffers[idx]) && i < len) {
+                data[i++] = buffers[idx].get();
+            }
+        }
+
+        return data;
     }
 
     public byte get() {
-        for(ByteBuffer buffer : buffers) {
-            if(BufferUtils.isNotOver(buffer)) {
-                return buffer.get();
-            }
-        }
-        throw new BufferOverflowException();
+        return getVar(1)[0];
     }
 
     public int getInt() {
-        // TODO
-        return 0;
+        return ArrayUtils.toInt(getVar(INT_LENGTH));
     }
 
     public long getLong() {
-        // TODO
-        return 0L;
+        return ArrayUtils.toInt(getVar(LONG_LENGTH));
     }
 
-    public Buffers nextPart() {
-        // TODO
-        return new Buffers(null);
+    public byte[] nextPartBytes() {
+        int len = getInt();
+        return getVar(len);
     }
 
     public String nextStringPart() {
-        // TODO
-        return "";
+        int len = getInt();
+        return G.I.toString(getVar(len));
     }
 
     public boolean hasRemaining() {
@@ -68,7 +100,6 @@ public record Buffers(
     }
 
     public byte[] toBytes() {
-        // TODO 记录拷贝的总时间
         int len = length();
         ByteBuffer buffer = ByteBuffer.allocate(len);
         Arrays.stream(buffers).forEach(buffer::put);

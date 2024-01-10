@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Baili Zhang.
+ * Copyright 2022-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.bailizhang.lynxdb.server;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
@@ -32,34 +30,24 @@ import java.io.IOException;
 import static com.bailizhang.lynxdb.server.context.Configuration.Default.CLUSTER;
 import static com.bailizhang.lynxdb.server.context.Configuration.Default.SINGLE;
 
-public class LynxDbMainServer {
-    private static final Logger logger = LoggerFactory.getLogger(LynxDbMainServer.class);
+public static void main(String[] args) throws IOException {
+    final Logger logger = LoggerFactory.getLogger("LynxDBMainServer");
 
-    private final LynxDbServer server;
+    logger.info("LynxDB Version: \"{}\".", Version.LYNXDB);
 
-    LynxDbMainServer() throws IOException {
-        logger.info("LynxDB Version: \"{}\".", Version.LYNXDB);
+    Configuration config = Configuration.getInstance();
+    logger.info("Configuration: {}", config);
 
-        Configuration config = Configuration.getInstance();
-        logger.info("Configuration: {}", config);
+    G.I.converter(new Converter(config.charset()));
+    FlightDataRecorder.enable(config.enableFlightRecorder());
 
-        G.I.converter(new Converter(config.charset()));
-        FlightDataRecorder.enable(config.enableFlightRecorder());
+    String runningMode = config.runningMode();
+    LynxDbServer server = switch (runningMode) {
+        case SINGLE -> new SingleLynxDbServer();
+        case CLUSTER -> new ClusterLynxDbServer();
 
-        String runningMode = config.runningMode();
-        switch (runningMode) {
-            case SINGLE -> server = new SingleLynxDbServer();
-            case CLUSTER -> server = new ClusterLynxDbServer();
+        default -> throw new RuntimeException(STR."Undefined running mode: \{runningMode}");
+    };
 
-            default -> throw new RuntimeException("Undefined running mode: " + runningMode);
-        }
-    }
-
-    public void run() {
-        server.run();
-    }
-
-    public static void main(String[] args) throws IOException {
-        new LynxDbMainServer().run();
-    }
+    server.run();
 }

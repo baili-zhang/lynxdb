@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Baili Zhang.
+ * Copyright 2023-2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,17 @@
 
 package com.bailizhang.lynxdb.table.region;
 
-import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 import com.bailizhang.lynxdb.table.lsmtree.LsmTree;
+
+import java.nio.file.Path;
 
 public class ColumnRegion extends LsmTree {
     private final String columnFamily;
     private final String column;
 
-    public ColumnRegion(String columnFamily, String column, LsmTreeOptions options) {
-        super(options);
+    public ColumnRegion(String columnFamily, String column, TableOptions options) {
+        super(Path.of(options.baseDir(), columnFamily, column).toString(), options.lsmTreeOptions());
         this.columnFamily = columnFamily;
         this.column = column;
     }

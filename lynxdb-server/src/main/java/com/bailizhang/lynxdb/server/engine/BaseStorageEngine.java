@@ -9,6 +9,7 @@ import com.bailizhang.lynxdb.server.measure.MeasureOptions;
 import com.bailizhang.lynxdb.table.LynxDbTable;
 import com.bailizhang.lynxdb.table.Table;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -28,8 +29,8 @@ public class BaseStorageEngine {
         Configuration config = Configuration.getInstance();
         String dataDir = config.dataDir();
 
-        LsmTreeOptions dataLsmTreeOptions = new LsmTreeOptions(dataDir, DEFAULT_MEM_TABLE_SIZE);
-        dataTable = new LynxDbTable(dataLsmTreeOptions);
+        LsmTreeOptions lsmTreeOptions = new LsmTreeOptions(DEFAULT_MEM_TABLE_SIZE);
+        dataTable = new LynxDbTable(new TableOptions(dataDir, lsmTreeOptions));
 
         initMethod(clazz);
     }

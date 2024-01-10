@@ -16,6 +16,7 @@ import com.bailizhang.lynxdb.socket.response.WritableSocketResponse;
 import com.bailizhang.lynxdb.table.LynxDbTable;
 import com.bailizhang.lynxdb.table.Table;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -42,8 +43,8 @@ public class LdtpStateMachine implements StateMachine {
 
     public LdtpStateMachine() {
         Configuration config = Configuration.getInstance();
-        LsmTreeOptions options = new LsmTreeOptions(config.raftMetaDir());
-        raftMetaTable = new LynxDbTable(options);
+        LsmTreeOptions options = new LsmTreeOptions();
+        raftMetaTable = new LynxDbTable(new TableOptions(config.dataDir(), options));
     }
 
     public static void engineExecutor(LdtpEngineExecutor executor) {
