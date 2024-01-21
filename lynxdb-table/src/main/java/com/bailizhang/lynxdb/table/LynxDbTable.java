@@ -23,6 +23,7 @@ import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.LsmTree;
 import com.bailizhang.lynxdb.table.region.ColumnFamilyRegion;
+import com.bailizhang.lynxdb.table.region.ColumnRegion;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -82,7 +83,7 @@ public class LynxDbTable implements Table {
                 mainColumn,
                 beginKey,
                 limit,
-                LsmTree::rangeNext,
+                ColumnRegion::rangeNext,
                 findColumns
         );
     }
@@ -100,7 +101,7 @@ public class LynxDbTable implements Table {
                 mainColumn,
                 endKey,
                 limit,
-                LsmTree::rangeBefore,
+                ColumnRegion::rangeBefore,
                 findColumns
         );
     }
@@ -197,7 +198,7 @@ public class LynxDbTable implements Table {
             String... findColumns
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        LsmTree mainColumnRegion = region.findColumnRegion(mainColumn);
+        ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
 
         List<byte[]> keys = operator.doRange(mainColumnRegion, baseKey, limit);
 
@@ -214,7 +215,7 @@ public class LynxDbTable implements Table {
     @FunctionalInterface
     private interface RangeOperator {
         List<byte[]> doRange(
-                LsmTree columnRegion,
+                ColumnRegion columnRegion,
                 byte[] baseKey,
                 int limit
         );

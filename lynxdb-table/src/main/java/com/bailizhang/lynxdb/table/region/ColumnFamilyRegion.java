@@ -50,7 +50,7 @@ public class ColumnFamilyRegion {
         );
     }
 
-    public LsmTree findColumnRegion(String column) {
+    public ColumnRegion findColumnRegion(String column) {
         return columnRegions.computeIfAbsent(
                 column,
                 c -> new ColumnRegion(
