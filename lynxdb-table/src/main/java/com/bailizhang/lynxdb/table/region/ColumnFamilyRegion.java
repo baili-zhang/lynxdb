@@ -99,11 +99,13 @@ public class ColumnFamilyRegion {
         Collection<ColumnRegion> deleteColumnRegions;
 
         if(deleteColumns == null || deleteColumns.length == 0) {
-            deleteColumnRegions = columnRegions.values();
-        } else {
-            deleteColumnRegions = new ArrayList<>();
-            for(String deleteColumn : deleteColumns) {
-                ColumnRegion columnRegion = columnRegions.get(deleteColumn);
+            return;
+        }
+
+        deleteColumnRegions = new ArrayList<>();
+        for(String deleteColumn : deleteColumns) {
+            ColumnRegion columnRegion = columnRegions.get(deleteColumn);
+            if(columnRegion != null) {
                 deleteColumnRegions.add(columnRegion);
             }
         }
