@@ -147,10 +147,12 @@ class SsTableTest {
                 valueLogGroup
         );
 
-        byte[] key = G.I.toBytes("key" + 1999);
-        byte[] value = ssTable.find(key);
+        for(int i = 0; i < 2000; i ++) {
+            byte[] key = G.I.toBytes("key" + i);
+            byte[] value = ssTable.find(key);
 
-        assert Arrays.equals(value, G.I.toBytes("value" + 1999));
+            assert Arrays.equals(value, G.I.toBytes("value" + i));
+        }
     }
 
     @Test

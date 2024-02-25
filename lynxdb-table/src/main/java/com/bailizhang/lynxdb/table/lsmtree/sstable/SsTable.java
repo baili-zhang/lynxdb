@@ -593,7 +593,8 @@ public class SsTable {
         int totalKeyAmount;
         // 如果是最后一块区域
         if(firstIndexEntryIdx == firstIndexEntries.size() - 1) {
-            totalKeyAmount = metaHeader.keyAmount() % metaHeader.memTableSize();
+            int remainder = metaHeader.keyAmount() % metaHeader.memTableSize();
+            totalKeyAmount = remainder == 0 ? metaHeader.memTableSize() : remainder;
         } else {
             totalKeyAmount = metaHeader.memTableSize();
         }
