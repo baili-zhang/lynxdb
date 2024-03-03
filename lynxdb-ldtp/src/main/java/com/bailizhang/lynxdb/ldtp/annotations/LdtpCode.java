@@ -8,7 +8,4 @@ public @interface LdtpCode {
     byte BYTE_ARRAY     = (byte) 0x05;
     byte MULTI_COLUMNS  = (byte) 0x06;
     byte MULTI_KEYS     = (byte) 0x07;
-
-    /** 消息的序列号，暂时使用 */
-    int MESSAGE_SERIAL  = -1;
 }
