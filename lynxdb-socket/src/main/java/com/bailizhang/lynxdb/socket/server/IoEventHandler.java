@@ -89,7 +89,7 @@ public class IoEventHandler implements Runnable {
 
         try {
             recorder.recordE(read, READ_DATA_FROM_SOCKET);
-        } catch (SocketException e) {
+        } catch (IOException e) {
             selectionKey.cancel();
             return;
         }
