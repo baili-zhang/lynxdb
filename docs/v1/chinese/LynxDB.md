@@ -19,13 +19,13 @@ LynxDB 项目由 Java 语言编写，可以直接用 `java -jar` 的方式启动
 **启动服务器**
 
 ```shell
-java -Xmx1g -Xms1g -XX:+UseZGC -jar lib/lynxdb-server-2023.10.5-snapshot.jar
+java -Xmx1g -Xms1g -XX:+UseZGC -jar lib/lynxdb-server-1.0.0-alpha.jar
 ```
 
 **启动客户端**
 
 ```shell
-java -jar lib/lynxdb-cmd-2023.10.5-snapshot.jar
+java -jar lib/lynxdb-cmd-1.0.0-alpha.jar
 ```
 
 ## Systemd 配置
@@ -36,10 +36,10 @@ start-server.sh 文件如下：
 
 ```shell
 #!/bin/bash
-java -Dlynxdb.baseDir=/root/lynxdb-v2023.10.5-snapshot/\
+java -Dlynxdb.baseDir=/root/lynxdb-v1.0.0-alpha/\
      -Xmx256m -Xms256m\
      -XX:+UseZGC\
-     -jar /root/lynxdb-v2023.10.5-snapshot/lib/lynxdb-server-2023.10.5-snapshot.jar
+     -jar /root/lynxdb-v1.0.0-alpha/lib/lynxdb-server-1.0.0-alpha.jar
 ```
 
 lynxdb.service 配置文件如下：
@@ -50,7 +50,7 @@ Description=LynxDB Server
 After=network.target
 
 [Service]
-ExecStart=/root/lynxdb-v2023.10.5-snapshot/start-server.sh
+ExecStart=/root/lynxdb-v1.0.0-alpha/start-server.sh
 Restart=on-failure
 Type=simple
 
@@ -91,7 +91,7 @@ enableFlightRecorder    = true
 <dependency>
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>lynxdb-client</artifactId>
-    <version>2023.10.5-snapshot</version>
+    <version>1.0.0-alpha</version>
 </dependency>
 ```
 
@@ -692,7 +692,7 @@ public class DeleteByObjectDemo {
 <dependency>
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>lynxdb-spring-boot-starter</artifactId>
-    <version>2023.10.5-snapshot</version>
+    <version>1.0.0-alpha</version>
 </dependency>
 ```
 

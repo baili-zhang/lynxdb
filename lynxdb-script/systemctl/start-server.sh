@@ -1,5 +1,5 @@
 #!/bin/bash
-java -Dlynxdb.baseDir=/root/lynxdb-v2023.10.5-snapshot/\
+java -Dlynxdb.baseDir=/root/lynxdb-v1.0.0-alpha/\
      -Xmx256m -Xms256m\
      -XX:+UseZGC\
-     -jar /root/lynxdb-v2023.10.5-snapshot/lib/lynxdb-server-2023.10.5-snapshot.jar
+     -jar /root/lynxdb-v1.0.0-alpha/lib/lynxdb-server-1.0.0-alpha.jar

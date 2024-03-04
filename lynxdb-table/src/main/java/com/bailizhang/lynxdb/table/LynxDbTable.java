@@ -1,12 +1,29 @@
+/*
+ * Copyright 2022-2024 Baili Zhang.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bailizhang.lynxdb.table;
 
 import com.bailizhang.lynxdb.core.common.Pair;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
-import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
+import com.bailizhang.lynxdb.table.config.TableOptions;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
 import com.bailizhang.lynxdb.table.exception.TimeoutException;
 import com.bailizhang.lynxdb.table.lsmtree.LsmTree;
 import com.bailizhang.lynxdb.table.region.ColumnFamilyRegion;
+import com.bailizhang.lynxdb.table.region.ColumnRegion;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -15,13 +32,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LynxDbTable implements Table {
-    private final LsmTreeOptions options;
+    private final TableOptions options;
     private final String baseDir;
 
     private final ConcurrentHashMap<String, ColumnFamilyRegion> regions
             = new ConcurrentHashMap<>();
 
-    public LynxDbTable(LsmTreeOptions options) {
+    public LynxDbTable(TableOptions options) {
         baseDir = options.baseDir();
         this.options = options;
 
@@ -66,7 +83,7 @@ public class LynxDbTable implements Table {
                 mainColumn,
                 beginKey,
                 limit,
-                LsmTree::rangeNext,
+                ColumnRegion::rangeNext,
                 findColumns
         );
     }
@@ -84,7 +101,7 @@ public class LynxDbTable implements Table {
                 mainColumn,
                 endKey,
                 limit,
-                LsmTree::rangeBefore,
+                ColumnRegion::rangeBefore,
                 findColumns
         );
     }
@@ -181,7 +198,7 @@ public class LynxDbTable implements Table {
             String... findColumns
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
-        LsmTree mainColumnRegion = region.findColumnRegion(mainColumn);
+        ColumnRegion mainColumnRegion = region.findColumnRegion(mainColumn);
 
         List<byte[]> keys = operator.doRange(mainColumnRegion, baseKey, limit);
 
@@ -198,7 +215,7 @@ public class LynxDbTable implements Table {
     @FunctionalInterface
     private interface RangeOperator {
         List<byte[]> doRange(
-                LsmTree columnRegion,
+                ColumnRegion columnRegion,
                 byte[] baseKey,
                 int limit
         );

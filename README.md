@@ -58,4 +58,4 @@ See [MAINTAINERS](./MAINTAINERS)
 
 ![JetBrains](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg)
 
-Thanks for [JetBrains](https://jb.gg/OpenSourceSupport) license!
+Thanks for [JetBrains](https://jb.gg/OpenSourceSupport) license !

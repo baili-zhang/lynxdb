@@ -56,9 +56,21 @@ public interface FileUtils {
         }
     }
 
-    static boolean notExist(Path filePath) {
+    static boolean exist(Path filePath) {
         File file = filePath.toFile();
-        return !file.exists();
+        return file.exists();
+    }
+
+    static boolean notExist(Path filePath) {
+        return !exist(filePath);
+    }
+
+    static void createFile(Path filePath) {
+        try {
+            Files.createFile(filePath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static void createDir(File file) {

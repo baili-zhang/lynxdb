@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022-2024 Baili Zhang.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.bailizhang.lynxdb.socket.server;
 
 import com.bailizhang.lynxdb.core.arena.ArenaBuffer;
@@ -12,12 +28,14 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.bailizhang.lynxdb.core.utils.PrimitiveTypeUtils.INT_LENGTH;
 
 public record SocketContext (
         SelectionKey selectionKey,
         ConcurrentLinkedQueue<WritableSocketResponse> responses,
+        AtomicInteger unFinishedRequest,
         ArenaBufferManager arenaBufferManager
 ) {
 
@@ -27,12 +45,20 @@ public record SocketContext (
         return new SocketContext(
                 selectionKey,
                 new ConcurrentLinkedQueue<>(),
+                new AtomicInteger(0),
                 new ArenaBufferManager()
         );
     }
 
     public void pollResponse() {
         responses.poll();
+        int unFinished = unFinishedRequest.decrementAndGet();
+
+        if(unFinished == 0) {
+            selectionKey.interestOpsAnd(SelectionKey.OP_READ);
+        } else if(unFinished < 0) {
+            throw new RuntimeException();
+        }
     }
 
     public WritableSocketResponse peekResponse() {
@@ -73,11 +99,15 @@ public record SocketContext (
             requests.add(new SegmentSocketRequest(selectionKey, serial, data));
         }
 
+        int count = unFinishedRequest.get();
+        while(!unFinishedRequest.compareAndSet(count, count + requests.size())) {
+            count = unFinishedRequest.get();
+        }
+
         return requests;
     }
 
     public void destroy() {
-        selectionKey.cancel();
         arenaBufferManager.dealloc();
     }
 }

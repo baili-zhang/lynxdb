@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Baili Zhang.
+ * Copyright 2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package com.bailizhang.lynxdb.server.mode;
+package com.bailizhang.lynxdb.table.config;
 
-public interface LynxDbServer extends Runnable {
+public record TableOptions(
+        String baseDir,
+        LsmTreeOptions lsmTreeOptions
+) {
 }
