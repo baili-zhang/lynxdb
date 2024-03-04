@@ -508,12 +508,17 @@ public class SsTable {
         KeyEntry midKeyEntry = null;
 
         while(begin <= end) {
-            mid = begin + ((end - begin) >> 1);
-            midSecondIndexEntry = findSecondIndexEntry(mid, buffer);
+            idx = mid = begin + ((end - begin) >> 1);
+
+            midSecondIndexEntry = findSecondIndexEntry(idx, buffer);
             midKeyEntry = findKeyEntry(midSecondIndexEntry);
 
-            if(Arrays.compare(key, midKeyEntry.key()) <= 0) {
-                idx = mid;
+            int compareValue = Arrays.compare(key, midKeyEntry.key());
+            if(compareValue == 0) {
+                break;
+            }
+
+            if(compareValue < 0) {
                 end = mid - 1;
             } else {
                 begin = mid + 1;
