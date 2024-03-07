@@ -79,7 +79,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.bailizhang.lynxdb.server.LynxDbMainServer</mainClass>
+                                    <mainClass>LynxDbMainServer</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
