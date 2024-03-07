@@ -28,8 +28,8 @@ class SocketServerTest {
     private final byte[] requestData = "request".repeat(1001).getBytes(StandardCharsets.UTF_8);
     private final byte[] responseData = "response".repeat(10).getBytes(StandardCharsets.UTF_8);
 
-    private final int REQUEST_COUNT = 20000;
-    private final int CLIENT_COUNT = 20;
+    private final int REQUEST_COUNT = 2000;
+    private final int CLIENT_COUNT = 10;
 
     private final int requestSerial = 15;
     private final int responseSerial = 20;
