@@ -173,8 +173,18 @@ class SsTableTest {
         byte[] key = G.I.toBytes("key" + 1999);
         int limit = 5;
 
-        List<Key> keys = ssTable.rangeBefore(key, limit, new HashSet<>(), new HashSet<>());
+        HashSet<Key> deletedKeys = new HashSet<>();
+        deletedKeys.add(new Key(G.I.toBytes("key" + 1996)));
+
+        HashSet<Key> existedKeys = new HashSet<>();
+        deletedKeys.add(new Key(G.I.toBytes("key" + 1995)));
+
+        List<Key> keys = ssTable.rangeBefore(key, limit, deletedKeys, existedKeys);
         assert keys.size() == limit;
+
+        for(Key findKey : keys) {
+            System.out.println(G.I.toString(findKey.bytes()));
+        }
     }
 
     @Test
@@ -184,7 +194,17 @@ class SsTableTest {
         byte[] key = G.I.toBytes("key" + 1999);
         int limit = 5;
 
-        List<Key> keys = ssTable.rangeNext(key, limit, new HashSet<>(), new HashSet<>());
+        HashSet<Key> deletedKeys = new HashSet<>();
+        deletedKeys.add(new Key(G.I.toBytes("key" + 200)));
+
+        HashSet<Key> existedKeys = new HashSet<>();
+        deletedKeys.add(new Key(G.I.toBytes("key" + 201)));
+
+        List<Key> keys = ssTable.rangeNext(key, limit, deletedKeys, existedKeys);
         assert keys.size() == limit;
+
+        for(Key findKey : keys) {
+            System.out.println(G.I.toString(findKey.bytes()));
+        }
     }
 }

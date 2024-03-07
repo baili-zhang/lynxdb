@@ -214,6 +214,11 @@ class LynxDbTableTest {
         );
 
         assert multiKeys.size() == 10;
+
+        multiKeys.forEach(pair -> {
+            System.out.println("Key: " + G.I.toString(pair.left()));
+            pair.right().forEach((col, val) -> System.out.println("column: " + col + ", value: " + G.I.toString(val)));
+        });
     }
 
     @Test
@@ -231,11 +236,16 @@ class LynxDbTableTest {
         );
 
         assert multiKeys.size() == 10;
+
+        multiKeys.forEach(pair -> {
+            System.out.println("Key: " + G.I.toString(pair.left()));
+            pair.right().forEach((col, val) -> System.out.println("column: " + col + ", value: " + G.I.toString(val)));
+        });
     }
 
     @Test
     void testFunc08() {
-        long deadline = System.currentTimeMillis() + 30 * 1000;
+        long deadline = System.currentTimeMillis() + 3 * 1000;
 
         insert(deadline);
 
