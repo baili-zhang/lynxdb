@@ -185,7 +185,7 @@ public class LsmTree {
                 limit,
                 Comparator.reverseOrder(),
                 mutable::rangeBefore,
-                immutable == null ? null : immutable::rangeNext,
+                immutable == null ? null : immutable::rangeBefore,
                 levels::rangeBefore
         );
     }

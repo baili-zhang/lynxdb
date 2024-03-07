@@ -454,7 +454,7 @@ public class SsTable {
     ) {
         List<Key> range = new ArrayList<>();
 
-        while (isRangeNext ? firstIndexBeginIdx < firstIndexEntries.size() : firstIndexBeginIdx > 0) {
+        while (isRangeNext ? firstIndexBeginIdx < firstIndexEntries.size() : firstIndexBeginIdx >= 0) {
             SecondIndexRegion secondIndexRegion = findSecondIndexRegion(firstIndexBeginIdx);
             ByteBuffer buffer = secondIndexRegion.buffer();
             int keyAmount = secondIndexRegion.keyAmount();
