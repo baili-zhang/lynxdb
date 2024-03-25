@@ -118,26 +118,26 @@ public class LdtpStateMachine implements StateMachine {
 
         byte[] newValue = ServerNode.nodesToBytes(memberSet);
 
-        raftMetaTable.insert(
-                MEMBERS_KEY,
-                RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN,
-                newValue,
-                -1
-        );
+//        raftMetaTable.insert(
+//                MEMBERS_KEY,
+//                RAFT_COLUMN_FAMILY,
+//                META_INFO_COLUMN,
+//                newValue,
+//                -1
+//        );
     }
 
     @Override
     public synchronized void addClusterMembers(List<ServerNode> members) {
         byte[] value = ServerNode.nodesToBytes(members);
 
-        raftMetaTable.insert(
-                MEMBERS_KEY,
-                RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN,
-                value,
-                -1
-        );
+//        raftMetaTable.insert(
+//                MEMBERS_KEY,
+//                RAFT_COLUMN_FAMILY,
+//                META_INFO_COLUMN,
+//                value,
+//                -1
+//        );
     }
 
     @CheckThreadSafety
@@ -158,13 +158,13 @@ public class LdtpStateMachine implements StateMachine {
 
     @Override
     public synchronized void currentTerm(int term) {
-        raftMetaTable.insert(
-                CURRENT_TERM,
-                RAFT_COLUMN_FAMILY,
-                META_INFO_COLUMN,
-                BufferUtils.toBytes(term),
-                -1
-        );
+//        raftMetaTable.insert(
+//                CURRENT_TERM,
+//                RAFT_COLUMN_FAMILY,
+//                META_INFO_COLUMN,
+//                BufferUtils.toBytes(term),
+//                -1
+//        );
     }
 
     @Override
@@ -199,13 +199,13 @@ public class LdtpStateMachine implements StateMachine {
             return false;
         }
 
-        raftMetaTable.insert(
-                key,
-                RAFT_COLUMN_FAMILY,
-                VOTE_FOR,
-                value,
-                -1
-        );
+//        raftMetaTable.insert(
+//                key,
+//                RAFT_COLUMN_FAMILY,
+//                VOTE_FOR,
+//                value,
+//                -1
+//        );
 
         return true;
     }

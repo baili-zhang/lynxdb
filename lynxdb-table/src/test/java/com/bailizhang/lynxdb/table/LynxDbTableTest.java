@@ -18,6 +18,7 @@ package com.bailizhang.lynxdb.table;
 
 import com.bailizhang.lynxdb.core.common.Converter;
 import com.bailizhang.lynxdb.core.common.G;
+import com.bailizhang.lynxdb.core.common.Tuple;
 import com.bailizhang.lynxdb.table.config.LsmTreeOptions;
 import com.bailizhang.lynxdb.table.config.TableOptions;
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.locks.LockSupport;
 
 class LynxDbTableTest {
@@ -68,11 +70,9 @@ class LynxDbTableTest {
                 String value = key + column;
 
                 lsmTree.insert(
-                        G.I.toBytes(key),
                         COLUMN_FAMILY,
                         column,
-                        G.I.toBytes(value),
-                        timeout
+                        List.of(new Tuple<>(G.I.toBytes(key), G.I.toBytes(value), timeout))
                 );
             }
         }
@@ -147,11 +147,9 @@ class LynxDbTableTest {
         byte[] value = G.I.toBytes("LynxDb");
 
         lsmTree.insert(
-                key,
                 COLUMN_FAMILY,
                 column,
-                value,
-                -1
+                List.of(new Tuple<>(key, value, -1L))
         );
 
         insert();
@@ -191,7 +189,7 @@ class LynxDbTableTest {
         assert !lsmTree.existKey(key, COLUMN_FAMILY, column);
 
         byte[] value = G.I.toBytes("value");
-        lsmTree.insert(key, COLUMN_FAMILY, column, value, -1);
+        lsmTree.insert(COLUMN_FAMILY, column, List.of(new Tuple<>(key, value, -1L)));
 
         assert lsmTree.existKey(key, COLUMN_FAMILY, column);
 
