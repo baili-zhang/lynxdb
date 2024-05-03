@@ -195,35 +195,35 @@ public class LynxDbConnection {
     }
 
     public void insert(
-            byte[] key,
             String columnFamily,
             String column,
+            byte[] key,
             byte[] value
     ) throws ConnectException {
         insert(
-                key,
                 columnFamily,
                 column,
-                -1L,
-                value
+                key,
+                value,
+                -1L
         );
     }
 
     public void insert(
-            byte[] key,
             String columnFamily,
             String column,
-            long timeout,
-            byte[] value
+            byte[] key,
+            byte[] value,
+            long timeout
     ) throws ConnectException {
         DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(LDTP_METHOD);
         dataBlocks.appendRawByte(LdtpMethod.INSERT);
-        dataBlocks.appendVarBytes(key);
         dataBlocks.appendVarStr(columnFamily);
         dataBlocks.appendVarStr(column);
-        dataBlocks.appendRawLong(timeout);
+        dataBlocks.appendVarBytes(key);
         dataBlocks.appendVarBytes(value);
+        dataBlocks.appendRawLong(timeout);
 
         SelectionKey selectionKey = selectionKey();
         int serial = socketClient.send(selectionKey, dataBlocks.toBuffers());
