@@ -20,6 +20,7 @@ import com.bailizhang.lynxdb.core.buffers.Buffers;
 import com.bailizhang.lynxdb.core.common.DataBlocks;
 import com.bailizhang.lynxdb.core.common.G;
 import com.bailizhang.lynxdb.core.common.Pair;
+import com.bailizhang.lynxdb.core.common.Tuple;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpCode;
 import com.bailizhang.lynxdb.ldtp.annotations.LdtpMethod;
 import com.bailizhang.lynxdb.server.engine.params.QueryParams;
@@ -103,16 +104,29 @@ public class LdtpStorageEngine extends BaseStorageEngine {
     public QueryResult doInsert(QueryParams params) {
         Buffers content = params.content();
 
-        byte[] key = content.nextPartBytes();
         String columnFamily = content.nextStringPart();
         String column = content.nextStringPart();
-        long timeout = content.getLong();
-        byte[] value = content.nextPartBytes();
 
-        logger.debug("Insert key: {}, columnFamily: {}, column: {}, timeout: {}, value: {}.",
-                G.I.toString(key), columnFamily, column, timeout, G.I.toString(value));
+        List<Tuple<byte[], byte[], Long>> kvPairs = new ArrayList<>();
 
-        dataTable.insert(key, columnFamily, column, value, timeout);
+        StringBuilder pairsMsg = new StringBuilder();
+        while (content.hasRemaining()) {
+            byte[] key = content.nextPartBytes();
+            byte[] value = content.nextPartBytes();
+            long timeout = content.getLong();
+
+            kvPairs.add(new Tuple<>(key, value, timeout));
+            pairsMsg.append(String.format(
+                    "{ key: %s, value: %s, timeout: %d }",
+                    G.I.toString(key),
+                    G.I.toString(value),
+                    timeout
+            ));
+        }
+
+        logger.debug("Insert into columnFamily: {}, column: {}, kvPairs: {}", columnFamily, column, pairsMsg);
+
+        dataTable.insert(columnFamily, column, kvPairs);
 
         DataBlocks dataBlocks = new DataBlocks(false);
         dataBlocks.appendRawByte(VOID);

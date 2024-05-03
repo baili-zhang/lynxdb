@@ -17,6 +17,7 @@
 package com.bailizhang.lynxdb.table;
 
 import com.bailizhang.lynxdb.core.common.Pair;
+import com.bailizhang.lynxdb.core.common.Tuple;
 
 import java.util.HashMap;
 import java.util.List;
@@ -45,12 +46,11 @@ public interface Table {
     );
 
     void insert(
-            byte[] key,
             String columnFamily,
             String column,
-            byte[] value,
-            long timeout
+            List<Tuple<byte[], byte[], Long>> kvPairs
     );
+
     void insert(
             byte[] key,
             String columnFamily,

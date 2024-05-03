@@ -17,5 +17,5 @@
 package com.bailizhang.lynxdb.core.common;
 
 public interface Version {
-    String LYNXDB = "1.0.0-alpha";
+    String LYNXDB = "2024.5.3-alpha";
 }

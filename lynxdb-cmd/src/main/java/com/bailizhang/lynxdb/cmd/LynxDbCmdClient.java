@@ -175,9 +175,9 @@ public class LynxDbCmdClient extends Shutdown {
         String value = command.poll();
 
         connection.insert(
-                G.I.toBytes(key),
                 columnFamily,
                 column,
+                G.I.toBytes(key),
                 G.I.toBytes(value)
         );
     }

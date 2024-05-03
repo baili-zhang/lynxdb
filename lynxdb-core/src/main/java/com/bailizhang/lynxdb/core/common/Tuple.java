@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Baili Zhang.
+ * Copyright 2024 Baili Zhang.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-package com.bailizhang.lynxdb.timewheel.task;
+package com.bailizhang.lynxdb.core.common;
 
-public record TaskConsumer(
-        byte[] data,
-        Consumable consumable
-) implements Runnable {
-    @Override
-    public void run() {
-        consumable.consume(data);
-    }
+public record Tuple<F, S, T>(F first, S second, T third) {
 }

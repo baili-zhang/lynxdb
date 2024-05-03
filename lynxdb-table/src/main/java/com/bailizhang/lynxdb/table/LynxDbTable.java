@@ -17,6 +17,7 @@
 package com.bailizhang.lynxdb.table;
 
 import com.bailizhang.lynxdb.core.common.Pair;
+import com.bailizhang.lynxdb.core.common.Tuple;
 import com.bailizhang.lynxdb.core.utils.FileUtils;
 import com.bailizhang.lynxdb.table.config.TableOptions;
 import com.bailizhang.lynxdb.table.exception.DeletedException;
@@ -108,15 +109,16 @@ public class LynxDbTable implements Table {
 
     @Override
     public void insert(
-            byte[] key,
             String columnFamily,
             String column,
-            byte[] value,
-            long timeout
+            List<Tuple<byte[], byte[], Long>> kvPairs
     ) {
         ColumnFamilyRegion region = findColumnFamilyRegion(columnFamily);
         LsmTree columnRegion = region.findColumnRegion(column);
-        columnRegion.insert(key, value, timeout);
+
+        for(var pair : kvPairs) {
+            columnRegion.insert(pair.first(), pair.second(), pair.third());
+        }
     }
 
     @Override

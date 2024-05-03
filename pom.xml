@@ -7,7 +7,7 @@
     <groupId>com.bailizhang.lynxdb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0-alpha</version>
+    <version>2024.5.3-alpha</version>
 
     <modules>
         <module>lynxdb-server</module>
@@ -24,9 +24,9 @@
 
     <properties>
         <springboot.version>3.1.0</springboot.version>
-        <lynxdb.version>1.0.0-alpha</lynxdb.version>
+        <lynxdb.version>2024.5.3-alpha</lynxdb.version>
         <slf4j.api.version>2.0.6</slf4j.api.version>
-        <logback.version>1.3.6</logback.version>
+        <logback.version>1.4.14</logback.version>
         <graalvm.version>21.2.0</graalvm.version>
         <junit.version>5.8.2</junit.version>
         <maven.compiler.source>21</maven.compiler.source>

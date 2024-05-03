@@ -1,2 +1,2 @@
 #!/bin/bash
-java -jar lib/lynxdb-cmd-1.0.0-alpha.jar
+java -jar lib/lynxdb-cmd-2024.5.3-alpha.jar
